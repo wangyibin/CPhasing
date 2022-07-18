@@ -1,0 +1,7 @@
+click
+cooler
+joblib
+rich
+numpy
+pandas
+pytools

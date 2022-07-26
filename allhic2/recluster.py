@@ -84,6 +84,7 @@ class reCluster(object):
         """
 
         tmp = self.reClusterTable[self.groups].values.flatten()
+        tmp = pd.unique(tmp)
         _passed = sorted(set(tmp[~pd.isna(tmp)]))
 
         return _passed
@@ -336,6 +337,13 @@ class reCluster(object):
             self.reClusterTable.loc[i, 'uncluster'] = ','.join(tmp_uncluster) \
                                                             if tmp_uncluster else np.nan
 
+    def rescue_by_conflict(self):
+        """
+        rescue contigs by conflict between shared contigs
+        """
+        pass
+        
+
     def _uncluster_append(self, row, contig):
         if pd.isna(row) is True:
             return contig
@@ -419,7 +427,7 @@ class reCluster(object):
         --------
         >>> rc.save('recluster.txt')
         """
-        self.reClusterTable.to_csv(output, sep='\t', header=True, index=False)
+        self.reClusterTable.to_csv(output, sep='\t', header=True, index=False, na_rep='NA')
 
     def to_clusterTable(self):
         """

@@ -30,6 +30,10 @@ class CountRE:
 
     Params:
     --------
+    countRE: str
+        countRE file
+    minRE:
+        minimum RE of countRE [3]
 
     Returns:
     --------
@@ -280,13 +284,24 @@ class AlleleTable:
         """
         get contig pairs sharing informations
 
+        Params:
+        --------
+        symmetrix: bool
+            symmetric pairs [True]
+
         Returns:
         --------
         pd.DataFrame:
+            shared allelic number between two contigs
 
         Examples:
         --------
         >>> at.get_shared()
+                                                            0
+        level_0                  level_1                     
+        utg000008l_137000_173999 utg000517l_691000_1025999  1
+        utg000008l_173999_267139 utg000123l_932000_1434999  1
+                                utg000517l_691000_1025999  3
         """
         def _func(row):
             return list(combinations(row.dropna(), 2))
@@ -300,7 +315,8 @@ class AlleleTable:
             _share_table2 = _share_table.copy()
             _share_table2.columns = ['level_1', 'level_0', 0]
             _share_table = pd.concat([_share_table, _share_table2])
-            _share_table.set_index(['level_0', 'level_1'])
+            _share_table = _share_table.sort_values(by=['level_0', 'level_1'], axis=0)
+            _share_table = _share_table.set_index(['level_0', 'level_1'])
 
         return _share_table
         
@@ -392,11 +408,11 @@ class PairTable:
     
     @property
     def Contig1(self):
-        return set(self.data.index.get_level_values(0))
+        return pd.unique(self.data.index.get_level_values(0))
 
     @property
     def Contig2(self):
-        return set(self.data.index.get_level_values(1))
+        return pd.unique(self.data.index.get_level_values(1))
 
     def symmetric_pairs(self):
         """
@@ -422,7 +438,7 @@ class PairTable:
         Returns:
         --------
         bool
-            returns a boolean indicating whether the pairtable is symmetric
+            returns a boolefffan indicating whether the pairtable is symmetric
 
         Examples:
         --------

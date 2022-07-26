@@ -27,6 +27,6 @@ def trim_fastq():
 
 def trimmed_mapping():
     command = []
-
+    run_cmd
 
 

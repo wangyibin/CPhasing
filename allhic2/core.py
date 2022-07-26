@@ -15,8 +15,11 @@ import sys
 import numpy as np
 import pandas as pd 
 
-from collections import OrderedDict
+from collections import Counter, OrderedDict
+from itertools import combinations
 from pathlib import Path
+
+from allhic2.utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +193,8 @@ class AlleleTable:
             return pd.Series(sorted(row_filter), name=row.name)
 
         df = pd.read_csv(self.filename, sep='\t', header=None, 
-                            index_col=0, names=self.columns)
+                            index_col=0, names=self.columns,
+                            usecols=self.columns)
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
         df = df.drop(1, axis=1)
@@ -271,13 +275,51 @@ class AlleleTable:
         """
         return len(self.contigs)
     
-    def get_shared(self):
+
+    def get_shared(self, symmetrix=True):
+        """
+        get contig pairs sharing informations
+
+        Returns:
+        --------
+        pd.DataFrame:
+
+        Examples:
+        --------
+        >>> at.get_shared()
+        """
+        def _func(row):
+            return list(combinations(row.dropna(), 2))
         
-        return
+        _share_table = self.data.apply(_func, axis=1).values.flatten()
+        _share_table = list_flatten(_share_table)
+        _share_table = Counter(_share_table)
+        _share_table = pd.Series(_share_table)
+        if symmetrix:
+            _share_table = _share_table.reset_index()
+            _share_table2 = _share_table.copy()
+            _share_table2.columns = ['level_1', 'level_0', 0]
+            _share_table = pd.concat([_share_table, _share_table2])
+            _share_table.set_index(['level_0', 'level_1'])
+
+        return _share_table
+        
 
     def save(self, output):
-        self.data.to_csv(output, sep='\t', header=None, index=True)
+        """
+        save allele tabel to output
 
+        Params:
+        --------
+        output: str
+            output file
+
+        Examples:
+        --------
+        >>> at.save('output.allele.table')
+        """
+        self.data.to_csv(output, sep='\t', header=None, index=True)
+    
 
 class PairTable:
     """
@@ -289,6 +331,8 @@ class PairTable:
         input file of pairs table
     symmetrix: bool
         symmetric pairs [True]
+    index_contig: bool
+        index by contig [True]
 
     Examples:
     --------
@@ -301,16 +345,18 @@ class PairTable:
     True
 
     """ 
-    def __init__(self, infile, symmetric=True):
+    def __init__(self, infile, symmetric=True, index_contig=True):
         self.filename = infile
         if not Path(self.filename).exists():
             logger.error(f'No such file of `{self.filename}`.')
             sys.exit()
             
         self.data = self.import_pairs()
-        if symmetric is True:
+        if symmetric:
             self.symmetric_pairs()
 
+        if index_contig:
+            self.data = self.data.set_index(['Contig1', 'Contig2'])
 
     def import_pairs(self):
 
@@ -344,6 +390,14 @@ class PairTable:
         """
         return self.data.columns.tolist()
     
+    @property
+    def Contig1(self):
+        return set(self.data.index.get_level_values(0))
+
+    @property
+    def Contig2(self):
+        return set(self.data.index.get_level_values(1))
+
     def symmetric_pairs(self):
         """
         symmetric pairs dataframe
@@ -377,7 +431,76 @@ class PairTable:
         """
         return (self.data['#X'] > self.data['Y']).any()
 
+    def get_contacts(self, contig1, contig2):
+        """
+        get contacts dataframe between two contig lists, 
+        the pairs table must be symmetric and index by Contig1
+        and Contig2
 
+        Params:
+        --------
+        contig1: list or list-like
+            list of contigs
+        contig2: list or list-like
+            list of contigs
+        
+        Returns:
+        --------
+        pd.DataFrame:
+            dataframe of two contig lists
+
+        Examples:
+        --------
+        >>> contig1 = ['utg001']
+        >>> contig2 = ['utg002', 'utg003']
+        >>> pt.get_contacts(contig1, contig2)
+                            #X  Y  RE1   RE2  ObservedLinks  ExpectedLinksIfAdjacent     Label
+            Contig1 Contig2                                                                                    
+            utg001 utg002   3  20  1247  532  46             426.6                       ok
+                   utg003   3  29  1247  558  28             430.0                       ok
+        """
+        assert self.is_symmetric, "The pair table must be symmetric"
+
+        tmp_df = self.data.reindex((i, j) for i in contig1 for j in contig2)
+        tmp_df = tmp_df.dropna(how='all', axis=0)
+        
+        return tmp_df
+        
+    def get_normalized_contact(self, contig1, contig2):
+        """
+        get normalized contact between two contig lists
+
+        Params:
+        --------
+        contig1: list or list-like
+            list of contigs
+        contig2: list or list-like
+            list of contigs
+        
+        Returns:
+        --------
+        float:
+            normalized contact
+
+        Examples:
+        --------
+        >>> contig1 = ['utg001']
+        >>> contig2 = ['utg002', 'utg003']
+        >>> pt.get_normalized_contact(contig1, contig2)
+        0.05
+        """
+        tmp_df = self.get_contacts(contig1, contig2)
+        
+        if tmp_df.empty:
+            return 0
+        
+        L = tmp_df['ObservedLinks'].sum()
+        C = tmp_df['RE2'].sum()
+        Cu = tmp_df['RE1'][0]
+        S = L/(Cu + C)
+
+        return S 
+   
     def save(self, output):
         """
         save pairtable to file

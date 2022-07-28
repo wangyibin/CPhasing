@@ -6,7 +6,6 @@ core functions of allhic2
 """
 
 
-import argparse
 import logging
 import os
 import os.path as op
@@ -32,12 +31,13 @@ class CountRE:
     --------
     countRE: str
         countRE file
-    minRE:
+    minRE: int
         minimum RE of countRE [3]
 
     Returns:
     --------
-    Object of countRE
+    object:
+        object of countRE
 
     Examples:
     --------
@@ -62,7 +62,8 @@ class CountRE:
         header of countRE
 
         Returns:
-        list of header
+        list:
+            list of header
 
         Examples:
         --------
@@ -106,18 +107,37 @@ class CountRE:
     @property
     def length(self):
         """
-        length of all contigs
+        Length of all contigs
 
         Returns:
         --------
-        Length of all contigs
+        int:
+            Length of all contigs
 
         Examples:
+        --------
         >>> cr.length
         552000
         """
         return self.data['Length'].sum()
+    
+    
+    def get_group_length(self, contigs: list) -> int:
+        """
+        Get length of a group contigs
 
+        Returns:
+        --------
+        int:
+           Length of contigs
+
+        Examples:
+        --------
+        >>> contigs = ['utg001', 'utg002']
+        >>> cr.get_group_length(contigs)
+        523330
+        """
+        return self.data.loc[contigs]['Length'].sum()
 
 class AlleleLine:
     """
@@ -408,10 +428,26 @@ class PairTable:
     
     @property
     def Contig1(self):
+        """
+        contigs in Contig1
+
+        Returns:
+        --------
+        np.array:
+            contigs in Contig1
+        """
         return pd.unique(self.data.index.get_level_values(0))
 
     @property
     def Contig2(self):
+        """
+        contigs in Contig2
+
+        Returns:
+        --------
+        np.array:
+            contigs in Contig2
+        """
         return pd.unique(self.data.index.get_level_values(1))
 
     def symmetric_pairs(self):

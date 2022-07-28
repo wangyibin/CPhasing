@@ -5,18 +5,19 @@
 recluster artition results by allele table
 """
 
-import argparse
 import logging
 import os
 import os.path as op
 import sys
+from tkinter import NONE
 
 import numpy as np
 import pandas as pd
+import pprint
 
 from collections import Counter, OrderedDict, defaultdict
-from joblib import Parallel, delayed
-from pytools import natsorted
+# from joblib import Parallel, delayed
+# from pytools import natsorted
 
 from allhic2.core import (
     AlleleTable,
@@ -34,23 +35,31 @@ class reCluster(object):
 
     Params:
     -------
-    cluster_file: `str`, cluster file from allhic
-    at_file: `str`, allele table from allhic
-    ploidy: `int`, ploidy of assembly
-    threads: `int`, threads of programs [4]
-    iter_round: `int`, round of rescue iteration [5]
+    cluster_file: str
+        cluster file from allhic
+    at_file: str
+        allele table from allhic
+    ploidy: int
+        ploidy of assembly
+    countRE_file: str
+        countRE file from allhic [None]
+    pairs_file: str
+        pairs file from allhic [None]
+    threads: int
+        threads of programs [4]
+    
 
     Returns:
     -------
+    object:
+        object of recluster
 
     Examples:
     -------
     >>> recluster("cluster.txt", "Allele.ctg.table", 4)
-
     """
-    def __init__(self, cluster_file, at_file, ploidy,
-                countRE_file=None, pairs_file=None,
-                threads=4, iter_round=5):
+    def __init__(self, cluster_file: str, at_file: str, ploidy: int,
+                countRE_file=None, pairs_file=None, threads=4):
 
         self.clusterFile = cluster_file
         self.atFile = at_file
@@ -58,7 +67,6 @@ class reCluster(object):
         self.pairFile = pairs_file
         self.ploidy = ploidy
         self.threads = threads
-        self.iter_round = iter_round
 
         self.AlleleTable = AlleleTable(self.atFile)
         self.ClusterTable = ClusterTable(self.clusterFile)
@@ -71,6 +79,7 @@ class reCluster(object):
             self.PairTable = PairTable(self.pairFile)
         self._contig_groups = self.ClusterTable.contig_groups_dict
         self.groups = self.ClusterTable.groups
+      
         self.groupIdx = dict(zip(self.groups, range(1, len(self.groups) + 1)))
 
         self._contig_groups_idx = self.convert_group2idx()
@@ -85,7 +94,7 @@ class reCluster(object):
 
         tmp = self.reClusterTable[self.groups].values.flatten()
         tmp = pd.unique(tmp)
-        _passed = sorted(set(tmp[~pd.isna(tmp)]))
+        _passed = sorted(tmp[~pd.isna(tmp)])
 
         return _passed
 
@@ -94,22 +103,58 @@ class reCluster(object):
         """
         dict of passed contigs and its group
         """
-        l = list(map(lambda x: list(x.items()),
-                    self.reClusterTable[self.groups].to_dict('records')))
-
-        _passed_set = set([i[::-1] for item in l for i in item
-                                if pd.isna(i[1]) is not True])
+        _passed_set = list_flatten(map(lambda x: set(zip(
+                            self.group(x), [x] * len(self.group(x)))), self.groups))
+        
         _passed_dict = dict(_passed_set)
 
         return _passed_dict
+
+    @property
+    def uncluster_header(self):
+        """
+        header of uncluster
+        """
+        
+        _length = self.reClusterTable['uncluster'].str.split(",", expand=True).values.shape[1]
+
+        return [f'uncluster{i}' for i in range(1, _length + 1)]
+
+    @property
+    def uncluster_df(self):
+        """
+        uncluster dataframe
+        
+        Returns:
+        --------
+        pd.DataFrame:
+            dataframe of uncluster
+        
+        Examples:
+        --------
+        >>> rc.uncluster_df
+        uncluster1               uncluster2 uncluster3 uncluster4
+        0                            NaN                      NaN        NaN        NaN
+        1       utg004980l_348000_379999                      NaN        NaN        NaN
+        2                            NaN                      NaN        NaN        NaN
+        """
+        _uncluster_df = self.reClusterTable['uncluster'].str.split(",", expand=True)
+        _uncluster_df.columns = self.uncluster_header
+        _uncluster_df = _uncluster_df.fillna(value=np.nan)
+
+        return _uncluster_df
 
     @property
     def uncluster(self):
         """
         uncluster contigs
         """
-        return sorted(set(list_flatten(
-            self.reClusterTable['uncluster'].str.split(",").dropna())))
+        _uncluster = self.reClusterTable['uncluster'].str.split(",", expand=True)
+        _uncluster = _uncluster.values.flatten()
+        _uncluster = pd.unique(_uncluster)
+        _uncluster = _uncluster[~pd.isna(_uncluster)]
+
+        return sorted(_uncluster)
 
     @property
     def stat(self):
@@ -123,11 +168,34 @@ class reCluster(object):
         Examples:
         --------
         >>> rc.stat
+        {'Total allelic': 1896,
+            'Full cluster allelic': 897,
+            'Uncluster allelic': 4,
+            'Total contigs': 2215,
+            'Total length': 416977289,
+            'Anchored contigs': 2205,
+            'Anchored length': 415973835,
+            'Anchored rate': ' 99.76%',
+            'groups': {'Chr01g1': 554, 
+                        'Chr01g2': 570, 
+                        'Chr01g3': 537, 
+                        'Chr01g4': 544},
+            'lengths': {'Chr01g1': 102008283,
+            'Chr01g2': 105882123,
+            'Chr01g3': 104950420,
+            'Chr01g4': 103133009}}
         """
         return {'Total allelic': len(self.reClusterTable),
                 'Full cluster allelic': len(self.reClusterTable[self.groups].dropna(how='any', axis=0)),
                 'Uncluster allelic': len(self.reClusterTable['uncluster'].dropna()),
-                'groups': dict(map(lambda x: (x, len(self.group(x))), self.groups))}
+                'Total contigs': self.CountRE.ncontigs,
+                'Total length': self.CountRE.length, 
+                'Anchored contigs': len(self.passed),
+                'Anchored length': self.CountRE.get_group_length(self.passed),
+                'Anchored rate': f'{self.CountRE.get_group_length(self.passed)/self.CountRE.length:.2%}',
+                'groups': dict(map(lambda x: (x, len(self.group(x))), self.groups)),
+                'lengths': dict(map(lambda x: (x, self.CountRE.get_group_length(self.group(x) )), self.groups))
+                }
 
     def convert_group2idx(self):
         _contig_groups_tuple = list(zip(*self._contig_groups.items()))
@@ -248,9 +316,6 @@ class reCluster(object):
             self.reClusterTable.loc[tmp_df.index] = tmp_df
             n += len(tmp_df)
 
-        self.check()
-        logger.info(f'Successful rescue `{n}` allelic.')
-
         return n
 
     def check(self):
@@ -266,7 +331,8 @@ class reCluster(object):
         incorrcet_db = defaultdict(list)
         db = {}
         l = list(map(lambda x: list(x.items()),
-                    self.reClusterTable[self.groups].to_dict('record')))
+                    self.reClusterTable[self.groups].dropna(how='all').to_dict('record')))
+
         for i in set([i[::-1] for item in l for i in item
                                 if pd.isna(i[1]) is not True]):
             contig, group = i
@@ -285,11 +351,15 @@ class reCluster(object):
                                         lambda x: self._uncluster_append(x, contig))
 
         ## check passed contigs in uncluster contigs
+        _passed_dict = self.passed_dict
         for i, items in self.reClusterTable['uncluster'].dropna().iteritems():
             _uncluster_list = items.split(',')
             for contig in items.split(','):
-                if contig in self.passed_dict:
-                    _group = self.passed_dict[contig]
+                try:
+                    _group = _passed_dict[contig]
+                except KeyError:
+                    continue
+                else:
                     _old = self.reClusterTable.loc[i, _group]
                     if pd.isna(_old) is True:
                         self.reClusterTable.loc[i, _group] = contig
@@ -301,17 +371,29 @@ class reCluster(object):
     def rescue_by_contacts(self):
         """
         rescue contigs by Hi-C contacts
-        """
-        _uncluster = self.reClusterTable.uncluster.dropna().str.split(",").map(
-            len)
-        _uncluster_idx = _uncluster.sort_values().index
-        _uncluster_df = self.reClusterTable.loc[_uncluster_idx]
 
-        for i, item in _uncluster_df.uncluster.iteritems():
-            tmp_uncluster = item.split(",")
-            for contig in item.split(","):
-                if contig in self.passed_dict:
-                    suggest_group = self.passed_dict[contig]
+        Returns:
+        --------
+        int:
+            number of rescued allelic
+
+        Examples:
+        --------
+        >>> rc.rescue_by_contacts()
+        10
+        """
+        _uncluster_counts = self.uncluster_df.dropna(how='all').count(axis=1)
+        _uncluster_idx = _uncluster_counts.sort_values(ascending=False).index
+        _uncluster_df = self.uncluster_df.iloc[_uncluster_idx]
+
+        n = 0
+        _passed_dict = self.passed_dict 
+        for i, item in _uncluster_df.iterrows():
+            tmp_uncluster = item.dropna().tolist()
+            tmp_item = tmp_uncluster.copy()
+            for contig in tmp_item:
+                if contig in _passed_dict:
+                    suggest_group = _passed_dict[contig]
                 else:
                     res = list(
                         map(
@@ -327,22 +409,79 @@ class reCluster(object):
                     suggest_group = suggest_groups[0]
 
                     _old = self.reClusterTable.loc[i, suggest_group]
-                    if pd.isna(_old) is not True:
-                        suggset_group = suggest_groups[1]
+                    j = 1 
+                    while pd.isna(_old) is not True and j < len(suggest_groups):
+                        suggest_group = suggest_groups[j]
+                        _old = self.reClusterTable.loc[i, suggest_group]
+                        j += 1
                         if res_dict[suggest_group] == 0:
-                            continue
-
+                            break
+                
+                _passed_dict.update({contig: suggest_group})
                 self.reClusterTable.loc[i, suggest_group] = contig
                 tmp_uncluster.remove(contig)
+
             self.reClusterTable.loc[i, 'uncluster'] = ','.join(tmp_uncluster) \
                                                             if tmp_uncluster else np.nan
+            n += 1
 
-    def rescue_by_conflict(self):
+        return n
+
+    def rescue_by_conflict(self, method='greedy'):
         """
         rescue contigs by conflict between shared contigs
-        """
-        pass
+
+        Params:
+        --------
+        method: str
+            method of rescue_by_conflict {"greedy", "strict"} ["greedy"]
+                greedy: greedy to rescue uncluster contigs, 
+                        which contig rescue in first gap
+                strict: strict to rescue uncluster contigs, 
+                        which contig must only one gap
         
+        Returns:
+        --------
+        int:
+            number of rescued allelic
+
+        Examples:
+        --------
+        >>> rc.rescue_by_conflict(method='greedy')
+        20
+        """
+        assert method in {"greedy", "strict"}, \
+                        f"method {method} not in {{'greedy', 'strict'}}" 
+
+        _uncluster_df = self.uncluster_df.dropna(how='all')
+        n = 0
+        for contig in self.uncluster:
+            tmp_df = _uncluster_df.loc[_uncluster_df.where(
+                        _uncluster_df == contig).dropna(how='all').index]
+
+            tmp_recluster_df = self.reClusterTable.loc[tmp_df.index, self.groups]
+            bool_df = pd.isna(tmp_recluster_df).all(axis=0)
+            
+            candidate_groups = bool_df.index[bool_df]
+            if candidate_groups.empty:
+                continue
+            
+            if method == 'greedy':
+                suggest_group = candidate_groups[0]
+               
+            if method == 'strict':
+                if len(candidate_groups) > 1:
+                    continue
+                suggest_group = candidate_groups[0]
+            
+            self.reClusterTable.loc[tmp_df.index, suggest_group] = contig 
+            self.reClusterTable.loc[tmp_df.index, 'uncluster'] = tmp_df.replace(
+                contig, np.nan).apply(lambda x: ",".join(
+                    x.dropna()) if not x.dropna().empty else np.nan, axis=1)
+            
+            n += len(tmp_df)
+        
+        return n
 
     def _uncluster_append(self, row, contig):
         if pd.isna(row) is True:
@@ -376,7 +515,7 @@ class reCluster(object):
 
         Returns:
         --------
-        list
+        list:
             list of contigs in a group
         
         Examples:
@@ -391,7 +530,7 @@ class reCluster(object):
 
         return sorted(set(self.reClusterTable[_group].dropna().tolist()))
 
-    def where(self, contig):
+    def where(self, contig, columns=None):
         """
         where the contig in the reClusterTable
 
@@ -399,7 +538,9 @@ class reCluster(object):
         -------
         contig: str
             contig in reClusterTable
-
+        columns: array-like
+            columns of reClusterTable
+        
         Returns:
         -------
         pd.DataFrame
@@ -408,9 +549,15 @@ class reCluster(object):
         Examples:
         -------
         >>> rc.where('utg00001')
+                  0   Chr01g1  ...   Chr01g4     uncluster
+        1136  Chr01  utg00001  ...  utg00001           NaN
+        1137  Chr01  utg00001  ...  utg00001           NaN
         """
         df = self.reClusterTable.loc[self.reClusterTable.where(
                         self.reClusterTable == contig).dropna(how='all').index]
+        if columns:
+            df  = df[columns]
+
         return df
 
 
@@ -428,6 +575,7 @@ class reCluster(object):
         >>> rc.save('recluster.txt')
         """
         self.reClusterTable.to_csv(output, sep='\t', header=True, index=False, na_rep='NA')
+        logger.info(f'Successful output reClusterTable into `{output}`')
 
     def to_clusterTable(self):
         """
@@ -439,31 +587,56 @@ class reCluster(object):
         """
         self.ClusterTable.from_frame(self.reClusterTable[self.groups])
 
-    def run(self):
+    def run(self, method='greedy', iter_round=5):
         """
         run pipeline of reCluster
+
+        Params:
+        --------
+        method: str
+            method of rescue
+        iter_round: int
+            round of rescue iteration [5]
 
         Examples:
         --------
         >>> rc.run()
         """
+        round = 1
+        logger.info(f"[Round {round}]")
         iter_num = 1
-        logger.info(f'------------- Round {iter_num} ------------')
         n = self.rescue_by_allele()
+        self.check()
 
-        while n > 0 and iter_num <= self.iter_round:
+        while n > 0 and iter_num <= iter_round:
             iter_num += 1
-            logger.info(f'------------- Round {iter_num} ------------')
-            n = self.rescue_by_allele()
+            n += self.rescue_by_allele()
+            self.check()
 
-        logger.info(f'Done {iter_num} round rescue')
+        logger.info(f"\tTotal {n} allelic were rescued")
 
 
         if self.pairFile:
-            self.rescue_by_contacts()
+            round += 1
+            logger.info(f"[Round {round}]")
+            n = self.rescue_by_contacts()
+            
             self.check()
-            self.rescue_by_allele()
+            n += self.rescue_by_allele()
             self.check()
+            logger.info(f"\tTotal {n} allelic were rescued")
+        
+        round += 1
+        logger.info(f"[Round {round}]")
+        n = self.rescue_by_conflict()
+        n += self.rescue_by_allele()
+        self.check()
+        n += self.rescue_by_contacts()
+        self.check()
+        logger.info(f"\tTotal {n} allelic were rescued")
+
+        logger.info("Done")
+        logger.info(pprint.pformat(self.stat))
 
         self.to_clusterTable()
         self.ClusterTable.to_countRE(self.countREFile)

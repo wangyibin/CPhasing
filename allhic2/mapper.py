@@ -5,7 +5,6 @@
 mapper of ALLHiC2
 """
 
-import argparse
 import logging
 import os
 import os.path as op

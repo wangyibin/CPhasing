@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pprint
 
-from collections import Counter, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
 # from joblib import Parallel, delayed
 # from pytools import natsorted
 
@@ -352,9 +352,10 @@ class reCluster(object):
 
         ## check passed contigs in uncluster contigs
         _passed_dict = self.passed_dict
-        for i, items in self.reClusterTable['uncluster'].dropna().iteritems():
-            _uncluster_list = items.split(',')
-            for contig in items.split(','):
+        _uncluster_df = self.uncluster_df.dropna(how='all')
+        for i, items in _uncluster_df.iterrows():
+            _uncluster_list = items.dropna().tolist()
+            for contig in _uncluster_list.copy():
                 try:
                     _group = _passed_dict[contig]
                 except KeyError:
@@ -394,12 +395,13 @@ class reCluster(object):
             for contig in tmp_item:
                 if contig in _passed_dict:
                     suggest_group = _passed_dict[contig]
+    
                 else:
                     res = list(
                         map(
                             lambda x: self.PairTable.get_normalized_contact(
                                 [contig], self.group(x)), self.groups))
-                    if any(res) is not True:
+                    if any(res) is False:
                         continue
                     res_dict = dict(zip(self.groups, res))
                     suggest_groups = sorted(res_dict,
@@ -420,11 +422,10 @@ class reCluster(object):
                 _passed_dict.update({contig: suggest_group})
                 self.reClusterTable.loc[i, suggest_group] = contig
                 tmp_uncluster.remove(contig)
-
+              
             self.reClusterTable.loc[i, 'uncluster'] = ','.join(tmp_uncluster) \
                                                             if tmp_uncluster else np.nan
-            n += 1
-
+            
         return n
 
     def rescue_by_conflict(self, method='greedy'):
@@ -480,7 +481,7 @@ class reCluster(object):
                     x.dropna()) if not x.dropna().empty else np.nan, axis=1)
             
             n += len(tmp_df)
-        
+
         return n
 
     def _uncluster_append(self, row, contig):
@@ -528,7 +529,10 @@ class reCluster(object):
         assert _group in self.groups or _group == 'uncluster', \
                     f"No such of group `{_group}` in {str(self.groups)}"
 
-        return sorted(set(self.reClusterTable[_group].dropna().tolist()))
+        _res = pd.unique(self.reClusterTable[_group])
+        _res = _res[~pd.isna(_res)]
+        return _res[np.argsort(_res)]
+        #return sorted(set(self.reClusterTable[_group].dropna().tolist()))
 
     def where(self, contig, columns=None):
         """
@@ -615,7 +619,6 @@ class reCluster(object):
 
         logger.info(f"\tTotal {n} allelic were rescued")
 
-
         if self.pairFile:
             round += 1
             logger.info(f"[Round {round}]")
@@ -628,7 +631,8 @@ class reCluster(object):
         
         round += 1
         logger.info(f"[Round {round}]")
-        n = self.rescue_by_conflict()
+        n = self.rescue_by_conflict(method=method)
+        self.check()
         n += self.rescue_by_allele()
         self.check()
         n += self.rescue_by_contacts()

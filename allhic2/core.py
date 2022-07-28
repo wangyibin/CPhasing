@@ -54,7 +54,7 @@ class CountRE:
                                     header=0, index_col=0)
         self.data = self.data[self.data['RECounts'] >= self.minRE]
         
-        logger.info(f'Load countRE `{self.filename}` (minRE={self.minRE}).')
+        logger.info(f'Load count RE `{self.filename}` (minRE={self.minRE}).')
 
     @property
     def header(self):
@@ -188,7 +188,7 @@ class AlleleTable:
             logger.error(f'No such file of `{self.filename}`.')
             sys.exit()
 
-        logger.info(f'Load AlleleTable: `{self.filename}`.')
+        logger.info(f'Load allele table: `{self.filename}`.')
         self.check()
         self.get_data()
 
@@ -599,7 +599,7 @@ class ClusterTable:
     """
     def __init__(self, filename):
         self.filename = filename
-        logger.info(f'Load ClusterTable: `{self.filename}`.')
+        logger.info(f'Load cluster table: `{self.filename}`.')
         self.get_data()
 
     def parse(self):

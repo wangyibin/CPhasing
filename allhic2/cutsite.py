@@ -5,7 +5,6 @@
 cut and trim hic reads on ligation site
 """
 
-import argparse
 import logging
 import os
 import os.path as op

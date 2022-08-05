@@ -18,7 +18,7 @@ from collections import Counter, OrderedDict
 from itertools import combinations
 from pathlib import Path
 
-from allhic2.utilities import list_flatten
+from .utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 

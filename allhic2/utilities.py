@@ -10,7 +10,10 @@ import os
 import os.path as op
 import sys
 
+from pathlib import Path, PosixPath
 from subprocess import check_call
+
+logger = logging.getLogger(__name__)
 
 def run_cmd(command):
     """
@@ -31,8 +34,10 @@ def run_cmd(command):
     example.txt result.txt
     0
     """
+    logger.info('Running command:')
+    logger.info('\t' + ' '.join(command))
 
-    check_call(command, shell=True)
+    return check_call(command, shell=False)
 
 
 def xopen(infile, mode='r'):
@@ -55,11 +60,15 @@ def xopen(infile, mode='r'):
     """
     import gzip
 
-    if infile[-3:] == ".gz":
+    if not isinstance(infile, PosixPath):
+        infile = Path(infile)
+    
+    if infile.suffix == ".gz":
         handle = gzip.open(infile, mode + 't')
     else:
         handle = open(infile, mode)
     return handle
+
 
 def list_flatten(list_2d):
     """

@@ -1,7 +1,11 @@
+biopython
 click
 cooler
 joblib
 rich
+ncls
 numpy
+matplotlib
 pandas
+pysam
 pytools

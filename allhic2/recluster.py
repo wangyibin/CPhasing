@@ -2,14 +2,13 @@
 # -*- coding:utf-8 -*-
 
 """
-recluster artition results by allele table
+recluster partition results by allele table
 """
 
 import logging
 import os
 import os.path as op
 import sys
-from tkinter import NONE
 
 import numpy as np
 import pandas as pd
@@ -19,19 +18,20 @@ from collections import OrderedDict, defaultdict
 # from joblib import Parallel, delayed
 # from pytools import natsorted
 
-from allhic2.core import (
+from .core import (
     AlleleTable,
     ClusterTable,
     PairTable,
     CountRE
 )
-from allhic2.utilities import list_flatten
+from .utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 
 
 class reCluster(object):
     """
+    recluster partition results by allele table
 
     Params:
     -------
@@ -437,9 +437,9 @@ class reCluster(object):
         method: str
             method of rescue_by_conflict {"greedy", "strict"} ["greedy"]
                 greedy: greedy to rescue uncluster contigs, 
-                        which contig rescue in first gap
+                        which contig rescued in first gap
                 strict: strict to rescue uncluster contigs, 
-                        which contig must only one gap
+                        which contig must only rescued to one gap
         
         Returns:
         --------

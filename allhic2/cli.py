@@ -2,7 +2,7 @@
 
 import click 
 
-from .. import __version__
+from . import __version__
 
 class CommandGroup(click.Group):
     """
@@ -60,7 +60,7 @@ def mapper(
     """
     mapper of Hi-C reads
     """
-    from ..mapper import HisatMapper
+    from .mapper import HisatMapper
     hm1 = HisatMapper(reference, fastq1)
     hm1.run()
     hm2 = HisatMapper(reference, fastq2)
@@ -138,7 +138,7 @@ def recluster(
         Ploidy : Ploidy.
 
     """
-    from ..recluster import reCluster
+    from .recluster import reCluster
 
     rc = reCluster(clustertable, alleletable, ploidy, count_re, pairs)
     rc.run(method=method)
@@ -147,4 +147,31 @@ def rescue():
     pass
 
 def plot():
+    pass
+
+@cli.group(cls=CommandGroup, short_help='Misc tools.')
+@click.pass_context
+def utils(ctx):
+    pass
+
+
+@utils.command()
+@click.argument(
+    "agp",
+)
+def agp2cluster(agp):
+    pass 
+
+@utils.command()
+@click.argument(
+    "agp",
+    )
+def agp2fasta(agp):
+    pass
+
+@utils.command()
+@click.argument(
+    "agp",
+)
+def agp2tour(agp):
     pass

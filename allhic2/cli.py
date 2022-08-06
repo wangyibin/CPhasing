@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import click 
+import sys 
 
 from . import __version__
 
@@ -159,8 +160,15 @@ def utils(ctx):
 @click.argument(
     "agp",
 )
-def agp2cluster(agp):
-    pass 
+@click.option(
+    "-o",
+    "--output",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def agp2cluster(agp, output):
+    from .agp import agp2cluster
+    agp2cluster(agp, output)
 
 @utils.command()
 @click.argument(

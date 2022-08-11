@@ -15,13 +15,47 @@ from subprocess import check_call
 
 logger = logging.getLogger(__name__)
 
+
+def tail(infile, n, offset=0):
+    """
+    output n lines in file tail
+
+    Params:
+    --------
+    infile: str
+        input file
+    n: int
+        number of lines
+    offset: int
+        offset number [0]
+
+    Returns:
+    --------
+    lines: list
+        list of per line
+
+    Examples:
+    --------
+    >>> tail("sample.txt", 1)
+    ["hello"]
+    """
+
+    from subprocess import Popen, PIPE
+    p = Popen(['tail', '-n', f'{n + offset}', infile], stdout=PIPE)
+    lines = p.stdout.readlines()
+    lines = list(map(lambda x: str(x, "utf-8"), lines))
+
+    return lines
+
+
 def run_cmd(command):
     """
     run command on shell
 
     Params:
     --------
-    command: `list` or `tuple`, command list
+    command: list or tuple
+        command list
 
     Returns:
     --------
@@ -91,4 +125,27 @@ def list_flatten(list_2d):
     """
 
     return [i for item in list_2d for i in item]
+
+def rm_orientation(contig):
+    """
+    remove orientation in the suffix with contig
+
+    Params:
+    --------
+    contig: str
+        contig with orientation
     
+    Returns:
+    --------
+    str:
+        contig without orientation
+
+    Examples:
+    --------
+    >>> contig = 'utg001+'
+    >>> rm_orientation(contig)
+    'utg001'
+
+    """
+    import re
+    return re.sub('[+-]$', '', contig)

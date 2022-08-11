@@ -18,7 +18,7 @@ from collections import Counter, OrderedDict
 from itertools import combinations
 from pathlib import Path
 
-from .utilities import list_flatten
+from .utilities import list_flatten, tail
 
 logger = logging.getLogger(__name__)
 
@@ -715,7 +715,7 @@ class ClusterTable:
 
         Examples:
         --------
-        >>> countRE = CountRE("sample.bwa_mem.GATC.txt")
+        >>> countRE = CountRE()
         >>> ct.to_countRE(countRE)
         """
         self.CountRE = CountRE(countRE)
@@ -810,4 +810,326 @@ class clm(object):
     def strands(self):
         return [('+', '+'), ('+', '-'),
                 ('-', '+'), ('-', '-')]
-      
+
+
+class TourSingle:
+    """
+    Single contig for tour
+
+    Params:
+    --------
+    contig: str or tuple
+        contig end with orientation
+
+    Returns:
+    --------
+    str:
+        conitg end without orientation
+
+    Examples:
+    --------
+    from string
+    >>> contig = 'utg0001+'
+    >>> TourSingle(contig)
+    'utg0001+'
+
+    from tuple
+    >>> contig = ('utg001', '+')
+    >>> TourSingle(contig)
+    'utg0001+'
+    """
+    def __init__(self, contig):
+        if isinstance(contig, str):
+            self._contig = contig
+            self.contig = contig[:-1]
+            self.orient = contig[-1]
+        else:
+            self._contig = ''.join(contig)
+            self.contig = contig[0]
+            self.orient = contig[1]
+        
+        assert self.orient in ['+', '-'], \
+                'Contig must end in a orientation, and must in {"+", "-"}'
+
+    @property
+    def data(self):
+        return self.contig, self.orient
+
+    def __repr__(self):
+        return self._contig
+
+    __str__ = __repr__
+
+class Tour:
+    """
+    Object of tour file.
+
+    Params:
+    --------
+    infile: str
+        input file of tour.
+    
+    Returns:
+    --------
+    object:
+        object of tour
+
+    Examples:
+    --------
+    >>> tour = Tour('Chr01.tour')
+    """
+    def __init__(self, infile):
+        self.filename = infile
+        self.group = Path(self.filename).stem
+
+        self.line = tail(self.filename, 1)[0].strip()
+        self.data = list(map(TourSingle, self.line.split(' ')))
+
+    def __str__(self):
+        return ' '.join(map(str, self.data))
+
+    def __len__(self):
+        return len(self.data)
+    
+    def __iter__(self):
+        return iter(self.to_tuples())
+
+    def __contains__(self, contig):
+        return contig in self.contigs
+
+    def __reversed__(self):
+        """
+        reverse tour data.
+
+        Params:
+        --------
+        None
+
+        Returns:
+        --------
+        None
+
+        Examples:
+        --------
+        >>> tour.data
+        ['utg001+', 'utg002-']
+        >>> tour.reverse()
+        >>> tour.data
+        ['utg002+', 'utg001-']
+        """
+        _data = self.to_tuples()[::-1]
+        _new_data = []
+        for contig, orient in _data:
+            if orient == '+':
+                orient = '-'
+            else:
+                orient = '+'
+            _new_data.append((contig, orient))
+        
+        self.data = list(map(lambda x: TourSingle(''.join(x)), _new_data))
+
+    @property
+    def contigs(self, rm_orient=True):
+        """
+        list of contigs
+
+        Params:
+        --------
+        rm_orient: bool
+            remove orientation in the end of contigs
+
+        Returns:
+        --------
+        list:
+            list of contigs
+
+        Examples:
+        --------
+        >>> tour.contigs
+        ['utg001', 'utg002]
+  
+        """
+        if rm_orient:
+            _contigs = list(map(lambda x: x.contig, self.data))
+        else:
+            _contigs = list(map(lambda x: x._contig, self.data))
+        return _contigs
+    
+    @property
+    def orients(self):
+        """
+        list of orient
+
+        Params:
+        --------
+        None
+
+        Returns:
+        --------
+        list:
+            list of orient
+        
+        Examples:
+        --------
+        >>> tour.orients
+        ['+', '-']
+        """
+        return list(map(lambda x: x.orient, self.data))
+
+    @property
+    def ncontigs(self):
+        """
+        number of contigs.
+
+        Params:
+        --------
+        None
+
+        Returns:
+        --------
+        int:
+            number of contigs
+
+        Examples:
+        --------
+        >>> tour.ncontigs
+        2
+        """
+        return len(self.contigs)
+
+    def to_tuples(self):
+        """
+        Contert tour data to tuples of contig and orient.
+
+        Params:
+        --------
+        None
+        
+        Returns:
+        --------
+        list:
+            A list of contig and orient.
+
+        Examples:
+        --------
+        >>> tour.data
+        ['utg001+', 'utg002-']
+        >>> tour.to_tuples()
+        ('utg001', '+'), ('utg002', '-')
+        """
+        return list(map(lambda x: x.data, self.data))
+
+    @classmethod
+    def from_tuples(self, tuples):
+        """
+        Create or update Tour from a tuples.
+
+        Params:
+        --------
+        tuples: list-like
+            A tuple list of contig and orient.
+        
+        Returns:
+        --------
+        None
+
+        Examples:
+        --------
+        >>> tour = Tour
+        >>> tour.from_tuples(('utg001', '+'), ('utg002', '-'))
+        >>> tour.data
+        ['utg001+', 'utg002-']
+        """
+        self.data = list(map(lambda x: TourSingle(''.join(x)), tuples))
+    
+    def to_agp(self, fasta, gap_length=100):
+        """
+        Convert tour to agp component.
+
+        Params:
+        --------
+        fasta: pyfaidx.Fasta
+            contig-level fasta
+        
+        Returns:
+        --------
+        pd.DataFrame:
+            dataframe of agp component.
+        
+        Examples
+        --------
+        >>> tour.to_agp(fasta)
+        """
+        res = []
+        start = 1
+        i = 1
+        old_end = 0
+        for contig, orient in self:
+            length = len(fasta[contig])
+            
+            start = old_end + 1
+            end = start + length - 1
+            
+            res.append((self.group, start, end, i, 'W', contig, 
+                    1, length, orient))
+            
+            i += 1
+            if i <= len(self) * 2 - 1:
+                res.append((self.group, end + 1, end + gap_length,
+                        i, 'U', gap_length, 'contig', 'yes', 'map'))
+                old_end = end + gap_length
+                i += 1
+            
+        return pd.DataFrame(res)
+
+    def get_fasta(self, fasta):
+        """
+        Get sequences from a contig-level fasta by tour contigs.
+
+        Params:
+        --------
+        fasta: pyfaidx.Fasta
+            contig-level fasta
+
+        Returns:
+        --------
+        list:
+            list of FastaRecord
+
+        Examples:
+        --------
+        >>> fasta = Fasta('contig.fata')
+        >>> tour.get_fasta(fasta)
+        ['AAGCTT', 'ACGAAAGCATGG', 'AATTGGGAAGCA', 'GATACAGATAGA', 'TTTTAAAAATAG']
+        """
+        _seqs = []
+        for contig, orient in self:
+            if orient == '+':
+                _seqs.append(str(fasta[contig]))
+            else:
+                _seqs.append(fasta[contig][::-1].complement.seq)
+        
+        return _seqs
+    
+    def reverse(self):
+        """
+        reverse tour data.
+
+        Params:
+        --------
+        None
+
+        Returns:
+        --------
+        None
+
+        Examples:
+        --------
+        >>> tour.data
+        ['utg001+', 'utg002-']
+        >>> tour.reverse()
+        >>> tour.data
+        ['utg002+', 'utg001-']
+        """
+        self.__reversed__()
+

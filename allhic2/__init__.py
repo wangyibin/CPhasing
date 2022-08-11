@@ -6,7 +6,7 @@ from rich.logging import Console, RichHandler
 
 
 logging.basicConfig(
-    level=logging.INFO,
+    # level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(console=Console(stderr=True))]
@@ -29,4 +29,4 @@ __copyright__ = "Copyright (c) 2022, Yibin Wang"
 __email__ = "yibinwang96@outlook.com"
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.0.2"
+__version__ = "0.0.3"

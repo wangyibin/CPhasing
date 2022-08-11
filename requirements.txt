@@ -7,5 +7,6 @@ ncls
 numpy
 matplotlib
 pandas
+pyfaidx
 pysam
 pytools

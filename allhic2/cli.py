@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 
-from allhic2.core import ClusterTable
+
 import click
 import logging
 import sys 
 
 from . import __version__
+from .core import (
+    AlleleTable, 
+    ClusterTable, 
+    CountRE, 
+    PairTable
+)
 
 logger = logging.getLogger("allhic2")
 class CommandGroup(click.Group):
@@ -130,9 +136,46 @@ def alleles(fasta, cds, method):
 def pregroup():
     pass
 
-def prune():
-    pass
+@cli.command()
+@click.argument(
+    'alleletable',
+    metavar='AlleleTable',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'count_re',
+    metavar='CountRE',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'pairs',
+    metavar='Pairs',
+    type=click.Path(exists=True)
+)
+def prune(
+    alleletable, 
+    count_re,
+    pairs,
+):
+    """
+    Prune allelic signal by allele table.
 
+        AlleleTable : Path to allele table.
+
+        CountRE : Path to countRE file.
+
+        Pairs : Path to allhic pairs.
+
+    """
+    from .prune import Prune
+
+    at = AlleleTable(alleletable)
+    cr = CountRE(count_re)
+    pt = PairTable(pairs, symmetric=False)
+
+    Prune(at, cr, pt)
+    pt.save(pt.filename.replace(".txt", ".prune.txt"))
+    
 def extract():
     pass
 
@@ -145,19 +188,23 @@ def partition():
 @cli.command()
 @click.argument(
     'clustertable',
-    metavar='ClusterTable'
+    metavar='ClusterTable',
+    type=click.Path(exists=True)
 )
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
+    type=click.Path(exists=True)
 )
 @click.argument(
     'count_re',
-    metavar='CountRE'
+    metavar='CountRE',
+    type=click.Path(exists=True)
 )
 @click.argument(
     'pairs',
-    metavar='Pairs'
+    metavar='Pairs',
+    type=click.Path(exists=True)
 )
 @click.argument(
     'ploidy',
@@ -193,7 +240,7 @@ def recluster(
 
         CountRE : Path to countRE file.
 
-        Pairs : Path to pairs.
+        Pairs : Path to allhic pairs.
 
         Ploidy : Ploidy.
 
@@ -243,12 +290,13 @@ def utils(ctx):
 @utils.command(short_help='Convert agp to cluster file.')
 @click.argument(
     "agp",
-    metavar="AGP"
+    metavar="AGP",
+    type=click.Path(exists=True)
 )
 @click.option(
     "-o",
     "--output",
-    help="Output of results",
+    help="Output of results [defalut: stdout]",
     type=click.File('w'),
     default=sys.stdout
 )
@@ -264,10 +312,13 @@ def agp2cluster(agp, output):
 @utils.command(short_help='Convert agp to fasta file.')
 @click.argument(
     "agp",
+    metavar="AGP",
+    type=click.Path(exists=True)
     )
 @click.argument(
     "fasta",
     metavar="Fasta",
+    type=click.Path(exists=True)
 
 )
 @click.option(
@@ -294,6 +345,8 @@ def agp2fasta(agp, fasta, output, threads):
 @utils.command()
 @click.argument(
     "agp",
+    metavar="AGP",
+    type=click.Path(exists=True)
 )
 @click.option(
     "-o",
@@ -324,7 +377,8 @@ def agp2tour(agp, outdir, force):
 @utils.command(short_help='Statistics of AGP.')
 @click.argument(
     "agp",
-    metavar='AGP'
+    metavar='AGP',
+    type=click.Path(exists=True)
 )
 @click.option(
     "-o",
@@ -347,11 +401,13 @@ def agpstat(agp, output):
 @utils.command(short_help='Convert cluster to several count RE files.')
 @click.argument(
     "cluster",
-    metavar='Cluster'
+    metavar='Cluster',
+    type=click.Path(exists=True)
 )
 @click.argument(
     'count_re',
-    metavar='CountRE'
+    metavar='CountRE',
+    type=click.Path(exists=True)
 )
 def cluster2count(cluster, count_re):
     """

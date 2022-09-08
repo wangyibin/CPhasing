@@ -381,6 +381,16 @@ class PairTable:
     True
 
     """ 
+    HEADER = ['#X',
+        'Y',
+        'Contig1',
+        'Contig2',
+        'RE1',
+        'RE2',
+        'ObservedLinks',
+        'ExpectedLinksIfAdjacent',
+        'Label']
+
     def __init__(self, infile, symmetric=True, index_contig=True):
         self.filename = infile
         if not Path(self.filename).exists():
@@ -466,7 +476,16 @@ class PairTable:
         self.data = pd.concat([self.data, _pairs_df])
         self.data = self.data.sort_values(by=['#X', 'Y'])
         self.data.reset_index(drop=True, inplace=True)
-        
+
+    def unsymmetric_pairs(self):
+        """
+        unsymmetric pairs dataframe
+
+        """
+        _pairs_df = self.data.copy()
+        _pairs_df = _pairs_df[_pairs_df['#X'] < _pairs_df['Y']]
+        self.data = _pairs_df.sort_values(by=['#X', 'Y'])
+
     def is_symmetric(self):
         """
         Detect the pairtable whether symmetry
@@ -565,6 +584,15 @@ class PairTable:
         --------
         >>> pt.save('pairs.txt')
         """
+        try:
+            self.data[self.HEADER]
+        except KeyError:
+            self.data.reset_index(inplace=True)
+            self.data = self.data[self.HEADER]
+        
+        if self.is_symmetric:
+            self.unsymmetric_pairs()
+        
         self.data.to_csv(output, sep='\t', header=True, index=False)
         logger.info(f'Output pairs table to `{output}`')
         

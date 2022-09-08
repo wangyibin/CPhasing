@@ -113,6 +113,19 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
     >>> agp2fasta('groups.agp', 'contigs.fasta')
     """
     from pyfaidx import Fasta
+    def get_seqs(chrom, cluster):
+        seqs = []
+        id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
+        for contig, orient in id_orient:
+            if orient == '+':
+                seqs.append(str(fasta[contig]))
+            else:
+                seqs.append(fasta[contig][::-1].complement.seq)
+        
+        out_seq = GAP.join(seqs)
+
+        return chrom, out_seq
+    
     if isinstance(fasta, str):
         fasta = Fasta(fasta)
     elif isinstance(fasta, Fasta):
@@ -125,15 +138,18 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
     cluster_df = agp_df.groupby('chrom')
     for chrom, cluster in cluster_df:
         seqs = []
-        for i, (contig, orient) in cluster[['id', 'orientation']].iterrows():
+        id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
+    #outs = Parallel(n_jobs=threads, verbose=10)(delayed(get_seqs)(chrom, cluster) for chrom, cluster in cluster_df)
+    #print(outs)
+        for contig, orient in id_orient:
             if orient == '+':
                 seqs.append(str(fasta[contig]))
             else:
                 seqs.append(fasta[contig][::-1].complement.seq)
         
         out_seq = GAP.join(seqs)
-        print(f'>{chrom}', file=output)
-        print(out_seq, file=output)
+    print(f'>{chrom}', file=output)
+    print(out_seq, file=output)
 
 
 def agp2tour(agp, outdir, force=False):

@@ -24,15 +24,30 @@ from .core import (
 
 def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
     """
-    pt: PairTable, unsymmetric
-    """
-    def remove_max(row):
-        """
-        deprecated
-        """
-        row[row.argmax()] = np.nan
-        return row
+    Prune allelic signal by allele table.
 
+    Params:
+    --------
+    at: AlleleTable
+        AlleleTable object of allhic allele.table.
+    cr: CountRE
+        CountRE objcet of allhic count_RE.txt.
+    pt: PairTable, unsymmetric
+        PairTable object of allhic pairs.txt.
+
+    Returns:
+    --------
+    None:
+        but pairtable will be modify, where allelic signal will be removed.
+    
+    Example:
+    --------
+    >>> at = AlleleTable(alleletable)
+    >>> cr = CountRE(count_re)
+    >>> pt = PairTable(pairs, symmetric=False)
+    >>> Prune(at, cr, pt)
+    >>> pt.save(pt.filename.replace(".txt", ".prune.txt"))
+    """
     contigs = cr.contigs
     contigs_index = dict(zip(contigs, range(len(contigs))))
     filter_func = lambda x: x in contigs
@@ -78,7 +93,6 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
             if contig not in pairs_contigs:
                 continue
             
-            #tmp_df = pt.get_contacts([contig], contigs)
             tmp_df = pt.data.loc[contig]
             if tmp_df.empty:
                 item_list.remove(contig)
@@ -96,19 +110,14 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
         if res_df.empty:
             continue
         
-        #res_df[res_df.idxmax()] = np.nan
-        # res_df = res_df.apply(remove_max, axis=1)
         all_db = (res_df.stack()
                     .index.values
                     .tolist())
         retain_db = list(res_df.idxmax(axis=1)
                     .reset_index()
                     .itertuples(index=False, name=None))
-        #retain_db = list(map(tuple, retain_db))
-  
         tmp_remove_db = set(all_db) - set(retain_db)
-        
-        # remove_db.extend(res_df.stack().index.values.tolist())
+
         remove_db.extend(tmp_remove_db)
 
     remove_db = set(remove_db)
@@ -117,5 +126,3 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
    
     pt.data = pt.data.drop(remove_db, axis=0)
-        
-    

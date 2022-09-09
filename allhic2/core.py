@@ -9,6 +9,7 @@ core functions of allhic2
 import logging
 import os
 import os.path as op
+import re
 import sys
 
 import numpy as np
@@ -45,13 +46,18 @@ class CountRE:
     """
     def __init__(self, countRE, minRE=3):
         self.filename = countRE
+        self._path = Path(self.filename)
+        self.suffix = re.match(r'.*(counts_.*.txt)$', 
+                                self.filename).groups()[0]
         self.minRE = minRE
 
         self.parse()
 
     def parse(self):
         self.data = pd.read_csv(self.filename, sep='\t', 
-                                    header=0, index_col=0)
+                                    header=0, index_col=0,
+                                    dtype={'RECounts': int, 
+                                            'Length': int})
         self.data = self.data[self.data['RECounts'] >= self.minRE]
         
         logger.info(f'Load count RE `{self.filename}` (minRE={self.minRE}).')
@@ -190,7 +196,7 @@ class AlleleTable:
 
         logger.info(f'Load allele table: `{self.filename}`.')
         self.check()
-        self.get_data()
+        self.get_data(sort)
 
     def check(self):
         """

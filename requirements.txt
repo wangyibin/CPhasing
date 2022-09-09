@@ -3,6 +3,7 @@ click
 cooler
 joblib
 rich
+natsort
 ncls
 numpy
 matplotlib

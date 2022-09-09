@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
 
+from dis import show_code
 import click
 import logging
 import sys 
+
+from pathlib import Path
 
 from . import __version__
 from .core import (
@@ -82,7 +85,7 @@ def auto():
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads',
+    help='Number of threads.',
     type=int,
     default=4,
     metavar='INT',
@@ -132,9 +135,13 @@ def alleles(fasta, cds, method):
     """
     logger.warning('Incomplete developing function')
     pass
-
-def pregroup():
+    
+def extract():
     pass
+
+def normalize():
+    pass
+
 
 @cli.command()
 @click.argument(
@@ -148,14 +155,14 @@ def pregroup():
     type=click.Path(exists=True)
 )
 @click.argument(
-    'pairs',
-    metavar='Pairs',
+    'pairtable',
+    metavar='PairTable',
     type=click.Path(exists=True)
 )
 def prune(
     alleletable, 
     count_re,
-    pairs,
+    pairtable,
 ):
     """
     Prune allelic signal by allele table.
@@ -164,24 +171,77 @@ def prune(
 
         CountRE : Path to countRE file.
 
-        Pairs : Path to allhic pairs.
+        PairTable : Path to allhic pairs table.
 
     """
     from .prune import Prune
 
     at = AlleleTable(alleletable)
     cr = CountRE(count_re)
-    pt = PairTable(pairs, symmetric=False)
+    pt = PairTable(pairtable, symmetric=False)
 
     Prune(at, cr, pt)
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
+
+@cli.command()
+@click.argument(
+    'alleletable',
+    type=click.Path(exists=True),
+    metavar='AlleleTable'
+)
+@click.argument(
+    'count_re',
+    metavar='CountRE',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'pairtable',
+    metavar='PairTable',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-f',
+    '--fasta',
+    metavar='Fasta',
+    help='Input fasta file to split by allele table.',
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--outdir",
+    metavar='STR',
+    help="Output directory of pregroup results.",
+    default="outdir",
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+
+)
+def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
+    """
+    Pregroup allhic countRE and pairs by homologous groups.
+        
+        AlleleTable : Path to allele table.
+
+        CountRE : Path to countRE file.
+
+        PairTable : Path to allhic pairs table.
+    """
+    from .pregroup import pregroup
+    at = AlleleTable(alleletable, sort=False)
+    cr = CountRE(count_re)
+    pt = PairTable(pairtable)
+    pregroup(at, cr, pt, fasta, outdir, threads)
     
-def extract():
-    pass
-
-def normalize():
-    pass
-
 def partition():
     pass
 
@@ -331,7 +391,7 @@ def agp2cluster(agp, output):
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads',
+    help='Number of threads.',
     type=int,
     default=4,
     metavar='INT',

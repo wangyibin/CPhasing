@@ -15,8 +15,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics"
 ]
 
-NAME = "ALLHiC2"
-h = SetupHelper(initfile="allhic2/__init__.py", readmefile="README.md")
+NAME = "CPhasing"
+h = SetupHelper(initfile="cphasing/__init__.py", readmefile="README.md")
 setup_dir = op.abspath(op.dirname(__file__))
 requirements = [x.strip() for x in open(op.join(setup_dir, "requirements.txt"))]
 
@@ -31,7 +31,7 @@ setup(
     classifiers=classifiers,
     packages=find_packages(),
     zip_safe=False,
-    url='http://github.com/wangyibin/ALLHiC2',
+    url='http://github.com/wangyibin/CPhasing',
     description="Genome scaffold by Hi-C",
     long_description=h.long_description,
     long_description_content_type='test/markdown',

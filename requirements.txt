@@ -1,13 +1,19 @@
 biopython
 click
 cooler
+fanc
+hicexplorer
+intervaltree
 joblib
-rich
 natsort
 ncls
-numpy
+numpy >= 1.22.0
 matplotlib
 pandas
+pandarallel
 pyfaidx
+pyranges
 pysam
 pytools
+rich
+scipy

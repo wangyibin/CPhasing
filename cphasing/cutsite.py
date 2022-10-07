@@ -14,7 +14,7 @@ import gzip
 import re
 
 from Bio import SeqIO, Seq, SeqRecord
-from allhic2.utilities import xopen
+from .utilities import xopen
 
 ## deprecated
 def findPattern(seq, RE):

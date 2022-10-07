@@ -1,0 +1,6 @@
+[submodule "allhic"]
+        path = src/allhic
+        url = https://github.com/wangyibin/allhic
+[submodule "asmkit"]
+        path = src/asmkit
+        url = https://github.com/wangyibin/asmkit

@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-core functions of allhic2
+core functions of C-Phasing
 """
 
 
@@ -14,12 +14,15 @@ import sys
 
 import numpy as np
 import pandas as pd 
+import pyranges as pr 
 
 from collections import Counter, OrderedDict
+from joblib import Parallel, delayed
 from itertools import combinations
 from pathlib import Path
+from subprocess import check_call
 
-from .utilities import list_flatten, tail
+from .utilities import list_flatten, tail, xopen
 
 logger = logging.getLogger(__name__)
 
@@ -332,19 +335,19 @@ class AlleleTable:
         def _func(row):
             return list(combinations(row.dropna(), 2))
         
-        _share_table = self.data.apply(_func, axis=1).values.flatten()
-        _share_table = list_flatten(_share_table)
-        _share_table = Counter(_share_table)
-        _share_table = pd.Series(_share_table)
+        share_table = self.data.apply(_func, axis=1).values.flatten()
+        share_table = list_flatten(share_table)
+        share_table = Counter(share_table)
+        share_table = pd.Series(share_table)
         if symmetrix:
-            _share_table = _share_table.reset_index()
-            _share_table2 = _share_table.copy()
-            _share_table2.columns = ['level_1', 'level_0', 0]
-            _share_table = pd.concat([_share_table, _share_table2])
-            _share_table = _share_table.sort_values(by=['level_0', 'level_1'], axis=0)
-            _share_table = _share_table.set_index(['level_0', 'level_1'])
+            share_table = share_table.reset_index()
+            share_table2 = share_table.copy()
+            share_table2.columns = ['level_1', 'level_0', 0]
+            share_table = pd.concat([share_table, share_table2])
+            share_table = share_table.sort_values(by=['level_0', 'level_1'], axis=0)
+            share_table = share_table.set_index(['level_0', 'level_1'])
 
-        return _share_table
+        return share_table
         
 
     def save(self, output):
@@ -577,7 +580,13 @@ class PairTable:
         S = L/(Cu + C)
 
         return S 
-   
+    
+    def normalize(self):
+        
+        self.data = (self.data
+                    .eval("NormalizedLinks = ObservedLinks / (RE1 + RE2)")
+        )
+    
     def save(self, output):
         """
         save pairtable to file
@@ -1134,7 +1143,8 @@ class Tour:
         --------
         >>> fasta = Fasta('contig.fata')
         >>> tour.get_fasta(fasta)
-        ['AAGCTT', 'ACGAAAGCATGG', 'AATTGGGAAGCA', 'GATACAGATAGA', 'TTTTAAAAATAG']
+        ['AAGCTT', 'ACGAAAGCATGG', 'AATTGGGAAGCA', 
+         'GATACAGATAGA', 'TTTTAAAAATAG']
         """
         _seqs = []
         for contig, orient in self:
@@ -1167,3 +1177,303 @@ class Tour:
         """
         self.__reversed__()
 
+class PairHeader:
+    """
+    Object for 4DN pairs header.
+
+    Params:
+    --------
+    header: list
+        line list of pairs header.
+    
+    """
+    def __init__(self, header):
+        self.header = header
+        self.pairs_format = self._get_pairs_format()
+        self.shape = self._get_shape()
+        self.chromsize = self._get_chromsize()
+        self.columns = self._get_columns()
+    
+    @property
+    def chromnames(self):
+        return self.chromsize.keys()
+
+    def _get_pairs_format(self):
+        _res = list(filter(lambda x: x[:2] == "##", self.header))
+        
+        return _res[0].replace("## pairs format ", "") if _res else None
+
+    def _get_shape(self):
+        _res = list(filter(lambda x: x[:6] == "#shape", self.header))
+
+        return _res[0].split(":")[1].strip() if _res else None
+
+    def _get_chromsize(self):
+        _res = list(filter(lambda x: x[:10] == "#chromsize", self.header))
+        
+        _res = [record.split(":")[1].split() for record in _res]
+        db = OrderedDict()
+        for chrom, size in _res:
+            db[chrom] = int(size)
+
+        return db
+
+    def _get_columns(self):
+        _res = list(filter(lambda x: x[:8] == "#columns", self.header))
+        if not _res:
+            return None
+        else:
+            _res = _res[0].split(":")[1].strip()
+            return _res.split(" ")
+
+    def update(self):
+        self.header = []
+        self.header.append(f'## pairs format {self.pairs_format}')
+        self.header.append(f'#shape: {self.shape}')
+        for chrom, size in self.chromsize.items():
+            self.header.append(f'#chromsize: {chrom} {size}')
+        _columns = " ".join(self.columns)
+        self.header.append(f'#columns: {_columns}')
+    
+    def from_file(self, filename):
+        self.header = []
+        with xopen(filename, 'r') as fp:
+            for line in fp:
+                if line.startswith('#'):
+                    self.header.append(line.strip())
+                else:
+                    break
+        self.pairs_format = self._get_pairs_format()
+        self.shape = self._get_shape()
+        self.chromsize = self._get_chromsize()
+        self.columns = self._get_columns()
+    
+    def save(self, filename):
+        with xopen(filename, 'w') as out:
+            out.write(str(self))
+
+    def __str__(self):
+        return "\n".join(self.header)
+    
+
+class Pairs:
+    """
+    Object of 4DN pairs file.
+
+    Params:
+    --------
+    pairs: str
+        Path of 4DN pairs file.
+    
+    Returns:
+    --------
+    object
+
+    Examples:
+    --------
+    >>> p = Pairs('Lib.pairs')
+    """
+    def __init__(self, pairs):
+        self.file = Path(pairs)
+        self.filename = self.file.name
+        self.header = self._get_header()
+        self.data = self.read_table()
+
+    def _get_header(self):
+        ph = PairHeader([])
+        ph.from_file(self.file)
+
+        return ph
+
+    @property
+    def chromsize(self):
+        return self.header.chromsize
+    
+    @property
+    def chromnames(self):
+        return list(self.chromsize.keys())
+    
+    @property
+    def columns(self):
+        return self.header.columns
+
+    @property
+    def meta(self):
+        chrom_dtype = pd.CategoricalDtype(self.chromnames, ordered=True)
+        strand_dtype = pd.CategoricalDtype(["+", "-"], ordered=False)
+
+        meta = {
+            "readID": str,
+            "chrom1": chrom_dtype,
+            "chrom2": chrom_dtype,
+            "strand1": strand_dtype,
+            "strand2": strand_dtype
+        }
+        return meta 
+
+    def read_table(self):
+        import dask.dataframe as dd
+        
+        logger.info(f'Load pairs file of `{self.filename}`.')
+        df = dd.read_csv(self.file, sep='\t', comment='#', 
+                            names=self.header.columns, 
+                            header=None,  dtype=self.meta)
+
+        return df
+
+    @staticmethod
+    def _chrom2contig(df, n, source_gr, columns, meta=None):
+        def _pos_to_range(df):
+            """convert single pos to range."""
+            df = (df.reset_index(drop=True)
+                    .assign(
+                        start1=lambda x: x['pos1'] - 1,
+                        end1=lambda x: x['pos1'],
+                        start2=lambda x: x['pos2'] - 1,
+                        end2=lambda x: x['pos2']
+                    )
+            )
+            return df 
+
+        df = df.get_partition(n).compute()
+        df = df.reset_index()
+        df = _pos_to_range(df)
+
+        query_df = df[['chrom1', 'start1', 'end1', 'index']]
+        query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
+        query_gr = pr.PyRanges(query_df)
+        res_df1 = query_gr.join(source_gr).df
+        res_df1 = (res_df1.set_index('Index')
+                    .assign(
+                        Start=lambda x: x['Start'] - x['Start_b'] + 1,
+                    )
+        )
+
+        query_df = df[['chrom2', 'start2', 'end2', 'index']]
+        query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
+        query_gr = pr.PyRanges(query_df)
+        res_df2 = query_gr.join(source_gr).df
+        res_df2 = (res_df2.set_index('Index')
+                    .assign(
+                        Start=lambda x: x['Start'] - x['Start_b'] + 1,
+                    )
+        )
+
+        res_df = res_df1.join(res_df2, lsuffix='_1', rsuffix='_2')
+        df = df.assign(
+            chrom1=res_df['Name_1'],
+            pos1=res_df['Start_1'],
+            chrom2=res_df['Name_2'],
+            pos2=res_df['Start_2']
+            )[columns]
+
+        df = df.astype(meta)
+        trans_lower_idx = (df['chrom1'].cat.codes.values > 
+                                df['chrom2'].cat.codes.values)
+        trans_lower_data = df.loc[trans_lower_idx]
+        trans_lower_idx = trans_lower_data.index
+        cis_lower_idx = df['pos1'] > df['pos2']
+        cis_lower_data = df.loc[cis_lower_idx]
+        cis_lower_idx = cis_lower_data.index 
+
+        lower_idx = np.r_[trans_lower_idx, cis_lower_idx]
+        lower_data = df.loc[lower_idx]
+        
+        df = df.astype(
+            {'chrom1': str,
+            'chrom2': str}
+        )
+
+        df.loc[lower_idx, 'chrom1'] = lower_data['chrom2']
+        df.loc[lower_idx, 'pos1'] = lower_data['pos2']
+        df.loc[lower_idx, 'chrom2'] = lower_data['chrom1']
+        df.loc[lower_idx, 'pos2'] = lower_data['pos1']
+
+        df = df.astype(meta)
+
+        out = f'temp.part_{n}.corrected.pairs'
+        df.to_csv(out, sep='\t', index=None, header=None)
+        
+        return out
+
+    def chrom2contig(self, source, output='corrected.pairs', threads=4):
+        """
+        Convert chromosome-level pairs to contig-level, 
+            or convet draft assembly to corrected assembly.
+        
+        Params:
+        --------
+        source: str, pd.DataFrame, pr.PyRanges
+            contig position information, four columns
+                (chrom, start, end, name)
+
+        output: str, default contig.pairs
+            output of contig-level pairs.
+
+        threads: int, default 4
+            Number of threads.
+        Returns:
+        --------
+        None
+
+        Examples:
+        --------
+        >>> p.chrom2contig(corrected_df)
+        """
+        ## import corrected bed
+        if isinstance(source, str):
+            logger.info(f'Load source infomation of `{source}`.')
+            source_df = pd.read_csv(source, sep='\t', 
+                                        header=None, 
+                                        index_col=None, 
+                                        names=['Chromosome', 'Start', 
+                                                'End', 'Name'])
+            source_gr = pr.PyRanges(source_df)
+        elif isinstance(source, pd.DataFrame):
+            source_df = source
+            source_gr = pr.PyRanges(source_df)
+        elif isinstance(source, pr.PyRanges):
+            source_df = source.df
+            source_gr = source
+        else:
+            raise TypeError("source must be string/dataframe/pyranges.")
+        
+        ## create corrected header
+        new_header = self.header
+        chrom_dtype = pd.CategoricalDtype(source_df.Name)
+        meta = {
+            'chrom1': chrom_dtype,
+            'chrom2': chrom_dtype
+        }
+
+        new_chroms = source_df['Name'].astype(chrom_dtype).cat.categories.tolist()
+        new_length = (source_df['End'] - source_df['Start']).values.tolist()
+        new_header.chromsize = OrderedDict(zip(new_chroms, new_length))
+        new_header.update()
+        new_header_filename = 'temp.corrected.new.header'
+        new_header.save(new_header_filename)
+        
+        logger.info('Starting chrom2contig ...')
+        columns = self.columns
+        
+        args = []
+        for i in range(self.data.npartitions):  
+            args.append((self.data, i, source_gr, columns, meta))
+             
+        res = Parallel(n_jobs=min(threads, len(args)))(
+            delayed(self._chrom2contig)(i, j, k, l, m)
+                for i, j, k, l, m in args)
+
+        pairs_files = ' '.join(res)
+        command = f"""cat {new_header_filename} {pairs_files} > {output}"""
+        check_call(command, shell=True)
+        logger.info(f'Written corrected pairs file into {output}')
+
+        ## remove temp file
+        logger.debug('Removing temp file ...')
+        Parallel(n_jobs=min(threads, len(res)))(
+            delayed(os.remove)(i) for i in res
+        )
+        os.remove(new_header_filename)
+
+        return output

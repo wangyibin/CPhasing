@@ -13,7 +13,7 @@ import sys
 import pandas as pd
 import numpy as np
 
-from itertools import combinations, cycle
+from itertools import combinations
 
 from .core import (
     AlleleTable, 
@@ -54,7 +54,7 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
 
     allelic_pairs = []
     for chrom, item in at.data.groupby(0):
-        for i, alleles in item.iterrows():
+        for _, alleles in item.iterrows():
             if len(alleles) == 1:
                 continue
             alleles = list(filter(filter_func, alleles))
@@ -74,13 +74,15 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
     pt.data = pairs_df
     pt.symmetric_pairs()
     pt.data = pt.data.set_index(['Contig1', 'Contig2'])
+    pt.normalize()
 
     at.data = at.data.drop_duplicates(at.data.columns)
 
     pairs_contigs = set(pt.Contig1)
     
-    remove_db = []
-    for i, item in at.data.iterrows():
+    remove_db = set()
+    retain_db = set()
+    for _, item in at.data.iterrows():
         item = item.dropna()
         if len(item) == 1:
             continue
@@ -97,8 +99,8 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
             if tmp_df.empty:
                 item_list.remove(contig)
                 continue
-                
-            res.append(tmp_df['ObservedLinks'])
+            
+            res.append(tmp_df['NormalizedLinks'])
         
         if not res:
             continue
@@ -107,22 +109,31 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
 
         res_df = pd.concat(res, axis=1, keys=item_list)
         res_df = res_df[res_df.count(axis=1) > 1]
+
         if res_df.empty:
             continue
         
         all_db = (res_df.stack()
                     .index.values
                     .tolist())
-        retain_db = list(res_df.idxmax(axis=1)
+        tmp_retain_db = list(res_df.idxmax(axis=1)
                     .reset_index()
                     .itertuples(index=False, name=None))
-        tmp_remove_db = set(all_db) - set(retain_db)
+        retain_db.update(tmp_retain_db)
 
-        remove_db.extend(tmp_remove_db)
+        tmp_remove_db = set(all_db) - set(tmp_retain_db)
+        tmp_remove_db = tmp_remove_db - retain_db
+        remove_db.update(tmp_remove_db)
+
+    # retain_db = set(retain_db)
+    # retain_db2 = set(map(lambda x: x[::-1], retain_db))
+    # retain_db = retain_db | retain_db2 
 
     remove_db = set(remove_db)
     remove_db2 = set(map(lambda x: x[::-1], remove_db))
     remove_db = remove_db | remove_db2
+    #remove_db = remove_db - retain_db
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
-   
+
     pt.data = pt.data.drop(remove_db, axis=0)
+    pt.data = pt.data.drop(['NormalizedLinks'], axis=1)

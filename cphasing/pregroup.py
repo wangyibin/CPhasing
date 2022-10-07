@@ -15,7 +15,7 @@ from joblib import Parallel, delayed
 from pathlib import Path
 
 from .core import AlleleTable, CountRE, PairTable
-from .utilities import xopen 
+from .utilities import xopen, read_fasta
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +43,6 @@ def split_pairTable(pt: PairTable, contig2idx: dict, item: list, out: str) -> No
     df = df.sort_values(["#X", "Y"])
     df.to_csv(out, sep='\t', header=True, index=None)
 
-
-def read_fasta(fasta: str) -> dict:
-    from Bio import SeqIO
-    
-    logger.info(f'Load fasta file: `{fasta}`.')
-    db = {}
-    
-    fasta = SeqIO.parse(xopen(fasta), 'fasta')
-    for record in fasta:
-        if record.id not in db:
-            db[record.id] = record.seq
-        
-    return db
 
 def extract_fasta(fasta_db: dict, item: list, out: str) -> None:
     with open(out, 'w') as o:
@@ -169,4 +156,4 @@ def pregroup(at: AlleleTable, cr: CountRE, pt: PairTable,
         Parallel(n_jobs=threads)(delayed(extract_fasta)(i, j, k)
                                 for i, j, k in args)
     
-    logger.info(f'Done, results are in `{outdir}`.')
+    logger.info(f'Done, results were written in `{outdir}`.')

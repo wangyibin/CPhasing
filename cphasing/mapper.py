@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-mapper of ALLHiC2
+mapper of Hi-C data.
 """
 
 import logging
@@ -14,7 +14,7 @@ from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
 
-from .utilities import run_cmd
+from .utilities import run_cmd, ligation_site
 
 logger = logging.getLogger(__name__)
 class HisatMapper(object):
@@ -31,16 +31,23 @@ class HisatMapper(object):
     --------
     >>> mapper = HisatMapper('reference.fasta', 'sample_R1.fastq.gz')
     """
-    def __init__(self, index, fastq, min_quality=10, 
+    def __init__(self, index, fastq, enzyme, 
+                    min_quality=10, 
                     threads=4, 
                     additional_arguments=(),
-                    hisat2_path='hisat2'):
+                    hisat2_path='hisat2', 
+                    log_dir='logs'):
 
         self.index = index
         self.fastq = Path(fastq)
+        self.enzyme = enzyme
+        self.ligation_site = ligation_site(self.enzyme)[0]
         self.threads = threads
         self.min_quality = min_quality
         self.additional_arguments = additional_arguments
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
         self._path = hisat2_path
         if which(self._path) is None:
             raise ValueError(f"{self._path}: command not found")
@@ -74,12 +81,16 @@ class HisatMapper(object):
         try:
             pipelines.append(
                 Popen(map_command, stdout=PIPE, 
-                        stderr=open(os.devnull, 'w'), bufsize=-1)
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                        '.global_mapping.log','w'), 
+                        bufsize=-1)
             )
 
             pipelines.append(
                 Popen(bam_command, stdin=pipelines[-1].stdout,
                         stdout=open(self.global_bam, 'wb'), 
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                        '.global_mapping.log','w'),
                         bufsize=-1)
             )
 
@@ -98,7 +109,7 @@ class HisatMapper(object):
         # run_cmd(command)
 
         from .cutsite import cutsite_trimming
-        cutsite_trimming(self.unmap_fastq, 'AAGCTAGCTT', self.trimmed_fastq)
+        cutsite_trimming(self.unmap_fastq, self.ligation_site, self.trimmed_fastq)
 
     def trimmed_mapping(self):
         
@@ -115,12 +126,16 @@ class HisatMapper(object):
         try:
             pipelines.append(
                 Popen(map_command, stdout=PIPE, 
-                        stderr=open(os.devnull, 'w'), bufsize=-1)
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                        '.trimmed_mapping.log','w'), 
+                        bufsize=-1)
             )
 
             pipelines.append(
                 Popen(bam_command, stdin=pipelines[-1].stdout,
                         stdout=open(self.local_bam, 'wb'), 
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                        '.global_mapping.log','w'),
                         bufsize=-1)
             )
 
@@ -137,14 +152,14 @@ class HisatMapper(object):
                     str(self.merge_bam), str(self.global_bam), str(self.local_bam)]
         
 
-        run_cmd(command)
+        run_cmd(command, log=f'{self.log_dir}/{self.prefix}.bam_merge.log')
 
     def sort(self):
         command = ['samtools', 'sort', '-@', str(self.threads), 
                     '-n', str(self.merge_bam), '-o', str(self.sorted_bam)]
         
         
-        run_cmd(command)
+        run_cmd(command, log=f'{self.log_dir}/{self.prefix}.bam_sort.log')
 
     def clean(self):
         self.global_bam.unlink()
@@ -163,5 +178,103 @@ class HisatMapper(object):
     @classmethod
     def pair():
         command = []
-        
 
+    @classmethod
+    def create_index(self, reference):
+        cmd = [f'{self._path}-build', '-p', str(self.threads),
+                str(self.index.parent), str(self.index)]
+        
+        run_cmd(cmd)
+
+class ChromapMapper:
+    """
+    Mapper for Hi-C reads using chromap.
+
+    Params:
+    --------
+    reference: str
+        contig-level assembly.
+    read1: str
+        Hi-C paired-end read1.
+    read2: str
+        Hi-C paired-end read2.
+    min_quality: int, default 1
+        minimum number of mapping quality
+    threads: int, default 4
+        number of threads.
+    additional_arguments: tuple, default None
+        additional arguments of chromap.
+    path: str, default "chromap"
+        Path of chromap.
+    log_dir: str, default "logs"
+        directory of logs.
+    
+    Returns:
+    --------
+    object:
+        object of ChromapMapper
+    
+    Examples:
+    --------
+    >>> cm = ChromapMapper(reference, read1, read2, 
+                min_quality=mapq, threads=threads)
+    >>> cm.run()
+    """
+    def __init__(self, reference, read1, read2, min_quality=30, 
+                    threads=4, additional_arguments=(), 
+                    path='chromap', log_dir='logs'):
+        self.reference = Path(reference)
+        self.index_path = Path(f'{self.reference.stem}.index')
+        self.read1 = Path(read1)
+        self.read2 = Path(read2)
+        self.threads = threads
+        self.min_quality = min_quality
+        self.additional_artuments=()
+        
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._path = path
+        if which(self._path) is None:
+            raise ValueError(f"{self._path}: command not found")
+
+        self.prefix = Path(self.read1.stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
+            self.prefix = self.prefix.with_suffix('')
+        self.prefix = Path(str(self.prefix).replace('_R1', ''))
+
+        self.output_pairs = Path(f'{self.prefix}.pairs')
+
+    def index(self):
+        """
+        Create chromap index.
+        """
+        cmd = [self._path, '-t', str(self.threads), 
+                '-i', '-r', str(self.reference), '-o', 
+                str(self.index_path)]
+        
+        run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
+    
+    def mapping(self):
+        cmd = [self._path, '-t', str(self.threads), 
+                '--preset', 'hic', 
+                '-q', str(self.min_quality),
+                '-x', str(self.index_path), 
+                '-r', str(self.reference), '-1', str(self.read1),
+                '-2', str(self.read2), '-o', str(self.output_pairs)]
+        
+        run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_mapping.log')
+
+    def run(self):
+        if not self.index_path.exists():
+            self.index()
+        else:
+            logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
+        
+        self.mapping()
+
+
+class ReadPair:
+    def __init__(self):
+        pass
+    

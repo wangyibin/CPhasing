@@ -34,21 +34,20 @@ class reCluster(object):
     recluster partition results by allele table
 
     Params:
-    -------
+    --------
     cluster_file: str
-        cluster file from allhic
+        cluster file from extract
     at_file: str
-        allele table from allhic
+        allele table
     ploidy: int
         ploidy of assembly
     countRE_file: str
-        countRE file from allhic [None]
+        countRE file from extract [None]
     pairs_file: str
-        pairs file from allhic [None]
+        pairs table file from extract [None]
     threads: int
         threads of programs [4]
     
-
     Returns:
     -------
     object:

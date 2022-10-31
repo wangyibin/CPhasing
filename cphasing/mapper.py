@@ -10,6 +10,7 @@ import os
 import os.path as op
 import sys
 
+from Bio import Restriction
 from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
@@ -253,8 +254,9 @@ class ChromapMapper:
                 '-i', '-r', str(self.reference), '-o', 
                 str(self.index_path)]
         
-        run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
-    
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
+        assert flag == 0, "Failed to execute command, please check log."
+
     def mapping(self):
         cmd = [self._path, '-t', str(self.threads), 
                 '--preset', 'hic', 
@@ -262,8 +264,10 @@ class ChromapMapper:
                 '-x', str(self.index_path), 
                 '-r', str(self.reference), '-1', str(self.read1),
                 '-2', str(self.read2), '-o', str(self.output_pairs)]
-        
-        run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_mapping.log')
+
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_mapping.log')
+        assert flag == 0, "Failed to execute command, please check log."
+        logger.info("Done.")
 
     def run(self):
         if not self.index_path.exists():
@@ -274,7 +278,69 @@ class ChromapMapper:
         self.mapping()
 
 
-class ReadPair:
-    def __init__(self):
+class PoreCMapper:
+    def __init__(self, reference, read, enzyme, min_quality=1, 
+                    threads=4, path='falign', log_dir='logs'):
+        self.reference = Path(reference)
+        self.read = Path(read)
+
+        try:
+            self.enzyme = enzyme
+            self.enzyme_site = (getattr(Restriction, enzyme)
+                                .elucidate()
+                                .replace("N", "")
+                                .replace("_", "")
+            )
+        except AttributeError:
+            logger.Error('Error enzyme name.')
+            sys.exit()
+
+        self.threads = threads
+        self.min_quality = min_quality
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._path = path
+        if which(self._path) is None:
+            raise ValueError(f"{self._path}: command not found")
+        
+        self.prefix = self.read.with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
+            self.prefix = self.prefix.with_suffix('')
+        self.prefix = Path(str(self.prefix))
+
+        self.outpaf = f'{self.prefix}.paf'
+
+    def mapping(self):
+        cmd = [self._path, '-outfmt', 'paf', 
+                '-num_threads', str(self.threads),
+                self.enzyme_site, str(self.reference),
+                str(self.read)]
+        
+        #run_cmd(cmd)
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.outpaf, 'w'),
+                stderr=open(f'{self.log_dir}/{self.prefix}'
+                '.mapping.log', 'w'),
+                bufsize=-1)
+
+            )
+            pipelines[-1].wait()
+        
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+            else:
+                assert pipelines != [], "Failed to execute command, please check log."
+        
+    def generate_pairs(self):
         pass
+
+    def run(self):
+        self.mapping()
+
     

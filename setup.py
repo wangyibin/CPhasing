@@ -9,7 +9,6 @@ from setup_helper import SetupHelper
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics"
@@ -32,7 +31,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     url='http://github.com/wangyibin/CPhasing',
-    description="Genome scaffold by Hi-C",
+    description="Genome scaffold by Pore-C or Hi-C",
     long_description=h.long_description,
     long_description_content_type='test/markdown',
     install_requires=requirements

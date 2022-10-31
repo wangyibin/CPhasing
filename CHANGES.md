@@ -1,6 +1,17 @@
 # Release notes #
 
+## [v0.0.7]
+Date: 2022-10-31
+### New features
+- `plot`, provide adjust matrix and plot matrix function.
+- `AdapativePartition`, partition by adapative pipeline for find best results
+- `PoreCMapper`, Pore-C reads mapping pipeline.
+- `PAFTABLE`, a function for processing paf file. (include `to_pairs`)
+### Bug fixes
 
+### Enhancement
+- `correct`, increase recall and precision to 70%
+- `pairs`, add `chrom2contig` to convert a chrom-level pairs to contig-level
 ## [v0.0.6]
 Date: 2022-10-07
 

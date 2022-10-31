@@ -5,6 +5,7 @@
 correct chimeric contig by Hi-C signal.
 """
 
+import gc
 import logging
 import os
 import os.path as op
@@ -31,14 +32,6 @@ from .utilities import read_fasta, xopen
 
 logger = logging.getLogger(__name__)
 
-def _zero_diags(chunk, n_diags):
-    if n_diags > 0:
-        if n_diags > 0:
-            mask = np.abs(chunk['pixels']['bin1_id'] 
-                            - chunk['pixels']['bin2_id']) < n_diags
-            chunk['pixels']['count'][mask] = 0
-
-    return chunk
 
 class Corrector:
     """
@@ -82,7 +75,7 @@ class Corrector:
 
         self.threads = threads
         self.force = force
-        self.percent = percent
+        self.percent = percent * 100
         self.sensitive = sensitive
         
         self.depletion = depletion
@@ -93,7 +86,15 @@ class Corrector:
         
 
     def get_chrom_sizes(self):
-        fasta = Fasta(self.fasta)
+        """
+        Generate a chromsize file.
+
+        Returns:
+        --------
+        str:
+            Path of chrom size.
+        """
+        fasta = Fasta(self.fasta.name)
         chrom_sizes_path = f'{fasta.filename}.chromsizes'
         chrom_sizes_df = pd.read_csv(fasta.faidx.indexname, sep='\t',
                                         header=None, usecols=[0, 1])
@@ -106,6 +107,19 @@ class Corrector:
         return chrom_sizes_path    
 
     def get_contacts(self, resolution):
+        """
+        Generate contact file.
+
+        Params:
+        --------
+        resolution: int
+            resolution of contacts
+        
+        Returns:
+        --------
+        resolution: int
+        cool_path: str
+        """
         res_cool_path = f'{self.prefix}.{resolution}.cool'
         
         if Path(res_cool_path).exists() and not self.force:
@@ -170,10 +184,11 @@ class Corrector:
         return troughs 
 
     def get_wide_mismatch(self, matrix, bins, contig):
-
-        _m = matrix.fetch(contig)
-        _bins = bins.fetch(contig)
-        
+        try:
+            _m = matrix.fetch(contig)
+            _bins = bins.fetch(contig)
+        except IndexError:
+            return contig, None   
         if len(_bins) <= 2 * self.depletion:
             return contig, None
 
@@ -184,21 +199,23 @@ class Corrector:
         if _m.nnz == 0:
             return contig, None
         ## get sat level and sat exp value
-        sat_level = self._get_sat_level(_m, self.percent * 100)
+        sat_level = self._get_sat_level(_m, self.percent)
         sat_exp = self._get_sat_exp(sat_level, self.depletion)
         
         scores = self._get_sat_score(_m, _bins, self.depletion, sat_level)
         
         troughs = self._get_wide_mismatch(scores, self.sensitive)
         
-        return contig, _bins.iloc[troughs]
-    
-    def _fine_location(self, contig, contig_df_list):
-    
+        troughs = troughs[scores[troughs] < self.sensitive * sat_exp]
+        
+        return contig, _bins.iloc[troughs] 
+
+    def fine_location(self, contig, contig_df_list):
         if contig_df_list[0] is None:
             return contig, None
 
         contig_df_list = filter(lambda x: x is not None, contig_df_list)
+
         if not contig_df_list:
             return contig, None
         contig_gr_list = list(map(lambda x: PyRanges(
@@ -212,70 +229,53 @@ class Corrector:
             return contig, None
         if len(contig_gr_list) > 1:
             for i in range(1, len(contig_gr_list)):
-                
-                gr_init = gr_init.slack(self.resolutions[i]).intersect(contig_gr_list[i])
-                
+
+                gr_init = (gr_init
+                            .slack(self.resolutions[i-1])
+                            .intersect(contig_gr_list[i])
+                            )
+
                 if gr_init.empty is not True:
-                    # gr_init.slack(self.resolutions[i])
-                    gr = gr.join(gr_init, how='left').new_position("swap")
+
+                    gr = gr.join(gr_init, how='left', 
+                                    slack=int(self.resolutions[i-1])).new_position("swap")
                     starts = gr.Start
                     ends = gr.End
                     idx1 = np.where(starts == -1)
                     idx2 = np.where(ends == -1)
                     idx = np.unique(np.r_[idx1, idx2])
                     df = gr.df
-                
+                    
                 
                     df.loc[idx, 'Start'] = df.loc[idx, 'Start_b']
                     df.loc[idx, 'End'] = df.loc[idx, 'End_b']
-                
-                    gr = PyRanges(df[['Chromosome', 'Start', 'End']])
                     
-        return (contig, None) if gr.empty else (contig, gr.df)
-            
-    def fine_location(self, matrix, bins, contig, coarsen_position):
-        print(coarsen_position)
-        _m = matrix.fetch(contig)
-        _bins = bins.fetch(contig)
-        _bins_length = len(_bins)
-        if len(_bins) <= 2 * self.depletion:
-            return
-        
-        ## set diagonal to zero 
-        _m.setdiag(0)
-        _m.eliminate_zeros()
-        _m = _m.tocsr() 
-        if _m.nnz == 0:
-            return 
-        ## get sat level and sat exp value
-        coarsen_position = coarsen_position.assign(
-                                            start=lambda x: x["start"] // 1000,
-                                            end=lambda x: x["end"] // 1000
-        )
-        sat_level = self._get_sat_level(_m, self.percent * 100)
-        sat_exp = self._get_sat_exp(sat_level, self.depletion)
+                    gr = PyRanges(df[['Chromosome', 'Start', 'End']])
+   
+        if gr.empty:
+            return (contig, None)
+        else:
+            # cool1 = cooler.Cooler('Lib.2500_750.cool')
+            # if contig in cool1.chromnames:
+                
+            #     matrix1 = cool1.matrix(balance=False, sparse=True)
+            #     bins1 = cool1.bins()
+            #     _, df = self.get_wide_mismatch(matrix1, bins1, contig)
+            #     if df is None:
+            #         pass 
+            #     else:
+            #         df.columns = ['Chromosome', 'Start', 'End']
+            #         _gr = PyRanges(df)
+            #         gr = gr.join(_gr).new_position("union")
 
-        for i, item in coarsen_position.iterrows():
-            s, e = item.start, item.end
-            s, e = s - 2*self.depletion, e + 2*self.depletion
-            if s < 0:
-                s = 0
-            if e > _bins_length:
-                e = _bins_length
-
-            tmp_bins = _bins.iloc[s: e]
-            tmp_matrix = _m[s: e, s: e]
-
-            scores = self._get_sat_score(tmp_matrix, tmp_bins, self.depletion, sat_level)
-            
-            pos = self._get_wide_mismatch(scores, self.sensitive)
-            
-            pos = np.array(pos)
-            pos = pos[(pos >= 2*self.depletion) & (pos < (len(scores) - 2*self.depletion))]
-            #scores = scores[2*self.depletion: -2*self.depletion]
-            print(sat_level, sat_exp, contig, scores, pos)
-
-        #return scores, sat_exp
+            ## coarsen nearest interval
+            gr = gr.merge(slack=self.resolutions[-2])
+            res_df = gr.df
+            #res_df = res_df[(res_df.End - res_df.Start) < self.resolutions[0]]
+            if res_df.empty:
+                return (contig, None)
+            else:
+                return (contig, res_df)
 
     @property
     def corrected_positions(self):
@@ -303,7 +303,7 @@ class Corrector:
     
     def write_bed(self):
         """
-        write corrected posistion as a bed file.
+        write corrected posistions as a bed file.
         """
         (self.corrected_positions[['chrom', 'start', 'end', 'name']]
         .to_csv(self.outbed, sep='\t', header=None, index=None)
@@ -311,7 +311,10 @@ class Corrector:
         logger.info(f'Written corrected position information into `{self.outbed}`.')
 
     def write_fasta(self):
-        fasta_db = read_fasta(self.fasta)
+        """
+        Write corrected fasta.
+        """
+        fasta_db = read_fasta(str(self.fasta))
         output = xopen(self.output, 'w')
         corrected_positions = self.corrected_positions
         for _, item in corrected_positions.iterrows():
@@ -323,10 +326,16 @@ class Corrector:
                 print(f'>{name}\n{str(seq[start: end])}', 
                         file=output)
         
+        del fasta_db, corrected_positions
+        gc.collect()
+
         logger.info(f'Corrected: {self.corrected_count}')
-        logger.info(f'Written corrected fastat into `{self.output}`.')
+        logger.info(f'Written corrected fasta into `{self.output}`.')
     
     def write_pairs(self):
+        """
+        Write corrected pairs file.
+        """
         corrected_positions = self.corrected_positions[['chrom', 'start', 'end', 'name']]
         corrected_positions.columns = ['Chromosome', 'Start', 'End', 'Name']
        
@@ -343,6 +352,11 @@ class Corrector:
                             for r in self.resolutions)
         cool_path_db = dict(cool_path_db)
         
+        logger.info('Calculating the coarsen position of chimeric contigs ...')
+
+        cool = cooler.Cooler(cool_path_db[self.resolutions[0]])
+        chromnames = cool.chromnames
+
         res = {}
         for resolution in self.resolutions:
             cool = cooler.Cooler(cool_path_db[resolution])
@@ -355,26 +369,45 @@ class Corrector:
 
             scores = Parallel(n_jobs=self.threads)(
                         delayed(self.get_wide_mismatch)(i, j, k)
-                            for i, j, k in args)
+                            for i, j, k in args) 
+            res[resolution] = dict(scores)
             
-            db = dict(scores)
-            del args, scores
-            res[resolution] = db 
-
+            del args, scores, cool, bins, matrix
+            gc.collect()
+            
+        logger.info('Calculating the fine position of chimeric contigs ...')
         args = []
-        for contig in cool.chromnames:
-            tmp = [res[r][contig] for r in self.resolutions]
-            args.append((contig, tmp))
+        for contig in chromnames:
+            tmp_contig_df_list = [res[r][contig] for r in self.resolutions]
+            
+            args.append((contig, tmp_contig_df_list))
 
         self.chimeric_positions = Parallel(n_jobs=self.threads)(
-                                        delayed(self._fine_location)
+                                        delayed(self.fine_location)
                                         (i, j) for i, j in args)
         
+        del res, args
+        gc.collect()
+
+        ## output corrcted fasta
         self.write_fasta()
+
+        ## output corrected positions informations
         if self.outbed:
             self.write_bed()
+        with open('corrected.positions', 'w') as out:
+            for contig, pos in self.chimeric_positions:
+                if pos is not None:
+                    print(pos.to_string(index=None, header=None), file=out)
+        ## output corrected pairs
         if self.outpairs:
             if self.corrected_count != 0:
                 self.write_pairs()
             else:
                 shutil.copy(self.pairs, self.outpairs)
+
+
+class ULCorrector:
+    def __init__(self):
+        pass
+    

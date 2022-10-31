@@ -5,7 +5,7 @@
 core functions of C-Phasing
 """
 
-
+import gc
 import logging
 import os
 import os.path as op
@@ -129,8 +129,7 @@ class CountRE:
         552000
         """
         return self.data['Length'].sum()
-    
-    
+
     def get_group_length(self, contigs: list) -> int:
         """
         Get length of a group contigs
@@ -1224,7 +1223,16 @@ class PairHeader:
             return None
         else:
             _res = _res[0].split(":")[1].strip()
-            return _res.split(" ")
+            _res = _res.split(" ")
+            
+            if "chrom1" not in _res or "chrom2" not in _res:
+                try:
+                    _res[_res.index("chr1")] = "chrom1"
+                    _res[_res.index("chr2")] = "chrom2"
+                except ValueError:
+                    return None
+            
+            return _res
 
     def update(self):
         self.header = []
@@ -1366,8 +1374,11 @@ class Pairs:
             chrom2=res_df['Name_2'],
             pos2=res_df['Start_2']
             )[columns]
-
         df = df.astype(meta)
+
+        del res_df1, res_df2, query_df, res_df
+        gc.collect()
+
         trans_lower_idx = (df['chrom1'].cat.codes.values > 
                                 df['chrom2'].cat.codes.values)
         trans_lower_data = df.loc[trans_lower_idx]
@@ -1394,7 +1405,10 @@ class Pairs:
         out = f'temp.part_{n}.corrected.pairs'
         df.to_csv(out, sep='\t', index=None, header=None)
         
-        return out
+        del df
+        gc.collect()
+
+        return  out
 
     def chrom2contig(self, source, output='corrected.pairs', threads=4):
         """
@@ -1446,14 +1460,20 @@ class Pairs:
             'chrom2': chrom_dtype
         }
 
-        new_chroms = source_df['Name'].astype(chrom_dtype).cat.categories.tolist()
+        new_chroms = (
+                        source_df['Name']
+                        .astype(chrom_dtype)
+                        .cat
+                        .categories
+                        .tolist()
+        )
         new_length = (source_df['End'] - source_df['Start']).values.tolist()
         new_header.chromsize = OrderedDict(zip(new_chroms, new_length))
         new_header.update()
         new_header_filename = 'temp.corrected.new.header'
         new_header.save(new_header_filename)
         
-        logger.info('Starting chrom2contig ...')
+        logger.info('Converting the position of pairs ...')
         columns = self.columns
         
         args = []
@@ -1464,16 +1484,196 @@ class Pairs:
             delayed(self._chrom2contig)(i, j, k, l, m)
                 for i, j, k, l, m in args)
 
+        del source_gr
+        gc.collect()
+
         pairs_files = ' '.join(res)
         command = f"""cat {new_header_filename} {pairs_files} > {output}"""
         check_call(command, shell=True)
-        logger.info(f'Written corrected pairs file into {output}')
+        logger.info(f'Written corrected pairs file into `{output}`')
 
         ## remove temp file
-        logger.debug('Removing temp file ...')
+        logger.debug('Removing temporary files ...')
         Parallel(n_jobs=min(threads, len(res)))(
             delayed(os.remove)(i) for i in res
         )
         os.remove(new_header_filename)
 
         return output
+
+
+class PAFLine:
+    def __init__(self, line):
+        self.line = line.strip()
+        data = line.strip().split()
+        self.query = data[0]
+        self.query_length = int(data[1])
+        self.query_start = int(data[2])
+        self.query_end = int(data[3])
+        self.strand = data[4]
+        self.target = data[5]
+        self.target_length = int(data[6])
+        self.target_start = int(data[7])
+        self.target_end = int(data[8])
+        self.num_match = int(data[9])
+        self.aln_length = int(data[10])
+        self.mapq = int(data[11])
+
+    def __str__(self):
+        return self.line
+
+
+class PAFRecords:
+    
+    def __init__(self, paf_file):
+        self.paf_file = paf_file
+    
+    def parse(self):
+        with open(self.paf_file) as fp:
+            for line in fp:
+                yield PAFLine(line)
+
+class PAFTable:
+    """
+    dataframe for paf file.
+
+    Params:
+    --------
+    paf: str
+        Path of paf file from minimap2.
+    min_quality: int, default 1
+        Minimum of mapping quality.
+    min_length: int, default 50
+        Minumum of fragment length.
+    threads: int, default 4
+        Number of threads.
+
+    Returns:
+    --------
+
+    Examples:
+    --------
+    >>> 
+    """
+    
+    PAF_HEADER = [
+        'read_name', 'read_length', 
+        'read_start', 'read_end', 
+        'strand', 'chrom', 
+        'chrom_length', 'start', 
+        'end', 'matches', 
+        'aln_length', 'mapq'
+        ]
+
+    META = {
+        "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
+        "chrom": "category",
+        "mapq": "uint8"
+    }
+    def __init__(self, paf: str, 
+                    min_quality: int=1, 
+                    min_identity: float=0.9,
+                    min_length: int=50,
+                    threads: int = 4):
+        from dask.distributed import Client
+        
+
+        self.file = Path(paf)
+        self.filename = self.file.name
+        self.min_quality = min_quality
+        self.min_identity = min_identity
+        self.min_length = min_length 
+        self.threads = threads
+
+        self.data = self.read_table()
+
+        self.client = Client(n_workers=min(self.data.npartitions, threads))
+    
+    def read_table(self):
+        import dask.dataframe as dd
+        logger.info(f'Load paf file of `{self.filename}`.')
+        df = dd.read_csv(self.file, sep='\t', usecols=range(12), 
+                        header=None, names=self.PAF_HEADER, 
+                        dtype=self.META)
+
+        return df
+
+    def filter(self):
+        self.data = (self.data
+                    .assign(identity=lambda x: (x.matches/x.aln_length).round(2).astype(np.float16))
+                    .assign(frag_length=lambda x: (x.read_end - x.read_start))
+        )
+                        
+        self.data = self.data.query(f'mapq >= {self.min_quality} '
+                                    f'& identity >= {self.min_identity}'
+                                    f'& frag_length >= {self.min_length}')
+
+        
+    def stat(self):
+        pass
+    
+    def to_pairs(self, output):
+        def _to_pairs_per_concatemer(df):
+            if len(df) <= 1:
+                return None 
+            
+            rows = list(
+                df.sort_values(['chrom', 'pos']).itertuples()
+            )
+            read_name = df.index.values[0]
+
+            res = []
+            for i, (align_1, align_2) in enumerate(combinations(rows, 2)):
+
+                _res = [f'{read_name}_{i}', 
+                        align_1.chrom, align_1.pos,
+                        align_2.chrom, align_2.pos,
+                        align_1.strand, align_2.strand]
+                res.append(_res)
+            
+            res_df = pd.DataFrame(res, columns=['readID', 
+                                'chrom1', 'pos1', 'chrom2', 
+                                'pos2', 'strand1', 'strand2'])
+
+            del res
+
+            return res_df
+
+        def _to_pairs(df):
+            return df.groupby('read_name').apply(_to_pairs_per_concatemer)
+
+        self.data = self.data.assign(
+            pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
+        dtypes = self.data.head(1).dtypes
+        meta = {
+            "readID": str, 
+            "chrom1": dtypes["chrom"],
+            "pos1": dtypes["start"],
+            "chrom2": dtypes["chrom"],
+            "pos2": dtypes["start"],
+            "strand1": dtypes["strand"],
+            "strand2": dtypes["strand"]
+        }
+
+        self.data = (self.data.set_index('read_name')[['chrom', 'pos', 'strand']]
+                .map_partitions(_to_pairs, meta=meta)
+                #.to_csv(output, single_file=True, 
+                #sep='\t', header=None, index=False)
+        )
+
+
+    def to_contacts(self):
+        pass
+
+
+# class Contact:
+#     def __init__(self):
+#         pass
+    
+
+
+#     @staticmethod
+#     def from_align_pair(read_name, read_length, align_1, align_2):
+#         pass  
+    
+    

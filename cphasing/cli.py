@@ -82,103 +82,6 @@ def pipeline(fasta, data, method):
     pass
 
 
-@cli.command()
-@click.option(
-    '-r',
-    '--reference',
-    help='Path of reference fasta file.',
-    metavar='FILE',
-    required=True
-)
-@click.option(
-    '-1',
-    '--read1',
-    help='Path of read 1.',
-    metavar='FILE',
-    multiple=True,
-    required=True
-)
-@click.option(
-    '-2',
-    '--read2',
-    help='Path of read 2.',
-    metavar='FILE',
-    multiple=True,
-    required=True
-    )
-@click.option(
-    '-e',
-    '--enzyme',
-    metavar='ENZYME',
-    help='Restiction enzyme. i.e. MboI, HindIII.',
-    default=None,
-    show_default=True
-)
-@click.option(
-    '-q',
-    '--mapq',
-    help='Minimum quality of mapping [0, 60].',
-    metavar='INT',
-    type=click.IntRange(0, 60, clamp=True),
-    default=30,
-    show_default=True
-)
-@click.option(
-    '--aligner',
-    help='Aligner executable.',
-    type=click.Choice(['chromap']),#, 'hisat2']),
-    default='chromap',
-    show_default=True
-)
-@click.option(
-    '-t',
-    '--threads',
-    help='Number of threads.',
-    type=int,
-    default=4,
-    metavar='INT',
-    show_default=True,
-
-)
-def mapper(
-    reference,
-    read1, 
-    read2,
-    enzyme,
-    mapq,
-    aligner,
-    threads
-
-):
-    """
-    Mapper for reads mapping.
-    """
-    assert len(read1) == len(read2), "reads must paired."
-
-    if aligner == 'hisat2':
-        if enzyme is None:
-            logger.error('Missing option "-e"')
-            sys.exit()
-        from .mapper import HisatMapper
-        hm1 = HisatMapper(reference, read1, enzyme, min_quality=mapq, threads=threads)
-        hm1.run()
-        hm2 = HisatMapper(reference, read2, enzyme, min_quality=mapq, threads=threads)
-        hm2.run()
-    elif aligner == 'chromap':
-        from .mapper import ChromapMapper
-        from .core import PairHeader
-        res = []
-        for r1, r2 in zip(read1, read2):
-            cm = ChromapMapper(reference, r1, r2, min_quality=mapq, threads=threads)
-            cm.run()
-            res.append(cm.output_pairs)
-        else:
-            if len(res) > 1:
-                header = PairHeader([]).from_file(res[0])
-                header.save("temp.pairs.header")
-
-                cmd = ['cat', 'temp.pairs.header'] + res
-                cmd2 = ['LC_ALL=C', 'grep', '-v', '#']
 
     
 @cli.command()
@@ -208,7 +111,7 @@ def mapper(
     '-r',
     '--resolutions',
     help='Comma-separated list of target resolutions. ',
-    default='20000,10000,5000,1000',
+    default='20000,10000,5000,2500',
     show_default=True,
 )
 @click.option(
@@ -242,7 +145,7 @@ def mapper(
     '--output',
     help='Output path of corrected fatsa.',
     metavar='FILE',
-    default=sys.stdout
+    default='corrected.fasta'
 )
 @click.option(
     '-ob',
@@ -406,6 +309,7 @@ def extract(infile, fastafile, enzyme, minLinks):
     cmd = ['allhic', 'extract', infile, fastafile, 
             '--RE', ",".join(restriction_site(enzyme)), 
             '--minLinks', str(minLinks)]
+    print(restriction_site(enzyme))
     run_cmd(cmd)
 
 def normalize():
@@ -428,10 +332,19 @@ def normalize():
     metavar='PairTable',
     type=click.Path(exists=True)
 )
+@click.option(
+    '-n',
+    '--normalize',
+    help='If normalize the contacts.',
+    is_flag=True,
+    default=False,
+    show_default=True
+)
 def prune(
     alleletable, 
     count_re,
     pairtable,
+    normalize
 ):
     """
     Prune allelic signal by allele table.
@@ -449,7 +362,7 @@ def prune(
     cr = CountRE(count_re)
     pt = PairTable(pairtable, symmetric=False)
 
-    Prune(at, cr, pt)
+    Prune(at, cr, pt, normalize)
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
 @cli.command()
@@ -531,7 +444,8 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
 @click.option(
     '--maxLinkDensity',
     'maxLinkDensity',
-    help='Density threshold before marking contig as repetive.',
+    help='Density threshold before marking contig as repetive.'
+            'If use adaptive mode must input a tuple of range.',
     default=2,
     type=str,
     show_default=True
@@ -539,7 +453,8 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
 @click.option(
     '--minREs',
     'minREs',
-    help='Minimum number of RE sites in a contig to be clustered.',
+    help='Minimum number of RE sites in a contig to be clustered. '
+            'If use adaptive mode must input a tuple of range.',
     default=10,
     type=str,
     show_default=True
@@ -553,12 +468,39 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
     show_default=True
 )
 @click.option(
-    '--adative',
+    '--adaptive',
     help='Adaptively looking for the best results',
     default=False,
     is_flag=True,
     show_default=True
     
+)
+@click.option(
+    '--maxLinkDensity_step',
+    'maxLinkDensity_step',
+    metavar=True,
+    help='The step of maxLinkDensity, only for adaptive mode.',
+    type=int,
+    default=2,
+    show_default=True
+)
+@click.option(
+    '--minREs_step',
+    'minREs_step',
+    metavar=True,
+    help='The step of minREs, only for adaptive mode.',
+    type=int,
+    default=2,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads, only for adaptive mode.',
+    type=int,
+    default=5,
+    metavar='INT',
+    show_default=True,
 )
 def partition(
     count_re, 
@@ -567,7 +509,10 @@ def partition(
     maxLinkDensity,
     minREs,
     nonInformativeRatio,
-    adative):
+    adaptive,
+    maxLinkDensity_step,
+    minREs_step,
+    threads):
     """
     Separate contigs into k groups.
         
@@ -578,15 +523,43 @@ def partition(
         K : Number or partitions. 
 
     """
-    from .partition import Partitioner
+    from .partition import Partitioner, AdaptivePartitioner
     
-    if adative is False:
+    if adaptive is False:
         
-        Partitioner.partition(count_re, pairtable, k, maxLinkDensity, 
-                                minREs, nonInformativeRatio)
+        Partitioner.partition(count_re, 
+                                pairtable, 
+                                k, 
+                                maxLinkDensity, 
+                                minREs, 
+                                nonInformativeRatio)
     else:
-        logger.warning("Developing function.")
-        pass
+        try: 
+            minREs_tuple = eval(minREs)
+        except:
+            minREs_tuple = (50, 300)
+
+        assert isinstance(minREs_tuple, tuple), \
+                    "minREs must a tuple of range."
+        
+        try:
+            maxLinkDensity_tuple = eval(maxLinkDensity)
+        except:
+            maxLinkDensity_tuple = (2, 10)
+
+        assert isinstance(maxLinkDensity_tuple, tuple), \
+                    "minREs must a tuple of range."
+
+        ap = AdaptivePartitioner(count_re, 
+                                pairtable, 
+                                k,
+                                maxLinkDensity_tuple,
+                                maxLinkDensity_step,
+                                minREs_tuple,
+                                minREs_step,
+                                threads=threads)
+        ap.run()
+
 
 @cli.command()
 @click.argument(
@@ -756,6 +729,29 @@ def build(fasta, output):
     metavar='AGP'
 )
 @click.option(
+    '--factor',
+    '-k',
+    help='Factor of plot matrix. '
+            'If you input 10k matrix and want to plot heatmap at 500k,'
+            'factor should be set 50.',
+    type=int,
+    default=50
+)
+@click.option(
+    '--chromosomes',
+    help='Chromosomes and order in which the chromosomes should be plotted.'
+            'Comma seperated.',
+    default=''
+)
+@click.option(
+    '--per-chromosomes',
+    'per_chromosomes',
+    help='Instead of plotting the whole matrix, '
+            'each chromosome is plotted next to the other.',
+    is_flag=True,
+    default=False
+)
+@click.option(
     '--no-adjust',
     'no_adjust',
     help='Matrix is chromosome-level, no need adjust.',
@@ -763,23 +759,206 @@ def build(fasta, output):
     is_flag=True,
     show_default=True,
 )
-def plot(matrix, agp, no_adjust):
+@click.option(
+    '--only-adjust',
+    'only_adjust',
+    help='Only adjust the matrix by agp.',
+    default=False,
+    is_flag=True,
+    show_default=True,
+)
+@click.option(
+    '--no-coarsen',
+    'no_coarsen',
+    help='The resolution of matrix is already for plotting, no need coarsen.',
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    '--only-plot',
+    'only_plot',
+    help='Only plot the matrix.',
+    default=False,
+    is_flag=True,
+    show_default=True,
+)
+@click.option(
+    '-o',
+    '--output',
+    help='Output path of file.',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '--dpi',
+    help='Resolution for the image.',
+    default=600,
+    show_default=True
+)
+@click.option(
+    '--cmap',
+    help='Colormap of heatmap.',
+    default='YlOrRd',
+    show_default=True
+)
+def plot(matrix, agp, factor,
+        chromosomes, per_chromosomes, 
+        no_adjust, only_adjust, no_coarsen,
+        only_plot, output,
+        threads, dpi, cmap):
     """
-    Developing function.
+    Adjust or Plot the contacts matrix after assembling.
     """
-    from .plot import adjust_matrix, plot_matrix
+    from .plot import (
+        adjust_matrix, 
+        plot_matrix,
+        coarsen_matrix,
+    )
+    if not only_plot:
+        if not no_adjust:
+            assert agp is not None, \
+                "Must provide agp file for matrix adjustment."
+            matrix = adjust_matrix(matrix, agp)
 
-    if no_adjust:
-        plot_matrix(matrix)
-    else:
-        adjust_matrix(matrix, agp)
+        if only_adjust:
+            sys.exit()
 
-
+        if not no_coarsen:
+            matrix = coarsen_matrix(matrix, factor, None, threads)   
     
-    pass
+    chromosomes = chromosomes.strip().strip(",").split(',')
+
+    plot_matrix(matrix, 
+                output,
+                chromosomes,
+                per_chromosomes,
+                dpi=dpi,
+                cmap=cmap)
+
 
 def assess():
     pass
+
+@cli.group(cls=CommandGroup, short_help='Sub-command for Hi-C.')
+@click.pass_context
+def hic(ctx):
+    pass
+
+@hic.command()
+@click.option(
+    '-r',
+    '--reference',
+    help='Path of reference fasta file.',
+    metavar='FILE',
+    #type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-1',
+    '--read1',
+    help='Path of read 1.',
+    metavar='FILE',
+    type=click.Path(exists=True),
+    multiple=True,
+    required=True
+)
+@click.option(
+    '-2',
+    '--read2',
+    help='Path of read 2.',
+    metavar='FILE',
+    type=click.Path(exists=True),
+    multiple=True,
+    required=True
+    )
+@click.option(
+    '-e',
+    '--enzyme',
+    metavar='ENZYME',
+    help='Restiction enzyme. i.e. MboI, HindIII.',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-q',
+    '--mapq',
+    help='Minimum quality of mapping [0, 60].',
+    metavar='INT',
+    type=click.IntRange(0, 60, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '--aligner',
+    help='Aligner executable.',
+    type=click.Choice(['chromap']),#, 'hisat2']),
+    default='chromap',
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+
+)
+def mapper(
+    reference,
+    read1, 
+    read2,
+    enzyme,
+    mapq,
+    aligner,
+    threads
+
+):
+    """
+    Mapper for reads mapping.
+    """
+    assert len(read1) == len(read2), "reads must paired."
+
+    if aligner == 'hisat2':
+        if enzyme is None:
+            logger.error('Missing option "-e"')
+            sys.exit()
+        from .mapper import HisatMapper
+        hm1 = HisatMapper(reference, read1, enzyme, 
+                            min_quality=mapq, threads=threads)
+        hm1.run()
+        hm2 = HisatMapper(reference, read2, enzyme, 
+                            min_quality=mapq, threads=threads)
+        hm2.run()
+        
+    elif aligner == 'chromap':
+        from .mapper import ChromapMapper
+        from .core import PairHeader
+        res = []
+        for r1, r2 in zip(read1, read2):
+            cm = ChromapMapper(reference, r1, r2, 
+                                min_quality=mapq, 
+                                threads=threads)
+            cm.run()
+            res.append(cm.output_pairs)
+        else:
+            if len(res) > 1:
+                header = PairHeader([]).from_file(res[0])
+                header.save("temp.pairs.header")
+
+                cmd = ['cat', 'temp.pairs.header'] + res
+                cmd2 = ['LC_ALL=C', 'grep', '-v', '#']
 
 
 @cli.group(cls=CommandGroup, short_help='Misc tools.')

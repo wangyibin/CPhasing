@@ -1,14 +1,5 @@
 #!/usr/bin/env python
 
-"""
-plot the hic matrix after assembly from ALLHiC
-
-Examples:
-    %(prog)s -m sample.cool -a groups.agp
-"""
-
-
-import argparse
 import logging
 import os
 import os.path as op
@@ -37,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 HIC_METADATA = {}
 HIC_METADATA['matrix-generated-by'] = np.string_(
-    'ALLHiC_plotMatrix'
+    'CPhasing_plot'
 )
 HIC_METADATA['matrix-generated-by-url'] = np.string_(
     'https://github.com/wangyibin/CPhasing'
@@ -46,38 +37,38 @@ HIC_METADATA['matrix-generated-by-url'] = np.string_(
 
 lock = Lock()
 
-def parse_arguments(args=None):
-    p = argparse.ArgumentParser(prog=__file__,
-                        description=__doc__,
-                        formatter_class=argparse.RawTextHelpFormatter,
-                        conflict_handler='resolve')
-    pReq = p.add_argument_group('Required arguments')
-    pOpt = p.add_argument_group('Optional arguments')
-    pReq.add_argument('-m', '--matrix', 
-            help='cool matrix from ALLHiC_buildMatrix',
-            metavar='cool',
-            required=True)
-    pReq.add_argument('-a', '--agp', 
-            help='agp file from ALLHiC.',
-            metavar='agp',
-            required=True)
-    pOpt.add_argument('--binSize', '-bs',
-            default=500000, type=int,
-            help='Size in bp for the plotting heatmap bins. [default: %(default)s]')
-    pOpt.add_argument('--chromSize', default=None,
-            help='chromosome size and chromosome order of heatmap, [default: from agp]')
-    pOpt.add_argument('-t', '--threads', type=int, default=8,
-            help='number of program threads[default:%(default)s]')
-    pOpt.add_argument('--cmap', default='YlOrRd',
-            help='colormap of heatmap [default: %(default)s]')
-    pOpt.add_argument('-o', '--outprefix', 
-            help='prefix of output heatmap [default: prefix.cool]')
-    pOpt.add_argument('-om', '--outmatrix', default=None,
-            help='output the chromosomal-level matrix [default: %(default)s]')
-    pOpt.add_argument('-h', '--help', action='help',
-            help='show help message and exit.')
+# def parse_arguments(args=None):
+#     p = argparse.ArgumentParser(prog=__file__,
+#                         description=__doc__,
+#                         formatter_class=argparse.RawTextHelpFormatter,
+#                         conflict_handler='resolve')
+#     pReq = p.add_argument_group('Required arguments')
+#     pOpt = p.add_argument_group('Optional arguments')
+#     pReq.add_argument('-m', '--matrix', 
+#             help='cool matrix from ALLHiC_buildMatrix',
+#             metavar='cool',
+#             required=True)
+#     pReq.add_argument('-a', '--agp', 
+#             help='agp file from ALLHiC.',
+#             metavar='agp',
+#             required=True)
+#     pOpt.add_argument('--binSize', '-bs',
+#             default=500000, type=int,
+#             help='Size in bp for the plotting heatmap bins. [default: %(default)s]')
+#     pOpt.add_argument('--chromSize', default=None,
+#             help='chromosome size and chromosome order of heatmap, [default: from agp]')
+#     pOpt.add_argument('-t', '--threads', type=int, default=8,
+#             help='number of program threads[default:%(default)s]')
+#     pOpt.add_argument('--cmap', default='YlOrRd',
+#             help='colormap of heatmap [default: %(default)s]')
+#     pOpt.add_argument('-o', '--outprefix', 
+#             help='prefix of output heatmap [default: prefix.cool]')
+#     pOpt.add_argument('-om', '--outmatrix', default=None,
+#             help='output the chromosomal-level matrix [default: %(default)s]')
+#     pOpt.add_argument('-h', '--help', action='help',
+#             help='show help message and exit.')
     
-    return p  
+#     return p  
 
 AGP_NAMES_tig = ['chrom', 'start', 'end', 'number',
                  'type', 'id', 'tig_start', 'tig_end', 'orientation']
@@ -90,7 +81,7 @@ def import_agp(agpfile, split=True):
     """
     df = pd.read_csv(agpfile, sep='\t', comment='#',
                      header=None, index_col=None,)
-    logger.info('load agp file: `{}`'.format(agpfile))
+    logger.info('Load agp file: `{}`'.format(agpfile))
     
     if split:
         tig_df = df[df[4] == 'W']
@@ -447,18 +438,8 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
         if threads > 1:
             pool.close()
 
-def coarsen_matrix(cool, k):
-    """
-    coarsen a matrix
 
-    Params:
-    --------
-    cool: `str` cool path
-    k: factor 
-    """
-    pass
-
-def adjust_matrix(matrix, agp, outprefix, chromSize, threads):
+def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     start_time = time.time()
    
@@ -529,7 +510,7 @@ def adjust_matrix(matrix, agp, outprefix, chromSize, threads):
                                   inplace=True, axis=1)
 
     
-    logger.info('starting to reorder matrix ...')
+    logger.info('Starting to reorder matrix ...')
 
     matrix = cool.matrix(balance=False, sparse=True)
     
@@ -556,20 +537,91 @@ def adjust_matrix(matrix, agp, outprefix, chromSize, threads):
     cooler.create_cooler(order_cool_path, reordered_contig_bins,
                          chrom_pixels, metadata=HIC_METADATA)
     logger.info('Successful, reorder the contig-level matrix, '
-                'and output into `{}`'.format(order_cool_path))
+                f'and output into `{outprefix}.ordered.cool`')
     
-    logger.info('staring to collaspe chromosome bin ...')
+    logger.info('Staring to collaspe chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
     sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
                      f'{outprefix}.chrom.cool', metadata=HIC_METADATA)
-    logger.info(f'Successful, collasped the contact into chromosome-level'
-                'and output into {ourprefix}.cool')
+    logger.info('Successful, collasped the contact into chromosome-level'
+                f'and output into {outprefix}.chrom.cool')
     
 
-    logger.info('Done, elasped time {} s'.format(time.time() - start_time))
+    logger.info('Done, elasped time {:.2f}s'.format(time.time() - start_time))
 
+    return f'{outprefix}.chrom.cool'
 
-def plot_matrix(matrix):
-    pass
+def coarsen_matrix(cool, k, out, threads):
+    """
+    coarsen a matrix
+
+    Params:
+    --------
+    cool: str
+         fine resolution cool path
+    k: int
+        factor 
+    out: str
+        output path of coarsened cool
+    threads: int
+        number of threads
+    
+    Returns:
+    --------
+    out: str
+    
+    Examples:
+    --------
+    >>> coarsen_matrix("sample.10k.cool", 50, "sample.500k.cool', 10)
+    "sample.500k.cool"
+    """
+    from cooler.cli.coarsen import coarsen
+    if not out:
+        input_resolution = cooler.Cooler(cool).binsize
+        out_resolution = f"{k * input_resolution}"
+        out = cool.replace(str(input_resolution), str(out_resolution))
+
+    try:
+        coarsen.main(args=[cool, 
+                            '--out', out, 
+                            '--factor', k, 
+                            '--nproc', threads], 
+                            prog_name='cooler')
+        logger.info(f'Coarsen new cool into {out}.')
+    except SystemExit as e:
+        exc_info = sys.exc_info()
+        exit_code = e.code
+        if exit_code is None:
+            exit_code = 0
+        
+        if exit_code != 0:
+            raise e
+
+    logger.info(f'Coarsen new cool into `{out}`.')
+
+    return out
+
+def plot_matrix(matrix, output, chroms, 
+                per_chromosomes, cmap, dpi):
+    from hicexplorer import hicPlotMatrix
+
+    addition_options = []
+    
+    if chroms and chroms[0] != "":
+        addition_options.append('--chromosomeOrder')
+        addition_options.extend(list(chroms))
+
+    if per_chromosomes:
+        addition_options.append('--perChromosome')
+    
+    hicPlotMatrix.main(args=['-m', matrix,
+                            '--dpi', str(dpi),
+                            '-o', output,
+                            '--colorMap', cmap,
+                            '--log1p'] 
+                            + 
+                            addition_options)
+    
+    logger.info(f'Successful, plotted the heatmap into `{output}`')

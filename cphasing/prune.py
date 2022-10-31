@@ -22,7 +22,7 @@ from .core import (
     )
 
 
-def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
+def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
     """
     Prune allelic signal by allele table.
 
@@ -34,11 +34,13 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
         CountRE objcet of allhic count_RE.txt.
     pt: PairTable, unsymmetric
         PairTable object of allhic pairs.txt.
+    normalize: bool, default False
+        If normalize the Hi-C signal.
 
     Returns:
     --------
     None:
-        but pairtable will be modify, where allelic signal will be removed.
+        But pairtable will be modify, where allelic signal will be removed.
     
     Example:
     --------
@@ -68,13 +70,15 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
 
     valid_allelic_pairs = [pair for pair in allelic_pairs 
                                 if pair in pairs_df.index]
-    pairs_df = pairs_df.drop(valid_allelic_pairs, axis=0)
-    pairs_df = pairs_df.reset_index()
-    pairs_df = pairs_df[header]
-    pt.data = pairs_df
+    
+    pt.data = (pairs_df.drop(valid_allelic_pairs, axis=0)
+                .reset_index()[header]
+    )
     pt.symmetric_pairs()
     pt.data = pt.data.set_index(['Contig1', 'Contig2'])
-    pt.normalize()
+
+    if normalize:
+        pt.normalize()
 
     at.data = at.data.drop_duplicates(at.data.columns)
 
@@ -99,8 +103,12 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
             if tmp_df.empty:
                 item_list.remove(contig)
                 continue
-            
-            res.append(tmp_df['NormalizedLinks'])
+
+            if normalize:
+                res.append(tmp_df['NormalizedLinks'])
+            else:
+                res.append(tmp_df['ObservedLinks'])
+
         
         if not res:
             continue
@@ -125,15 +133,12 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable):
         tmp_remove_db = tmp_remove_db - retain_db
         remove_db.update(tmp_remove_db)
 
-    # retain_db = set(retain_db)
-    # retain_db2 = set(map(lambda x: x[::-1], retain_db))
-    # retain_db = retain_db | retain_db2 
-
     remove_db = set(remove_db)
     remove_db2 = set(map(lambda x: x[::-1], remove_db))
     remove_db = remove_db | remove_db2
-    #remove_db = remove_db - retain_db
+
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
 
     pt.data = pt.data.drop(remove_db, axis=0)
-    pt.data = pt.data.drop(['NormalizedLinks'], axis=1)
+    if normalize:
+        pt.data = pt.data.drop(['NormalizedLinks'], axis=1)

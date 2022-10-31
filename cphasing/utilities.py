@@ -106,12 +106,15 @@ def run_cmd(command, log=sys.stderr, out2err=False):
                         bufsize=-1)
             )
         pipelines[-1].wait()
+    except:
+        return 2
     finally:
         for p in pipelines:
             if p.poll() is None:
                 p.terminate()
-
-    return 
+        else:
+            return p.returncode
+    return 0
 
 
 def xopen(infile, mode='r'):
@@ -136,7 +139,7 @@ def xopen(infile, mode='r'):
 
     if not isinstance(infile, PosixPath):
         infile = Path(infile)
-    
+
     if infile.suffix == ".gz":
         handle = gzip.open(infile, mode + 't')
     else:
@@ -441,3 +444,13 @@ def read_fasta(fasta: str) -> dict:
             db[record.id] = record.seq
         
     return db
+
+
+def _zero_diags(chunk, n_diags):
+    if n_diags > 0:
+        if n_diags > 0:
+            mask = np.abs(chunk['pixels']['bin1_id'] 
+                            - chunk['pixels']['bin2_id']) < n_diags
+            chunk['pixels']['count'][mask] = 0
+
+    return chunk

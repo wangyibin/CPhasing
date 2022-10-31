@@ -11,7 +11,7 @@ numpy >= 1.22.0
 matplotlib
 pandas
 pandarallel
-pyfaidx
+pyfaidx >= 0.7.0
 pyranges
 pysam
 pytools

@@ -1255,10 +1255,22 @@ class PairHeader:
         self.shape = self._get_shape()
         self.chromsize = self._get_chromsize()
         self.columns = self._get_columns()
-    
+
+    def from_chromsize_file(self, chromsize, 
+                            columns=None):
+        self.pairs_format = "1.0"
+        self.shape = "upper triangle"
+        self.chromsize = dict(i.strip().split()[:2] 
+                            for i in open(chromsize) if i.strip())
+        self.columns = columns if columns else ["readID", "chrom1", 
+                                                "pos1", "chrom2",
+                                                "pos2", "strand1", 
+                                                "strand2"]
+        self.update()
+
     def save(self, filename):
         with xopen(filename, 'w') as out:
-            out.write(str(self))
+            out.write(str(self) + "\n")
 
     def __str__(self):
         return "\n".join(self.header)
@@ -1571,18 +1583,12 @@ class PAFTable:
         "mapq": "uint8"
     }
     def __init__(self, paf: str, 
-                    min_quality: int=1, 
-                    min_identity: float=0.9,
-                    min_length: int=50,
+                    
                     threads: int = 4):
         from dask.distributed import Client
         
-
         self.file = Path(paf)
         self.filename = self.file.name
-        self.min_quality = min_quality
-        self.min_identity = min_identity
-        self.min_length = min_length 
         self.threads = threads
 
         self.data = self.read_table()
@@ -1598,21 +1604,24 @@ class PAFTable:
 
         return df
 
-    def filter(self):
+    def filter(self, min_quality: int=1, 
+                    min_identity: float=0.9,
+                    min_length: int=50,):
         self.data = (self.data
                     .assign(identity=lambda x: (x.matches/x.aln_length).round(2).astype(np.float16))
                     .assign(frag_length=lambda x: (x.read_end - x.read_start))
         )
-                        
-        self.data = self.data.query(f'mapq >= {self.min_quality} '
-                                    f'& identity >= {self.min_identity}'
-                                    f'& frag_length >= {self.min_length}')
+        filter_condition = (f'mapq >= {min_quality}'
+                                    f' & identity >= {min_identity}'
+                                    f' & frag_length >= {min_length}')      
+        self.data = self.data.query(filter_condition)
 
-        
+        logger.info(f'Filter alignments by {filter_condition}.')   
+
     def stat(self):
         pass
     
-    def to_pairs(self, output):
+    def to_pairs(self, chromsize, output):
         def _to_pairs_per_concatemer(df):
             if len(df) <= 1:
                 return None 
@@ -1641,7 +1650,8 @@ class PAFTable:
 
         def _to_pairs(df):
             return df.groupby('read_name').apply(_to_pairs_per_concatemer)
-
+    
+        logger.info('Converting Pore-C alignment to pairs.')
         self.data = self.data.assign(
             pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
         dtypes = self.data.head(1).dtypes
@@ -1655,12 +1665,23 @@ class PAFTable:
             "strand2": dtypes["strand"]
         }
 
-        self.data = (self.data.set_index('read_name')[['chrom', 'pos', 'strand']]
+        (self.data.set_index('read_name')[['chrom', 'pos', 'strand']]
                 .map_partitions(_to_pairs, meta=meta)
-                #.to_csv(output, single_file=True, 
-                #sep='\t', header=None, index=False)
+                .to_csv(f'{output}.body', single_file=True, 
+                sep='\t', header=None, index=False)
         )
+        
+        ph = PairHeader([])
+        ph.from_chromsize_file(chromsize)
+        ph.save(f'{output}.header')
 
+
+        command = f"""cat {output}.header {output}.body > {output}"""
+        check_call(command, shell=True)
+        os.remove(f'{output}.body')
+        os.remove(f'{output}.header')
+
+        logger.info(f'Successful written pairs file into `{output}`.')
 
     def to_contacts(self):
         pass
@@ -1674,6 +1695,4 @@ class PAFTable:
 
 #     @staticmethod
 #     def from_align_pair(read_name, read_length, align_1, align_2):
-#         pass  
-    
-    
+#         pass      

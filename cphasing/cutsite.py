@@ -10,7 +10,6 @@ import os
 import os.path as op
 import sys
 
-import gzip
 import re
 
 from Bio import SeqIO, Seq, SeqRecord

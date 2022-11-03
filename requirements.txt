@@ -1,6 +1,8 @@
 biopython
 click
 cooler
+dask
+distributed
 fanc
 hicexplorer
 intervaltree

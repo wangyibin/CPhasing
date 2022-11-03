@@ -1,4 +1,10 @@
 # Release notes #
+## [v0.0.8]
+Date: 2022-10-31
+### New features
+
+### Bug fixes
+- `PairHeader`, save header without "\n".
 
 ## [v0.0.7]
 Date: 2022-10-31
@@ -6,7 +12,7 @@ Date: 2022-10-31
 - `plot`, provide adjust matrix and plot matrix function.
 - `AdapativePartition`, partition by adapative pipeline for find best results
 - `PoreCMapper`, Pore-C reads mapping pipeline.
-- `PAFTABLE`, a function for processing paf file. (include `to_pairs`)
+- `PAFTable`, a function for processing paf file. (include `to_pairs`)
 ### Bug fixes
 
 ### Enhancement

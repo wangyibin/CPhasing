@@ -1102,3 +1102,75 @@ def cluster2count(cluster, count_re):
     ct = ClusterTable(cluster)
  
     ct.to_countRE(count_re)
+
+@utils.command()
+@click.argument(
+    "paf",
+    metavar="PAF_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "chromsize",
+    metavar="CHROMSIZE_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "output",
+    metavar='OUTPUT_PATH',
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 60].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-p',
+    '--min_identity',
+    help='Minimum percentage identity of alignments [0, 1.0].',
+    metavar='FLOAT',
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    default=.9,
+    show_default=True
+)
+@click.option(
+    '-l',
+    '--min_length',
+    help='Minimum length of fragments.',
+    metavar='INT',
+    default=50,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def paf2pairs(paf, chromsize, output, 
+                min_quality, min_identity, 
+                min_length, threads):
+    """
+    Convert Pore-C alignments to 4DN pairs file.
+
+        PAF_PATH : Path of alignment file(paf format).
+
+        CHROMSIZE : Path of chromosome sizes.
+
+        OUTPUT : PATH of output pairs file.
+    """
+    from .core import PAFTable
+    paftable = PAFTable(paf=paf,
+                        threads=threads)
+
+    paftable.filter(min_quality=min_quality,
+                        min_identity=min_identity,
+                        min_length=min_length, )
+
+    paftable.to_pairs(chromsize, output)

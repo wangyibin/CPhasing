@@ -18,7 +18,7 @@
 ```
 git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
-pip install requirements.txt
+pip install -r requirements.txt
 
 export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH

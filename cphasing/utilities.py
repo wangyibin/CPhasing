@@ -454,3 +454,4 @@ def _zero_diags(chunk, n_diags):
             chunk['pixels']['count'][mask] = 0
 
     return chunk
+

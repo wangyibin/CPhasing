@@ -1174,3 +1174,20 @@ def paf2pairs(paf, chromsize, output,
                         min_length=min_length, )
 
     paftable.to_pairs(chromsize, output)
+
+
+@utils.command()
+@click.argument(
+    "pore_c_tables",
+    metavar="Pore_C_Tables",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "output",
+    metavar="OUTPUT",
+)
+def hyperpartition(pore_c_tables, output):
+    from .partition import HyperPartition
+    hp = HyperPartition(pore_c_tables)
+    hp.partition()
+    hp.to_cluster(output)

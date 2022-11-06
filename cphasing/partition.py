@@ -16,7 +16,7 @@ from collections import OrderedDict
 from joblib import Parallel, delayed
 
 from .core import CountRE
-from .utilities import run_cmd
+from .utilities import run_cmd, listify
 
 logger = logging.getLogger(__name__)
 
@@ -285,9 +285,44 @@ class AdaptivePartitioner(Partitioner):
 
     
 class HyperPartition:
-    def __init(self, h):
-        pass
+    def __init__(self, pore_c_tables):
+        self.pore_c_tables = listify(pore_c_tables)
+        self.data = self.import_pore_c_table()
+        self.edges = self.get_hyperedges()
+        self.H = self.get_hypergraph()
     
+    def get_hypergraph(self):
+        import hypernetx as hnx
+        H = hnx.Hypergraph(dict(enumerate(self.edges)), use_nwhy=True)
+        return H
+
+    def import_pore_c_table(self):
+        if len(self.pore_c_tables) == 1:
+            df = pd.read_parquet(self.pore_c_tables[0])
+        else:
+            df_list = list(map(pd.read_parquet, self.pore_c_tables))
+            df = pd.concat(df_list, axis=0)
+        
+        return df 
     
-    def run(self):
-        pass
+    def partition(self):
+        import hypernetx.algorithms.hypergraph_modularity as hmod 
+        HG = hmod.precompute_attributes(self.H)
+        self.K = hmod.kumar(HG)
+
+        return self.K
+
+    def get_hyperedges(self):
+        df2 = self.data.set_index('read_name')
+        df2 = df2.loc[(self.data.groupby('read_name')['chrom'].nunique() >= 2)]
+        edges = df2.groupby('read_name')['chrom'].unique().values.tolist()
+        edges = list(set(map(tuple, map(sorted, edges))))
+
+        return edges
+
+    def to_cluster(self, output):
+        with open(output, 'w') as out:
+            for i, group in enumerate(self.K):
+                print(f'{i}\t{len(group)}\t{" ".join(group)}', 
+                        file=out)
+

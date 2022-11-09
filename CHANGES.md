@@ -1,10 +1,12 @@
 # Release notes #
 ## [v0.0.8]
-Date: 2022-10-31
+Date: 2022-11-09
 ### New features
-
+- `hypergraph`, contain a hypergraph cluster algorithms
+- `HyperPartition`, partition contigs in diploid or allopolyploid
 ### Bug fixes
 - `PairHeader`, save header without "\n".
+
 
 ## [v0.0.7]
 Date: 2022-10-31

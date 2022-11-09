@@ -18,6 +18,14 @@ from pathlib import Path, PosixPath
 
 logger = logging.getLogger(__name__)
 
+def listify(item):
+    """
+    To return a list or tuple value.
+    From https://github.com/tanghaibao/jcvi/blob/master/jcvi/apps/base.py listify
+    """
+    return item if (isinstance(item, list) or 
+                   isinstance(item, tuple)) else [item]
+
 
 def tail(infile, n, offset=0):
     """
@@ -447,6 +455,9 @@ def read_fasta(fasta: str) -> dict:
 
 
 def _zero_diags(chunk, n_diags):
+    """
+    zero diag in cool pixels table
+    """
     if n_diags > 0:
         if n_diags > 0:
             mask = np.abs(chunk['pixels']['bin1_id'] 

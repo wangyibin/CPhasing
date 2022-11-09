@@ -5,11 +5,14 @@ dask
 distributed
 fanc
 hicexplorer
+hypernetx
+igraph
 intervaltree
 joblib
 natsort
 ncls
 numpy >= 1.22.0
+nwhy
 matplotlib
 pandas
 pandarallel

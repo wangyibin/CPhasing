@@ -8,6 +8,7 @@ import os.path as op
 import sys
 import shutil
 
+import dask.dataframe as dd
 import glob
 import tempfile
 import pandas as pd
@@ -219,7 +220,8 @@ class AdaptivePartitioner(Partitioner):
         os.chdir(workdir)
         os.link("../../" + counts_file, "./" + counts_file)
         os.link("../../" + pairs_file, "./" + pairs_file)
-        p = Partitioner(counts_file, pairs_file, k, maxLinkDensity, minREs, quiet=True)        
+        p = Partitioner(counts_file, pairs_file, k, 
+                            maxLinkDensity, minREs, quiet=True)        
         p.run()
 
         if not p.is_complete_partition:
@@ -230,8 +232,11 @@ class AdaptivePartitioner(Partitioner):
         lengths = p.lengths
         range_value = p.range_value
 
-        result = (minREs, maxLinkDensity, ",".join(map(str, lengths)), range_value, 
-                        range_value/sum(lengths))
+        result = (minREs, 
+                    maxLinkDensity, 
+                    ",".join(map(str, lengths)), 
+                    range_value, 
+                    range_value/sum(lengths))
  
         os.chdir("../")
 
@@ -285,44 +290,73 @@ class AdaptivePartitioner(Partitioner):
 
     
 class HyperPartition:
-    def __init__(self, pore_c_tables):
+    def __init__(self, pore_c_tables, 
+                    min_order=2, max_order=15,
+                    min_length=800, threshold=0.01,
+                    max_round=50, threads=4):
+
         self.pore_c_tables = listify(pore_c_tables)
+        self.min_order = min_order
+        self.max_order = max_order
+        self.min_length = min_length
+        self.threshold = threshold
+        self.max_round = max_round
+        self.threads = threads
+
         self.data = self.import_pore_c_table()
-        self.edges = self.get_hyperedges()
-        self.H = self.get_hypergraph()
+        self.H, self.vertices = self.get_hypergraph()
     
     def get_hypergraph(self):
-        import hypernetx as hnx
-        H = hnx.Hypergraph(dict(enumerate(self.edges)), use_nwhy=True)
-        return H
+        from .algorithms.hypergraph import generate_hypergraph
+        H, vertices = generate_hypergraph(self.data,
+                                            self.min_order,
+                                            self.max_order,
+                                            self.min_length,
+                                            self.threads)
+
+        return H, vertices
 
     def import_pore_c_table(self):
+        logger.info("Loading Pore-C table ...")
         if len(self.pore_c_tables) == 1:
-            df = pd.read_parquet(self.pore_c_tables[0])
+            df = dd.read_parquet(self.pore_c_tables[0], 
+                                    columns=['read_name', 'chrom',
+                                                'start', 'end'],
+                                    engine='pyarrow')
         else:
-            df_list = list(map(pd.read_parquet, self.pore_c_tables))
-            df = pd.concat(df_list, axis=0)
+            df_list = list(map(lambda x: dd.read_parquet(
+                            x, columns=['read_name', 'chrom', 'start', 'end'], 
+                            engine='pyarrow'), self.pore_c_tables))
+
+            df = dd.concat(df_list, axis=0)
+
         
+        if len(self.pore_c_tables) < self.threads/2:
+            from dask.distributed import Client
+            with Client(n_workers=self.threads):
+                df = (df.set_index('read_name')
+                        .repartition(self.threads)
+                        .reset_index())
+
         return df 
     
     def partition(self):
-        import hypernetx.algorithms.hypergraph_modularity as hmod 
-        HG = hmod.precompute_attributes(self.H)
-        self.K = hmod.kumar(HG)
+        from .algorithms.hypergraph import IRMM
+        logger.info("Starting to cluster ...")
+        self.K = IRMM(self.H, self.vertices, 
+                        self.max_round, self.threshold,
+                        self.threads)
+        logger.info("Cluster done.")
 
+        self.K = filter(lambda x: len(x) > 1, self.K)
+        self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
+        
         return self.K
-
-    def get_hyperedges(self):
-        df2 = self.data.set_index('read_name')
-        df2 = df2.loc[(self.data.groupby('read_name')['chrom'].nunique() >= 2)]
-        edges = df2.groupby('read_name')['chrom'].unique().values.tolist()
-        edges = list(set(map(tuple, map(sorted, edges))))
-
-        return edges
 
     def to_cluster(self, output):
         with open(output, 'w') as out:
-            for i, group in enumerate(self.K):
-                print(f'{i}\t{len(group)}\t{" ".join(group)}', 
+            for i, group in enumerate(self.K, 1):
+                print(f'group{i}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
 
+        logger.info(f"Successful output cluster results in `{output}`.")

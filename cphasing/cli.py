@@ -1186,8 +1186,89 @@ def paf2pairs(paf, chromsize, output,
     "output",
     metavar="OUTPUT",
 )
-def hyperpartition(pore_c_tables, output):
+@click.option(
+    "--min-order",
+    "min_order",
+    help="Minimum contig order of pore-c reads",
+    metavar="INT",
+    type=int,
+    default=2,
+    show_default=True
+)
+@click.option(
+    "--max-order",
+    "max_order",
+    help="Maximum contig order of pore-c reads",
+    metavar="INT",
+    type=int,
+    default=15,
+    show_default=True
+)
+@click.option(
+    "--min-length",
+    "min_length",
+    help="Minimum length of alignments",
+    metavar="INT",
+    type=int,
+    default=100,
+    show_default=True
+)
+@click.option(
+    "--threshold",
+    metavar="FLOAT",
+    help="Threshold of reweight",
+    type=float,
+    default=0.01,
+    show_default=True
+)
+@click.option(
+    "--max-round",
+    "max_round",
+    help="Maximize round of reweight",
+    metavar="INT",
+    type=int,
+    default=50,
+    show_default=True
+)
+@click.option(
+    '--fofn',
+    help="""
+    If this flag is set then the SRC_ASSIGN_TABLES is a file of
+    filenames corresponding to the contact tables you want to merge.
+    This is workaround for when the command line gets too long.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def hyperpartition(pore_c_tables, output,
+                    min_order, max_order,
+                    min_length, threshold, 
+                    max_round, fofn, 
+                    threads):
+    """
+    Separate contigs into several groups by hypergraph cluster.
+        
+        Pore_C_TABLE : Path of Pore-C table.
+
+        OUTPUT: Path of output clusters.
+    """
     from .partition import HyperPartition
-    hp = HyperPartition(pore_c_tables)
+    if fofn:
+        pore_c_tables = [i.strip() for i in open(pore_c_tables)]
+
+    hp = HyperPartition(pore_c_tables, min_order, 
+                            max_order, min_length, 
+                            threshold, max_round, 
+                            threads)
     hp.partition()
     hp.to_cluster(output)

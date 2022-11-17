@@ -335,7 +335,8 @@ class PoreCMapper:
                 if p.poll() is None:
                     p.terminate()
             else:
-                assert pipelines != [], "Failed to execute command, please check log."
+                assert pipelines != [], \
+                    "Failed to execute command, please check log."
         
     def generate_pairs(self):
         pass

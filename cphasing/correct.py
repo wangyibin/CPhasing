@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-correct chimeric contig by Hi-C signal.
+correct chimeric contig by signal.
 """
 
 import gc

@@ -618,7 +618,7 @@ def plot_matrix(matrix, output, chroms,
     
     hicPlotMatrix.main(args=['-m', matrix,
                             '--dpi', str(dpi),
-                            '-o', output,
+                            '--outFileName', output,
                             '--colorMap', cmap,
                             '--log1p'] 
                             + 

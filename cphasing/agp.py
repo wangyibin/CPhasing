@@ -112,25 +112,26 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
     --------
     >>> agp2fasta('groups.agp', 'contigs.fasta')
     """
-    from pyfaidx import Fasta
-    def get_seqs(chrom, cluster):
-        seqs = []
-        id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
-        for contig, orient in id_orient:
-            if orient == '+':
-                seqs.append(str(fasta[contig]))
-            else:
-                seqs.append(fasta[contig][::-1].complement.seq)
+    # from pyfaidx import Fasta
+    # def get_seqs(chrom, cluster):
+    #     seqs = []
+    #     id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
+    #     for contig, orient in id_orient:
+    #         if orient == '+':
+    #             seqs.append(str(fasta[contig]))
+    #         else:
+    #             seqs.append(fasta[contig][::-1].complement.seq)
         
-        out_seq = GAP.join(seqs)
+    #     out_seq = GAP.join(seqs)
 
-        return chrom, out_seq
+    #     return chrom, out_seq
     
-    if isinstance(fasta, str):
-        fasta = Fasta(fasta)
-    elif isinstance(fasta, Fasta):
-        pass
-
+    # if isinstance(fasta, str):
+    #     fasta = Fasta(fasta)
+    # elif isinstance(fasta, Fasta):
+    #     pass
+    from .utilities import read_fasta
+    seq_db = read_fasta(fasta)
     agp_df, gap_df = import_agp(agp)
    
     GAP = 'N' * gap_df.length[0]
@@ -143,13 +144,13 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
     #print(outs)
         for contig, orient in id_orient:
             if orient == '+':
-                seqs.append(str(fasta[contig]))
+                seqs.append(str(seq_db[contig]))
             else:
-                seqs.append(fasta[contig][::-1].complement.seq)
+                seqs.append(str(seq_db[contig].reverse_complement()))
         
         out_seq = GAP.join(seqs)
-    print(f'>{chrom}', file=output)
-    print(out_seq, file=output)
+        print(f'>{chrom}', file=output)
+        print(out_seq, file=output)
 
 
 def agp2tour(agp, outdir, force=False):

@@ -58,6 +58,6 @@ def Build(fasta, output='groups.asm.fasta', threads=1):
         #     seqs = tour.get_fasta(fasta)
         #     print(f">{tour.group}", file=out)
         #     print(GAP.join(seqs), file=out)
-        agp2fasta(agp, fasta, out)
+        agp2fasta(agp, fasta.filename, out)
     
     

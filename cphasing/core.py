@@ -760,7 +760,7 @@ class ClusterTable:
         >>> countRE = CountRE()
         >>> ct.to_countRE(countRE)
         """
-        self.CountRE = CountRE(countRE)
+        self.CountRE = CountRE(countRE, minRE=1)
         prefix = Path(countRE).stem
         for group in self.groups:
             _contigs = self.data[group]
@@ -768,6 +768,20 @@ class ClusterTable:
             tmp_df.to_csv(f'{prefix}.{group}.txt', sep='\t',
                             header=True, index=True)
             logger.info(f'Output countRE file into `{prefix}.{group}.txt`')
+
+    def to_assembly(self, fasta, output):
+        from pyfaidx import Fasta
+        fasta = Fasta(fasta)
+
+        contig_idx_db = dict(zip(self.contigs, range(len(self.contigs))))
+        for i, contig in enumerate(self.contigs, 1):
+            print(f">{contig} {i} {len(fasta[contig])}", file=output)
+        
+        for group in self.groups:
+            _contigs = self.data[group]
+            _idx = list(map(lambda x: contig_idx_db[x], _contigs))
+            _idx = list(map(lambda x: int(x)+1, _idx))
+            print(" ".join(map(str, _idx)), file=output)
 
     def save(self, output):
         """

@@ -23,7 +23,7 @@ class Rescuer:
         self.pairFile = pairs_file
 
         self.ClusterTable = ClusterTable(self.clusterFile)
-        self.countRE = CountRE(self.countREFile)
+        self.countRE = CountRE(self.countREFile, minRE=1)
         self.PairTable = PairTable(self.pairFile)
 
         self.exclude = exclude

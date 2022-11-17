@@ -5,6 +5,7 @@ from dis import show_code
 import click
 import logging
 import sys 
+import os.path as op
 
 from pathlib import Path
 
@@ -206,11 +207,45 @@ def correct(
     required=True
 )
 @click.option(
+    "--method",
+    help="method for allele table constructions.",
+    default='gmap',
+    show_default=True,
+    type=click.Choice(['gmap', 'similarity'])#, 'synteny']),
+)
+@click.option(
     "-c",
     "--cds",
     help="the cds file of reference.",
     metavar="FILE",
     type=click.Path(exists=True)
+)
+@click.option(
+    "-k",
+    "kmer_size",
+    help="kmer size for similarity calculation.",
+    metavar="INT",
+    type=int,
+    default=19,
+    show_default=True
+)
+@click.option(
+    "-w",
+    "window_size",
+    help="minimizer window size for similarity calculation.",
+    metavar="INT",
+    type=int,
+    default=19,
+    show_default=True
+)
+@click.option(
+    "-m",
+    "minimum_similarity",
+    help="minimum k-mer similarity for similarity calculation.",
+    metavar="FLOAT",
+    type=float,
+    default=.8,
+    show_default=True
 )
 @click.option(
     "-b",
@@ -221,24 +256,16 @@ def correct(
     type=click.Path(exists=True)
 )
 @click.option(
-    "-k",
+    "-p",
     "--ploidy",
     help="ploidy of genome.",
     metavar="INT",
     type=int,
-    required=True
-)
-@click.option(
-    "--method",
-    help="method for allele table constructions.",
-    default='gmap',
-    show_default=True,
-    type=click.Choice(['gmap'])#, 'similarity', 'synteny']),
 )
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads.',
+    help='Number of threads. Only use for gmap method.',
     type=int,
     default=4,
     metavar='INT',
@@ -251,22 +278,30 @@ def correct(
     is_flag=True,
     show_default=True
 )
-def alleles(fasta, cds, bed, ploidy, method, 
-            skip_gmap_index, threads):
+def alleles(fasta, method, 
+                kmer_size, window_size, minimum_similarity,
+                cds, bed, ploidy, skip_gmap_index, threads):
     """
     Build allele table for prune.
     """
     
-    from .alleles import GmapAllele
+    from .alleles import GmapAllele, PartigAllele
     
     if method == 'gmap':
         ga = GmapAllele(fasta, cds, bed, ploidy, 
                         skip_index=skip_gmap_index,
                         threads=threads)
         ga.run()
+    elif method == 'similarity':
+        prefix = op.basename(fasta).rsplit(".", 1)[0] 
+        output = f"{prefix}.allele.table"
+        pa = PartigAllele(fasta, kmer_size, window_size, 
+                                minimum_similarity, output)
+        pa.run()
+    
     else:
         logger.warning('Incompletely developing function')
-        
+
 
 @cli.command()
 @click.argument(
@@ -969,7 +1004,7 @@ def utils(ctx):
 
 @utils.command(short_help='Convert agp to cluster file.')
 @click.argument(
-    "agp",
+    "agpfile",
     metavar="AGP",
     type=click.Path(exists=True)
 )
@@ -980,18 +1015,18 @@ def utils(ctx):
     type=click.File('w'),
     default=sys.stdout
 )
-def agp2cluster(agp, output):
+def agp2cluster(agpfile, output):
     """
     Convert agp to cluster file.
 
     AGP : Path to agp file.
     """
     from .agp import agp2cluster
-    agp2cluster(agp, output)
+    agp2cluster(agpfile, output)
 
 @utils.command(short_help='Convert agp to fasta file.')
 @click.argument(
-    "agp",
+    "agpfile",
     metavar="AGP",
     type=click.Path(exists=True)
     )
@@ -1018,9 +1053,9 @@ def agp2cluster(agp, output):
     show_default=True,
 
 )
-def agp2fasta(agp, fasta, output, threads):
-    logger.warning('Incomplete developing function')
-    pass
+def agp2fasta(agpfile, fasta, output, threads):
+    from .agp import agp2fasta
+    agp2fasta(agpfile, fasta, output)
 
 @utils.command()
 @click.argument(
@@ -1102,6 +1137,75 @@ def cluster2count(cluster, count_re):
     ct = ClusterTable(cluster)
  
     ct.to_countRE(count_re)
+
+@utils.command(short_help='Convert cluster to pesudo assembly file.')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'fasta',
+    metavar='Fasta',
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def cluster2assembly(cluster, fasta, output):
+    """
+    Convert cluster to a pesudo assembly file.
+
+    ClusterTable : Path to cluster table.
+
+    Fasta : Path to fasta file.
+    
+    """
+    from .core import ClusterTable
+    ct = ClusterTable(cluster)
+ 
+    ct.to_assembly(fasta, output)
+
+@utils.command()
+@click.argument(
+    "count_re"
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+@click.option(
+    '--fofn',
+    help="""
+    If this flag is set then the countREs is a file of
+    filenames corresponding to the contact tables you want to merge.
+    This is workaround for when the command line gets too long.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def countRE2cluster(count_re, output, fofn):
+    """
+    Convert serveral count RE table to cluster file.
+    """
+    if fofn:
+        countREs = [i.strip() for i in open(count_re) if i.strip()]
+    else:
+        countREs = [count_re]
+    countREs = list(map(CountRE, countREs))
+
+    group_name = list(map(lambda x: x.filename.rsplit(".", 1)[0], countREs))
+    for group_name, cr in zip(group_name, countREs):
+        print(f"{group_name}\t{cr.ncontigs}\t{' '.join(cr.contigs)}", 
+                file=output) 
 
 @utils.command()
 @click.argument(
@@ -1187,6 +1291,17 @@ def paf2pairs(paf, chromsize, output,
     metavar="OUTPUT",
 )
 @click.option(
+    "--fasta",
+    default=None,
+    show_default=True,
+)
+@click.option(
+    "--prune",
+    default=False,
+    show_default=True,
+    is_flag=True
+)
+@click.option(
     "--min-order",
     "min_order",
     help="Minimum contig order of pore-c reads",
@@ -1210,7 +1325,7 @@ def paf2pairs(paf, chromsize, output,
     help="Minimum length of alignments",
     metavar="INT",
     type=int,
-    default=100,
+    default=500,
     show_default=True
 )
 @click.option(
@@ -1246,11 +1361,12 @@ def paf2pairs(paf, chromsize, output,
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=1,
     metavar='INT',
     show_default=True,
 )
 def hyperpartition(pore_c_tables, output,
+                    fasta, prune,
                     min_order, max_order,
                     min_length, threshold, 
                     max_round, fofn, 
@@ -1266,7 +1382,8 @@ def hyperpartition(pore_c_tables, output,
     if fofn:
         pore_c_tables = [i.strip() for i in open(pore_c_tables)]
 
-    hp = HyperPartition(pore_c_tables, min_order, 
+    hp = HyperPartition(pore_c_tables, fasta,
+                            prune, min_order, 
                             max_order, min_length, 
                             threshold, max_round, 
                             threads)

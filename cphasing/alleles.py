@@ -8,9 +8,13 @@ import os.path as op
 import sys
 import re
 
-from collections import defaultdict
+import numpy as np
+
+from collections import defaultdict, OrderedDict
 from subprocess import Popen
 from pathlib import Path
+from pyfaidx import Fasta
+
 
 from .utilities import (
     cmd_exists, 
@@ -41,9 +45,12 @@ class PartigLine:
             self.kmerSimilarity = line_list[7]
 
 class PartigRecords:
-    def __init__(self, infile):
+    def __init__(self, infile, symmetric=True):
         self._file = infile
+        logger.info(f'Load file {self._file}.')
+        self.symmetric = symmetric
         self.parse()
+
     def parse(self):
         self.C = []
         self.S = []
@@ -54,25 +61,72 @@ class PartigRecords:
                     self.C.append(line)
                 else:
                     self.S.append(line)
+    
+    @property
+    def nSeq(self):
+        return len(self.C)
+
     @property
     def seqNames(self):
-        names = []
-        for name in self.C:
-            names.append(name.seqName)
+        names = [name.seqName for name in self.C]
+
         return names
 
     @property
     def pairs(self):
-        return [(i.seqName1, i.seqName2) for i in self.S]
+        if self.symmetric:
+            return [(i.seqName1, i.seqName2) for i in self.S]
+        else:
+            return [(i.seqName1, i.seqName2) for i in self.S 
+                                if i.seqName1 < i.seqName2]
     
+    def convert(self, fasta):
+        """
+        convert ID to contig name.
+
+        """
+        fasta = Fasta(fasta)
+
+        fastadb = dict(zip(self.seqNames, fasta.keys()))
+    
+        for i in range(len(self.C)):
+            self.C[i].seqName = fastadb[self.C[i].seqName]
+        
+        for i in range(len(self.S)):
+            self.S[i].seqName1 = fastadb[self.S[i].seqName1]
+            self.S[i].seqName2 = fastadb[self.S[i].seqName2]
+
+    def convertToIndex(self):
+        """
+        convert ID to index.
+        """
+        db = {}
+        for i in range(len(self.C)):
+            db[self.C[i].seqName] = i  
+            self.C[i].seqName = i 
+
+        for i in range(len(self.S)):
+            self.S[i].seqName1 = db[self.S[i].seqName1]
+            self.S[i].seqName2 = db[self.S[i].seqName2]
     
 
 class PartigAllele:
     def __init__(self,
                     fasta,
+                    k=19,
+                    w=19,
+                    m=0.8,
                     output='Allele.ctg.table',
                     log_dir='logs'):
-        self.fasta = fasta 
+        self.fasta = fasta
+        self.prefix = op.basename(fasta).rsplit(".", 1)[0] 
+        self.partig_res = f"{self.prefix}.partig.res"
+
+        ## parameters for partig
+        self.k = k
+        self.w = w
+        self.m = m 
+
         self.output = output
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -80,9 +134,49 @@ class PartigAllele:
         if not cmd_exists('partig'):
             logger.error('No such command of `partig`.')
             sys.exit()
-        
-    
 
+    def partig(self):
+        """
+        get partig record
+        """
+        cmd = ['partig', f'-k{self.k}', f'-w{self.w}',
+                f'-m{self.m}', self.fasta]
+        
+        logger.info('Calculating the similarity of sequences ...')
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.partig_res, 'w'),
+                stderr=open(f"{self.log_dir}/partig.log", 'w'),
+                bufsize=-1)
+            )
+            pipelines[-1].wait()
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+        
+        self.pr = PartigRecords(self.partig_res)
+        self.pr.convert(self.fasta)
+
+    def to_alleletable(self):
+        with open(self.output, 'w') as output:
+            i = 0
+            for record in self.pr.S:
+                i += 1
+                print(i, i, record.seqName1, record.seqName2, 
+                        sep='\t', file=output)
+
+        logger.info(f'Successful output allele table in `{self.output}`.')
+
+    def run(self):
+        self.partig()
+        self.to_alleletable()
+
+    
 class GmapAllele:
     def __init__(self, 
                     fasta,

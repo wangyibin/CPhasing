@@ -15,7 +15,10 @@ import pandas as pd
 
 from collections import OrderedDict 
 from joblib import Parallel, delayed
+from pathlib import Path
+from pyfaidx import Fasta
 
+from .alleles import PartigRecords
 from .core import CountRE
 from .utilities import run_cmd, listify
 
@@ -291,11 +294,15 @@ class AdaptivePartitioner(Partitioner):
     
 class HyperPartition:
     def __init__(self, pore_c_tables, 
+                    fasta,
+                    prune=False,
                     min_order=2, max_order=15,
                     min_length=800, threshold=0.01,
                     max_round=50, threads=4):
 
+        
         self.pore_c_tables = listify(pore_c_tables)
+        self.fasta = fasta
         self.min_order = min_order
         self.max_order = max_order
         self.min_length = min_length
@@ -304,29 +311,66 @@ class HyperPartition:
         self.threads = threads
 
         self.data = self.import_pore_c_table()
+        self.contigs = self.get_contigs()
         self.H, self.vertices = self.get_hypergraph()
-    
-    def get_hypergraph(self):
-        from .algorithms.hypergraph import generate_hypergraph
-        H, vertices = generate_hypergraph(self.data,
-                                            self.min_order,
-                                            self.max_order,
-                                            self.min_length,
-                                            self.threads)
+        
+        if prune:
+            if not Path(fasta).exists:
+                logger.error("Prune must input related fasta.")
+                sys.exit
+            self.P_idx = self.get_similar_pairs(self.fasta)
+        else:
+            self.P_idx = None
 
-        return H, vertices
+    def get_contigs(self):
+        fasta = Fasta(self.fasta)
+        contigs = list(map(lambda x: x.name, fasta))
+        lengths = list(map(len, list(fasta)))
+        length_db = dict(zip(contigs, lengths))
+        contigs = sorted(contigs, key=lambda x: length_db[x], reverse=True)
+
+        return contigs
+
+    def get_similar_pairs(self, fasta):
+        from .algorithms.hypergraph import get_prune_matrix
+
+        prefix = op.basename(fasta).rsplit(".", 1)[0]
+        partigCMD = (f'partig -k19 -w19 -m 0.8 '
+                     f'{fasta}> {prefix}.partig.res 2>partig.log')
+
+        
+        if not op.exists(f"{prefix}.partig.res"):
+            logger.info("Running CMD: " + partigCMD)
+            os.system(partigCMD)    
+        pr = PartigRecords(f'{prefix}.partig.res')
+        pr.convert(fasta)
+
+        P_idx = get_prune_matrix(pr.pairs, self.vertices)
+
+        return P_idx
 
     def import_pore_c_table(self):
         logger.info("Loading Pore-C table ...")
         if len(self.pore_c_tables) == 1:
-            df = dd.read_parquet(self.pore_c_tables[0], 
+            if Path(self.pore_c_tables[0]).is_symlink():
+                infile = os.readlink(self.pore_c_tables[0])
+            else:
+                infile = self.pore_c_tables[0]
+            df = dd.read_parquet(infile, 
                                     columns=['read_name', 'chrom',
                                                 'start', 'end'],
                                     engine='pyarrow')
         else:
+            infiles = []
+            for i in self.pore_c_tables:
+                if Path(i).is_symlink():
+                    infiles.append(os.readlink(i))
+                else:
+                    infiles.append(i)
+
             df_list = list(map(lambda x: dd.read_parquet(
                             x, columns=['read_name', 'chrom', 'start', 'end'], 
-                            engine='pyarrow'), self.pore_c_tables))
+                            engine='pyarrow'), infiles))
 
             df = dd.concat(df_list, axis=0)
 
@@ -340,12 +384,23 @@ class HyperPartition:
 
         return df 
     
+    def get_hypergraph(self):
+        from .algorithms.hypergraph import generate_hypergraph
+        H, vertices = generate_hypergraph(self.data,
+                                            self.contigs,
+                                            self.min_order,
+                                            self.max_order,
+                                            self.min_length,
+                                            self.threads)
+
+        return H, vertices
+  
     def partition(self):
         from .algorithms.hypergraph import IRMM
         logger.info("Starting to cluster ...")
-        self.K = IRMM(self.H, self.vertices, 
-                        self.max_round, self.threshold,
-                        self.threads)
+        self.K = IRMM(self.H, self.vertices, self.P_idx,
+                        self.threshold, self.max_round,
+                        threads=self.threads)
         logger.info("Cluster done.")
 
         self.K = filter(lambda x: len(x) > 1, self.K)

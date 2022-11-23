@@ -10,10 +10,13 @@ import igraph as ig
 import hypernetx as hnx
 
 from collections import OrderedDict
+from joblib import Memory
 from joblib import Parallel, delayed
 from scipy.sparse import identity, dia_matrix
 
 logger = logging.getLogger(__name__)
+
+memory = Memory('./cachedir', verbose=0)
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -227,12 +230,13 @@ def process_pore_c_table(df, min_order, max_order, min_length):
 
     return edges
 
+process_pore_c_table = memory.cache(process_pore_c_table)
 
 def generate_hypergraph(pore_c_table, 
                             contig_list,
                             min_order=2, 
                             max_order=15, 
-                            min_length=500,
+                            min_alignments=500,
                             threads=4):
     """
     generate hypergraph incidence matrix
@@ -262,13 +266,13 @@ def generate_hypergraph(pore_c_table,
     >>> H, vertices = generate_hypergraph("pore_c.pq")
     """
     logger.info(f"Only retained Pore-C concatemer that: \n"
-                    f"\talignment length >= {min_length}\n"
+                    f"\talignment length >= {min_alignments}\n"
                     f"\t{min_order} <= contig order <= {max_order}")
 
     args = []
     for i in range(pore_c_table.npartitions):
         args.append((pore_c_table.partitions[i],
-                    min_order, max_order, min_length))
+                    min_order, max_order, min_alignments))
 
     res = Parallel(n_jobs=min(pore_c_table.npartitions, threads))(
                         delayed(process_pore_c_table)(i, j, k, l) 
@@ -294,11 +298,12 @@ def generate_hypergraph(pore_c_table,
     # H = H[np.array(idx), :]
     # vertices = list(map(lambda x: list(vertices)[x], idx))
 
-    logger.info(f"Generating hypergraph that containing {H.shape[0]} vertices"    
+    logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
                     f" and {H.shape[1]} hyperedges.")
 
     return H, vertices
 
+generate_hypergraph = memory.cache(generate_hypergraph)
 
 def get_prune_matrix(similar_pairs, vertices):
 

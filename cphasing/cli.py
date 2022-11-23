@@ -884,7 +884,7 @@ def plot(matrix, agp, factor,
 def assess():
     pass
 
-@cli.group(cls=CommandGroup, short_help='Sub-command for Hi-C.')
+@cli.group(cls=CommandGroup, short_help='Sub-command for Hi-C pipeline.')
 @click.pass_context
 def hic(ctx):
     pass
@@ -1320,12 +1320,21 @@ def paf2pairs(paf, chromsize, output,
     show_default=True
 )
 @click.option(
-    "--min-length",
-    "min_length",
+    "--min-alignments",
+    "min_alignments",
     help="Minimum length of alignments",
     metavar="INT",
     type=int,
     default=500,
+    show_default=True
+)
+@click.option(
+    "--min-length",
+    "min_length",
+    help="Minimum length of contigs",
+    metavar="INT",
+    type=int,
+    default=10000,
     show_default=True
 )
 @click.option(
@@ -1368,6 +1377,7 @@ def paf2pairs(paf, chromsize, output,
 def hyperpartition(pore_c_tables, output,
                     fasta, prune,
                     min_order, max_order,
+                    min_alignments,
                     min_length, threshold, 
                     max_round, fofn, 
                     threads):
@@ -1384,7 +1394,8 @@ def hyperpartition(pore_c_tables, output,
 
     hp = HyperPartition(pore_c_tables, fasta,
                             prune, min_order, 
-                            max_order, min_length, 
+                            max_order, min_alignments, 
+                            min_length,
                             threshold, max_round, 
                             threads)
     hp.partition()

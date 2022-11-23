@@ -297,7 +297,8 @@ class HyperPartition:
                     fasta,
                     prune=False,
                     min_order=2, max_order=15,
-                    min_length=800, threshold=0.01,
+                    min_alignments=500,
+                    min_length=10000, threshold=0.01,
                     max_round=50, threads=4):
 
         
@@ -305,6 +306,7 @@ class HyperPartition:
         self.fasta = fasta
         self.min_order = min_order
         self.max_order = max_order
+        self.min_alignments = min_alignments
         self.min_length = min_length
         self.threshold = threshold
         self.max_round = max_round
@@ -314,6 +316,8 @@ class HyperPartition:
         self.contigs = self.get_contigs()
         self.H, self.vertices = self.get_hypergraph()
         
+        self.filter_hypergraph()
+
         if prune:
             if not Path(fasta).exists:
                 logger.error("Prune must input related fasta.")
@@ -321,6 +325,17 @@ class HyperPartition:
             self.P_idx = self.get_similar_pairs(self.fasta)
         else:
             self.P_idx = None
+
+    @property
+    def vertices_idx(self):
+        return dict(zip(self.vertices, 
+                        range(len(self.vertices))))
+    @property
+    def contig_sizes(self):
+        fasta = Fasta(self.fasta)
+        contig_size_db = dict(list(map(lambda x: (x.name, len(x)), list(fasta))))
+        
+        return contig_size_db 
 
     def get_contigs(self):
         fasta = Fasta(self.fasta)
@@ -390,11 +405,27 @@ class HyperPartition:
                                             self.contigs,
                                             self.min_order,
                                             self.max_order,
-                                            self.min_length,
+                                            self.min_alignments,
                                             self.threads)
 
         return H, vertices
-  
+
+    def filter_hypergraph(self):
+        ## remove too short contigs
+        contig_sizes = self.contig_sizes
+        vertices_idx = self.vertices_idx
+        short_contigs = [i for i in contig_sizes
+                                if contig_sizes[i] < self.min_length]
+
+        short_contig_idx = []
+        for i in short_contigs:
+            try:
+                short_contig_idx.append(vertices_idx[i])
+            except KeyError:
+                continue
+
+        return short_contig_idx
+
     def partition(self):
         from .algorithms.hypergraph import IRMM
         logger.info("Starting to cluster ...")
@@ -402,6 +433,7 @@ class HyperPartition:
                         self.threshold, self.max_round,
                         threads=self.threads)
         logger.info("Cluster done.")
+
 
         self.K = filter(lambda x: len(x) > 1, self.K)
         self.K = sorted(self.K, key=lambda x: len(x), reverse=True)

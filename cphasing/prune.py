@@ -139,6 +139,14 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
 
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
 
+    with open("prune.contig.list", "w") as output:
+        for pair in remove_db:
+            if pair[0] > pair[1]:
+                continue
+            print("\t".join(pair), file=output)
+
     pt.data = pt.data.drop(remove_db, axis=0)
     if normalize:
         pt.data = pt.data.drop(['NormalizedLinks'], axis=1)
+
+    return remove_db

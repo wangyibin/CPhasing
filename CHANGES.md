@@ -1,12 +1,18 @@
 # Release notes #
 ## [v0.0.8]
-Date: 2022-11-09
+Date: 2022-11-17
 ### New features
 - `hypergraph`, contain a hypergraph cluster algorithms
 - `HyperPartition`, partition contigs in diploid or allopolyploid
+- `PartigAllele`, enable using sequences similarity to generate allele table
+- `PAFTable`, filter alignment
+- `PoreCTable`, stat alignment information
+### Enhancement
+- `agp2fasta`, `build`, using dictory instead of faidx to speed up
 ### Bug fixes
 - `PairHeader`, save header without "\n".
-
+- `rescue`, fix CountRE only default load >=3.
+- `plot`, fix bug of hicexplorer outputFilename error.
 
 ## [v0.0.7]
 Date: 2022-10-31

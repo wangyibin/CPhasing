@@ -13,16 +13,17 @@ warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 import gc
 import tempfile
 from collections import OrderedDict
-from itertools import combinations
 
 import cooler
 import numpy as np
 import pandas as pd
-from hicexplorer.reduceMatrix import reduce_matrix
+
 from intervaltree import Interval, IntervalTree
 from multiprocessing import Lock, Pool
 from pandarallel import pandarallel
-from scipy.sparse import coo_matrix, csr_matrix, triu
+from scipy.sparse import triu
+
+from .agp import import_agp
 
 logger = logging.getLogger(__name__)
 
@@ -36,69 +37,7 @@ HIC_METADATA['matrix-generated-by-url'] = np.string_(
 
 
 lock = Lock()
-
-# def parse_arguments(args=None):
-#     p = argparse.ArgumentParser(prog=__file__,
-#                         description=__doc__,
-#                         formatter_class=argparse.RawTextHelpFormatter,
-#                         conflict_handler='resolve')
-#     pReq = p.add_argument_group('Required arguments')
-#     pOpt = p.add_argument_group('Optional arguments')
-#     pReq.add_argument('-m', '--matrix', 
-#             help='cool matrix from ALLHiC_buildMatrix',
-#             metavar='cool',
-#             required=True)
-#     pReq.add_argument('-a', '--agp', 
-#             help='agp file from ALLHiC.',
-#             metavar='agp',
-#             required=True)
-#     pOpt.add_argument('--binSize', '-bs',
-#             default=500000, type=int,
-#             help='Size in bp for the plotting heatmap bins. [default: %(default)s]')
-#     pOpt.add_argument('--chromSize', default=None,
-#             help='chromosome size and chromosome order of heatmap, [default: from agp]')
-#     pOpt.add_argument('-t', '--threads', type=int, default=8,
-#             help='number of program threads[default:%(default)s]')
-#     pOpt.add_argument('--cmap', default='YlOrRd',
-#             help='colormap of heatmap [default: %(default)s]')
-#     pOpt.add_argument('-o', '--outprefix', 
-#             help='prefix of output heatmap [default: prefix.cool]')
-#     pOpt.add_argument('-om', '--outmatrix', default=None,
-#             help='output the chromosomal-level matrix [default: %(default)s]')
-#     pOpt.add_argument('-h', '--help', action='help',
-#             help='show help message and exit.')
-    
-#     return p  
-
-AGP_NAMES_tig = ['chrom', 'start', 'end', 'number',
-                 'type', 'id', 'tig_start', 'tig_end', 'orientation']
-AGP_NAMES_gap = ['chrom', 'start', 'end', 'number',
-                 'type', 'length', 'type', 'linkage', 'evidence']
-
-def import_agp(agpfile, split=True):
-    """
-    import agp file and return a dataframe
-    """
-    df = pd.read_csv(agpfile, sep='\t', comment='#',
-                     header=None, index_col=None,)
-    logger.info('Load agp file: `{}`'.format(agpfile))
-    
-    if split:
-        tig_df = df[df[4] == 'W']
-        gap_df = df[df[4] == 'U']
-        tig_df.columns = AGP_NAMES_tig
-        gap_df.columns = AGP_NAMES_gap
-        tig_df = tig_df.astype(
-            {'chrom': 'category', 'orientation': 'category'})
-        gap_df = gap_df.astype({'chrom': 'category'})
-
-        tig_df.set_index('chrom', inplace=True)
-        gap_df.set_index('chrom', inplace=True)
-        
-        return tig_df, gap_df
-    else:
-        return df
-
+ 
 def get_bins(bin_size, chrom_size, start=0, orientation="+", 
                 reverse=False, region=None):
     """
@@ -265,6 +204,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins):
     _file3 = tempfile.NamedTemporaryFile(delete=False)
 
     chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
+
     contig_on_chrom_bins.to_csv(_file2.name,
                                 sep='\t', index=True, header=None)
 
@@ -273,12 +213,13 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins):
 
     df = pd.read_csv(_file3.name, sep='\t',
                      header=None, index_col=None,
-                     dtype={0: 'category',
-                               9: 'category'})
+                     dtype={9: 'category'})
+    
     _file1.close()
     _file2.close()
     _file3.close()
 
+    df = df[~df.where(df == '.').any(axis=1)]
     df = df.drop([3, 4, 5, 10], axis=1)
     df.columns = ['chrom', 'start', 'end', 'contig',
                   'tig_start', 'tig_end', 'orientation']
@@ -452,6 +393,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         outprefix = op.basename(cool.filename).rsplit(".", 1)[0]
     ## get chromosome size database from arguments or agp file
     if not chromSize:
+        chroms = agp_df.index.unique()
         chrom_sizes = agp_df.groupby(agp_df.index)['end'].max()
         chrom_sizes = pd.DataFrame(chrom_sizes)
         chrom_sizes.reset_index(inplace=True)
@@ -459,19 +401,21 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     else: 
         chrom_sizes = pd.read_csv(chromSize, sep='\t', header=None,
                                 index_col=0, names=['chrom', 'length'])
-    
+
     chrom_sizes = [i for _, i in chrom_sizes.iterrows()]
+
     chrom_bin_interval_df = pd.DataFrame(get_bins(bin_size, chrom_sizes), 
                                     columns=['chrom', 'start', 'end'])
+  
     chrom_regions = chrom_bin_interval_df.apply(lambda x: chrRangeID(x.values), axis=1)
     contig_bins = cool.bins()
-
+    contig_idx_db = dict(zip(cool.chromnames, range(len(cool.chromnames))))
     new_agp = splitAGPByBinSize(agp_df, bin_size=bin_size)
     
     split_contig_on_chrom_df = getContigOnChromBins(
         chrom_bin_interval_df, new_agp.drop(['number', 'type'], axis=1))
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
-
+    
     pandarallel.initialize(nb_workers=threads, verbose=0)
     contig_bins_index = contig_bins[:].parallel_apply(
         lambda x: chrRangeID(x.values), axis=1)
@@ -490,6 +434,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     def func(row): return chrRangeID(row.values)
     split_contig_on_chrom_df['chrom_region'] = split_contig_on_chrom_df[[
         'chrom', 'start', 'end']].parallel_apply(func, axis=1)
+    split_contig_on_chrom_df['contig'] = split_contig_on_chrom_df[
+        'contig'].parallel_apply(lambda x: contig_idx_db.get(x, np.nan)).dropna()
     split_contig_on_chrom_df['contig_region'] = split_contig_on_chrom_df[[
         'contig', 'tig_start', 'tig_end']].parallel_apply(func, axis=1)
 
@@ -499,8 +445,10 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         split_contig_on_chrom_df['chrom_region'].astype(cat_dtype)
     split_contig_on_chrom_df['chromidx'] = \
         split_contig_on_chrom_df['chrom_region'].cat.codes.values
-   
     
+    split_contig_on_chrom_df = split_contig_on_chrom_df[
+        split_contig_on_chrom_df['contig_region'].isin(contig_bins_index.index)]
+
     split_contig_on_chrom_df['contigidx'] = contig_bins_index.loc[
         split_contig_on_chrom_df['contig_region']]['contigidx'].values
 
@@ -519,7 +467,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     grouped_contig_idx = split_contig_on_chrom_df.groupby('chromidx')[
                                         'contigidx'].aggregate(tuple)
     grouped_contig_idx = grouped_contig_idx.tolist()
-
+    
     # reorder matrix 
     reordered_contigidx = contig2chrom['contigidx'].values
 
@@ -527,15 +475,17 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                          )[:, reordered_contigidx][reordered_contigidx, :]
     reordered_contig_bins = contig_bins[:].loc[reordered_contigidx].reset_index(
         drop=True)
+    
     reordered_matrix = triu(reordered_matrix).tocoo()
 
     chrom_pixels = dict(zip(['bin1_id', 'bin2_id', 'count'],
                             [reordered_matrix.row,
                             reordered_matrix.col,
                             reordered_matrix.data]))
+
     order_cool_path = f"{outprefix}.ordered.cool"
     cooler.create_cooler(order_cool_path, reordered_contig_bins,
-                         chrom_pixels, metadata=HIC_METADATA)
+                         chrom_pixels)#, metadata=HIC_METADATA)
     logger.info('Successful, reorder the contig-level matrix, '
                 f'and output into `{outprefix}.ordered.cool`')
     
@@ -544,12 +494,12 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
     sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
-                     f'{outprefix}.chrom.cool', metadata=HIC_METADATA)
+                     f'{outprefix}.chrom.cool')#, metadata=HIC_METADATA)
     logger.info('Successful, collasped the contact into chromosome-level'
                 f'and output into {outprefix}.chrom.cool')
     
 
-    logger.info('Done, elasped time {:.2f}s'.format(time.time() - start_time))
+    logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
     return f'{outprefix}.chrom.cool'
 
@@ -612,10 +562,12 @@ def plot_matrix(matrix, output, chroms,
     if chroms and chroms[0] != "":
         addition_options.append('--chromosomeOrder')
         addition_options.extend(list(chroms))
-
+        cool = cooler.Cooler(matrix)
+        
+  
     if per_chromosomes:
         addition_options.append('--perChromosome')
-    
+
     hicPlotMatrix.main(args=['-m', matrix,
                             '--dpi', str(dpi),
                             '--outFileName', output,

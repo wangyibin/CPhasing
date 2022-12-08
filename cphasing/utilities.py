@@ -466,3 +466,14 @@ def _zero_diags(chunk, n_diags):
 
     return chunk
 
+def delete_row_lil(mat, i):
+    """
+    https://stackoverflow.com/questions/13077527/is-there-a-numpy-delete-equivalent-for-sparse-matrices
+    """
+    from scipy.sparse import lil_matrix
+    
+    if not isinstance(mat, lil_matrix):
+        raise ValueError("works only for LIL format -- use .tolil() first")
+    mat.rows = np.delete(mat.rows, i)
+    mat.data = np.delete(mat.data, i)
+    mat._shape = (mat._shape[0] - 1, mat._shape[1])

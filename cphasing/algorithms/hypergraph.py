@@ -12,7 +12,12 @@ import hypernetx as hnx
 from collections import OrderedDict
 from joblib import Memory
 from joblib import Parallel, delayed
-from scipy.sparse import identity, dia_matrix
+from scipy.sparse import (
+    identity, 
+    dia_matrix, 
+    csr_matrix, 
+    lil_matrix
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +100,33 @@ def reweight(d_array, cluster_assignments, W, n, chunk):
     
     return n, np.array(W_tmp)
 
-def IRMM(H, vertices, P_idx=None, threshold=0.01, max_round=10, chunk=10000, threads=10):
+def extract_incidence_matrix(mat, idx):
+    if not isinstance(mat, csr_matrix):
+        raise ValueError("works only for CSR format -- use .tocsr() first")
+    
+    mat = mat[idx].T.tolil()
+    ## remove singleton or empty hyperedge
+    remove_col_index = np.where(mat.sum(axis=1).T > 1)[1]
+    mat = mat[remove_col_index]
+    
+    return mat.T.tocsr(), remove_col_index
+
+def remove_incidence_matrix(mat, idx):
+    if not isinstance(mat, csr_matrix):
+        raise ValueError("works only for CSR format -- use .tocsr() first")
+    
+    idx = np.setdiff1d(np.arange(mat.shape[0]), idx)
+    mat = mat[idx].T.tolil()
+    ## remove singleton or empty hyperedge
+    remove_col_index = np.where(mat.sum(axis=1).T > 1)[1]
+    mat = mat[remove_col_index]
+
+    return mat.T.tocsr(), remove_col_index
+
+def IRMM(H, P_idx=None, 
+            threshold=0.01, 
+            max_round=10, chunk=10000, 
+            threads=10):
     """
     Iteratively reweight modularity maximization.
     
@@ -125,8 +156,6 @@ def IRMM(H, vertices, P_idx=None, threshold=0.01, max_round=10, chunk=10000, thr
     --------
     >>> IRMM(H, vertices)
     """
-    print(type(vertices))
-    print(list(vertices)[:10])
     m = H.shape[1]
     
     ## diagonal matrix of weights
@@ -156,21 +185,28 @@ def IRMM(H, vertices, P_idx=None, threshold=0.01, max_round=10, chunk=10000, thr
         A[P_idx[0], P_idx[1]] = 0
         A = A.tocsr()
 
-    G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+    try:
+        G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+    except ValueError:
+        return [list(range(A.shape[0]))]
+
     cluster_assignments = G.community_multilevel(weights='weight')
     cluster_assignments = list(cluster_assignments.as_cover())
     cluster_assignments = list(map(set, cluster_assignments))
-    print(list(map(len, list(map(lambda y: list(map(lambda x: list(vertices)[x], y)), 
-                cluster_assignments)))))
+    print(list(map(len, cluster_assignments)))
     del A, G
     gc.collect()
 
     W_prev = W.copy()
-    iter_round = 0
+    iter_round = 1
     diff_value = 1
 
     while diff_value > threshold:
         print(diff_value)
+
+        if iter_round >= max_round:
+            break
+
         a = da.from_array(H_T, chunks=(chunk, H_T.shape[1]))
 
         args = [(a, cluster_assignments, W, i, chunk) 
@@ -187,19 +223,22 @@ def IRMM(H, vertices, P_idx=None, threshold=0.01, max_round=10, chunk=10000, thr
         gc.collect()
 
         A = H @ W @ D_e_inv @ H_T
-        A.setdiag(0)
-        A.prune()
+        # A.setdiag(0)
+        # A.prune()
         if P_idx:
             A = A.tolil()
             A[P_idx[0], P_idx[1]] = 0
             A = A.tocsr()
 
-        G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+        try:
+            G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+        except ValueError:
+            return cluster_assignments
+
         cluster_assignments = G.community_multilevel(weights='weight')
         cluster_assignments = list(cluster_assignments.as_cover())
         cluster_assignments = list(map(set, cluster_assignments))
-        print(list(map(len, list(map(lambda y: list(map(lambda x: list(vertices)[x], y)), 
-                cluster_assignments)))))
+        print(list(map(len, cluster_assignments)))
         del A, G
         gc.collect()
 
@@ -207,33 +246,31 @@ def IRMM(H, vertices, P_idx=None, threshold=0.01, max_round=10, chunk=10000, thr
         W_prev = W.copy()
         
         iter_round += 1
-        
-        if iter_round > max_round:
-            break
     
+    return cluster_assignments
+    # return list(map(lambda y: list(map(lambda x: list(vertices)[x], y)), 
+    #             cluster_assignments))
 
-    return list(map(lambda y: list(map(lambda x: list(vertices)[x], y)), 
-                cluster_assignments))
-
-def process_pore_c_table(df, min_order, max_order, min_length):
+def process_pore_c_table(pore_c_table, npartition, min_order, max_order, min_length):
+    
+    df = pore_c_table.partitions[npartition]
     df = df.compute()
     
     df = (df.assign(length=lambda x: x.end - x.start)
             .query(f"length >= {min_length}")
-            .set_index('read_name')
+            .set_index('read_idx')
     )
-    df_grouped = df.groupby('read_name')['chrom']
+    df_grouped = df.groupby('read_idx')['chrom']
     df_grouped_nunique = df_grouped.nunique()
     df = df.loc[(df_grouped_nunique >= min_order) 
                     & (df_grouped_nunique <= max_order)]
-    edges = df.groupby('read_name')['chrom'].unique()
+    edges = df.groupby('read_idx')['chrom'].unique()
 
     return edges
 
 process_pore_c_table = memory.cache(process_pore_c_table)
 
 def generate_hypergraph(pore_c_table, 
-                            contig_list,
                             min_order=2, 
                             max_order=15, 
                             min_alignments=500,
@@ -265,38 +302,34 @@ def generate_hypergraph(pore_c_table,
     --------
     >>> H, vertices = generate_hypergraph("pore_c.pq")
     """
-    logger.info(f"Only retained Pore-C concatemer that: \n"
-                    f"\talignment length >= {min_alignments}\n"
-                    f"\t{min_order} <= contig order <= {max_order}")
-
+    logger.info("Processing Pore-C table ...")
+    
     args = []
     for i in range(pore_c_table.npartitions):
-        args.append((pore_c_table.partitions[i],
+        args.append((pore_c_table, i,
                     min_order, max_order, min_alignments))
 
     res = Parallel(n_jobs=min(pore_c_table.npartitions, threads))(
-                        delayed(process_pore_c_table)(i, j, k, l) 
-                            for i, j, k, l in args)
+                        delayed(process_pore_c_table)(i, j, k, l, m) 
+                            for i, j, k, l, m in args)
+    
     res_df = pd.concat(res)
     edges = res_df.values
 
+    logger.info(f"Only retained Pore-C concatemer that: \n"
+                    f"\talignment length >= {min_alignments}\n"
+                    f"\t{min_order} <= contig order <= {max_order}")
     del res, res_df 
     gc.collect()
 
     edges = dict(enumerate(set(map(tuple, edges))))
-
     HG = hnx.Hypergraph(edges, use_nwhy=True)
-    # HG.remove_edge(edges[0])
-    # HG.remove_singletons()
+
     del edges
     gc.collect()
 
     H = HG.incidence_matrix().astype(np.int8)
     vertices = list(HG.nodes)
-    # idx_db = dict(zip(vertices, range(len(vertices))))
-    # idx = [idx_db[i] for i in sorted(idx_db, key=lambda x: contig_list.index(x))]
-    # H = H[np.array(idx), :]
-    # vertices = list(map(lambda x: list(vertices)[x], idx))
 
     logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
                     f" and {H.shape[1]} hyperedges.")
@@ -305,22 +338,3 @@ def generate_hypergraph(pore_c_table,
 
 generate_hypergraph = memory.cache(generate_hypergraph)
 
-def get_prune_matrix(similar_pairs, vertices):
-
-    idx_similar_pairs = []
-    db = dict(zip(vertices, range(len(vertices))))
-    for pair in similar_pairs:
-        ctg1, ctg2 = pair 
-        try:
-            ctg1_idx, ctg2_idx = db[ctg1], db[ctg2]
-        except KeyError:
-            continue
-        idx_similar_pairs.append((ctg1_idx, ctg2_idx))
-    
-    idx = list(zip(*idx_similar_pairs))
-
-    # a = np.ones((len(vertices), len(vertices)), dtype=np.int8)
-    # a[np.diag_indices_from(a)] = 0
-    # a[idx[0], idx[1]] = 0
-
-    return idx

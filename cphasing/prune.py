@@ -62,6 +62,7 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
             alleles = list(filter(filter_func, alleles))
             alleles = sorted(alleles, key=lambda x: contigs_index[x])
             tmp_pairs = list(combinations(alleles, 2))
+                
             allelic_pairs.extend(tmp_pairs)
     
     allelic_pairs = list(set(allelic_pairs))
@@ -70,7 +71,6 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
 
     valid_allelic_pairs = [pair for pair in allelic_pairs 
                                 if pair in pairs_df.index]
-    
     pt.data = (pairs_df.drop(valid_allelic_pairs, axis=0)
                 .reset_index()[header]
     )
@@ -139,14 +139,18 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
 
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
 
+    pt.data = pt.data.drop(remove_db, axis=0)
+    if normalize:
+        pt.data = pt.data.drop(['NormalizedLinks'], axis=1)
+
+    allelic_pairs2 = set(map(lambda x: x[::-1], allelic_pairs))
+    allelic_pairs = set(allelic_pairs) | allelic_pairs2
+    remove_db = set(remove_db) | set(allelic_pairs)
+
     with open("prune.contig.list", "w") as output:
         for pair in remove_db:
             if pair[0] > pair[1]:
                 continue
             print("\t".join(pair), file=output)
-
-    pt.data = pt.data.drop(remove_db, axis=0)
-    if normalize:
-        pt.data = pt.data.drop(['NormalizedLinks'], axis=1)
 
     return remove_db

@@ -10,17 +10,24 @@ import shutil
 
 import dask.dataframe as dd
 import glob
+import numpy as np
 import tempfile
 import pandas as pd
 
 from collections import OrderedDict 
+from itertools import permutations
 from joblib import Parallel, delayed
 from pathlib import Path
 from pyfaidx import Fasta
 
 from .alleles import PartigRecords
+from .algorithms.hypergraph import (
+    IRMM,
+    extract_incidence_matrix, 
+    remove_incidence_matrix
+    )
 from .core import CountRE
-from .utilities import run_cmd, listify
+from .utilities import run_cmd, listify, list_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -293,17 +300,31 @@ class AdaptivePartitioner(Partitioner):
 
     
 class HyperPartition:
+    """
+    Method of contigs partition based on hypergraph partition.
+
+    Params:
+    --------
+    pore_c_tables: list
+        Pathes of pore_c_table.
+    k: str
+        Number of groups. Set to k1:k2 to perform multipartition.
+
+    """
     def __init__(self, pore_c_tables, 
+                    k,
                     fasta,
-                    prune=False,
+                    prune=None,
                     min_order=2, max_order=15,
                     min_alignments=500,
                     min_length=10000, threshold=0.01,
                     max_round=50, threads=4):
-
         
         self.pore_c_tables = listify(pore_c_tables)
+        self.k = k
+
         self.fasta = fasta
+        self.prune = prune 
         self.min_order = min_order
         self.max_order = max_order
         self.min_alignments = min_alignments
@@ -319,12 +340,9 @@ class HyperPartition:
         self.filter_hypergraph()
 
         if prune:
-            if not Path(fasta).exists:
-                logger.error("Prune must input related fasta.")
-                sys.exit
-            self.P_idx = self.get_similar_pairs(self.fasta)
+            self.P_idx, self.prune_pair_df = self.get_prune_pairs()
         else:
-            self.P_idx = None
+            self.P_idx, self.prune_pair_df = None, None
 
     @property
     def vertices_idx(self):
@@ -346,23 +364,23 @@ class HyperPartition:
 
         return contigs
 
-    def get_similar_pairs(self, fasta):
-        from .algorithms.hypergraph import get_prune_matrix
-
-        prefix = op.basename(fasta).rsplit(".", 1)[0]
-        partigCMD = (f'partig -k19 -w19 -m 0.8 '
-                     f'{fasta}> {prefix}.partig.res 2>partig.log')
-
+    def get_prune_pairs(self):
         
-        if not op.exists(f"{prefix}.partig.res"):
-            logger.info("Running CMD: " + partigCMD)
-            os.system(partigCMD)    
-        pr = PartigRecords(f'{prefix}.partig.res')
-        pr.convert(fasta)
+        vertices_idx = self.vertices_idx
 
-        P_idx = get_prune_matrix(pr.pairs, self.vertices)
-
-        return P_idx
+        pair_df = pd.read_csv(self.prune, sep='\t', 
+                                header=None, index_col=None)
+        pair_df[0] = pair_df[0].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df[1] = pair_df[1].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df = pair_df.dropna(axis=0)
+        pair_df2 = pair_df.reindex(columns=[1, 0])
+        pair_df2.columns = [0, 1]
+        pair_df = pd.concat([pair_df, pair_df2], axis=0)
+        pair_df = pair_df.drop_duplicates(subset=[0, 1])
+  
+        P_idx = [pair_df[0], pair_df[1]]
+       
+        return P_idx, pair_df
 
     def import_pore_c_table(self):
         logger.info("Loading Pore-C table ...")
@@ -372,9 +390,10 @@ class HyperPartition:
             else:
                 infile = self.pore_c_tables[0]
             df = dd.read_parquet(infile, 
-                                    columns=['read_name', 'chrom',
-                                                'start', 'end'],
+                                    columns=['read_idx', 'chrom',
+                                            'start', 'end', 'pass_filter'],
                                     engine='pyarrow')
+     
         else:
             infiles = []
             for i in self.pore_c_tables:
@@ -384,25 +403,32 @@ class HyperPartition:
                     infiles.append(i)
 
             df_list = list(map(lambda x: dd.read_parquet(
-                            x, columns=['read_name', 'chrom', 'start', 'end'], 
-                            engine='pyarrow'), infiles))
+                                x, 
+                                columns=['read_name', 'chrom', 
+                                        'start', 'end', 'pass_filter'], 
+                                engine='pyarrow'), infiles))
 
             df = dd.concat(df_list, axis=0)
+            df['read_idx'] = df['read_name'].cat.as_known().cat.codes
+
+        df = df.query("pass_filter == True")
 
         
+
         if len(self.pore_c_tables) < self.threads/2:
-            from dask.distributed import Client
-            with Client(n_workers=self.threads):
-                df = (df.set_index('read_name')
-                        .repartition(self.threads)
-                        .reset_index())
+            # from dask.distributed import Client
+            # with Client(n_workers=self.threads):
+            df = (
+                df.set_index('read_idx')
+                    .repartition(self.threads)
+                    .reset_index()
+                    )
 
         return df 
     
     def get_hypergraph(self):
         from .algorithms.hypergraph import generate_hypergraph
         H, vertices = generate_hypergraph(self.data,
-                                            self.contigs,
                                             self.min_order,
                                             self.max_order,
                                             self.min_alignments,
@@ -423,13 +449,79 @@ class HyperPartition:
                 short_contig_idx.append(vertices_idx[i])
             except KeyError:
                 continue
+        
+        if len(short_contig_idx) == 0:
+            return
 
-        return short_contig_idx
+        logger.info(f"Total {len(short_contig_idx)} contigs were removed, "
+                        "because it's length too short.")
+        self.H, _ = remove_incidence_matrix(self.H, short_contig_idx)
+        self.vertices = np.delete(self.vertices, short_contig_idx)
 
-    def partition(self):
-        from .algorithms.hypergraph import IRMM
+    def merge_group(self):
+        """
+        merge group by signal.
+        """
+        self.k 
+        self.K
+        pass
+    
+    @classmethod
+    def _multi_partition(self, k, prune_pair_df, H, threshold, max_round):
+        """
+        single function for multi_partition.
+        """
+        k = np.array(list(k))
+        sub_H, _ = extract_incidence_matrix(H, k)
+
+        sub_old2new_idx = dict(zip(k, range(len(k))))
+        sub_new2old_idx = dict(zip(range(len(k)), k))
+
+        # sub_vertices = list(np.array(self.vertices)[k])
+        # sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
+
+        sub_prune_pair_df = prune_pair_df.reindex(list(permutations(k, 2)))
+        sub_prune_pair_df = sub_prune_pair_df.dropna().reset_index()
+    
+        sub_prune_pair_df[0] = sub_prune_pair_df[0].map(lambda x: sub_old2new_idx[x])
+        sub_prune_pair_df[1] = sub_prune_pair_df[1].map(lambda x: sub_old2new_idx[x])
+
+        sub_P_idx = [sub_prune_pair_df[0], sub_prune_pair_df[1]]
+        
+        new_K = IRMM(sub_H, sub_P_idx, threshold, 
+                        max_round, threads=1)
+        
+        ## remove single group
+        new_K = filter(lambda x: len(x) > 1, new_K)
+        new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
+        
+        return new_K
+
+    def multi_partition(self):
+        """
+        multiple partition for autopolyploid.
+        """
+        prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
+
+        self.K = IRMM(self.H, None, self.threshold, 
+                        self.max_round, threads=self.threads)
+        self.K = filter(lambda x: len(x) > 1, self.K)
+
+        # results = []
+        args = []
+        for k in self.K:
+            args.append((k, prune_pair_df, self.H, self.threshold, self.max_round))
+           
+        results = Parallel(n_jobs=self.threads)(
+                        delayed(self._multi_partition)
+                                (i, j, k, l, m) for i, j, k, l, m in args)
+
+        self.K = list_flatten(results)
+
+    def single_partition(self):
+        
         logger.info("Starting to cluster ...")
-        self.K = IRMM(self.H, self.vertices, self.P_idx,
+        self.K = IRMM(self.H, self.P_idx,
                         self.threshold, self.max_round,
                         threads=self.threads)
         logger.info("Cluster done.")
@@ -441,8 +533,12 @@ class HyperPartition:
         return self.K
 
     def to_cluster(self, output):
+        idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
+        clusters = list(map(lambda y: list(
+                        map(lambda x: idx_to_vertices[x], y)), 
+                        self.K))
         with open(output, 'w') as out:
-            for i, group in enumerate(self.K, 1):
+            for i, group in enumerate(clusters, 1):
                 print(f'group{i}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
 

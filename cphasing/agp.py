@@ -9,6 +9,7 @@ import sys
 
 import pandas as pd 
 
+from natsort import natsort_keygen
 from joblib import Parallel, delayed
 from pathlib import Path
 
@@ -26,7 +27,7 @@ def import_agp(agpfile, split=True):
     """
     df = pd.read_csv(agpfile, sep='\t', comment='#',
                      header=None, index_col=None,)
-    logging.info('load agp file: `{}`'.format(agpfile))
+    logger.info('load agp file: `{}`'.format(agpfile))
     
     if split:
         tig_df = df[df[4] == 'W']
@@ -34,15 +35,20 @@ def import_agp(agpfile, split=True):
         tig_df.columns = AGP_NAMES_tig
         gap_df.columns = AGP_NAMES_gap
         tig_df = tig_df.astype(
-            {'chrom': 'category', 'start': 'int64', 
+            {'start': 'int64', 
             'end': 'int64', 'tig_start': 'int64', 
             'tig_end': 'int64',
             'orientation': 'category'})
-        gap_df = gap_df.astype({'chrom': 'category',
-                                'start': 'int64',
+        gap_df = gap_df.astype({'start': 'int64',
                                 'end': 'int64',
                                 'number': 'int64',
                                 'length': 'int64'})
+
+        tig_cat_dtype = pd.CategoricalDtype(categories=tig_df['chrom'].unique(), ordered=True)
+        tig_df['chrom'] = tig_df['chrom'].astype(tig_cat_dtype)
+
+        gap_cat_dtype = pd.CategoricalDtype(categories=gap_df['chrom'].unique(), ordered=True)
+        gap_df['chrom'] = gap_df['chrom'].astype(gap_cat_dtype)
 
         tig_df.set_index('chrom', inplace=True)
         gap_df.set_index('chrom', inplace=True)
@@ -250,6 +256,7 @@ def agpstat(agp, output):
     chrom_lengths = rm_tig_agp_df.groupby('chrom')['length'].sum()
     chrom_contigs_counts = rm_tig_agp_df.groupby('chrom')['id'].count()
     chrom_infos = pd.concat([chrom_contigs_counts, chrom_lengths], axis=1)
+    chrom_infos = chrom_infos.sort_values('chrom', key=natsort_keygen())
 
     total_number_of_contigs = agp_df['id'].count()
     total_length_of_contigs = agp_df['length'].sum()

@@ -10,18 +10,23 @@ import logging
 import os
 import os.path as op
 import re
+import shutil
 import sys
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd 
 import pyranges as pr 
+import tempfile
 
 from collections import Counter, OrderedDict
+from dask.distributed import Client
 from joblib import Parallel, delayed
 from itertools import combinations
 from pathlib import Path
 from subprocess import check_call
 
+from ._config import PQ_ENGINE, PQ_VERSION
 from .utilities import list_flatten, tail, xopen
 
 logger = logging.getLogger(__name__)
@@ -1588,53 +1593,117 @@ class PAFTable:
         'strand', 'chrom', 
         'chrom_length', 'start', 
         'end', 'matches', 
-        'aln_length', 'mapq'
+        'aln_length', 'mapping_quality',
+        'pass_filter', 'filter_reason'
         ]
 
     META = {
+        "read_name": "category",
         "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
         "chrom": "category",
-        "mapq": "uint8"
+        "mapping_quality": "uint8",
+        "filter_reason": "category",
+        "identity": "float32"
     }
     def __init__(self, paf: str, 
-                    
                     threads: int = 4):
-        from dask.distributed import Client
-        
         self.file = Path(paf)
         self.filename = self.file.name
         self.threads = threads
 
         self.data = self.read_table()
 
-        self.client = Client(n_workers=min(self.data.npartitions, threads))
+        #self.client = Client(n_workers=self.threads) if self.threads > 1 else None
+        self.tmpdir = tempfile.mkdtemp(prefix="tmp", dir='./')
     
     def read_table(self):
-        import dask.dataframe as dd
-        logger.info(f'Load paf file of `{self.filename}`.')
+        logger.info('Starting ...')
         df = dd.read_csv(self.file, sep='\t', usecols=range(12), 
-                        header=None, names=self.PAF_HEADER, 
-                        dtype=self.META)
+                        header=None, names=self.PAF_HEADER[:12], 
+                        dtype=self.META, blocksize=1e8)
+
+        df['read_idx'] = df['read_name'].cat.as_known().cat.codes
+        # df = (df.set_index('read_idx')
+        #         .repartition(df.npartitions)
+        #         .reset_index())
+        
+        logger.info(f'Load paf file of `{self.filename}`.')
 
         return df
+    
+    @staticmethod
+    def _filter_low_mq(df,
+                    min_quality: int=1, 
+                    min_identity: float=0.75,
+                    min_length: int=50):
+
+     
+        
+        df["pass_filter"] = df.pass_filter & df.pass_mq
+        df["filter_reason"] = df.apply(
+            lambda x: x.filter_reason if x.pass_mq else "low_mq", axis=1)
+        df = df.drop('pass_mq', axis=1)
+
+        return df  
+
+    def producer(self, args):
+        for i in range(len(self.data.npartitions)):
+            df = self.data.partitions[i].compute()
+            yield df
+
+    @staticmethod
+    def _filter(i, df, low_mq_condition, tmpdir):
+        df = df.partitions[i].compute()
+
+        ## init
+        df = (df
+            .assign(identity=lambda x: (x.matches/x.aln_length).round(2).astype(np.float32))
+            .assign(fragment_length=lambda x: (x.read_end - x.read_start))
+            .assign(pass_filter=True)
+            .assign(filter_reason="pass")
+        )
+
+        ## filter low mapping quality and too short alignments
+        min_quality, min_identity, min_length = low_mq_condition
+        df = PAFTable._filter_low_mq(df, min_quality, min_identity, min_length)
+
+        ## filter singleton
+        singleton_idx = (df.query("pass_filter == True")
+                            .groupby("read_idx")["read_idx"].count() == 1)
+        singleton_idx = singleton_idx.index.to_numpy()[singleton_idx]
+        df = df.reset_index().set_index("read_idx")
+        candicate_idx = (df.loc[singleton_idx]
+                            .query("pass_filter == True")["index"])
+        
+        df = df.reset_index().set_index("index")
+        df.loc[candicate_idx, "pass_filter"] = False
+        df.loc[candicate_idx, "filter_reason"] = "singleton"
+
+        df.to_csv(f"{tmpdir}/tmp.part{i}.csv", sep='\t', index=False, header=True)
 
     def filter(self, min_quality: int=1, 
-                    min_identity: float=0.9,
-                    min_length: int=50,):
-        self.data = (self.data
-                    .assign(identity=lambda x: (x.matches/x.aln_length).round(2).astype(np.float16))
-                    .assign(frag_length=lambda x: (x.read_end - x.read_start))
-        )
-        filter_condition = (f'mapq >= {min_quality}'
-                                    f' & identity >= {min_identity}'
-                                    f' & frag_length >= {min_length}')      
-        self.data = self.data.query(filter_condition)
+                    min_identity: float=0.75,
+                    min_length: int=50):
+        
+        low_mq_condition = (min_quality, min_identity, min_length)
+        filter_condition = (f'map_quality <= {min_quality}'
+                                     f' | identity <= {min_identity}'
+                                     f' | fragment_length <= {min_length}')
+        logger.info(f"Filter low mapping quality by: {filter_condition}")
+        logger.info("Filter singleton ...")
+        args = []   
+        for i in range(self.data.npartitions):
+            args.append((i, self.data, low_mq_condition, self.tmpdir))
+        
+        Parallel(n_jobs=self.threads, verbose=2)(
+                delayed(PAFTable._filter)(i, j, k, l)
+                    for i, j, k, l in args)
 
-        logger.info(f'Filter alignments by {filter_condition}.')   
+        logger.info("Done.")
 
-    def stat(self):
-        pass
-    
+        self.data = dd.read_csv(f"{self.tmpdir}/tmp.*.csv", sep='\t', 
+                                    header=0, dtype=self.META)
+
     def to_pairs(self, chromsize, output):
         def _to_pairs_per_concatemer(df):
             if len(df) <= 1:
@@ -1663,7 +1732,7 @@ class PAFTable:
             return res_df
 
         def _to_pairs(df):
-            return df.groupby('read_name').apply(_to_pairs_per_concatemer)
+            return df.groupby('read_idx').apply(_to_pairs_per_concatemer)
     
         logger.info('Converting Pore-C alignment to pairs.')
         self.data = self.data.assign(
@@ -1679,7 +1748,7 @@ class PAFTable:
             "strand2": dtypes["strand"]
         }
 
-        (self.data.set_index('read_name')[['chrom', 'pos', 'strand']]
+        (self.data.set_index('read_idx')[['chrom', 'pos', 'strand']]
                 .map_partitions(_to_pairs, meta=meta)
                 .to_csv(f'{output}.body', single_file=True, 
                 sep='\t', header=None, index=False)
@@ -1697,16 +1766,252 @@ class PAFTable:
 
         logger.info(f'Successful written pairs file into `{output}`.')
 
-    def to_contacts(self):
-        pass
+    def to_pore_c_table(self):
+        data = self.data[["read_idx", "chrom", "start", 
+                            "end", "strand", "read_name", 
+                            "read_start", "read_end",
+                            "mapping_quality", "identity",
+                            "pass_filter", "filter_reason"]]
 
+        pct = PoreCTable()
+        pct.from_dask(data)
 
-# class Contact:
-#     def __init__(self):
-#         pass
+        return pct
+
+    def clean_tempoary(self):
+        shutil.rmtree(self.tmpdir)
+class PoreCTable:
+    HEADER = ["read_idx", "chrom", "start", "end", 
+                "strand", "read_name", "read_start", 
+                "read_end", "mapping_quality", "identity", 
+                "pass_filter", "filter_reason"]
     
+    def __init__(self, threads=4, lower_memory=False):
+        self.threads = threads
+        self.lower_memory = lower_memory
+
+        if self.lower_memory:
+            self.client = Client(n_workers=self.threads)
+
+    def read_table(self, pore_c_table):
+        if self.lower_memory:
+            self.data = dd.read_parquet(pore_c_table, engine=PQ_ENGINE)
+            self.data = self.data.set_index('read_idx').reset_index()
+        else:
+            self.data = pd.read_parquet(pore_c_table)
+
+    def from_dask(self, data):
+        self.data = data
+
+    def to_pairs(self, chromsize, output):
+        def _to_pairs_per_concatemer(df):
+            rows = list(
+                df.sort_values(['chrom', 'pos']).itertuples()
+            )
+            read_name = df.index.values[0]
+
+            res = []
+            for i, (align_1, align_2) in enumerate(combinations(rows, 2)):
+
+                _res = [f'{read_name}_{i}', 
+                        align_1.chrom, align_1.pos,
+                        align_2.chrom, align_2.pos,
+                        align_1.strand, align_2.strand]
+                res.append(_res)
+            
+            res_df = pd.DataFrame(res, columns=['readID', 
+                                'chrom1', 'pos1', 'chrom2', 
+                                'pos2', 'strand1', 'strand2'])
+
+            del res
+
+            return res_df
+
+        def _to_pairs(df):
+            df = df.compute()
+            return df.groupby('read_idx').apply(_to_pairs_per_concatemer)
+    
+        logger.info('Converting Pore-C alignment to pairs.')
+        df = self.data.query('pass_filter == True').assign(
+            pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
+        dtypes = self.data.head(1).dtypes
+        meta = {
+            "readID": str, 
+            "chrom1": dtypes["chrom"],
+            "pos1": dtypes["start"],
+            "chrom2": dtypes["chrom"],
+            "pos2": dtypes["start"],
+            "strand1": dtypes["strand"],
+            "strand2": dtypes["strand"]
+        }
+
+        args = []
+        for i in range(df.npartitions):
+            args.append(df.partitions[i])
+        
+        res = Parallel(n_jobs=min(self.threads, len(args)))(
+            delayed(_to_pairs)(i) for i in args
+        )
+        res_df = pd.concat(res, axis=0)
+        res_df.to_csv(f"{output}.body", sep='\t', header=None, index=None)
+        ph = PairHeader([])
+        ph.from_chromsize_file(chromsize)
+        ph.save(f'{output}.header')
 
 
-#     @staticmethod
-#     def from_align_pair(read_name, read_length, align_1, align_2):
-#         pass      
+        command = f"""cat {output}.header {output}.body > {output}"""
+        check_call(command, shell=True)
+        os.remove(f'{output}.body')
+        os.remove(f'{output}.header')
+
+        logger.info(f'Successful written pairs file into `{output}`.')
+
+    @staticmethod
+    def _read_and_alignment_stat(df, lower_memory=True):
+        if lower_memory:
+            df = df.compute()
+
+        read_group = df.groupby('read_idx')
+        
+        alignment_per_reads = read_group['read_idx'].count()
+        mapping_reads = len(alignment_per_reads)
+
+        singleton_reads = len(alignment_per_reads[alignment_per_reads == 1])
+
+        alignment_per_reads2 = alignment_per_reads[read_group['pass_filter'].any() == False]
+        low_mq_reads = len(alignment_per_reads2[alignment_per_reads2 != 1])
+        
+        pass_reads = mapping_reads - low_mq_reads - singleton_reads
+
+        read_statistics_df = pd.DataFrame([mapping_reads, pass_reads, 
+                                        singleton_reads, low_mq_reads], 
+                                        index=['mapping', 'pass', 
+                                                'singleton', 'low_mq'])
+
+        alignment_counts = len(df)
+        filter_reason = df['filter_reason']
+        index_name = dict(zip(range(len(filter_reason.cat.categories)), 
+                                filter_reason.cat.categories))
+
+        align_statistics_df = (filter_reason
+                            .cat.codes
+                            .value_counts()
+                            .rename(index=index_name)
+                            .rename_axis("filter_reason")
+                            .to_frame()
+                            .rename(columns={0: "count"}))
+
+        #statistics_df.index = statistics_df.index.add_categories(['total alignments'])
+        align_statistics_df.loc['total alignments'] = alignment_counts
+
+        return read_statistics_df, align_statistics_df
+
+    def read_and_alignment_stat_dask(self, read_counts=None):
+        if self.lower_memory:
+            args = []
+            tmp_df = self.data[['read_idx', 'pass_filter', 'filter_reason']]
+            for i in range(self.data.npartitions):
+                args.append(tmp_df.partitions[i])
+            
+            res = Parallel(n_jobs=self.threads)(
+                    delayed(PoreCTable._read_and_alignment_stat_dask)(i) for i in args)
+
+            read_statistics_df = pd.concat(list(zip(*res))[0], axis=1).sum(axis=1).to_frame()
+            align_statistics_df = pd.concat(list(zip(*res))[1], axis=1).sum(axis=1).to_frame()
+        
+        else:
+            read_statistics_df, align_statistics_df = \
+                PoreCTable._read_and_alignment_stat(self.data, lower_memory=False)
+    
+        read_statistics_df.columns = ['count']
+        read_statistics_df = read_statistics_df.rename_axis("item")
+
+        if read_counts:
+            read_statistics_df.loc['total reads'] = read_counts
+            read_statistics_df.loc['unmapping'] = read_counts - read_statistics_df.loc['mapping']
+            read_statistics_df['percent'] = read_statistics_df['count'] / read_counts 
+
+            read_statistics_df = read_statistics_df.loc[['total reads', 
+                                                        'pass', 'singleton', 
+                                                        'low_mq', 'unmapping']]
+
+        return read_statistics_df, align_statistics_df
+
+    @staticmethod
+    def _alignment_stat(df):
+        df = df.compute()
+        alignment_counts = len(df)
+        filter_reason = df['filter_reason']
+        index_name = dict(zip(range(len(filter_reason.cat.categories)), 
+                                filter_reason.cat.categories))
+
+        align_statistics_df = (filter_reason
+                            .cat.codes
+                            .value_counts()
+                            .rename(index_name))
+
+        #statistics_df.index = statistics_df.index.add_categories(['total alignments'])
+        align_statistics_df.loc['total alignments'] = alignment_counts
+    
+        return align_statistics_df
+
+    def alignment_stat(self):
+        args = []
+        tmp_df = self.data[['read_idx', 'filter_reason']]
+        for i in range(self.data.npartitions):
+            args.append(tmp_df.partitions[i])
+        
+        res = Parallel(n_jobs=self.threads)(
+                delayed(PoreCTable._alignment_stat)(i) for i in args)
+
+        statistics_df = pd.concat(res, axis=1).sum(axis=1).to_frame()
+        statistics_df.columns = ['count']
+
+        return statistics_df
+
+    def contact_stat(self):
+        if self.lower_memory:
+            res = (self.data.query("pass_filter == True")
+                            .groupby('read_idx')['read_idx']
+                            .count()
+                            .compute()
+                            )
+        else:
+            res = (self.data.query("pass_filter == True")
+                            .groupby('read_idx')['read_idx']
+                            .count()
+                            )
+        length_bins = pd.IntervalIndex.from_breaks([1, 2, 3, 4, 6, 11, 
+                                                    21, 50, int(1e9)])
+        length_bin_labels = {}
+        for i in length_bins:
+            if i.length == 1:
+                label = str(i.right)
+            elif i.length >= int(1e8):
+                label = f"gt_{i.left}"
+            else:
+                label = f"{i.left + 1}-{i.right}"
+            length_bin_labels[i] = label
+
+        read_order_hist = (pd.cut(res, length_bins, labels=length_bin_labels)
+                                .value_counts()
+                                .rename("count")
+                                .sort_index()
+                                )
+        
+        read_order_hist = (read_order_hist
+                            .to_frame()
+                            .rename(index=length_bin_labels)
+                            .rename_axis("concatemer_order")
+                            )
+        
+        read_order_hist["perc"] = (read_order_hist
+                                    .div(read_order_hist["count"].sum(), axis=1) * 100)
+
+        return read_order_hist
+
+    def save(self, output):
+        self.data.to_parquet(output, write_metadata_file=True, 
+                                write_index=False, engine=PQ_ENGINE, 
+                                version=PQ_VERSION)
+        logger.info(f"Successfully output pore_c_table to `{output}`")

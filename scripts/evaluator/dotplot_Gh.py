@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pytools import natsorted
 
 from cphasing.core import ClusterTable
@@ -48,18 +48,34 @@ def read_chrom(contig_size, cluster_contigs):
 def dotplot(cluster_data, contig_list, chrom_to_contig, output):
     fig, ax = plt.subplots(figsize=(7, 7))
     K = cluster_data.values()
+    
+    new_K = {}
+    for g in K:
+        c = Counter(map(lambda x: x.split(".")[0], g))
+        max_g = max(c, key=lambda x: c[x])
+        new_K[max_g] = g 
+    K = []
+    for g in natsorted(new_K):
+        k = list(filter(lambda x: "scaffold" not in x.lower(), new_K[g]))
+        K.append(k)
+
+    contig_list = list(filter(lambda x: "scaffold" not in x.lower(), contig_list))
     contig_idx_dict = dict(zip(contig_list, list(range(len(contig_list)))))
     groups = list(map(lambda x: contig_idx_dict[x], list_flatten(map(natsorted, K))))
 
-    plt.hlines(np.cumsum(list(map(len, chrom_to_contig.values())))[:-1], 0, len(contig_list), '#bcbcbc')
-    plt.vlines(np.cumsum(list(map(len, K)))[:-1], 0, len(contig_list), color='#bcbcbc')
-    plt.scatter(contig_idx_dict.keys(), groups, color='black', s=5)
+    
+    
+    plt.hlines(np.cumsum(list(map(len, chrom_to_contig.values())))[:-1], 0, len(contig_list), '#bcbcbc', linewidth=1)
+    plt.vlines(np.cumsum(list(map(len, K)))[:-1], 0, len(contig_list), color='#bcbcbc', linewidth=1)
+    plt.scatter(contig_idx_dict.keys(), groups, color='black', s=1)
     plt.yticks(np.r_[0, np.cumsum(list(map(len, chrom_to_contig.values())))[:-1]], chrom_to_contig.keys())
-    plt.xticks(np.r_[0, np.cumsum(list(map(len, K)))[:-1]], list(range(1, len(K) + 1)))
+    plt.xticks(np.r_[0, np.cumsum(list(map(len, K)))[:-1]], 
+                list(map(lambda x: f"group{x}", range(1, len(K) + 1))),
+                rotation=45)
     plt.xlim(0, len(contig_list))
     plt.ylim(0, len(contig_list))
-    plt.xlabel('Groups from HyperPartition', fontsize=18)
-    plt.ylabel('Real groups', fontsize=18)
+    plt.xlabel('C-Phasing', fontsize=18)
+    plt.ylabel('Real grouping', fontsize=18)
 
     plt.savefig(output, dpi=600, bbox_inches='tight')
 

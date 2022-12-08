@@ -140,7 +140,7 @@ class PartigAllele:
         get partig record
         """
         cmd = ['partig', f'-k{self.k}', f'-w{self.w}',
-                f'-m{self.m}', self.fasta]
+                f'-m{self.m}', '-c 100', self.fasta]
         
         logger.info('Calculating the similarity of sequences ...')
         pipelines = []

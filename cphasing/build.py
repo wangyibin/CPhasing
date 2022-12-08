@@ -8,6 +8,7 @@ import sys
 
 import pandas as pd
 
+
 from pathlib import Path
 from pyfaidx import Fasta
 from pytools import natsorted
@@ -30,6 +31,7 @@ def Build(fasta, output='groups.asm.fasta', threads=1):
     
     tour_list = natsorted(tour_list, key=lambda x: x.name)
     tour_list = map(Tour, tour_list)
+    
 
     agp = 'groups.agp'
 
@@ -48,16 +50,9 @@ def Build(fasta, output='groups.asm.fasta', threads=1):
         unanchor_df = pd.DataFrame(unanchor_res)
     
     agp_df = pd.concat([agp_df, unanchor_df], axis=0)
-
     agp_df.to_csv(agp, sep='\t', header=False, index=False)
             
-   # set(print(fasta.keys())) - 
-
     with xopen(output, 'w') as out:
-        # for tour in tour_list:
-        #     seqs = tour.get_fasta(fasta)
-        #     print(f">{tour.group}", file=out)
-        #     print(GAP.join(seqs), file=out)
         agp2fasta(agp, fasta.filename, out)
     
     

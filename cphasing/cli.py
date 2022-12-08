@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-
-from dis import show_code
 import click
 import logging
 import sys 
+import os
 import os.path as op
+
+import pandas as pd
 
 from pathlib import Path
 
@@ -19,6 +20,15 @@ from .core import (
 from .utilities import run_cmd
 
 logger = logging.getLogger("cphasing")
+
+banner = """
+   ____      ____  _               _             
+  / ___|    |  _ \| |__   __ _ ___(_)_ __   __ _ 
+ | |   _____| |_) | '_ \ / _` / __| | '_ \ / _` |
+ | |__|_____|  __/| | | | (_| \__ \ | | | | (_| |
+  \____|    |_|   |_| |_|\__,_|___/_|_| |_|\__, |
+                                           |___/ 
+"""
 class CommandGroup(click.Group):
     """
     List subcommand in the order there were added.
@@ -83,14 +93,97 @@ def pipeline(fasta, data, method):
     pass
 
 
+@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
+@click.pass_context
+def alignments(ctx):
+    pass
 
+@alignments.command()
+@click.argument(
+    "paf",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "output"
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def paf2table(paf, output, threads):
+    """
+    Convert paf to pore_c_table.
+    """
+    from .core import PAFTable
+
+    paf = PAFTable(paf, threads=threads)
+    paf.filter()
+    pore_c_table = paf.to_pore_c_table()
+
+    pore_c_table.save(output)
+    paf.clean_tempoary()
+
+@alignments.command()
+@click.argument(
+    "pore_c_table",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-rn",
+    "--read_number",
+    metavar="INT",
+    help="Number or total reads.",
+    default=None,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '-l',
+    '--lower_memory',
+    help="Use dask to lower memory usage.",
+    is_flag=True,
+    default=False,
+    show_default=True 
+)
+def summary(pore_c_table, read_number, threads, lower_memory):
+    from .core import PoreCTable
+
+    prefix = Path(pore_c_table).stem
+    pct = PoreCTable(threads=threads, lower_memory=lower_memory)
+    pct.read_table(pore_c_table)
+    read_stat, alignment_stat = pct.read_and_alignment_stat_dask(read_number)
+    read_stat.to_csv(f"{prefix}.read.summary", sep='\t', 
+                            header=True, index=True)
+    alignment_stat.to_csv(f"{prefix}.alignment.summary", sep='\t', 
+                            header=True, index=True)
+    
+    contact_df = pct.contact_stat()
+    contact_df["perc"] = contact_df["perc"].round(2)
+    contact_df.to_csv(f"{prefix}.concatemer.summary", sep='\t', 
+                            header=True, index=True)
     
 @cli.command()
 @click.argument(
-    'fasta'
+    'fasta',
+    type=click.Path(exists=True)
 )
 @click.argument(
-    'pairs'
+    'pairs',
+    type=click.Path(exists=True)
 )
 @click.option(
     '-p', 
@@ -209,9 +302,9 @@ def correct(
 @click.option(
     "--method",
     help="method for allele table constructions.",
-    default='gmap',
+    default='similarity',
     show_default=True,
-    type=click.Choice(['gmap', 'similarity'])#, 'synteny']),
+    type=click.Choice(['gene', 'similarity'])#, 'synteny']),
 )
 @click.option(
     "-c",
@@ -287,7 +380,7 @@ def alleles(fasta, method,
     
     from .alleles import GmapAllele, PartigAllele
     
-    if method == 'gmap':
+    if method == 'gene':
         ga = GmapAllele(fasta, cds, bed, ploidy, 
                         skip_index=skip_gmap_index,
                         threads=threads)
@@ -1291,15 +1384,26 @@ def paf2pairs(paf, chromsize, output,
     metavar="OUTPUT",
 )
 @click.option(
-    "--fasta",
+    "-k",
+    help="Number of groups.",
     default=None,
     show_default=True,
 )
 @click.option(
-    "--prune",
-    default=False,
+    "--fasta",
+    help="Path of fasta file.",
+    default=None,
     show_default=True,
-    is_flag=True
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    "--prune",
+    metavar="STR",
+    help="prune list from prune.",
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     "--min-order",
@@ -1375,7 +1479,7 @@ def paf2pairs(paf, chromsize, output,
     show_default=True,
 )
 def hyperpartition(pore_c_tables, output,
-                    fasta, prune,
+                    k, fasta, prune,
                     min_order, max_order,
                     min_alignments,
                     min_length, threshold, 
@@ -1392,11 +1496,27 @@ def hyperpartition(pore_c_tables, output,
     if fofn:
         pore_c_tables = [i.strip() for i in open(pore_c_tables)]
 
-    hp = HyperPartition(pore_c_tables, fasta,
+    print((pore_c_tables, fasta,
+                            k,
+                            prune, min_order, 
+                            max_order, min_alignments, 
+                            min_length,
+                            threshold, max_round, 
+                            threads))
+    hp = HyperPartition(pore_c_tables, 
+                            k, fasta,
                             prune, min_order, 
                             max_order, min_alignments, 
                             min_length,
                             threshold, max_round, 
                             threads)
-    hp.partition()
+
+    if not k:
+        hp.single_partition()
+    if k:
+        if len(k.split(":")) > 1:
+            hp.multi_partition()
+        else:
+            hp.single_partition()
+            
     hp.to_cluster(output)

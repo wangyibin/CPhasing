@@ -1,0 +1,58 @@
+\def\SetClass{article}
+\documentclass{\SetClass}
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\begin{document}
+\begin{algorithm}
+    \caption{C-Phasing Hypergraph Construction}\label{algorithm}
+    \KwIn{Pore-C Table}
+    \KwOut{Incidence matrix $H$ }
+    \For{$ \rm each\ concatemer$ $j$}{
+        \eIf{$\rm fragment\ locus\ in\ contig$ $i$}{
+        \eIf{$\rm number\ of\ contigs$ $2 \leq n_j \leq 15$ and $\rm alignment\ length$ $l_i \geq 500$}{
+            $H(i, j) = 1$
+        }{
+            $H(i, j) = 0$
+        }
+        }{
+            $H(i, j) = 0$
+        }
+    }
+    
+
+\end{algorithm}
+
+
+\begin{algorithm}
+    \caption{C-Phasing HyperPartition}\label{algorithm}
+    \KwIn{Hypergraph incidence matrix $H$}
+    \KwOut{Cluster assignments $C$}
+    \tcp{Compute adjacency matrix}
+    $W = I$; \tcp{initial input unweighted graph}
+    $A = HW(D_e - I)^{-1}H^{T}$\;
+    $A = zero\_diag(A)$\;
+    $C = LOUVAIN\_ALGORITHM(A)$\;
+    $c = length(C)$; \tcp{Number of cluster}
+    $W_{prev} = W$\;
+    \Repeat{$||W - W_{prev}||  \textless 0.01$}{
+        \tcp{reweight for each hyperedge}
+        \For{$e \in E$}{
+            \For{$i \in [1,..,c]$}{
+                $k_i = |e \cap C_i|$\;
+                }
+            $e_{n} = length(e)$; \tcp{Number of contig in $e$}
+            $W_{new}(e)=\frac{1}{m}\sum_{i = 1}^{c}\frac{1}{k_i+1}(e_n+c)$\;
+            $W(e) = \frac{1}{2}(W_{new}(e) + W_{prev}(e))$
+        }
+        $A = HW(D_e - I)^{-1}H^{T}$\;
+        $A = zero\_diag(A)$\;
+        $C = LOUVAIN\_ALGORITHM(A)$\;
+        $c = length(C)$\; 
+        $W_{prev} = W$
+
+    }
+
+\end{algorithm}
+
+
+\end{document}
+

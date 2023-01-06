@@ -51,7 +51,7 @@ class HisatMapper(object):
 
         self._path = hisat2_path
         if which(self._path) is None:
-            raise ValueError(f"{self._path}: command not found")
+            raise ValueError(f"{self._path}: command not found.")
 
         self.prefix = self.fastq.with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:

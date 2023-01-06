@@ -51,9 +51,9 @@ def dotplot(cluster_data, contig_list, chrom_to_contig, output):
     contig_idx_dict = dict(zip(contig_list, list(range(len(contig_list)))))
     groups = list(map(lambda x: contig_idx_dict[x], list_flatten(map(natsorted, K))))
 
-    plt.hlines(np.cumsum(list(map(len, chrom_to_contig.values())))[:-1], 0, len(contig_list), '#bcbcbc')
-    plt.vlines(np.cumsum(list(map(len, K)))[:-1], 0, len(contig_list), color='#bcbcbc')
-    plt.scatter(contig_idx_dict.keys(), groups, color='black', s=5)
+    plt.hlines(np.cumsum(list(map(len, chrom_to_contig.values())))[:-1], 0, len(contig_list), '#bcbcbc', linewidth=1)
+    plt.vlines(np.cumsum(list(map(len, K)))[:-1], 0, len(contig_list), color='#bcbcbc', linewidth=1)
+    plt.scatter(contig_idx_dict.keys(), groups, color='black', s=1)
     plt.yticks(np.r_[0, np.cumsum(list(map(len, chrom_to_contig.values())))[:-1]], chrom_to_contig.keys())
     plt.xticks(np.r_[0, np.cumsum(list(map(len, K)))[:-1]], list(range(1, len(K) + 1)))
     plt.xlim(0, len(contig_list))

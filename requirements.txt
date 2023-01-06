@@ -1,5 +1,5 @@
 biopython
-click
+click >= 0.8.11
 cooler
 dask
 distributed
@@ -16,9 +16,9 @@ nwhy
 matplotlib
 pandas
 pandarallel
+pyarrow >= 8.0.0
 pyfaidx >= 0.7.0
 pyranges
-pysam
 pytools
 rich
 scipy

@@ -1,4 +1,23 @@
 # Release notes #
+
+## [v0.0.9]
+Data: 2023-01-06
+### New features
+- `agp2assembly`, convert agp to assembly file
+- `pairs2mnd`, convert pairs to mnd file
+- `paf2table`, convert paf to table
+- `pore_c_cchrom2contig`, convert chromosome-level to contig-level
+- `pairs_chrom2contig`, convert chromosome-level to contig-level
+### Enhancement
+- `PAFTable`, speed up
+- `PoreCTable`, speed up and add `chrom2contig`
+- `HyperPartition`, speed up the pore-c reads process
+- `paf2pairs`, speed up
+
+### Bug fixes
+- `plot`, to humanized
+
+
 ## [v0.0.8]
 Date: 2022-11-17
 ### New features

@@ -24,10 +24,16 @@ from dask.distributed import Client
 from joblib import Parallel, delayed
 from itertools import combinations
 from pathlib import Path
+from pandarallel import pandarallel
 from subprocess import check_call
 
-from ._config import PQ_ENGINE, PQ_VERSION
-from .utilities import list_flatten, tail, xopen
+from ._config import *
+from .utilities import (
+    list_flatten, 
+    tail, 
+    xopen, 
+    gz_reader
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1312,6 +1318,10 @@ class Pairs:
     --------
     >>> p = Pairs('Lib.pairs')
     """
+    HEADER = ["readID", "chrom1", "pos1",
+                "chrom2", "pos2", "strand1",
+                "strand2"]
+    
     def __init__(self, pairs):
         self.file = Path(pairs)
         self.filename = self.file.name
@@ -1344,7 +1354,9 @@ class Pairs:
         meta = {
             "readID": str,
             "chrom1": chrom_dtype,
+            "pos1": CHROM_COORD_DTYPE,
             "chrom2": chrom_dtype,
+            "pos2": CHROM_COORD_DTYPE,
             "strand1": strand_dtype,
             "strand2": strand_dtype
         }
@@ -1476,6 +1488,8 @@ class Pairs:
             source_gr = pr.PyRanges(source_df)
         elif isinstance(source, pd.DataFrame):
             source_df = source
+            source_df.columns = ['Chromosome', 'Start', 
+                                                'End', 'Name']
             source_gr = pr.PyRanges(source_df)
         elif isinstance(source, pr.PyRanges):
             source_df = source.df
@@ -1532,6 +1546,93 @@ class Pairs:
 
         return output
 
+    def to_mnd(self, output, threads=4):
+        from dask.distributed import Client
+
+        logger.info("Converting pairs to mnd file ...")
+        with Client(n_workers=threads):
+            (self.data[['strand1', 'chrom1', 'pos1', 
+                        'strand2', 'chrom2', 'pos2']]
+                .assign(
+                    strand1=lambda x: x.strand1.replace('+', 0).replace('-', -1),
+                    strand2=lambda x: x.strand2.replace('+', 0).replace('-', -1),
+                    frag1=0,
+                    frag2=1,
+                    mapq1=1,
+                    cigar1="-",
+                    sequence1="-",
+                    mapq2=1,
+                    cigar2="-",
+                    sequence2="-",
+                    readname1="-",
+                    readname2="-")
+                .rename(
+                    columns={'strand1': 'str1',
+                                'chrom1': 'chr1',
+                                'strand2': 'str2',
+                                'chrom2': 'chr2'}
+                        )
+                    [['str1', 'chr1', 'pos1', 'frag1', 
+                    'str2', 'chr2', 'pos2', 'frag2', 
+                    'mapq1', 'cigar1', 'sequence1',
+                    'mapq2', 'cigar2', 'sequence2',
+                    'readname1', 'readname2']]
+            ).to_csv(output, sep=' ', header=False, index=False, single_file=True)
+
+        logger.info(f"Successful output mnd file intp `{output}`.")
+class MndTable:
+    HEADER = ["str1", "chr1", "pos1", "frag1",
+                "str2", "chr2", "pos2", "frag2",
+                "score"]
+    META = {"str1": "category", 
+            "chr1": "category",
+            "pos1": CHROM_COORD_DTYPE,
+            "frag1": "category",
+            "str2": "category",
+            "chr2": "category",
+            "pos2": CHROM_COORD_DTYPE,
+            "frag2": "category",
+            "score": "int32"
+            }
+    def __init__(self, mndtable):
+        self.file = Path(mndtable)
+        self.filename = self.file.name
+
+        self.data = self.read_table()
+
+    def read_table(self):
+        df = pd.read_csv(self.file, sep='\s+', dtype=self.META,
+                            usecols=range(9), names=self.HEADER,
+                            header=None, index_col=None)
+        
+        return df 
+
+    def to_pairs(self, chromsize, output):
+        (
+        self.data.assign(str1=lambda x: x.str1.map(lambda y: "+" if y =="0" else "-"),
+                        str2=lambda x: x.str1.map(lambda y: "+" if y =="0" else "-"),
+                        readID=lambda x: x.index,
+                        pos1=lambda x: x.pos1 + 1,
+                        pos2=lambda x: x.pos2 + 1
+                        )
+                        .rename(columns={"chr1": "chrom1",
+                                            "chr2": "chrom2",
+                                            "str1": "strand1",
+                                            "str2": "strand2"})[Pairs.HEADER]
+                        .to_csv(f"{output}.body", sep="\t", 
+                                header=None, index=None)
+        )
+
+        ph = PairHeader([])
+        ph.from_chromsize_file(chromsize)
+        ph.save(f'{output}.header')
+
+        command = f"""cat {output}.header {output}.body > {output}"""
+        check_call(command, shell=True)
+        os.remove(f'{output}.body')
+        os.remove(f'{output}.header')
+
+        logger.info(f'Successful written pairs file into `{output}`.')
 
 class PAFLine:
     def __init__(self, line):
@@ -1599,33 +1700,71 @@ class PAFTable:
 
     META = {
         "read_name": "category",
+        "read_length": READ_COORD_DTYPE,
+        "read_start": READ_COORD_DTYPE,
+        "read_end": READ_COORD_DTYPE,
         "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
         "chrom": "category",
-        "mapping_quality": "uint8",
+        "chrom_length": CHROM_COORD_DTYPE,
+        "start": CHROM_COORD_DTYPE,
+        "end": CHROM_COORD_DTYPE,
+        "mathes": READ_COORD_DTYPE,
+        "align_length": READ_COORD_DTYPE,
+        "mapping_quality": MAPPING_QUALITY_DTYPE,
         "filter_reason": "category",
-        "identity": "float32"
+        "identity": PERCENTAGE_DTYPE
     }
     def __init__(self, paf: str, 
+                    min_quality: int = 1,
+                    min_identity: float = 0.75,
+                    min_length: int = 50,
+                    no_read: bool = False,
+                    use_dask: bool = False,
                     threads: int = 4):
         self.file = Path(paf)
         self.filename = self.file.name
+        self.min_quality = min_quality
+        self.min_identity = min_identity
+        self.min_length = min_length
+
+        self.use_dask = use_dask
         self.threads = threads
+        
+        if not no_read:
+            self.data = self.read_table()
+        
+        if self.file.suffix == ".gz":
+            self.is_gz = True
+        else:
+            self.is_gz = False
 
-        self.data = self.read_table()
-
-        #self.client = Client(n_workers=self.threads) if self.threads > 1 else None
+        if self.use_dask:
+            self.client = Client(n_workers=self.threads) if self.threads > 1 else None
         self.tmpdir = tempfile.mkdtemp(prefix="tmp", dir='./')
     
     def read_table(self):
         logger.info('Starting ...')
-        df = dd.read_csv(self.file, sep='\t', usecols=range(12), 
-                        header=None, names=self.PAF_HEADER[:12], 
-                        dtype=self.META, blocksize=1e8)
-
-        df['read_idx'] = df['read_name'].cat.as_known().cat.codes
-        # df = (df.set_index('read_idx')
-        #         .repartition(df.npartitions)
-        #         .reset_index())
+        if self.use_dask:
+            df = dd.read_csv(self.file, sep='\t', usecols=range(12), 
+                            header=None, names=self.PAF_HEADER[:12], 
+                            dtype=self.META, blocksize=1e8)
+            df['read_idx'] = df['read_name'].cat.as_known().cat.codes 
+            # df = (df.set_index('read_idx')
+            #         .repartition(df.npartitions)
+            #         .reset_index())
+        else:
+            df = pd.read_csv(self.file, sep='\t', usecols=range(12), 
+                            header=None, names=self.PAF_HEADER[:12], 
+                            dtype=self.META,)
+            df['read_idx'] = df['read_name'].cat.codes 
+        ## init
+        df = (df
+            .assign(identity=lambda x: 
+                    (x.matches/x.aln_length).round(2).astype(np.float32))
+            .assign(fragment_length=lambda x: (x.read_end - x.read_start))
+            .assign(pass_filter=True)
+            .assign(filter_reason="pass")
+        )
         
         logger.info(f'Load paf file of `{self.filename}`.')
 
@@ -1635,33 +1774,32 @@ class PAFTable:
     def _filter_low_mq(df,
                     min_quality: int=1, 
                     min_identity: float=0.75,
-                    min_length: int=50):
+                    min_length: int=50,
+                    use_dask: bool=False):
+        if use_dask:
+            df["pass_mq"] = ((df.mapping_quality >= min_quality)
+                            & (df.identity >= min_identity)
+                            & (df.fragment_length >= min_length))
+            df["pass_filter"] = df.pass_filter & df.pass_mq
+            df["filter_reason"] = df.apply(
+                lambda x: x.filter_reason if x.pass_mq else "low_mq", axis=1)
 
-     
+            df = df.drop('pass_mq', axis=1)
+
+        else:
+            low_mq_idx = ((df.mapping_quality < min_quality)
+                            | (df.identity < min_identity)
+                            | (df.fragment_length < min_length))
+
+            df.loc[low_mq_idx, "pass_filter"] = False
+            df.loc[low_mq_idx, "filter_reason"] = "low_mq"
         
-        df["pass_filter"] = df.pass_filter & df.pass_mq
-        df["filter_reason"] = df.apply(
-            lambda x: x.filter_reason if x.pass_mq else "low_mq", axis=1)
-        df = df.drop('pass_mq', axis=1)
-
         return df  
 
-    def producer(self, args):
-        for i in range(len(self.data.npartitions)):
-            df = self.data.partitions[i].compute()
-            yield df
-
     @staticmethod
-    def _filter(i, df, low_mq_condition, tmpdir):
-        df = df.partitions[i].compute()
-
-        ## init
-        df = (df
-            .assign(identity=lambda x: (x.matches/x.aln_length).round(2).astype(np.float32))
-            .assign(fragment_length=lambda x: (x.read_end - x.read_start))
-            .assign(pass_filter=True)
-            .assign(filter_reason="pass")
-        )
+    def _filter(i, df, low_mq_condition, tmpdir, use_dask=False):
+        if use_dask:
+            df = df.partitions[i].compute()
 
         ## filter low mapping quality and too short alignments
         min_quality, min_identity, min_length = low_mq_condition
@@ -1679,92 +1817,78 @@ class PAFTable:
         df.loc[candicate_idx, "pass_filter"] = False
         df.loc[candicate_idx, "filter_reason"] = "singleton"
 
-        df.to_csv(f"{tmpdir}/tmp.part{i}.csv", sep='\t', index=False, header=True)
-
-    def filter(self, min_quality: int=1, 
-                    min_identity: float=0.75,
-                    min_length: int=50):
+        if use_dask:
+            df.to_csv(f"{tmpdir}/tmp.part{i}.csv", sep='\t', 
+                            index=False, header=True)
         
-        low_mq_condition = (min_quality, min_identity, min_length)
-        filter_condition = (f'map_quality <= {min_quality}'
-                                     f' | identity <= {min_identity}'
-                                     f' | fragment_length <= {min_length}')
+        return df
+
+    def filter(self):
+        
+        low_mq_condition = (self.min_quality, self.min_identity, self.min_length)
+        filter_condition = (f'map_quality <= {self.min_quality}'
+                                     f' | identity <= {self.min_identity}'
+                                     f' | fragment_length <= {self.min_length}')
         logger.info(f"Filter low mapping quality by: {filter_condition}")
         logger.info("Filter singleton ...")
-        args = []   
-        for i in range(self.data.npartitions):
-            args.append((i, self.data, low_mq_condition, self.tmpdir))
         
-        Parallel(n_jobs=self.threads, verbose=2)(
-                delayed(PAFTable._filter)(i, j, k, l)
-                    for i, j, k, l in args)
+        if self.use_dask:
+            args = []
+            for i in range(self.data.npartitions):
+                args.append((i, self.data, low_mq_condition, self.tmpdir))
+            
+            Parallel(n_jobs=self.threads, verbose=2)(
+                    delayed(PAFTable._filter)(i, j, k, l)
+                        for i, j, k, l in args)
 
-        logger.info("Done.")
-
-        self.data = dd.read_csv(f"{self.tmpdir}/tmp.*.csv", sep='\t', 
+            self.data = dd.read_csv(f"{self.tmpdir}/tmp.*.csv", sep='\t', 
                                     header=0, dtype=self.META)
+        else:
+            self.data = PAFTable._filter(0, self.data, low_mq_condition, self.tmpdir)
 
-    def to_pairs(self, chromsize, output):
-        def _to_pairs_per_concatemer(df):
-            if len(df) <= 1:
-                return None 
-            
-            rows = list(
-                df.sort_values(['chrom', 'pos']).itertuples()
-            )
-            read_name = df.index.values[0]
-
-            res = []
-            for i, (align_1, align_2) in enumerate(combinations(rows, 2)):
-
-                _res = [f'{read_name}_{i}', 
-                        align_1.chrom, align_1.pos,
-                        align_2.chrom, align_2.pos,
-                        align_1.strand, align_2.strand]
-                res.append(_res)
-            
-            res_df = pd.DataFrame(res, columns=['readID', 
-                                'chrom1', 'pos1', 'chrom2', 
-                                'pos2', 'strand1', 'strand2'])
-
-            del res
-
-            return res_df
-
-        def _to_pairs(df):
-            return df.groupby('read_idx').apply(_to_pairs_per_concatemer)
-    
-        logger.info('Converting Pore-C alignment to pairs.')
-        self.data = self.data.assign(
-            pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
-        dtypes = self.data.head(1).dtypes
-        meta = {
-            "readID": str, 
-            "chrom1": dtypes["chrom"],
-            "pos1": dtypes["start"],
-            "chrom2": dtypes["chrom"],
-            "pos2": dtypes["start"],
-            "strand1": dtypes["strand"],
-            "strand2": dtypes["strand"]
-        }
-
-        (self.data.set_index('read_idx')[['chrom', 'pos', 'strand']]
-                .map_partitions(_to_pairs, meta=meta)
-                .to_csv(f'{output}.body', single_file=True, 
-                sep='\t', header=None, index=False)
-        )
+        logger.info("Filter done.")
         
-        ph = PairHeader([])
-        ph.from_chromsize_file(chromsize)
-        ph.save(f'{output}.header')
+    def to_pairs(self, chromsize, output):
+        """
+        developing function.
+        """
+        logger.info('Converting Pore-C alignment to pairs.')
+        from shutil import which
+        from subprocess import PIPE, Popen
+        if which('u4falign') is None:
+            raise ValueError(f"`u4falign`: command not found.")
+        cmd = ["u4falign", "paf23ddna", "-q", str(self.min_quality),
+                "-p", str(self.min_identity), "-l", str(self.min_length),
+                "/dev/stdin"]
 
-
-        command = f"""cat {output}.header {output}.body > {output}"""
-        check_call(command, shell=True)
-        os.remove(f'{output}.body')
-        os.remove(f'{output}.header')
-
-        logger.info(f'Successful written pairs file into `{output}`.')
+        pipelines = []
+        try:
+            if self.is_gz:
+                read_cmd = ["gzip", "-c", "-d", str(self.file)]
+            else:
+                read_cmd = ["cat", str(self.file)]
+            pipelines.append(
+                Popen(read_cmd, stdout=PIPE, 
+                        stderr=open(f'{self.filename}.paf2pairs.log', 'w'),
+                        bufsize=-1)
+            )
+            pipelines.append(
+                Popen(cmd, stdin=pipelines[-1].stdout, 
+                        stdout=open(f'{self.tmpdir}/temp.mnd.txt', 'w'), 
+                        stderr=open(f'{self.filename}.paf2pairs.log', 'w'),
+                        bufsize=-1)
+            )
+            pipelines[-1].wait()
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+            else:
+                assert pipelines != [], \
+                    "Failed to execute command, please check log."
+        
+        mt = MndTable(f"{self.tmpdir}/temp.mnd.txt")
+        mt.to_pairs(chromsize, output)
 
     def to_pore_c_table(self):
         data = self.data[["read_idx", "chrom", "start", 
@@ -1774,7 +1898,10 @@ class PAFTable:
                             "pass_filter", "filter_reason"]]
 
         pct = PoreCTable()
-        pct.from_dask(data)
+        if self.use_dask:
+            pct.from_dask(data)
+        else:
+            pct.from_pandas(data)
 
         return pct
 
@@ -1785,30 +1912,49 @@ class PoreCTable:
                 "strand", "read_name", "read_start", 
                 "read_end", "mapping_quality", "identity", 
                 "pass_filter", "filter_reason"]
-    
-    def __init__(self, threads=4, lower_memory=False):
+    META = {
+        "chrom": "category",
+        "start": CHROM_COORD_DTYPE,
+        "end": CHROM_COORD_DTYPE,
+        "read_name": "category",
+        "read_start": READ_COORD_DTYPE,
+        "read_end": READ_COORD_DTYPE,
+        "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
+        "mapping_quality": MAPPING_QUALITY_DTYPE,
+        "filter_reason": "category",
+        "identity": PERCENTAGE_DTYPE, 
+    }
+    def __init__(self, threads=4, use_dask=False):
         self.threads = threads
-        self.lower_memory = lower_memory
+        self.use_dask = use_dask
 
-        if self.lower_memory:
+        if self.use_dask:
             self.client = Client(n_workers=self.threads)
+        else:
+            pandarallel.initialize(nb_workers=self.threads, verbose=0)
 
-    def read_table(self, pore_c_table):
-        if self.lower_memory:
-            self.data = dd.read_parquet(pore_c_table, engine=PQ_ENGINE)
+    def read_table(self, pore_c_table, columns=None):
+        if self.use_dask:
+            self.data = dd.read_parquet(pore_c_table, engine=PQ_ENGINE, columns=None, )
             self.data = self.data.set_index('read_idx').reset_index()
         else:
-            self.data = pd.read_parquet(pore_c_table)
+            self.data = pd.read_parquet(pore_c_table, engine=PQ_ENGINE, columns=columns)
+            self.data = self.data.astype(self.META)
 
     def from_dask(self, data):
+        self.use_dask = True
         self.data = data
+    
+    def from_pandas(self, data):
+        self.use_dask = False
+        self.data = data.astype(self.META)
 
     def to_pairs(self, chromsize, output):
         def _to_pairs_per_concatemer(df):
             rows = list(
                 df.sort_values(['chrom', 'pos']).itertuples()
             )
-            read_name = df.index.values[0]
+            read_name = df['read_name'][0]
 
             res = []
             for i, (align_1, align_2) in enumerate(combinations(rows, 2)):
@@ -1827,13 +1973,14 @@ class PoreCTable:
 
             return res_df
 
-        def _to_pairs(df):
-            df = df.compute()
-            return df.groupby('read_idx').apply(_to_pairs_per_concatemer)
+        def _to_pairs(df, use_dask=False):
+            if use_dask:
+                df = df.compute()
+            return df.groupby('read_idx').parallel_apply(_to_pairs_per_concatemer)
     
         logger.info('Converting Pore-C alignment to pairs.')
         df = self.data.query('pass_filter == True').assign(
-            pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
+                    pos=lambda x: np.rint(x.start + (x.end - x.start)/2).astype(int))
         dtypes = self.data.head(1).dtypes
         meta = {
             "readID": str, 
@@ -1844,15 +1991,19 @@ class PoreCTable:
             "strand1": dtypes["strand"],
             "strand2": dtypes["strand"]
         }
-
-        args = []
-        for i in range(df.npartitions):
-            args.append(df.partitions[i])
+        if self.use_dask:
+            args = []
+            for i in range(df.npartitions):
+                args.append(df.partitions[i])
+            
+            res = Parallel(n_jobs=min(self.threads, len(args)))(
+                delayed(_to_pairs)(i) for i in args
+            )
+            res_df = pd.concat(res, axis=0)
+        else:
+            
+            res_df = _to_pairs(df)
         
-        res = Parallel(n_jobs=min(self.threads, len(args)))(
-            delayed(_to_pairs)(i) for i in args
-        )
-        res_df = pd.concat(res, axis=0)
         res_df.to_csv(f"{output}.body", sep='\t', header=None, index=None)
         ph = PairHeader([])
         ph.from_chromsize_file(chromsize)
@@ -1867,8 +2018,8 @@ class PoreCTable:
         logger.info(f'Successful written pairs file into `{output}`.')
 
     @staticmethod
-    def _read_and_alignment_stat(df, lower_memory=True):
-        if lower_memory:
+    def _read_and_alignment_stat(df, use_dask=True):
+        if use_dask:
             df = df.compute()
 
         read_group = df.groupby('read_idx')
@@ -1907,7 +2058,7 @@ class PoreCTable:
         return read_statistics_df, align_statistics_df
 
     def read_and_alignment_stat_dask(self, read_counts=None):
-        if self.lower_memory:
+        if self.use_dask:
             args = []
             tmp_df = self.data[['read_idx', 'pass_filter', 'filter_reason']]
             for i in range(self.data.npartitions):
@@ -1921,15 +2072,17 @@ class PoreCTable:
         
         else:
             read_statistics_df, align_statistics_df = \
-                PoreCTable._read_and_alignment_stat(self.data, lower_memory=False)
+                PoreCTable._read_and_alignment_stat(self.data, use_dask=False)
     
         read_statistics_df.columns = ['count']
         read_statistics_df = read_statistics_df.rename_axis("item")
 
         if read_counts:
             read_statistics_df.loc['total reads'] = read_counts
-            read_statistics_df.loc['unmapping'] = read_counts - read_statistics_df.loc['mapping']
-            read_statistics_df['percent'] = read_statistics_df['count'] / read_counts 
+            read_statistics_df.loc['unmapping'] = \
+                read_counts - read_statistics_df.loc['mapping']
+            read_statistics_df['percent'] = \
+                read_statistics_df['count'] / read_counts 
 
             read_statistics_df = read_statistics_df.loc[['total reads', 
                                                         'pass', 'singleton', 
@@ -1937,40 +2090,8 @@ class PoreCTable:
 
         return read_statistics_df, align_statistics_df
 
-    @staticmethod
-    def _alignment_stat(df):
-        df = df.compute()
-        alignment_counts = len(df)
-        filter_reason = df['filter_reason']
-        index_name = dict(zip(range(len(filter_reason.cat.categories)), 
-                                filter_reason.cat.categories))
-
-        align_statistics_df = (filter_reason
-                            .cat.codes
-                            .value_counts()
-                            .rename(index_name))
-
-        #statistics_df.index = statistics_df.index.add_categories(['total alignments'])
-        align_statistics_df.loc['total alignments'] = alignment_counts
-    
-        return align_statistics_df
-
-    def alignment_stat(self):
-        args = []
-        tmp_df = self.data[['read_idx', 'filter_reason']]
-        for i in range(self.data.npartitions):
-            args.append(tmp_df.partitions[i])
-        
-        res = Parallel(n_jobs=self.threads)(
-                delayed(PoreCTable._alignment_stat)(i) for i in args)
-
-        statistics_df = pd.concat(res, axis=1).sum(axis=1).to_frame()
-        statistics_df.columns = ['count']
-
-        return statistics_df
-
     def contact_stat(self):
-        if self.lower_memory:
+        if self.use_dask:
             res = (self.data.query("pass_filter == True")
                             .groupby('read_idx')['read_idx']
                             .count()
@@ -2010,8 +2131,104 @@ class PoreCTable:
 
         return read_order_hist
 
-    def save(self, output):
-        self.data.to_parquet(output, write_metadata_file=True, 
-                                write_index=False, engine=PQ_ENGINE, 
+    @staticmethod
+    def _chrom2contig(df, source_gr, columns, threads, meta=None):
+        df = df.reset_index()
+        query_gr = pr.PyRanges(df.rename(
+                                    columns={
+                                        'chrom': 'Chromosome',
+                                        'start': 'Start', 
+                                        'end': 'End',
+                                        'index': 'align_idx'
+                                    }
+                                ))
+
+        overlaps = query_gr.join(source_gr, nb_cpu=1).new_position('intersection')
+        overlaps = overlaps.df.assign(
+            chrom=lambda x: x['Name'],
+            start=lambda x: x.eval('Start - Start_b'),
+            end=lambda x: x.eval('End - Start_b'),
+            ).astype(PoreCTable.META)
+
+        del query_gr, source_gr, df
+        gc.collect()
+
+        tmp_columns = ['align_idx', 'read_start', 'read_end']
+        overlaps_duplicates_first = \
+            overlaps[tmp_columns][overlaps.align_idx.duplicated(keep='first')]
+        overlaps_duplicates_last = \
+            overlaps[tmp_columns][overlaps.align_idx.duplicated(keep='last')]
+        overlaps_duplicates_first = (
+            overlaps_duplicates_first.reset_index()
+                                     .set_index('align_idx'))
+        overlaps_duplicates_last = (
+            overlaps_duplicates_last.reset_index()
+                                    .set_index('align_idx'))
+
+        overlaps_duplicates_last['length'] = overlaps_duplicates_last.eval('read_end - read_start')
+        overlaps_duplicates_last['read_end'] = overlaps_duplicates_last.eval('read_start + length')
+        overlaps_duplicates_first['read_start'] = \
+            overlaps_duplicates_first['read_start'] + overlaps_duplicates_last['length']
+        
+        overlaps_duplicates_first = overlaps_duplicates_first.set_index('index')
+        overlaps_duplicates_last = overlaps_duplicates_last.set_index('index')
+
+        overlaps.loc[overlaps_duplicates_last.index, 
+                    'read_end'] = overlaps_duplicates_last['read_end']
+        overlaps.loc[overlaps_duplicates_first.index, 
+                    'read_start'] = overlaps_duplicates_first['read_start']
+
+        del overlaps_duplicates_first, overlaps_duplicates_last
+        gc.collect()
+
+        overlaps = (overlaps.sort_values(['read_idx', 'read_start'])
+                    .assign(align_idx=lambda x: range(len(x))))
+        overlaps = overlaps[columns]
+        overlaps = overlaps.reset_index(drop=True)
+
+        
+        return overlaps[columns]
+
+    def chrom2contig(self, source):
+        if isinstance(source, str):
+            logger.info(f'Load source infomation of `{source}`.')
+            source_df = pd.read_csv(source, sep='\t', 
+                                        header=None, 
+                                        index_col=None, 
+                                        names=['Chromosome', 'Start', 
+                                                'End', 'Name'])
+            source_gr = pr.PyRanges(source_df)
+        elif isinstance(source, pd.DataFrame):
+            source_df = source
+            source_df.columns = ['Chromosome', 'Start', 
+                                  'End', 'Name']
+            source_gr = pr.PyRanges(source_df)
+        elif isinstance(source, pr.PyRanges):
+            source_df = source.df
+            source_gr = source
+        else:
+            raise TypeError("source must be string/dataframe/pyranges.")
+        
+        res_df = PoreCTable._chrom2contig(self.data, source_gr, 
+                                            self.data.columns, self.threads)
+        
+        return res_df
+
+    def save(self, output, tmpdir="/tmp"):
+        if not self.use_dask:
+            self.data.to_csv(f"{tmpdir}/tmp.pore_c.csv", header=True, index=None)
+            df = dd.read_csv(f"{tmpdir}/tmp.pore_c.csv", dtype=self.META,
+                        header=0)
+            df.to_parquet(output, 
+                            engine=PQ_ENGINE, 
+                            write_metadata_file=True, 
+                            write_index=False, 
+                            version=PQ_VERSION)
+        else:
+            self.data.to_parquet(output, 
+                                engine=PQ_ENGINE, 
+                                write_metadata_file=True, 
+                                write_index=False, 
                                 version=PQ_VERSION)
+    
         logger.info(f"Successfully output pore_c_table to `{output}`")

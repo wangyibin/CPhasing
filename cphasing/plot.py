@@ -24,6 +24,7 @@ from pandarallel import pandarallel
 from scipy.sparse import triu
 
 from .agp import import_agp
+from .utilities import to_humanized
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +410,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
   
     chrom_regions = chrom_bin_interval_df.apply(lambda x: chrRangeID(x.values), axis=1)
     contig_bins = cool.bins()
-    contig_idx_db = dict(zip(cool.chromnames, range(len(cool.chromnames))))
+    # contig_idx_db = dict(zip(cool.chromnames, range(len(cool.chromnames))))
     new_agp = splitAGPByBinSize(agp_df, bin_size=bin_size)
     
     split_contig_on_chrom_df = getContigOnChromBins(
@@ -434,8 +435,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     def func(row): return chrRangeID(row.values)
     split_contig_on_chrom_df['chrom_region'] = split_contig_on_chrom_df[[
         'chrom', 'start', 'end']].parallel_apply(func, axis=1)
-    split_contig_on_chrom_df['contig'] = split_contig_on_chrom_df[
-        'contig'].parallel_apply(lambda x: contig_idx_db.get(x, np.nan)).dropna()
+    # split_contig_on_chrom_df['contig'] = split_contig_on_chrom_df[
+    #     'contig'].parallel_apply(lambda x: contig_idx_db.get(x, np.nan)).dropna()
     split_contig_on_chrom_df['contig_region'] = split_contig_on_chrom_df[[
         'contig', 'tig_start', 'tig_end']].parallel_apply(func, axis=1)
 
@@ -531,7 +532,9 @@ def coarsen_matrix(cool, k, out, threads):
     if not out:
         input_resolution = cooler.Cooler(cool).binsize
         out_resolution = f"{k * input_resolution}"
-        out = cool.replace(str(input_resolution), str(out_resolution))
+        
+        out = cool.replace(str(input_resolution), to_humanized(out_resolution))
+        out = out.replace(to_humanized(input_resolution), to_humanized(out_resolution))
 
     try:
         coarsen.main(args=[cool, 
@@ -558,16 +561,16 @@ def plot_matrix(matrix, output, chroms,
     from hicexplorer import hicPlotMatrix
 
     addition_options = []
-    
-    if chroms and chroms[0] != "":
-        addition_options.append('--chromosomeOrder')
-        addition_options.extend(list(chroms))
-        cool = cooler.Cooler(matrix)
-        
-  
     if per_chromosomes:
         addition_options.append('--perChromosome')
 
+    if chroms and chroms[0] != "":
+        addition_options.append('--chromosomeOrder')
+        addition_options.extend(list(chroms))
+        # cool = cooler.Cooler(matrix)
+        
+  
+    
     hicPlotMatrix.main(args=['-m', matrix,
                             '--dpi', str(dpi),
                             '--outFileName', output,

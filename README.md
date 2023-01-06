@@ -3,63 +3,88 @@
 
 ## Dependencies
 ### For core function.
-- [gmap](http://research-pub.gene.com/gmap/)
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
-- [asmkit](https://github.com/wangyibin/asmkit)
 
-### For ultra-fast Hi-C pipeline.
+### For Hi-C pipeline.
+- [gmap](http://research-pub.gene.com/gmap/)
 - [chromap](https://github.com/haowenz/chromap)
 
-### For fine polyploid Hi-C pipeline (developing function).
-- [hisat2](http://daehwankimlab.github.io/hisat2/)
-- [samtools](http://www.htslib.org/)
 
 ## Installation
 ```
 git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
-pip install -r requirements.txt
+conda env create -f environment.yml
 
 export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 
-## Hi-C data
-1. mapping
+## Hi-C scaffolding
+### Autopolyploid
+1. **mapping**
 ```
-cphasing hic mapper -r draft.asm.fasta -1  Lib_R1.fastq.gz -2 Lib_R2.fastq.gz -t 20
+cphasing hic mapper -r draft.asm.fasta -1 Lib_R1.fastq.gz -2 Lib_R2.fastq.gz -t 20
 ```
-2. correct
+2. **correct**
 ```
 cphasing correct draft.asm.fasta Lib.pairs -t 20 -o corrected.fasta -ob corrected.bed -op corrected.pairs
 ```
-3. Generate allele table
+
+3. **alleles**  
+Generate allele table.
 ```
-cphasing alleles -f corrected.fasta -c mono.cds -b mono.bed -k 4 -t 20
+cphasing alleles -f corrected.fasta -c mono.cds -b mono.bed -k 4 -t 20 --method gene
 ```
-4. extract contact for partition
+4. **extract**  
+Extract contacts for partition.
 ```
-cphasing extract corrected.pairs.gz corrected.fasta -e HindIII
+cphasing extract corrected.pairs corrected.fasta -e HindIII
 ```
-5. pregroup by homologous
+5. **pregroup**  
+Pregroup by homologous
 ```
 cphasing pregroup Allele.ctg.table corrected.counts_AAGCTT.txt corrected.pairs.txt -f corrected.fasta
 ```
-6. pruning in each homologous group
+6. **prune**  
+Pruning in each homologous group.
 ```
 cphasing prune Chr01.allele.table Chr01.counts_AAGCTT.txt Chr01.pairs.txt
 ...
 ```
-7. partition in each homologous group
+7. **partition**  
+Partition in each homologous group
 ```
 cphasing partition Chr01.counts_GATC.txt Chr01.pairs.prune.txt 4 --adaptive --threads 10
 ...
 ```
-4 is repersent the number of groups (ploidy in there)  
+`4` is repersent the number of groups (ploidy in there)  
 
-8. recluster in each homologous group
+8. **recluster**  
+Allelic information was used to further optimize the clustering results.
 ```
-
+cphasing recluster clusters.txt Chr01.allele.table Chr01.counts_GATC.txt Chr01.pairs.txt 4
+...
+```
+9. **rescue**  
+Assign unplaced contigs into partitioned clusters.
+```
+cphasing rescue clusters.txt corrected.counts_AAGCTT.txt corrected.pairs.txt -o rescued.clusters.txt
+```
+10. **optimize**  
+Ordering and orientation for each group.
+```
+allhic optimze sample.counts_GATC.group1.txt corrected.clm
+...
+```
+11. **build**  
+```
+cphasing build corrected.fasta
+```
+12. **plot**  
+```
+cooler cload pairs corrected.fasta.chromsizes:10000 corrected.pairs corrected.10k.cool -c1 2 -p1 3 -c2 4 -p2 5
+cphasing plot -a groups.agp -m corrected.10k.cool -o groups.wg.png
 ```
 
 ## Citiing  

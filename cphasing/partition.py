@@ -20,12 +20,12 @@ from joblib import Parallel, delayed
 from pathlib import Path
 from pyfaidx import Fasta
 
-from .alleles import PartigRecords
 from .algorithms.hypergraph import (
     IRMM,
     extract_incidence_matrix, 
     remove_incidence_matrix
     )
+from ._config import *
 from .core import CountRE
 from .utilities import run_cmd, listify, list_flatten
 
@@ -318,7 +318,8 @@ class HyperPartition:
                     min_order=2, max_order=15,
                     min_alignments=500,
                     min_length=10000, threshold=0.01,
-                    max_round=50, threads=4):
+                    max_round=10, threads=4,
+                    use_dask=False):
         
         self.pore_c_tables = listify(pore_c_tables)
         self.k = k
@@ -332,6 +333,7 @@ class HyperPartition:
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
+        self.use_dask = use_dask
 
         self.data = self.import_pore_c_table()
         self.contigs = self.get_contigs()
@@ -351,7 +353,7 @@ class HyperPartition:
     @property
     def contig_sizes(self):
         fasta = Fasta(self.fasta)
-        contig_size_db = dict(list(map(lambda x: (x.name, len(x)), list(fasta))))
+        contig_size_db = OrderedDict(list(map(lambda x: (x.name, len(x)), list(fasta))))
         
         return contig_size_db 
 
@@ -389,11 +391,22 @@ class HyperPartition:
                 infile = os.readlink(self.pore_c_tables[0])
             else:
                 infile = self.pore_c_tables[0]
-            df = dd.read_parquet(infile, 
+            
+            if self.use_dask:
+                df = dd.read_parquet(infile, 
                                     columns=['read_idx', 'chrom',
-                                            'start', 'end', 'pass_filter'],
-                                    engine='pyarrow')
-     
+                                            'start', 'end', 
+                                            'pass_filter'],
+                                    engine=PQ_ENGINE)
+            else:
+                df = pd.read_parquet(infile, 
+                                     columns=['read_idx', 'chrom',
+                                              'start', 'end', 
+                                              'pass_filter'],
+                                    engine=PQ_ENGINE)
+            
+            df = df.query("pass_filter == True")
+            df_list = [df]
         else:
             infiles = []
             for i in self.pore_c_tables:
@@ -402,29 +415,31 @@ class HyperPartition:
                 else:
                     infiles.append(i)
 
-            df_list = list(map(lambda x: dd.read_parquet(
-                                x, 
-                                columns=['read_name', 'chrom', 
-                                        'start', 'end', 'pass_filter'], 
-                                engine='pyarrow'), infiles))
+            if self.use_dask:
+                df_list = list(map(lambda x: dd.read_parquet(
+                                    x, columns=['read_idx', 'chrom', 
+                                                'start', 'end', 
+                                                'pass_filter'], 
+                                    engine='pyarrow'), infiles))
 
-            df = dd.concat(df_list, axis=0)
-            df['read_idx'] = df['read_name'].cat.as_known().cat.codes
+                df = dd.concat(df_list, axis=0)
+                # df['read_idx'] = df['read_name'].cat.as_known().cat.codes
+                df = df.query("pass_filter == True").drop("pass_filter", axis=1)
+                df_list = [df]
+            else:
+                df_list = list(map(lambda x: pd.read_parquet(
+                                x, columns=['read_idx', 'chrom', 
+                                            'start', 'end', 
+                                            'pass_filter'], 
+                                    engine='pyarrow',),
+                                    #filters=[('pass_filter', '=', True)]),
+                                    infiles))
+                df_list = Parallel(n_jobs=self.threads)(delayed(
+                                    lambda x: x.query("pass_filter == True")
+                                                .drop("pass_filter", axis=1)
+                                                )(i) for i in df_list)
 
-        df = df.query("pass_filter == True")
-
-        
-
-        if len(self.pore_c_tables) < self.threads/2:
-            # from dask.distributed import Client
-            # with Client(n_workers=self.threads):
-            df = (
-                df.set_index('read_idx')
-                    .repartition(self.threads)
-                    .reset_index()
-                    )
-
-        return df 
+        return df_list
     
     def get_hypergraph(self):
         from .algorithms.hypergraph import generate_hypergraph
@@ -432,7 +447,8 @@ class HyperPartition:
                                             self.min_order,
                                             self.max_order,
                                             self.min_alignments,
-                                            self.threads)
+                                            self.threads,
+                                            self.use_dask)
 
         return H, vertices
 

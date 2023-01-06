@@ -101,10 +101,96 @@ def alignments(ctx):
 @alignments.command()
 @click.argument(
     "paf",
+    metavar="PAF",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "chromsize",
+    metavar="CHROMSIZE",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "output",
+    metavar='OUTPUT_PATH',
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-p',
+    '--min_identity',
+    help='Minimum percentage identity of alignments [0, 1.0].',
+    metavar='FLOAT',
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    default=.75,
+    show_default=True
+)
+@click.option(
+    '-l',
+    '--min_length',
+    help='Minimum length of fragments.',
+    metavar='INT',
+    default=10,
+    show_default=True
+)
+def paf2pairs(paf, chromsize, output, 
+                min_quality, min_identity, min_length):
+    """
+    Convert Pore-C alignments to 4DN pairs file.
+
+        PAF_PATH : Path of alignment file(paf format).
+
+        CHROMSIZE : Path of chromosome sizes.
+
+        OUTPUT : PATH of output pairs file.
+    """
+    from .core import PAFTable
+    paf = PAFTable(paf, threads=1, no_read=True,
+                        min_quality=min_quality,
+                        min_identity=min_identity,
+                        min_length=min_length)
+    paf.to_pairs(chromsize, output)
+    paf.clean_tempoary()
+
+@alignments.command()
+@click.argument(
+    "paf",
     type=click.Path(exists=True)
 )
 @click.argument(
     "output"
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-p',
+    '--min_identity',
+    help='Minimum percentage identity of alignments [0, 1.0].',
+    metavar='FLOAT',
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    default=.75,
+    show_default=True
+)
+@click.option(
+    '-l',
+    '--min_length',
+    help='Minimum length of fragments.',
+    metavar='INT',
+    default=10,
+    show_default=True
 )
 @click.option(
     '-t',
@@ -115,17 +201,21 @@ def alignments(ctx):
     metavar='INT',
     show_default=True,
 )
-def paf2table(paf, output, threads):
+def paf2table(paf, output, threads, 
+                min_quality, min_identity, min_length):
     """
     Convert paf to pore_c_table.
     """
     from .core import PAFTable
 
-    paf = PAFTable(paf, threads=threads)
+    paf = PAFTable(paf, threads=threads, 
+                    min_quality=min_quality, 
+                    min_identity=min_identity, 
+                    min_length=min_length)
     paf.filter()
     pore_c_table = paf.to_pore_c_table()
 
-    pore_c_table.save(output)
+    pore_c_table.save(output, paf.tmpdir)
     paf.clean_tempoary()
 
 @alignments.command()
@@ -152,18 +242,18 @@ def paf2table(paf, output, threads):
     show_default=True,
 )
 @click.option(
-    '-l',
-    '--lower_memory',
+    '-ud',
+    '--use_dask',
     help="Use dask to lower memory usage.",
     is_flag=True,
     default=False,
     show_default=True 
 )
-def summary(pore_c_table, read_number, threads, lower_memory):
+def summary(pore_c_table, read_number, threads, use_dask):
     from .core import PoreCTable
 
     prefix = Path(pore_c_table).stem
-    pct = PoreCTable(threads=threads, lower_memory=lower_memory)
+    pct = PoreCTable(threads=threads, use_dask=use_dask)
     pct.read_table(pore_c_table)
     read_stat, alignment_stat = pct.read_and_alignment_stat_dask(read_number)
     read_stat.to_csv(f"{prefix}.read.summary", sep='\t', 
@@ -176,6 +266,85 @@ def summary(pore_c_table, read_number, threads, lower_memory):
     contact_df.to_csv(f"{prefix}.concatemer.summary", sep='\t', 
                             header=True, index=True)
     
+@alignments.command()
+@click.argument(
+    'pore_c_table',
+    type=click.Path(exists=True),
+    metavar='Pore_C_table'
+)
+@click.argument(
+    'contig_bed',
+    type=click.Path(exists=True),
+    metavar='Contig_bed'
+)
+@click.argument(
+    'output',
+    type=click.Path(exists=False),
+    metavar='Output'
+)
+@click.option(
+    '-t',
+    '--threads',
+    type=int,
+    default=1,
+    show_default=True,
+    help='Number of threads.'
+)
+def pore_c_chrom2contig(
+    pore_c_table, 
+    contig_bed,
+    output,
+    threads):
+    """
+    Convert chromosome-level pore_c_table to contig-level.
+
+    Pore_c_table : Path of pore-c table.
+
+    Contig_bed : Path of contig bed, three columns or four columns with contig id.
+
+    Output : Path of output.
+    """
+    from .core import PoreCTable
+    df = pd.read_parquet(pore_c_table)
+    #df = df.query('pass_filter == "True"')
+
+    contig_df = pd.read_csv(contig_bed, 
+                            sep='\t', 
+                            header=None,
+                            index_col=None, 
+                            )
+    names = ['chrom', 'start', 'end', 'id']
+    dtypes = ['object', 'int64', 'int64', 'object']
+    if len(contig_df.columns) == 3:
+        contig_df.columns = names[:3]
+        contig_df = contig_df.astype(
+            dict(zip(names[:3], dtypes[:3]))
+        )
+        contig_df['id'] = (contig_df.groupby('chrom', as_index=False)
+                            .cumcount() + 1).astype(str) 
+        contig_df = contig_df.assign(
+            id=lambda x: x['chrom'].astype(str) + '.ctg' + x['id']
+        )
+    elif len(contig_df.columns) >= 4:
+        contig_df = contig_df.iloc[:, 0:4]
+        contig_df.columns = names
+        contig_df = contig_df.astype(
+            dict(zip(names, dtypes))
+        )
+    else:
+        logger.warning(f'`{contig_bed}` must in 3-columns or 4-columns.')
+        sys.exit()
+    
+    
+    logger.info('Starting convert chromosome-level to contig-level ...')
+    pct = PoreCTable()
+    pct.read_table(pore_c_table)
+    res_df = pct.chrom2contig(contig_df)
+
+    res_df.to_parquet(output)
+    logger.info(f'Done, output new Pore-C record in `{output}`')
+
+
 @cli.command()
 @click.argument(
     'fasta',
@@ -867,7 +1036,7 @@ def build(fasta, output):
 )
 @click.option(
     '--chromosomes',
-    help='Chromosomes and order in which the chromosomes should be plotted.'
+    help='Chromosomes and order in which the chromosomes should be plotted. '
             'Comma seperated.',
     default=''
 )
@@ -1094,6 +1263,36 @@ def mapper(
 def utils(ctx):
     pass
 
+@utils.command(short_help='Convert agp to assembly file.')
+@click.argument(
+    "agpfile",
+    metavar="AGP",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+@click.option(
+    "--add_gap",
+    metavar="Bool",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="add gap into assembly."
+)
+def agp2assembly(agpfile, output, add_gap):
+    """
+    Convert agp to cluster file.
+
+    AGP : Path to agp file.
+    """
+    from .agp import agp2assembly
+    agp2assembly(agpfile, output, add_gap)
+
 
 @utils.command(short_help='Convert agp to cluster file.')
 @click.argument(
@@ -1302,44 +1501,72 @@ def countRE2cluster(count_re, output, fofn):
 
 @utils.command()
 @click.argument(
-    "paf",
-    metavar="PAF_PATH",
+    "pairs",
+    metavar="Pairs",
     type=click.Path(exists=True)
 )
 @click.argument(
-    "chromsize",
-    metavar="CHROMSIZE_PATH",
+    "contig_bed",
+    metavar="ContigBed",
     type=click.Path(exists=True)
 )
 @click.argument(
     "output",
-    metavar='OUTPUT_PATH',
+    metavar="Output"
 )
-@click.option(
-    '-q',
-    '--min_quality',
-    help='Minimum quality of mapping [0, 60].',
-    metavar='INT',
-    type=click.IntRange(0, 255, clamp=True),
-    default=1,
-    show_default=True
+def pairs_chrom2contig(pairs, contig_bed, output):
+    """
+    Convert chromosome-level pairs to contig-level.
+
+        Pairs : Path of pairs file.
+
+        ContigBed : Path of contig coordinate to chrom in bed format.
+
+        Output : Path of output contig-level pairs.
+
+
+    """
+    from .core import Pairs
+
+    contig_df = pd.read_csv(contig_bed, 
+                            sep='\t', 
+                            header=None,
+                            index_col=None, 
+                            )
+    names = ['chrom', 'start', 'end', 'id']
+    dtypes = ['object', 'int64', 'int64', 'object']
+    if len(contig_df.columns) == 3:
+        contig_df.columns = names[:3]
+        contig_df = contig_df.astype(
+            dict(zip(names[:3], dtypes[:3]))
+        )
+        contig_df['id'] = (contig_df.groupby('chrom', as_index=False)
+                            .cumcount() + 1).astype(str) 
+        contig_df = contig_df.assign(
+            id=lambda x: x['chrom'].astype(str) + '.ctg' + x['id']
+        )
+    elif len(contig_df.columns) >= 4:
+        contig_df = contig_df.iloc[:, 0:4]
+        contig_df.columns = names
+        contig_df = contig_df.astype(
+            dict(zip(names, dtypes))
+        )
+    else:
+        logger.warning(f'`{contig_bed}` must in 3-columns or 4-columns.')
+        sys.exit()
+
+    p = Pairs(pairs)
+    p.chrom2contig(contig_df, output=output)
+
+@utils.command()
+@click.argument(
+    "pairs",
+    metavar="Pairs",
+    type=click.Path(exists=True)
 )
-@click.option(
-    '-p',
-    '--min_identity',
-    help='Minimum percentage identity of alignments [0, 1.0].',
-    metavar='FLOAT',
-    type=click.FloatRange(0.0, 1.0, clamp=True),
-    default=.9,
-    show_default=True
-)
-@click.option(
-    '-l',
-    '--min_length',
-    help='Minimum length of fragments.',
-    metavar='INT',
-    default=50,
-    show_default=True
+@click.argument(
+    "output",
+    metavar="Output"
 )
 @click.option(
     '-t',
@@ -1350,28 +1577,17 @@ def countRE2cluster(count_re, output, fofn):
     metavar='INT',
     show_default=True,
 )
-def paf2pairs(paf, chromsize, output, 
-                min_quality, min_identity, 
-                min_length, threads):
+def pairs2mnd(pairs, output, threads):
     """
-    Convert Pore-C alignments to 4DN pairs file.
+    convert 4DN pairs to mnd file.
 
-        PAF_PATH : Path of alignment file(paf format).
+        Pairs : Path of pairs file.
 
-        CHROMSIZE : Path of chromosome sizes.
-
-        OUTPUT : PATH of output pairs file.
+        Output : Path of output mnd file.
     """
-    from .core import PAFTable
-    paftable = PAFTable(paf=paf,
-                        threads=threads)
-
-    paftable.filter(min_quality=min_quality,
-                        min_identity=min_identity,
-                        min_length=min_length, )
-
-    paftable.to_pairs(chromsize, output)
-
+    from .core import Pairs 
+    p = Pairs(pairs)
+    p.to_mnd(output, threads) 
 
 @utils.command()
 @click.argument(
@@ -1474,7 +1690,7 @@ def paf2pairs(paf, chromsize, output,
     '--threads',
     help='Number of threads.',
     type=int,
-    default=1,
+    default=4,
     metavar='INT',
     show_default=True,
 )

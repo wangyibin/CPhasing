@@ -154,6 +154,12 @@ def xopen(infile, mode='r'):
         handle = open(infile, mode)
     return handle
 
+def gz_reader():
+    from shutil import which 
+    if which('pigz'):
+        return 'pigz'
+    else:
+        return 'gzip'
 
 def list_flatten(list_2d):
     """
@@ -477,3 +483,21 @@ def delete_row_lil(mat, i):
     mat.rows = np.delete(mat.rows, i)
     mat.data = np.delete(mat.data, i)
     mat._shape = (mat._shape[0] - 1, mat._shape[1])
+
+def to_humanized(size):
+    """
+    Convert the unit of chromosome size to suitable unit.
+    >>> chrom_size_convert(100000)
+    100 Kbp
+    >>> chrom_size_convert(1000000)
+    1 Mbp
+    """
+    size = int(size)
+    if size <= 1e3:
+        label = "{:,.0f}".format((size)) + ""
+    elif size < 1e6:
+        label = "{:,.0f}".format((size / 1e3)) + "k"
+    else:
+        label = "{:,.1f}".format((size / 1e6)) + "m"
+    
+    return label

@@ -9,6 +9,7 @@ import sys
 
 import pandas as pd 
 
+from collections import OrderedDict
 from natsort import natsort_keygen
 from joblib import Parallel, delayed
 from pathlib import Path
@@ -56,6 +57,47 @@ def import_agp(agpfile, split=True):
         return tig_df, gap_df
     else:
         return df
+
+def agp2assembly(agpfile, output, add_gap=False):
+    """
+    convert agp to assembly.
+    """
+   
+    tig_df, gap_df = import_agp(agpfile)
+    gap_length = gap_df.iloc[0]['length']
+    chrom_matrix_db = OrderedDict()
+    tig_list = []
+    for i, item in enumerate(tig_df.iterrows(), 1):
+        chrom = item[0]
+        tig = item[1].id
+        tig_length = item[1].tig_end
+        orientation = item[1].orientation
+
+        tig_list.append([tig, i, tig_length])
+        if chrom not in chrom_matrix_db:
+            chrom_matrix_db[chrom] = []
+        orientation = orientation if orientation == '-' else ""
+        chrom_matrix_db[chrom].append(orientation + str(i))
+    else:
+        hic_gap_number = i + 1
+
+    for item in tig_list:
+        print(">{}".format(" ".join(map(str, item))), 
+                            file=output)
+    else:
+        if add_gap:
+            print(">{}".format(" ".join(['hic_gap_{}'.format(
+                hic_gap_number), str(hic_gap_number), str(gap_length)])), 
+                file=output)
+            _gap = " {} ".format(hic_gap_number)
+        else: 
+             _gap = " "
+        for chrom in chrom_matrix_db:
+            print(_gap.join(
+                map(str, chrom_matrix_db[chrom])), file=output)
+    
+    logger.info(f"Successful output assembly file into `{output.name}`.")
+
 
 
 def agp2cluster(agp, store=None):

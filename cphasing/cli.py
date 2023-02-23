@@ -523,6 +523,8 @@ def correct(
     help="ploidy of genome.",
     metavar="INT",
     type=int,
+    default=None,
+    show_default=True,
 )
 @click.option(
     '-t',
@@ -994,7 +996,8 @@ def rescue(
 @cli.command()
 @click.argument(
     "fasta",
-    metavar="Fasta"
+    metavar="Fasta",
+    type=click.Path(exists=True)
 )
 @click.option(
     "-o",
@@ -1018,7 +1021,8 @@ def build(fasta, output):
     '-m',
     '--matrix',
     metavar='COOL',
-    required=True
+    required=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-a',
@@ -1462,6 +1466,24 @@ def cluster2assembly(cluster, fasta, output):
  
     ct.to_assembly(fasta, output)
 
+@utils.command(short_help='Convert cluster to pesudo tour files.')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+def cluster2tour(cluster):
+    """
+    Convert cluster to several pesudo tour files.
+
+    ClusterTable : Path to cluster table.
+    
+    """
+    from .core import ClusterTable
+    ct = ClusterTable(cluster)
+ 
+    ct.to_tour()
+
 @utils.command()
 @click.argument(
     "count_re"
@@ -1636,7 +1658,7 @@ def pairs2mnd(pairs, output, threads):
     help="Maximum contig order of pore-c reads",
     metavar="INT",
     type=int,
-    default=15,
+    default=50,
     show_default=True
 )
 @click.option(
@@ -1645,7 +1667,7 @@ def pairs2mnd(pairs, output, threads):
     help="Minimum length of alignments",
     metavar="INT",
     type=int,
-    default=500,
+    default=100,
     show_default=True
 )
 @click.option(
@@ -1671,7 +1693,7 @@ def pairs2mnd(pairs, output, threads):
     help="Maximize round of reweight",
     metavar="INT",
     type=int,
-    default=50,
+    default=1,
     show_default=True
 )
 @click.option(

@@ -26,7 +26,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 cphasing hic mapper -r draft.asm.fasta -1 Lib_R1.fastq.gz -2 Lib_R2.fastq.gz -t 20
 ```
-2. **correct**
+2. **correct** [Optional]
 ```
 cphasing correct draft.asm.fasta Lib.pairs -t 20 -o corrected.fasta -ob corrected.bed -op corrected.pairs
 ```

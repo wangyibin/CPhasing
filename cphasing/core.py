@@ -175,12 +175,17 @@ class AlleleLine:
     
     """
 
-    def __init__(self, line):
+    def __init__(self, line, format='allele1'):
         self.line = line.strip()
         line_list = line.strip().split()
         self.chrom = line_list[0]
         self.gene = line_list[1]
-        self.contigs = line_list[2:]
+        if format == "allele1":
+            self.contigs = line_list[2:]
+        elif format == "allele2":
+            self.contigs = line_list[2:-1]
+            self.score = int(line_list[-1])
+
         self.n = len(self.contigs)
     
     def __str__(self):
@@ -192,17 +197,30 @@ class AlleleTable:
 
     Params:
     --------
-    infile: `str`, input file for allele table
-    sort: `bool`, whether to sort contigs per row [True]
+    infile: str
+        input file for allele table
+    sort: bool
+        whether to sort contigs per row [True]
+    format: str
+        specified the format of allele table
+            allele1: old format for table only contains alleles
+                Chr01 12345 contig1 contig2 contig3 ...
+                or 1 1 contig1 contig2
+            allele2: new format for table contains the scores 
+                1 1 contig1 contig2 60
+
     Examples:
     --------
     >>> infile = 'Allele.ctg.table'
     >>> at = AlleleTable(infile)
 
     """
-    def __init__(self, infile, sort=True):
+    def __init__(self, infile, sort=True, format="allele1"):
         self.filename = infile
         self.sort = sort
+        self.format = format 
+        assert self.format in ("allele1", "allele2"), \
+                "format must in ['allele1', 'allele2']"
         if not Path(self.filename).exists():
             logger.error(f'No such file of `{self.filename}`.')
             sys.exit()
@@ -227,8 +245,11 @@ class AlleleTable:
                 al = AlleleLine(line)
                 if al.n > n:
                     n = al.n
-
-        self.columns = list(range(n + 2))
+        
+        if self.format == "allele1":
+            self.columns = list(range(n + 2))
+        else self.format == "allele2":
+            self.columns = list(range(n + 3))
 
     def get_data(self, sort=True):
         def sort_row(row):
@@ -555,7 +576,45 @@ class PairTable:
         tmp_df = tmp_df.dropna(how='all', axis=0)
         
         return tmp_df
+    
+    def get_contact(self, contig1, contig2, count_re):
+        """
+        get unnormalized contact between two contig lists
+
+        Params:
+        --------
+        contig1: list or list-like
+            list of contigs
+        contig2: list or list-like
+            list of contigs
+        count_re: CountRE
+            count RE table
+
+        Returns:
+        --------
+        float:
+            normalized contact
+
+        Examples:
+        --------
+        >>> contig1 = ['utg001']
+        >>> contig2 = ['utg002', 'utg003']
+        >>> pt.get_normalized_contact(contig1, contig2)
+        0.05
+        """
+        tmp_df = self.get_contacts(contig1, contig2)
         
+        if tmp_df.empty:
+            return 0
+        
+        L = tmp_df['ObservedLinks'].sum()
+        C1 = count_re.data.reindex(contig1)['RECounts'].sum()
+        C2 = count_re.data.reindex(contig2)['RECounts'].sum()
+
+
+        return L * 1000 / (C1 * C2)
+    
+
     def get_normalized_contact(self, contig1, contig2):
         """
         get normalized contact between two contig lists
@@ -793,7 +852,18 @@ class ClusterTable:
             _idx = list(map(lambda x: contig_idx_db[x], _contigs))
             _idx = list(map(lambda x: int(x)+1, _idx))
             print(" ".join(map(str, _idx)), file=output)
-
+    
+    def to_tour(self):
+        """
+        convert cluster table to several pseudo tour files.
+        
+        """
+        for group in self.groups:
+            with open(f"{group}.tour", "w") as out:
+                _contigs = self.data[group]
+                _contigs = list(map(lambda x: f"{x}+", _contigs))
+                print(" ".join(_contigs), file=out)
+            
     def save(self, output):
         """
         save cluster table to output file

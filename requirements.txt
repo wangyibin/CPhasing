@@ -4,7 +4,7 @@ cooler
 dask
 distributed
 fanc
-hicexplorer
+hicexplorer >= 3.7.2
 hypernetx
 igraph
 intervaltree

@@ -151,6 +151,9 @@ class PartigAllele:
                 bufsize=-1)
             )
             pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{cmd}.')
         finally:
             for p in pipelines:
                 if p.poll() is None:
@@ -158,7 +161,10 @@ class PartigAllele:
                 else:
                     assert pipelines != [], \
                         "Failed to execute command, please check log."
-        
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}.')
+                                        
         self.pr = PartigRecords(self.partig_res)
         self.pr.convert(self.fasta)
 
@@ -241,10 +247,17 @@ class GmapAllele:
                 stdout=out, bufsize=-1)
             )
             pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{" ".join(cmd)}.')
         finally:
             for p in pipelines:
                 if p.poll() is None:
                     p.terminate()
+                
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}.')
     
     def to_alleletable(self):
         def get_gene_id(attributes, key='Name'):

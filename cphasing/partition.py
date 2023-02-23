@@ -340,6 +340,7 @@ class HyperPartition:
         self.H, self.vertices = self.get_hypergraph()
         
         self.filter_hypergraph()
+        self.NW = self.get_normalize_weight()
 
         if prune:
             self.P_idx, self.prune_pair_df = self.get_prune_pairs()
@@ -474,6 +475,17 @@ class HyperPartition:
         self.H, _ = remove_incidence_matrix(self.H, short_contig_idx)
         self.vertices = np.delete(self.vertices, short_contig_idx)
 
+    def get_normalize_weight(self):
+        contig_sizes = self.contig_sizes
+        contig_sizes_df = pd.DataFrame(contig_sizes, index=['length']).T
+        vertices_length = contig_sizes_df.loc[self.vertices]
+
+        a = vertices_length['length'].astype('float32')
+        
+        NW = (a.max() ** 2) / np.outer(a, a)
+ 
+        return NW
+
     def merge_group(self):
         """
         merge group by signal.
@@ -483,12 +495,13 @@ class HyperPartition:
         pass
     
     @classmethod
-    def _multi_partition(self, k, prune_pair_df, H, threshold, max_round):
+    def _multi_partition(self, k, prune_pair_df, H, NW, threshold, max_round, num):
         """
         single function for multi_partition.
         """
         k = np.array(list(k))
         sub_H, _ = extract_incidence_matrix(H, k)
+        sub_NW = NW[list(k)][:, list(k)]
 
         sub_old2new_idx = dict(zip(k, range(len(k))))
         sub_new2old_idx = dict(zip(range(len(k)), k))
@@ -504,8 +517,11 @@ class HyperPartition:
 
         sub_P_idx = [sub_prune_pair_df[0], sub_prune_pair_df[1]]
         
-        new_K = IRMM(sub_H, sub_P_idx, threshold, 
-                        max_round, threads=1)
+        new_K = IRMM(sub_H, sub_NW, 
+                        sub_P_idx, 
+                        0.60, threshold, 
+                        max_round, threads=1, 
+                        outprefix=num)
         
         ## remove single group
         new_K = filter(lambda x: len(x) > 1, new_K)
@@ -519,25 +535,28 @@ class HyperPartition:
         """
         prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
 
-        self.K = IRMM(self.H, None, self.threshold, 
+        self.K = IRMM(self.H, self.NW, None, 
+                        1, self.threshold, 
                         self.max_round, threads=self.threads)
         self.K = filter(lambda x: len(x) > 1, self.K)
 
         # results = []
         args = []
-        for k in self.K:
-            args.append((k, prune_pair_df, self.H, self.threshold, self.max_round))
+        for num, k in enumerate(self.K, 1):
+            args.append((k, prune_pair_df, self.H, self.NW, 
+                        self.threshold, self.max_round, num))
            
         results = Parallel(n_jobs=self.threads)(
                         delayed(self._multi_partition)
-                                (i, j, k, l, m) for i, j, k, l, m in args)
+                                (i, j, k, l, m, n, o) for i, j, k, l, m, n, o in args)
 
         self.K = list_flatten(results)
 
     def single_partition(self):
         
         logger.info("Starting to cluster ...")
-        self.K = IRMM(self.H, self.P_idx,
+        self.K = IRMM(self.H, self.NW, self.P_idx,
+                        0.8, 
                         self.threshold, self.max_round,
                         threads=self.threads)
         logger.info("Cluster done.")
@@ -550,6 +569,11 @@ class HyperPartition:
 
     def to_cluster(self, output):
         idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
+
+        with open('idx_to_vertices.list', 'w') as out:
+            for idx, contig in idx_to_vertices.items():
+                print(idx, contig, sep='\t', file=out)
+                
         clusters = list(map(lambda y: list(
                         map(lambda x: idx_to_vertices[x], y)), 
                         self.K))
@@ -559,3 +583,8 @@ class HyperPartition:
                         file=out)
 
         logger.info(f"Successful output cluster results in `{output}`.")
+
+class SimplePartition:
+    def __init__(self):
+        pass
+

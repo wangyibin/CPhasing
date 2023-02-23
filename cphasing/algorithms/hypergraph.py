@@ -5,6 +5,7 @@ import os
 import dask.array as da
 import gc
 import numpy as np
+import networkx as nx
 import pandas as pd 
 import igraph as ig
 import hypernetx as hnx
@@ -21,7 +22,7 @@ from scipy.sparse import (
 
 logger = logging.getLogger(__name__)
 
-#memory = Memory('./cachedir', verbose=0)
+memory = Memory('./cachedir', verbose=0)
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -123,10 +124,14 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
-def IRMM(H, P_idx=None, 
+def IRMM(H, NW, 
+            P_idx=None,
+            resolution=1, 
             threshold=0.01, 
-            max_round=10, chunk=10000, 
-            threads=10):
+            max_round=10, 
+            chunk=10000, 
+            threads=10, 
+            outprefix="all"):
     """
     Iteratively reweight modularity maximization.
     
@@ -173,6 +178,12 @@ def IRMM(H, P_idx=None,
     
     H_T = H.T
     A = H @ W @ D_e_inv @ H_T
+    ## normalization
+    # A = A.toarray() * NW
+    # row, col = np.nonzero(A)
+    # values = A[row, col]
+    # A = csr_matrix((values, (row, col)), shape=A.shape)
+
     # A.setdiag(0)
     # A.prune()
 
@@ -190,10 +201,17 @@ def IRMM(H, P_idx=None,
     except ValueError:
         return [list(range(A.shape[0]))]
 
-    cluster_assignments = G.community_multilevel(weights='weight')
+    cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
     cluster_assignments = list(cluster_assignments.as_cover())
     cluster_assignments = list(map(set, cluster_assignments))
+    G.write_graphml(f'{outprefix}.out.edgelist')
+    
+    # G = G.to_networkx()
+    # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
+    # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
     print(list(map(len, cluster_assignments)))
+
+    
     del A, G
     gc.collect()
 
@@ -223,6 +241,11 @@ def IRMM(H, P_idx=None,
         gc.collect()
 
         A = H @ W @ D_e_inv @ H_T
+        ## normalization
+        # A = A.toarray() * NW
+        # row, col = np.nonzero(A)
+        # values = A[row, col]
+        # A = csr_matrix((values, (row, col)), shape=A.shape)
         # A.setdiag(0)
         # A.prune()
         if P_idx:
@@ -234,10 +257,15 @@ def IRMM(H, P_idx=None,
             G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
         except ValueError:
             return cluster_assignments
+        
+        # ## use igraph 
+        # cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
+        # cluster_assignments = list(cluster_assignments.as_cover())
+        # cluster_assignments = list(map(set, cluster_assignments))
 
-        cluster_assignments = G.community_multilevel(weights='weight')
-        cluster_assignments = list(cluster_assignments.as_cover())
-        cluster_assignments = list(map(set, cluster_assignments))
+        ## use networkx 
+        G = G.to_networkx()
+        cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
         print(list(map(len, cluster_assignments)))
         del A, G
         gc.collect()
@@ -273,7 +301,7 @@ def process_pore_c_table(df, npartition,
 
     return edges
 
-# process_pore_c_table = memory.cache(process_pore_c_table)
+process_pore_c_table = memory.cache(process_pore_c_table)
 
 def generate_hypergraph(pore_c_tables, 
                             min_order=2, 
@@ -287,7 +315,7 @@ def generate_hypergraph(pore_c_tables,
     Params:
     --------
     pore_c_tables: list
-        pore_c table, at least have four columns: read_name, chrom, start, end.
+        pore_c table, at least have four columns: read_id x, chrom, start, end.
     min_order: int, default 2
         minimum contig order of pore-c reads
     max_order: int, default 20
@@ -354,5 +382,5 @@ def generate_hypergraph(pore_c_tables,
 
     return H, vertices
 
-# generate_hypergraph = memory.cache(generate_hypergraph)
+generate_hypergraph = memory.cache(generate_hypergraph)
 

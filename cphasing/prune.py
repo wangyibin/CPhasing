@@ -55,15 +55,15 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
     filter_func = lambda x: x in contigs
 
     allelic_pairs = []
-    for chrom, item in at.data.groupby(0):
-        for _, alleles in item.iterrows():
-            if len(alleles) == 1:
-                continue
-            alleles = list(filter(filter_func, alleles))
-            alleles = sorted(alleles, key=lambda x: contigs_index[x])
-            tmp_pairs = list(combinations(alleles, 2))
-                
-            allelic_pairs.extend(tmp_pairs)
+    # for chrom, item in at.data.groupby(0):
+    for _, alleles in at.data.iterrows():
+        if len(alleles) == 1:
+            continue
+        alleles = list(filter(filter_func, alleles))
+        alleles = sorted(alleles, key=lambda x: contigs_index[x])
+        tmp_pairs = list(combinations(alleles, 2))
+            
+        allelic_pairs.extend(tmp_pairs)
     
     allelic_pairs = list(set(allelic_pairs))
     header = pt.HEADER

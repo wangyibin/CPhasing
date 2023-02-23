@@ -108,7 +108,6 @@ class PartigRecords:
         for i in range(len(self.S)):
             self.S[i].seqName1 = db[self.S[i].seqName1]
             self.S[i].seqName2 = db[self.S[i].seqName2]
-    
 
 class PartigAllele:
     def __init__(self,
@@ -173,8 +172,8 @@ class PartigAllele:
             i = 0
             for record in self.pr.S:
                 i += 1
-                print(i, i, record.seqName1, record.seqName2, 
-                        sep='\t', file=output)
+                print(i, record.mzShared, record.seqName1, 
+                            record.seqName2, sep='\t', file=output)
 
         logger.info(f'Successful output allele table in `{self.output}`.')
 

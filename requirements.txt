@@ -1,6 +1,6 @@
 biopython
-click >= 0.8.11
-cooler
+click
+cooler >= 0.8.11
 dask
 distributed
 fanc

@@ -248,7 +248,7 @@ class AlleleTable:
         
         if self.format == "allele1":
             self.columns = list(range(n + 2))
-        else self.format == "allele2":
+        else:
             self.columns = list(range(n + 3))
 
     def get_data(self, sort=True):
@@ -261,6 +261,7 @@ class AlleleTable:
                             usecols=self.columns)
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
+        
         df = df.drop(1, axis=1)
     
         df = df.apply(sort_row, axis=1) if sort else df

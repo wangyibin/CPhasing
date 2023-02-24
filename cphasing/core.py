@@ -201,7 +201,7 @@ class AlleleTable:
         input file for allele table
     sort: bool
         whether to sort contigs per row [True]
-    format: str
+    fmt: str
         specified the format of allele table
             allele1: old format for table only contains alleles
                 Chr01 12345 contig1 contig2 contig3 ...
@@ -215,11 +215,11 @@ class AlleleTable:
     >>> at = AlleleTable(infile)
 
     """
-    def __init__(self, infile, sort=True, format="allele1"):
+    def __init__(self, infile, sort=True, fmt="allele1"):
         self.filename = infile
         self.sort = sort
-        self.format = format 
-        assert self.format in ("allele1", "allele2"), \
+        self.fmt = fmt 
+        assert self.fmt in ("allele1", "allele2"), \
                 "format must in ['allele1', 'allele2']"
         if not Path(self.filename).exists():
             logger.error(f'No such file of `{self.filename}`.')
@@ -246,10 +246,7 @@ class AlleleTable:
                 if al.n > n:
                     n = al.n
         
-        if self.format == "allele1":
-            self.columns = list(range(n + 2))
-        else:
-            self.columns = list(range(n + 3))
+        self.columns = list(range(n + 2))
 
     def get_data(self, sort=True):
         def sort_row(row):
@@ -262,10 +259,13 @@ class AlleleTable:
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
         
-        df = df.drop(1, axis=1)
-    
-        df = df.apply(sort_row, axis=1) if sort else df
-        df.columns = list(range(1, len(df.columns) + 1))
+        if self.fmt == "allele1":
+            df = df.drop(1, axis=1)
+            df = df.apply(sort_row, axis=1) if sort else df
+            df.columns = list(range(1, len(df.columns) + 1))
+        elif self.fmt == "allele2":
+            df.columns = ["score"] + list(range(1, len(df.columns) ))
+        
 
         self.data = df
 
@@ -291,12 +291,12 @@ class AlleleTable:
         >>> at.data 
         Chr01 gene001 ctg001 ctg002 ctg003
         """
+        assert self.fmt == "allele1", "only support for format `allele1`"
         self.data = self.data[self.data.isin(contigs)]
         self.data.index.rename(0, inplace=True)
 
         if self.data.empty:
             logger.warn("After filter AlleleTable is empty")
-
 
     @property
     def groups(self):
@@ -307,6 +307,13 @@ class AlleleTable:
             _groups[chrom] = tmp[~pd.isna(tmp)]
 
         return _groups
+
+    @property
+    def n(self):
+        """
+        the number of allelic contigs per row
+        """
+        return len(self.columns) - 2
 
     @property
     def chromnames(self):
@@ -327,11 +334,10 @@ class AlleleTable:
         """
         list of contigs
         """
-        _contigs = set()
-        for i in self.groups.values():
-            _contigs.update(i)
+        _contigs = self.data[range(1, self.n + 1)].values.flatten()
+        _contigs = _contigs[~pd.isna(_contigs)]
 
-        return list(_contigs)
+        return list(set(_contigs))
     
     @property
     def ncontigs(self):

@@ -11,6 +11,7 @@ import re
 import numpy as np
 
 from collections import defaultdict, OrderedDict
+from io import StringIO
 from subprocess import Popen
 from pathlib import Path
 from pyfaidx import Fasta
@@ -108,6 +109,38 @@ class PartigRecords:
         for i in range(len(self.S)):
             self.S[i].seqName1 = db[self.S[i].seqName1]
             self.S[i].seqName2 = db[self.S[i].seqName2]
+        
+    def to_alleletable(self, fasta, output, fmt="allele2"):
+        """
+        convert partig table to allele table
+
+        Params:
+        --------
+        fasta: str
+            path of fasta file
+        output: _io.TextIOWrapper
+            writable object of output file
+        fmt: str, [default: 'allele2']
+            the format of alleletable, must in {'allele1', 'allele2'}
+
+        Examples:
+        --------
+        >>> out = open('output.allele.table', 'w')
+        >>> pr.to_alleletable('sample.fasta', out)
+        """
+        self.convert(fasta)
+        i = 0
+
+        for record in self.S:
+            i += 1
+            
+            if format == "allele1":
+                print(i, i, record.seqName1, 
+                            record.seqName2, sep='\t', file=output)
+            elif format == "allele2":
+                print(i, record.mzShared, record.seqName1, 
+                            record.seqName2, sep='\t', file=output)
+
 
 class PartigAllele:
     def __init__(self,
@@ -167,14 +200,9 @@ class PartigAllele:
         self.pr = PartigRecords(self.partig_res)
         self.pr.convert(self.fasta)
 
-    def to_alleletable(self):
+    def to_alleletable(self, fmt="allele2"):
         with open(self.output, 'w') as output:
-            i = 0
-            for record in self.pr.S:
-                i += 1
-                print(i, record.mzShared, record.seqName1, 
-                            record.seqName2, sep='\t', file=output)
-
+            self.pr.to_alleletable(self.fasta, output, fmt)
         logger.info(f'Successful output allele table in `{self.output}`.')
 
     def run(self):

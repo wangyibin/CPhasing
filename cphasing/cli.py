@@ -221,6 +221,7 @@ def paf2table(paf, output, threads,
 @alignments.command()
 @click.argument(
     "pore_c_table",
+    metavar="Pore-C-Table",
     type=click.Path(exists=True)
 )
 @click.option(
@@ -250,6 +251,12 @@ def paf2table(paf, output, threads,
     show_default=True 
 )
 def summary(pore_c_table, read_number, threads, use_dask):
+    """
+    Summary the pore-c table.
+
+    Pore-C-Table : Path to pore-c table.
+
+    """
     from .core import PoreCTable
 
     prefix = Path(pore_c_table).stem
@@ -343,6 +350,75 @@ def pore_c_chrom2contig(
 
     res_df.to_parquet(output)
     logger.info(f'Done, output new Pore-C record in `{output}`')
+
+@alignments.command()
+@click.argument(
+    'pairs',
+    metavar='Pairs',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'bed',
+    metavar='bed',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'output',
+    metavar='Output'
+)
+def pairs_intersection(pairs, bed, output):
+    """
+    According a bed file to intersection a pairs file.
+
+    Pairs : Path of Pairs.
+
+    Bed : Path of Bed.
+    
+    Output : Path of output.
+    """
+    from .core import Pairs
+    p = Pairs(pairs)
+    p.intersection(bed, output)
+
+@alignments.command()
+@click.argument(
+    'table',
+    metavar='Pore-C-Table',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'bed',
+    metavar='Bed',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'output',
+    metavar='Output'
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def table_intersection(table, bed, output):
+    """
+    According several regions to select contact 
+
+    Pore-C-Table : Path to pore-c table.
+
+    Bed : Path to bed file.
+
+    Output : Path to output pore-c table.
+    """
+    from .core import PoreCTable
+    pct = PoreCTable()
+    pct.read_table(table)
+    pct.intersection(bed)
+    pct.save(output)
 
 
 @cli.command()
@@ -1109,7 +1185,7 @@ def build(fasta, output):
 @click.option(
     '--cmap',
     help='Colormap of heatmap.',
-    default='YlOrRd',
+    default='RdYlBu_r',
     show_default=True
 )
 def plot(matrix, agp, factor,

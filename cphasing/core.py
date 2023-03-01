@@ -346,6 +346,14 @@ class AlleleTable:
         """
         return len(self.contigs)
     
+    @property
+    def scores(self):
+        assert self.fmt == "allele2", \
+            "only support for allele2 format"
+        
+        df = self.data.set_index(list(range(1, self.n + 1)))
+        
+        return df["score"].to_dict()
 
     def get_shared(self, symmetrix=True):
         """
@@ -1443,11 +1451,32 @@ class Pairs:
         import dask.dataframe as dd
         
         logger.info(f'Load pairs file of `{self.filename}`.')
-        df = dd.read_csv(self.file, sep='\t', comment='#', 
+        if self.file.suffix == ".gz":
+
+            df = dd.read_csv(self.file, sep='\t', comment='#', 
+                                names=self.header.columns, 
+                                header=None,  dtype=self.meta,
+                                compression="gzip")
+        else:
+            df = dd.read_csv(self.file, sep='\t', comment='#', 
                             names=self.header.columns, 
                             header=None,  dtype=self.meta)
 
         return df
+
+    @staticmethod
+    def _pos_to_range(df):
+        """convert single pos to range."""
+        df = (df.reset_index(drop=True)
+                .assign(
+                    start1=lambda x: x['pos1'] - 1,
+                    end1=lambda x: x['pos1'],
+                    start2=lambda x: x['pos2'] - 1,
+                    end2=lambda x: x['pos2']
+                )
+        )
+
+        return df 
 
     @staticmethod
     def _chrom2contig(df, n, source_gr, columns, meta=None):
@@ -1622,6 +1651,70 @@ class Pairs:
         os.remove(new_header_filename)
 
         return output
+    
+    def intersection(self, bed, output):
+        """
+        select pairs according to several regions
+        """
+        if isinstance(bed, str):
+            logger.info(f'Load source infomation of `{bed}`.')
+            bed_df = pd.read_csv(bed, sep='\s+', 
+                                        header=None, 
+                                        index_col=None,
+                                        usecols=[0, 1, 2],
+                                        names=['Chromosome', 'Start', 
+                                                'End'])
+            bed_gr = pr.PyRanges(bed_df)
+        elif isinstance(bed, pd.DataFrame):
+            bed_df = bed
+            bed_df.columns = ['Chromosome', 'Start', 
+                                                'End']
+            bed_gr = pr.PyRanges(bed_df)
+        elif isinstance(bed, pr.PyRanges):
+            bed_df = bed.df
+            bed_gr = bed
+        else:
+            raise TypeError("source must be string/dataframe/pyranges.")
+
+        df = self.data.compute()
+        df = df.reset_index()
+        df = Pairs._pos_to_range(df)
+
+        query_df = df[['chrom1', 'start1', 'end1', 'index']]
+        query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
+        query_gr = pr.PyRanges(query_df)
+        res_df1 = query_gr.join(bed_gr).df
+
+        res_index1 = res_df1['Index']
+
+        del res_df1
+        gc.collect()
+
+        query_df = df[['chrom2', 'start2', 'end2', 'index']]
+        query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
+        query_gr = pr.PyRanges(query_df)
+        res_df2 = query_gr.join(bed_gr).df
+
+        res_index2 = res_df2['Index']
+        
+        del query_df, query_gr, res_df2 
+        gc.collect()
+
+        res_index = np.intersect1d(res_index1, res_index2)
+
+        df = df.set_index('index')
+
+        df = df.loc[res_index].drop(['start1', 'end1', 'start2', 'end2'], axis=1)
+
+        self.header.save(f"temp.{output}.header")
+        df.to_csv(f"temp.{output}.body", sep='\t', header=None, index=None)
+
+        command = f"cat temp.{output}.header temp.{output}.body > {output}"
+        check_call(command, shell=True)
+        logger.info(f"Successful output result in `{output}`")
+        os.remove(f"temp.{output}.header")
+        os.remove(f"temp.{output}.body")
+
 
     def to_mnd(self, output, threads=4):
         from dask.distributed import Client
@@ -1657,6 +1750,7 @@ class Pairs:
             ).to_csv(output, sep=' ', header=False, index=False, single_file=True)
 
         logger.info(f"Successful output mnd file intp `{output}`.")
+
 class MndTable:
     HEADER = ["str1", "chr1", "pos1", "frag1",
                 "str2", "chr2", "pos2", "frag2",
@@ -2291,6 +2385,47 @@ class PoreCTable:
         
         return res_df
 
+    def intersection(self, bed):
+        """
+        According several regions to select contact 
+
+        """
+        assert self.use_dask == False, "Not support for dask dataframe"
+
+        if isinstance(bed, str):
+            logger.info(f'Load source infomation of `{bed}`.')
+            bed_df = pd.read_csv(bed, sep='\s+', 
+                                        header=None, 
+                                        index_col=None,
+                                        usecols=[0, 1, 2],
+                                        names=['Chromosome', 'Start', 
+                                                'End'])
+            bed_gr = pr.PyRanges(bed_df)
+        elif isinstance(bed, pd.DataFrame):
+            bed_df = bed
+            bed_df.columns = ['Chromosome', 'Start', 
+                                                'End']
+            bed_gr = pr.PyRanges(bed_df)
+        elif isinstance(bed, pr.PyRanges):
+            bed_df = bed.df
+            bed_gr = bed
+        else:
+            raise TypeError("source must be string/dataframe/pyranges.")
+        
+        query_gr = pr.PyRanges(self.data.reset_index()[['chrom', 'start', 'end', 'index']]
+                                .rename(columns={'chrom': 'Chromosome', 
+                                                'start': 'Start', 
+                                                'end': 'End',
+                                                'index': 'Index'}))
+        res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
+        res_index = res_df['Index']
+
+        del query_gr, res_df
+        gc.collect()
+
+        self.data = self.data.loc[res_index]
+
+    
     def save(self, output, tmpdir="/tmp"):
         if not self.use_dask:
             self.data.to_csv(f"{tmpdir}/tmp.pore_c.csv", header=True, index=None)

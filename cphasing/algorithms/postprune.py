@@ -14,14 +14,16 @@ from joblib import Parallel, delayed
 from cphasing.core import AlleleTable, ClusterTable, PairTable, CountRE
 from cphasing.utilities import list_flatten
 
-def post_prune(group, contigs, allelic_list, pt, cr):
+def post_prune(group, contigs, at, pt, cr):
     """
     
     Params:
     --------
     contigs: list
 
-    allelic_list: set
+    at: AlleleTable
+
+    pt: PairTable
 
     Returns:
     --------
@@ -34,6 +36,10 @@ def post_prune(group, contigs, allelic_list, pt, cr):
     """
     error_contigs = set() 
     new_contigs = set() 
+    
+    allelic_list = set(map(tuple, at.data[range(1, at.n + 1)].values))
+    score_db = at.scores
+
     contig_length_db = cr.data['Length'].to_dict()
 
     contigs = sorted(contigs)
@@ -55,36 +61,43 @@ def post_prune(group, contigs, allelic_list, pt, cr):
         else:
             conflict_contig_pairs2.append(pair)
         
-    conflict_contigs_pairs = sorted(conflict_contig_pairs2, 
+    conflict_contig_pairs = sorted(conflict_contig_pairs2, 
                                         key=lambda x: (contig_length_db[x[0]], contig_length_db[x[1]]), 
-                                        reverse=True)
-                                                
+                                        reverse=True)                                         
 
-    score_db = defaultdict(lambda : 0)
+    res_db = defaultdict(lambda : 0)
     contact_db = {}
     for pair in conflict_contig_pairs:
+        
         v1 = pt.get_contact([pair[0]], correct_contigs, cr)
         v2 = pt.get_contact([pair[1]], correct_contigs, cr)
+       
         contact_db[pair] = (v1, v2)
         # if group == "group12":
         #     print(pair, v1, v2, file=sys.stderr)
-        # if pair[0] == "utg000386l" or pair[1] == "utg000386l":
-        #     print(pair, v1, v2, file=sys.stderr)
-        # if pair[0] == "utg001415l" or pair[1] == "utg001415l":
-        #     print(pair, v1, v2, file=sys.stderr)
-        if v1 > v2 and v2 != 0:
-            score_db[pair[0]] += 1
-            score_db[pair[1]] -= 1 
+        if pair[0] == "utg000097l" or pair[1] == "utg000097l":
+            print(pair, v1, v2, file=sys.stderr)
+        if pair[0] == "utg000386l" or pair[1] == "utg000386l":
+            print(pair, v1, v2, file=sys.stderr)
+        if v1 == 0 and v2 == 0:
+            continue
+        elif v1 > v2 and v2 != 0:
+            res_db[pair[0]] += score_db[pair]
+            res_db[pair[1]] -= score_db[pair]
+            correct_contigs.add(pair[0])
         elif v1 < v2 and v1 != 0:
-            score_db[pair[0]] -= 1 
-            score_db[pair[1]] += 1  
+            res_db[pair[0]] -= score_db[pair]
+            res_db[pair[1]] += score_db[pair]
+            correct_contigs.add(pair[1])
         else:
             continue
     
-    for contig in score_db:
-        if score_db[contig] > 0:
+    for contig in res_db:
+        if contig == "utg000386l" or contig == "utg000097l":
+            print(res_db[contig], file=sys.stderr)
+        if res_db[contig] > 0:
             new_contigs.add(contig)
-        elif score_db[contig] < 0:
+        elif res_db[contig] < 0:
             error_contigs.add(contig)
     
 
@@ -104,8 +117,9 @@ def post_rescue(groups, error_contigs, at, cr, pt):
     error_contigs: list
 
     """
-    allele_db = at.data.set_index(1)
-    print(at.data.columns, file=sys.stderr)
+    allele_db = at.data[range(1, at.n + 1)].set_index(1)
+    score_db = at.scores
+
     contig_length_db = cr.data['Length'].to_dict()
     new_cluster_db = OrderedDict()
     for contig in error_contigs:
@@ -118,10 +132,11 @@ def post_rescue(groups, error_contigs, at, cr, pt):
             c = pt.get_contact([contig], group_contigs, cr)
             contacts.append(c)
             s = allelic_contigs.intersection(group_contigs)
-            s = sum(map(lambda x: contig_length_db[x], s))
+            s = sum(score_db[(contig, i)] for i in s)
             allelic_score.append(s)
         
-        print(contig, contacts, allelic_score, file=sys.stderr)
+
+        # print(contig, contacts, allelic_score, file=sys.stderr)
 
     return new_cluster_db 
 
@@ -143,15 +158,15 @@ def test(args):
     
     args = p.parse_args(args)
 
-    at = AlleleTable(args.allele_table, sort=False)
+    at = AlleleTable(args.allele_table, sort=False, fmt="allele2")
     ct = ClusterTable(args.cluster_table)
     pt = PairTable(args.pair_table)
     cr = CountRE(args.count_re, minRE=1)
-    allelic_list = set(map(tuple, at.data.values))
+    
 
     args = []
     for group in ct.data:
-        args.append((group, ct.data[group], allelic_list, pt, cr))
+        args.append((group, ct.data[group], at, pt, cr))
     
     res = Parallel(n_jobs=10)(delayed(
                     post_prune)(i, j, k, l, m) for i, j, k, l, m in args)
@@ -170,7 +185,7 @@ def test(args):
         print(group, len(new_contigs), " ".join(sorted(new_contigs)), 
                     sep='\t', file=sys.stdout)
         # print(group, len(error_contigs), " ".join(sorted(error_contigs)), 
-                    # sep='\t', file=sys.stdout)
+        #             sep='\t', file=sys.stdout)
 
 
 if __name__ == "__main__":

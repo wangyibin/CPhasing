@@ -32,7 +32,7 @@ def main(args):
 
     df = pd.read_parquet(args.table)
     df['read_idx'] = df['read_name'].astype('category').cat.codes
-
+    df['identity'] = 1.0
     df.to_parquet(args.output)
 
 if __name__ == "__main__":

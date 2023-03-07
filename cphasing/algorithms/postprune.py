@@ -7,6 +7,9 @@ import os
 import os.path as op
 import sys
 
+import numpy as np
+import pandas as pd
+
 from collections import defaultdict, OrderedDict
 from itertools import combinations, permutations
 from joblib import Parallel, delayed
@@ -105,7 +108,7 @@ def post_prune(group, contigs, at, pt, cr):
     
     return group, new_contigs, error_contigs 
 
-def post_rescue(groups, error_contigs, at, cr, pt):
+def post_rescue(groups, error_contigs, at, cr, pt, mzTotal):
     """
     
     rescue error contigs after post prune 
@@ -117,16 +120,18 @@ def post_rescue(groups, error_contigs, at, cr, pt):
     error_contigs: list
 
     """
+    groups_array = np.array(list(groups.keys()))
     allele_db = at.data[range(1, at.n + 1)].set_index(1)
     score_db = at.scores
-
-    contig_length_db = cr.data['Length'].to_dict()
+    
     new_cluster_db = OrderedDict()
     for contig in error_contigs:
         contacts = []
         allelic_score = []
+        contig_mz = mzTotal[contig]
+        score = []
         allelic_contigs = set(allele_db.loc[contig].values.flatten())
-    
+
         for group in groups:
             group_contigs = groups[group]
             c = pt.get_contact([contig], group_contigs, cr)
@@ -134,11 +139,30 @@ def post_rescue(groups, error_contigs, at, cr, pt):
             s = allelic_contigs.intersection(group_contigs)
             s = sum(score_db[(contig, i)] for i in s)
             allelic_score.append(s)
+            score.append(c * (1 - s/contig_mz))
         
+        contacts = np.array(contacts)
+        allelic_score = np.array(allelic_score)
+        score = np.array(score)
+        
+        zero_score_index = np.where(allelic_score == 0)
+        if len(zero_score_index[0]) == 1:
+            # print(contig, groups_array[zero_score_index][0], file=sys.stderr)
+            new_cluster_db[contig] = groups_array[zero_score_index][0]
+        else:
+            if len(np.where(contacts == 0)[0]) != len(groups_array):
+                if all(score <= 0):
+                    continue
+                
+                new_cluster_db[contig] = groups_array[np.argmax(score)]
+                # print(contig, groups_array[np.argmax(score)], file=sys.stderr)
+            
+                # print(contig, contacts, allelic_score, score, file=sys.stderr)
 
-        # print(contig, contacts, allelic_score, file=sys.stderr)
-
-    return new_cluster_db 
+    for contig, group in new_cluster_db.items():
+        groups[group].add(contig)
+    
+    return groups
 
 
 def test(args):
@@ -153,6 +177,7 @@ def test(args):
     pReq.add_argument('cluster_table')
     pReq.add_argument('pair_table')
     pReq.add_argument('count_re')
+    pReq.add_argument('mz_total')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -163,6 +188,8 @@ def test(args):
     pt = PairTable(args.pair_table)
     cr = CountRE(args.count_re, minRE=1)
     
+    mzTotal = dict((i.strip().split("\t")[0], int(i.strip().split("\t")[1]))
+                            for i in open(args.mz_total) if i.strip())
 
     args = []
     for group in ct.data:
@@ -178,14 +205,18 @@ def test(args):
         pruned_db[group] = new_contigs
         error_contigs.extend(errors)
     
-    post_rescue(pruned_db, error_contigs, at, cr, pt)
-
-
-    for (group, new_contigs, error_contigs) in res:
-        print(group, len(new_contigs), " ".join(sorted(new_contigs)), 
-                    sep='\t', file=sys.stdout)
-        # print(group, len(error_contigs), " ".join(sorted(error_contigs)), 
+    # for (group, new_contigs, error_contigs) in res:
+    #     print(group, len(new_contigs), " ".join(sorted(new_contigs)), 
+    #                 sep='\t', file=sys.stdout)
+    #     # print(group, len(error_contigs), " ".join(sorted(error_contigs)), 
         #             sep='\t', file=sys.stdout)
+
+    new_groups = post_rescue(pruned_db, error_contigs, at, cr, pt, mzTotal)
+
+    for group, new_contigs in new_groups.items():
+        print(group, len(new_contigs), " ".join(sorted(new_contigs)), 
+                     sep='\t', file=sys.stdout)
+  
 
 
 if __name__ == "__main__":

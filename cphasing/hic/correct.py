@@ -27,8 +27,8 @@ from pyranges import PyRanges
 from scipy.signal import find_peaks
 from scipy.sparse import tril
 
-from .core import Pairs
-from .utilities import read_fasta, xopen
+from ..core import Pairs
+from ..utilities import read_fasta, xopen
 
 logger = logging.getLogger(__name__)
 

@@ -20,14 +20,14 @@ from joblib import Parallel, delayed
 from pathlib import Path
 from pyfaidx import Fasta
 
-from .algorithms.hypergraph import (
+from ..algorithms.hypergraph import (
     IRMM,
     extract_incidence_matrix, 
     remove_incidence_matrix
     )
-from ._config import *
-from .core import CountRE
-from .utilities import run_cmd, listify, list_flatten
+from .._config import *
+from ..core import CountRE
+from ..utilities import run_cmd, listify, list_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -443,7 +443,7 @@ class HyperPartition:
         return df_list
     
     def get_hypergraph(self):
-        from .algorithms.hypergraph import generate_hypergraph
+        from ..algorithms.hypergraph import generate_hypergraph
         H, vertices = generate_hypergraph(self.data,
                                             self.min_order,
                                             self.max_order,

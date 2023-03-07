@@ -910,7 +910,7 @@ class ClusterTable:
         return self.data[key]
 
 
-class clmLine():
+class ClmLine():
     def __init__(self, line):
         self.line = line.strip()
         self.line_list = self.line.split("\t")
@@ -931,7 +931,7 @@ class clmLine():
     def __str__(self):
         return self.line
  
-class clm(object):
+class Clm(object):
     def __init__(self, clmfile, mem_cache='.'):
         
         self.file = clmfile
@@ -940,11 +940,49 @@ class clm(object):
         # self.memory = Memory(mem_cache, verbose=0)
         # self.dk_df = self.memory.cache(self._dk_df)
 
+    def count_db(self, count_re=None):
+        """
+        generate a dictionary containing the contacts of contig pairs
+
+        Params:
+        --------
+        count_re: None (default) or CountRE
+
+        Returns:
+        db: dict
+            database of contacts between two contigs
+
+        Examples:
+        --------
+        >>> clm.count_db()
+        {"ctg1": 20, "ctg2": 30}
+        >>> clm.count_db(cr) ## normalized by the distance between contigs
+        {"ctg1": 0.5, "ctg2": 0.8}
+        """
+        db = {}
+        with open(self.file, 'r') as fp:
+            for line in fp:
+                cl = ClmLine(line)
+                if (cl.ctg1, cl.ctg2) in db:
+                    continue
+                if count_re:
+                    try:
+                        l1 = count_re.data.loc[cl.ctg1]['Length']
+                        l2 = count_re.data.loc[cl.ctg2]['Length']
+                    except KeyError:
+                        continue
+                    value = cl.count / ((l1 + l2) / 2)
+                else:
+                    value = cl.count
+                db[(cl.ctg1, cl.ctg2)] = value
+            
+        return db
+
     def parse(self):
         self.data = {}
         with open(self.file, 'r') as fp:
             for line in fp:
-                cl = clmLine(line)
+                cl = ClmLine(line)
                 if (cl.ctg1, cl.ctg2) not in self.data:
                     self.data[(cl.ctg1, cl.ctg2)] = []
                 
@@ -958,6 +996,10 @@ class clm(object):
         
         return res_dk_df
 
+    @property
+    def contigs(self):
+        return list_flatten(list(self.data.key()))
+                            
     @property
     def strands(self):
         return [('+', '+'), ('+', '-'),
@@ -1407,11 +1449,12 @@ class Pairs:
                 "chrom2", "pos2", "strand1",
                 "strand2"]
     
-    def __init__(self, pairs):
+    def __init__(self, pairs, threads=1):
         self.file = Path(pairs)
         self.filename = self.file.name
         self.header = self._get_header()
         self.data = self.read_table()
+        self.threads = threads
 
     def _get_header(self):
         ph = PairHeader([])
@@ -1465,16 +1508,33 @@ class Pairs:
         return df
 
     @staticmethod
-    def _pos_to_range(df):
+    def _pos_to_range(df, idx=0):
         """convert single pos to range."""
-        df = (df.reset_index(drop=True)
-                .assign(
-                    start1=lambda x: x['pos1'] - 1,
-                    end1=lambda x: x['pos1'],
-                    start2=lambda x: x['pos2'] - 1,
-                    end2=lambda x: x['pos2']
-                )
-        )
+        if idx == 0:
+            df = (df.reset_index(drop=True)
+                    .assign(
+                        start1=lambda x: x['pos1'] - 1,
+                        end1=lambda x: x['pos1'],
+                        start2=lambda x: x['pos2'] - 1,
+                        end2=lambda x: x['pos2']
+                    )
+            )
+        elif idx == 1:
+            df = (df.reset_index(drop=True)
+                    .assign(
+                        start1=lambda x: x['pos1'] - 1,
+                        end1=lambda x: x['pos1'],
+                    )
+            )
+        elif idx == 2:
+            df = (df.reset_index(drop=True)
+                    .assign(
+                        start2=lambda x: x['pos2'] - 1,
+                        end2=lambda x: x['pos2']
+                    )
+            )
+        else: 
+            raise ValueError("idx must in [0, 1, 2]")
 
         return df 
 
@@ -1676,24 +1736,34 @@ class Pairs:
         else:
             raise TypeError("source must be string/dataframe/pyranges.")
 
-        df = self.data.compute()
+        df = self.data[['chrom1', 'pos1']].compute()
         df = df.reset_index()
-        df = Pairs._pos_to_range(df)
-
+        df = Pairs._pos_to_range(df, idx=1)
         query_df = df[['chrom1', 'start1', 'end1', 'index']]
+
+        del df
+        gc.collect()
+    
         query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
         query_gr = pr.PyRanges(query_df)
-        res_df1 = query_gr.join(bed_gr).df
+        res_df1 = query_gr.join(bed_gr, nb_cpu=self.threads).df
 
         res_index1 = res_df1['Index']
 
         del res_df1
         gc.collect()
 
+        df = self.data[['chrom2', 'pos2']].compute()
+        df = df.reset_index()
+        df = Pairs._pos_to_range(df, idx=2)
         query_df = df[['chrom2', 'start2', 'end2', 'index']]
+        
+        del df 
+        gc.collect()
+
         query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
         query_gr = pr.PyRanges(query_df)
-        res_df2 = query_gr.join(bed_gr).df
+        res_df2 = query_gr.join(bed_gr, nb_cpu=self.threads).df
 
         res_index2 = res_df2['Index']
         
@@ -1702,9 +1772,7 @@ class Pairs:
 
         res_index = np.intersect1d(res_index1, res_index2)
 
-        df = df.set_index('index')
-
-        df = df.loc[res_index].drop(['start1', 'end1', 'start2', 'end2'], axis=1)
+        df = self.data.compute().loc[res_index]
 
         self.header.save(f"temp.{output}.header")
         df.to_csv(f"temp.{output}.body", sep='\t', header=None, index=None)
@@ -2093,7 +2161,7 @@ class PoreCTable:
         "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
         "mapping_quality": MAPPING_QUALITY_DTYPE,
         "filter_reason": "category",
-        "identity": PERCENTAGE_DTYPE, 
+        # "identity": PERCENTAGE_DTYPE, 
     }
     def __init__(self, threads=4, use_dask=False):
         self.threads = threads
@@ -2385,7 +2453,7 @@ class PoreCTable:
         
         return res_df
 
-    def intersection(self, bed):
+    def intersection(self, bed, output):
         """
         According several regions to select contact 
 
@@ -2418,12 +2486,13 @@ class PoreCTable:
                                                 'end': 'End',
                                                 'index': 'Index'}))
         res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
-        res_index = res_df['Index']
+        res_index = res_df['Index'].astype(int)
 
         del query_gr, res_df
         gc.collect()
 
-        self.data = self.data.loc[res_index]
+        self.data.loc[res_index].to_parquet(output)
+        logger.info(f"Successful output result in `{output}`")
 
     
     def save(self, output, tmpdir="/tmp"):

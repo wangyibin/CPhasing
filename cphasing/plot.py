@@ -488,7 +488,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     cooler.create_cooler(order_cool_path, reordered_contig_bins,
                          chrom_pixels)#, metadata=HIC_METADATA)
     logger.info('Successful, reorder the contig-level matrix, '
-                f'and output into `{outprefix}.ordered.cool`')
+                f' and output into `{outprefix}.ordered.cool`')
     
     logger.info('Staring to collaspe chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))

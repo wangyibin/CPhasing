@@ -20,7 +20,13 @@ export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 
-## Hi-C scaffolding
+## Pore-C 
+### Autopolyploid
+1. **mapping**
+pore-c-snakemake 
+
+
+## Hi-C scaffolding based on pregroup by homologous
 ### Autopolyploid
 1. **mapping**
 ```
@@ -86,6 +92,7 @@ cphasing build corrected.fasta
 cooler cload pairs corrected.fasta.chromsizes:10000 corrected.pairs corrected.10k.cool -c1 2 -p1 3 -c2 4 -p2 5
 cphasing plot -a groups.agp -m corrected.10k.cool -o groups.wg.png
 ```
+
 
 ## Citiing  
 **If you use the hic data to scaffold genomes please also cite ALLHiC.**  

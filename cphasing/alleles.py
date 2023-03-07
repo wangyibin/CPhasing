@@ -109,7 +109,28 @@ class PartigRecords:
         for i in range(len(self.S)):
             self.S[i].seqName1 = db[self.S[i].seqName1]
             self.S[i].seqName2 = db[self.S[i].seqName2]
+    
+    def get_minimizerConsidered_dict(self):
+        """
+        get a dictionary that contains the minimizerConsidered informations.
+
+        Returns:
+        --------
+        db: dict
+
+        Examples:
+        --------
+        >>> pr.convert('sample.fasta')
+        >>> pr.get_minimizerConsidered_dict()
+        Ordereddict(('utg0000001l', 33333))
         
+        """
+        db = OrderedDict()
+        for i in self.C:
+            db[i.seqName] = int(i.minimizerConsidered)
+        
+        return db
+
     def to_alleletable(self, fasta, output, fmt="allele2"):
         """
         convert partig table to allele table

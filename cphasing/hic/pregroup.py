@@ -14,8 +14,8 @@ from natsort import natsort_keygen
 from joblib import Parallel, delayed
 from pathlib import Path
 
-from .core import AlleleTable, CountRE, PairTable
-from .utilities import xopen, read_fasta
+from ..core import AlleleTable, CountRE, PairTable
+from ..utilities import xopen, read_fasta
 
 logger = logging.getLogger(__name__)
 

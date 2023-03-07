@@ -18,13 +18,13 @@ from collections import OrderedDict, defaultdict
 # from joblib import Parallel, delayed
 # from pytools import natsorted
 
-from .core import (
+from ..core import (
     AlleleTable,
     ClusterTable,
     PairTable,
     CountRE
 )
-from .utilities import list_flatten
+from ..utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 

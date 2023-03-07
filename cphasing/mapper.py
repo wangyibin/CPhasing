@@ -109,7 +109,7 @@ class HisatMapper(object):
         
         # run_cmd(command)
 
-        from .cutsite import cutsite_trimming
+        from .hic.cutsite import cutsite_trimming
         cutsite_trimming(self.unmap_fastq, self.ligation_site, self.trimmed_fastq)
 
     def trimmed_mapping(self):

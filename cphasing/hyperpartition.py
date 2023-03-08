@@ -12,6 +12,7 @@ import pandas as pd
 from collections import OrderedDict 
 from itertools import permutations
 from joblib import Parallel, delayed
+from scipy.sparse import hstack
 from pathlib import Path
 from pyfaidx import Fasta
 
@@ -31,8 +32,8 @@ class HyperPartition:
 
     Params:
     --------
-    pore_c_tables: list
-        Pathes of pore_c_table.
+    edges: list
+        Hyperedges
     k: str
         Number of groups. Set to k1:k2 to perform multipartition.
 
@@ -44,8 +45,10 @@ class HyperPartition:
                     resolution1=0.8,
                     resolution2=0.6,
                     threshold=0.01,
-                    max_round=10, threads=4,
-                    use_dask=False):
+                    max_round=10, 
+                    threads=4,
+                    chunksize=400000
+                    ):
         
         self.edges = edges
 
@@ -58,7 +61,7 @@ class HyperPartition:
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
-        self.use_dask = use_dask
+        self.chunksize = int(chunksize) 
 
         self.contigs = self.get_contigs()
         self.H, self.vertices = self.get_hypergraph()
@@ -111,7 +114,41 @@ class HyperPartition:
     
     def get_hypergraph(self):
         from .algorithms.hypergraph import generate_hypergraph
-        H, vertices = generate_hypergraph(self.edges)
+        if self.chunksize:
+            args = [] 
+            pesudo_idx = []
+            idx = 0
+            for i in range(0, len(self.edges), self.chunksize):
+                pesudo_idx.append(i + idx)
+                chunk_edges = self.edges[i: i + self.chunksize]
+                args.append([self.contigs] + chunk_edges)
+                idx += 1
+            
+            
+            res = Parallel(n_jobs=min(self.threads, len(args)))(
+                        delayed(generate_hypergraph)(i) for i in args)
+            
+            _H_list = []
+            for _H, _vertices in res:
+                order = list(map(_vertices.index, self.contigs))
+        
+                _H = _H[order] 
+                _H_list.append(_H)
+            
+            H = hstack(_H_list)
+            real_idx = np.arange(H.shape[1])
+            real_idx = real_idx[np.where(~np.isin(real_idx, pesudo_idx))]
+        
+            H = H[:, real_idx]
+            non_zero_contig_idx = np.where(H.sum(axis=1).T != 0)[-1]
+            H = H[non_zero_contig_idx]
+            vertices = np.array(self.contigs)[non_zero_contig_idx]
+
+        else:
+            H, vertices = generate_hypergraph(self.edges)
+
+        logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
+                    f" and {H.shape[1]} hyperedges.")
 
         return H, vertices
 
@@ -202,7 +239,7 @@ class HyperPartition:
             args.append((k, prune_pair_df, self.H, self.NW, 
                         self.resolution2, self.threshold, self.max_round, num))
            
-        results = Parallel(n_jobs=self.threads)(
+        results = Parallel(n_jobs=min(self.threads, len(args)))(
                         delayed(self._multi_partition)
                                 (i, j, k, l, m, n, o, p) 
                                     for i, j, k, l, m, n, o, p in args)

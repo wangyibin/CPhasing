@@ -23,7 +23,26 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ## Pore-C 
 ### Autopolyploid
 1. **mapping**
-pore-c-snakemake 
+    - pore-c-snakemake 
+    - minimap2  
+            > This will lose a lot of signals
+
+2. **prepare**
+```bash
+cphasing 
+```
+3. **prunning**
+    - `alleles`
+    ```bash
+    cphasing alleles -f draft.asm.fasta
+    ```
+    - `prune`
+    ```bash
+    cphasing prune allele.table contigs.whole.cool 
+
+    
+    ```
+
 
 
 ## Hi-C scaffolding based on pregroup by homologous

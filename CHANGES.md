@@ -1,5 +1,10 @@
 # Release notes #
 
+## [v0.0.11]
+Date: 2023-03-08
+### Enhancement
+- `Extractor` and `HyperExtractor`, change export dict to list
+- `HyperPartition`, add parallel in hypergraph generation 
 ## [v0.0.10]
 Date: 2023-03-08
 ### New features

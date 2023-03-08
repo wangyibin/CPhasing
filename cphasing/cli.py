@@ -855,6 +855,15 @@ def extract(contacts, min_order,
     show_default=True,
 )
 @click.option(
+    '-cs',
+    '--chunksize',
+    help='Chunk size of edges',
+    type=float,
+    default=None,
+    metavar='Float',
+    show_default=True
+)
+@click.option(
     '--multi',
     help='Using multipartition algorithm',
     is_flag=True,
@@ -871,6 +880,7 @@ def hyperpartition(edges,
                     threshold, 
                     max_round, 
                     threads,
+                    chunksize,
                     multi):
     """
     Separate contigs into several groups by hypergraph cluster.
@@ -884,8 +894,9 @@ def hyperpartition(edges,
     import msgspec 
     from .hyperpartition import HyperPartition
     
+    logger.info(f"Load edges.")
     edges = msgspec.msgpack.decode(open(edges, 'rb').read())
-    logger.info(f"Loaded edges.")
+    
     
     hp = HyperPartition(edges, 
                             fasta,
@@ -893,8 +904,10 @@ def hyperpartition(edges,
                             min_length,
                             resolution1, 
                             resolution2,
-                            threshold, max_round, 
-                            threads)
+                            threshold, 
+                            max_round, 
+                            threads, 
+                            chunksize)
 
     if not prune:
         hp.single_partition()

@@ -17,7 +17,7 @@ from scipy.sparse import (
     identity, 
     dia_matrix, 
     csr_matrix, 
-    lil_matrix
+    hstack
 )
 
 logger = logging.getLogger(__name__)
@@ -309,9 +309,7 @@ def generate_hypergraph(edges):
     H = HG.incidence_matrix().astype(np.int8)
     vertices = list(HG.nodes)
 
-    logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
-                    f" and {H.shape[1]} hyperedges.")
-
+    
     return H, vertices
 
 # generate_hypergraph = memory.cache(generate_hypergraph)

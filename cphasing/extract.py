@@ -56,7 +56,7 @@ class Extractor:
             
     
         
-            res = p.data.to_dict('split')
+            res = p.data.values.tolist()
             
             
         else: 
@@ -67,11 +67,9 @@ class Extractor:
                                 usecols=[1, 3]))(i) for i in p_list)
             
             res_df = pd.concat(res_list, axis=1)
-            res = res_df.reset_index(drop=True).to_dict('split')
+            res = res_df.values.tolist()
 
-        edges = dict(zip(res['index'], res['data']))
-
-        return edges
+        return res
 
     def save(self, output):
         with open(output, 'wb') as out:
@@ -236,7 +234,7 @@ class HyperExtractor:
                                 for i, j, k, l, m, n in args)
         
         res_df = pd.concat(res)
-        edges = res_df.values
+        edges = res_df.values.tolist()
         
         logger.info(f"Only retained Pore-C concatemer that: \n"
                         f"\talignment length >= {self.min_alignments}\n"
@@ -245,7 +243,7 @@ class HyperExtractor:
         del res, res_df, pore_c_table
         gc.collect()
 
-        edges = dict(enumerate(set(map(tuple, edges))))
+        
 
         return edges
     

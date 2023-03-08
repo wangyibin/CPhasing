@@ -18,6 +18,8 @@ from ..core import (
     PairTable
 )
 
+from ..utilities import run_cmd
+
 logger = logging.getLogger(__name__)
 
 @cli.group(cls=CommandGroup, short_help='Sub-command for Hi-C pipeline.')
@@ -244,6 +246,50 @@ def correct(
                     outbed=outbed,
                     outpairs=outpairs)
     c.run()
+
+@hic.command()
+@click.argument(
+    'infile',
+    metavar='InFile',
+    type=click.Path(exists=True)
+
+)
+@click.argument(
+    'fastafile',
+    metavar='FastaFile',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-e',
+    '--enzyme',
+    metavar='ENZYME',
+    help='Restriction enzyme name, e.g. MboI, HindIII, Arima.',
+    default='MboI',
+    show_default=True,
+)
+@click.option(
+    '--minLinks',
+    'minLinks',
+    help='Minimum number of links for contig pair.',
+    metavar='INT',
+    default=3,
+    type=int,
+    show_default=True
+)
+def extract(infile, fastafile, enzyme, minLinks):
+    """
+    Extract countRE and pair table from 4DN pairs file.
+
+    InFile : Path of 4DN pairs  file (Accepts compressed files).
+
+    FastaFile : Path of fasta file.
+    """
+    from ..utilities import restriction_site
+    cmd = ['allhic', 'extract', infile, fastafile, 
+            '--RE', ",".join(restriction_site(enzyme)), 
+            '--minLinks', str(minLinks)]
+    print(restriction_site(enzyme))
+    run_cmd(cmd)
 
 @hic.command()
 @click.argument(

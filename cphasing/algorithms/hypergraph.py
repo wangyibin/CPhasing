@@ -204,12 +204,13 @@ def IRMM(H, NW,
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
     cluster_assignments = list(cluster_assignments.as_cover())
     cluster_assignments = list(map(set, cluster_assignments))
-    G.write_graphml(f'{outprefix}.out.edgelist')
+    # G.write_graphml(f'{outprefix}.out.edgelist')
     
     # G = G.to_networkx()
     # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
     # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
-    print(list(map(len, cluster_assignments)))
+    cluster_stat = list(map(len, cluster_assignments))
+    logger.info(f"Cluster Statistics: {cluster_stat}")
 
     
     del A, G
@@ -220,7 +221,6 @@ def IRMM(H, NW,
     diff_value = 1
 
     while diff_value > threshold:
-        print(diff_value)
 
         if iter_round >= max_round:
             break
@@ -266,9 +266,12 @@ def IRMM(H, NW,
         ## use networkx 
         G = G.to_networkx()
         cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
-        print(list(map(len, cluster_assignments)))
         del A, G
         gc.collect()
+
+        cluster_stat = list(map(len, cluster_assignments))
+        logger.info(f"Cluster Statistics: {cluster_stat}")
+        
 
         diff_value = max(abs(W.data[0] - W_prev.data[0]))
         W_prev = W.copy()
@@ -276,56 +279,15 @@ def IRMM(H, NW,
         iter_round += 1
     
     return cluster_assignments
-    # return list(map(lambda y: list(map(lambda x: list(vertices)[x], y)), 
-    #             cluster_assignments))
 
-def process_pore_c_table(df, npartition, 
-                            min_order, max_order, 
-                            min_alignments, use_dask=False):
-    if use_dask:
-        df = df.partitions[npartition]
-        df = df.compute()
-    df['chrom_idx'] = df['chrom'].cat.codes
-    chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
-                        df.chrom.cat.categories))
-    df = (df.assign(alignment_length=lambda x: x.end - x.start)
-            .query(f"alignment_length >= {min_alignments}")
-            .set_index('read_idx')
-    )
-    df_grouped = df.groupby('read_idx')['chrom_idx']
-    df_grouped_nunique = df_grouped.nunique()
-    df = df.loc[(df_grouped_nunique >= min_order) 
-                    & (df_grouped_nunique <= max_order)]
-    edges = df.groupby('read_idx')['chrom_idx'].unique()
-    edges = edges.apply(lambda x: list(map(chrom_db.get, x)))
-
-    return edges
-
-process_pore_c_table = memory.cache(process_pore_c_table)
-
-def generate_hypergraph(pore_c_tables, 
-                            min_order=2, 
-                            max_order=15, 
-                            min_alignments=500,
-                            threads=4,
-                            use_dask=False):
+def generate_hypergraph(edges):
     """
     generate hypergraph incidence matrix
 
     Params:
     --------
-    pore_c_tables: list
-        pore_c table, at least have four columns: read_id x, chrom, start, end.
-    min_order: int, default 2
-        minimum contig order of pore-c reads
-    max_order: int, default 20
-        maximum contig order of pore-c reads
-    min_length: int, default 100
-        minimum length of alignments
-    threads: int, default 10
-        number of threads
-    use_dask: bool, default False
-        use dask to parse pore-c table
+    edges: dict
+        edges for the hypergraph constructions
 
     Returns:
     --------
@@ -336,39 +298,9 @@ def generate_hypergraph(pore_c_tables,
 
     Examples:
     --------
-    >>> H, vertices = generate_hypergraph("pore_c.pq")
+    >>> H, vertices = generate_hypergraph(edges)
     """
-    logger.info("Processing Pore-C table ...")
-    
-    if use_dask:
-        pore_c_table = pore_c_tables[0]
-        args = []
-        for i in range(pore_c_table.npartitions):
-            args.append((pore_c_table, i,
-                        min_order, max_order, 
-                        min_alignments, use_dask))
-    else:
-        args = []
-        for i, pore_c_table in enumerate(pore_c_tables):
-            args.append((pore_c_table, i, 
-                        min_order, max_order, 
-                        min_alignments, use_dask))
-    
-    res = Parallel(n_jobs=threads)(
-                    delayed(process_pore_c_table)(i, j, k, l, m, n) 
-                            for i, j, k, l, m, n in args)
-    
-    res_df = pd.concat(res)
-    edges = res_df.values
-    
-    logger.info(f"Only retained Pore-C concatemer that: \n"
-                    f"\talignment length >= {min_alignments}\n"
-                    f"\t{min_order} <= contig order <= {max_order}")
-                    
-    del res, res_df, pore_c_table
-    gc.collect()
-
-    edges = dict(enumerate(set(map(tuple, edges))))
+   
     HG = hnx.Hypergraph(edges, use_nwhy=True)
 
     del edges
@@ -382,5 +314,5 @@ def generate_hypergraph(pore_c_tables,
 
     return H, vertices
 
-generate_hypergraph = memory.cache(generate_hypergraph)
+# generate_hypergraph = memory.cache(generate_hypergraph)
 

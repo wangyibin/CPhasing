@@ -622,50 +622,6 @@ def alleles(fasta, method,
         logger.warning('Incompletely developing function')
 
 
-@cli.command()
-@click.argument(
-    'infile',
-    metavar='InFile',
-    type=click.Path(exists=True)
-
-)
-@click.argument(
-    'fastafile',
-    metavar='FastaFile',
-    type=click.Path(exists=True)
-)
-@click.option(
-    '-e',
-    '--enzyme',
-    metavar='ENZYME',
-    help='Restriction enzyme name, e.g. MboI, HindIII, Arima.',
-    default='MboI',
-    show_default=True,
-)
-@click.option(
-    '--minLinks',
-    'minLinks',
-    help='Minimum number of links for contig pair.',
-    metavar='INT',
-    default=3,
-    type=int,
-    show_default=True
-)
-def extract(infile, fastafile, enzyme, minLinks):
-    """
-    Extract countRE and pair table from 4DN pairs file.
-
-    InFile : Path of 4DN pairs  file (Accepts compressed files).
-
-    FastaFile : Path of fasta file.
-    """
-    from .utilities import restriction_site
-    cmd = ['allhic', 'extract', infile, fastafile, 
-            '--RE', ",".join(restriction_site(enzyme)), 
-            '--minLinks', str(minLinks)]
-    print(restriction_site(enzyme))
-    run_cmd(cmd)
-
 def normalize():
     pass
 
@@ -719,40 +675,15 @@ def prune(
     Prune(at, cr, pt, normalize)
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
-
-
-
 @cli.command()
 @click.argument(
-    "pore_c_tables",
-    metavar="Pore_C_Tables",
+    "contacts",
+    metavar="Contacts",
     type=click.Path(exists=True)
 )
 @click.argument(
     "output",
-    metavar="OUTPUT",
-)
-@click.option(
-    "-k",
-    help="Number of groups.",
-    default=None,
-    show_default=True,
-)
-@click.option(
-    "--fasta",
-    help="Path of fasta file.",
-    default=None,
-    show_default=True,
-    type=click.Path(exists=True),
-    required=True
-)
-@click.option(
-    "--prune",
-    metavar="STR",
-    help="prune list from prune.",
-    default=None,
-    show_default=True,
-    type=click.Path(exists=True)
+    metavar="OUTPUT"
 )
 @click.option(
     "--min-order",
@@ -775,36 +706,19 @@ def prune(
 @click.option(
     "--min-alignments",
     "min_alignments",
-    help="Minimum length of alignments",
+    help="Minimum length of pore-c alignments",
     metavar="INT",
     type=int,
     default=100,
     show_default=True
 )
 @click.option(
-    "--min-length",
-    "min_length",
-    help="Minimum length of contigs",
-    metavar="INT",
-    type=int,
-    default=10000,
-    show_default=True
-)
-@click.option(
-    "--threshold",
-    metavar="FLOAT",
-    help="Threshold of reweight",
-    type=float,
-    default=0.01,
-    show_default=True
-)
-@click.option(
-    "--max-round",
-    "max_round",
-    help="Maximize round of reweight",
-    metavar="INT",
-    type=int,
-    default=1,
+    '--pairs',
+    help="""
+    extract the edges from pairs file.
+    """,
+    is_flag=True,
+    default=False,
     show_default=True
 )
 @click.option(
@@ -827,43 +741,165 @@ def prune(
     metavar='INT',
     show_default=True,
 )
-def hyperpartition(pore_c_tables, output,
-                    k, fasta, prune,
-                    min_order, max_order,
-                    min_alignments,
-                    min_length, threshold, 
-                    max_round, fofn, 
-                    threads):
+def extract(contacts, min_order, 
+            max_order, min_alignments, 
+            pairs, 
+            fofn, output, threads):
     """
-    Separate contigs into several groups by hypergraph cluster.
+    Extract edges from pore-c table. 
+
         
         Pore_C_TABLE : Path of Pore-C table.
-
-        OUTPUT: Path of output clusters.
+        
+        OUTPUT : Path of output edges.
     """
-    from .hic.partition import HyperPartition
-    if fofn:
-        pore_c_tables = [i.strip() for i in open(pore_c_tables)]
+    from .extract import HyperExtractor, Extractor
 
-    print((pore_c_tables, fasta,
-                            k,
-                            prune, min_order, 
-                            max_order, min_alignments, 
+    if not pairs:
+        if fofn:
+            pore_c_tables = [i.strip() for i in open(contacts) if i.strip()]
+        else:
+            pore_c_tables = contacts
+
+        he = HyperExtractor(pore_c_tables, min_order, 
+                            max_order, min_alignments, threads)
+        he.save(output)
+    
+    else:
+        if fofn:
+            pairs_files = [i.strip() for i in open(contacts) if i.strip()]
+
+        else:
+            pairs_files = contacts
+
+        e = Extractor(pairs_files, threads)
+        e.save(output)
+
+
+@cli.command()
+@click.argument(
+    "edges",
+    metavar="Edges",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "fasta",
+    metavar="Fasta",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "output",
+    metavar="Output",
+)
+# @click.option(
+#     "-k",
+#     help="Number of groups.",
+#     default=None,
+#     show_default=True,
+# )
+@click.option(
+    "--prune",
+    metavar="STR",
+    help="prune list from prune.",
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "--min-length",
+    "min_length",
+    help="Minimum length of contigs",
+    metavar="INT",
+    type=int,
+    default=10000,
+    show_default=True
+)
+@click.option(
+    "--resolution1",
+    help="Resolution of the first partition",
+    type=click.FloatRange(0.0, 1.2),
+    default=1,
+    show_default=True
+)
+@click.option(
+    "--resolution2",
+    help="Resolution of the second partition",
+    type=click.FloatRange(0.0, 1.2),
+    default=0.6,
+    show_default=True
+)
+@click.option(
+    "--threshold",
+    metavar="FLOAT",
+    help="Threshold of reweight",
+    type=float,
+    default=0.01,
+    show_default=True
+)
+@click.option(
+    "--max-round",
+    "max_round",
+    help="Maximize round of reweight",
+    metavar="INT",
+    type=int,
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '--multi',
+    help='Using multipartition algorithm',
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def hyperpartition(edges, 
+                    fasta, 
+                    output,
+                    prune,
+                    min_length, 
+                    resolution1,
+                    resolution2,
+                    threshold, 
+                    max_round, 
+                    threads,
+                    multi):
+    """
+    Separate contigs into several groups by hypergraph cluster.
+
+        Edges : Path of the edges.
+
+        Fasta : Path of fasta file.
+
+        Output : Path of output clusters.
+    """
+    import msgspec 
+    from .hyperpartition import HyperPartition
+    
+    edges = msgspec.msgpack.decode(open(edges, 'rb').read())
+    logger.info(f"Loaded edges.")
+    
+    hp = HyperPartition(edges, 
+                            fasta,
+                            prune,
                             min_length,
-                            threshold, max_round, 
-                            threads))
-    hp = HyperPartition(pore_c_tables, 
-                            k, fasta,
-                            prune, min_order, 
-                            max_order, min_alignments, 
-                            min_length,
+                            resolution1, 
+                            resolution2,
                             threshold, max_round, 
                             threads)
 
-    if not k:
+    if not prune:
         hp.single_partition()
-    if k:
-        if len(k.split(":")) > 1:
+    if prune:
+        if multi:
             hp.multi_partition()
         else:
             hp.single_partition()
@@ -1355,5 +1391,3 @@ def countRE2cluster(count_re, output, fofn):
     for group_name, cr in zip(group_name, countREs):
         print(f"{group_name}\t{cr.ncontigs}\t{' '.join(cr.contigs)}", 
                 file=output) 
-
-

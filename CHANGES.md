@@ -1,7 +1,17 @@
 # Release notes #
 
+## [v0.0.10]
+Date: 2023-03-08
+### New features
+- `Extractor`, extract edges from pairs file
+- `HyperExtractor`, extract hyperedges from pore-c table
+- `HyperEdges`, msgspec Struct for hyperedges serialization
+
+### Enhancement
+- `HyperPartition`, divesting edges extract function to improve usability
+
 ## [v0.0.9]
-Data: 2023-01-06
+Date: 2023-01-06
 `refactor the frame of cphasing that seperating the hic and pore-c pipelines`
 ### New features
 - `agp2assembly`, convert agp to assembly file

@@ -14,6 +14,7 @@ import shutil
 import sys
 
 import dask.dataframe as dd
+import msgspec
 import numpy as np
 import pandas as pd 
 import pyranges as pr 
@@ -1947,7 +1948,7 @@ class PAFTable:
         "chrom_length": CHROM_COORD_DTYPE,
         "start": CHROM_COORD_DTYPE,
         "end": CHROM_COORD_DTYPE,
-        "mathes": READ_COORD_DTYPE,
+        "matches": READ_COORD_DTYPE,
         "align_length": READ_COORD_DTYPE,
         "mapping_quality": MAPPING_QUALITY_DTYPE,
         "filter_reason": "category",
@@ -2497,13 +2498,13 @@ class PoreCTable:
     
     def save(self, output, tmpdir="/tmp"):
         if not self.use_dask:
-            self.data.to_csv(f"{tmpdir}/tmp.pore_c.csv", header=True, index=None)
-            df = dd.read_csv(f"{tmpdir}/tmp.pore_c.csv", dtype=self.META,
-                        header=0)
-            df.to_parquet(output, 
+            # self.data.to_csv(f"{tmpdir}/tmp.pore_c.csv", header=True, index=None)
+            # df = dd.read_csv(f"{tmpdir}/tmp.pore_c.csv", dtype=self.META,
+            #             header=0)
+            self.data.to_parquet(output, 
                             engine=PQ_ENGINE, 
-                            write_metadata_file=True, 
-                            write_index=False, 
+                            # write_metadata_file=True, 
+                            # write_index=False, 
                             version=PQ_VERSION)
         else:
             self.data.to_parquet(output, 
@@ -2513,3 +2514,12 @@ class PoreCTable:
                                 version=PQ_VERSION)
     
         logger.info(f"Successfully output pore_c_table to `{output}`")
+
+
+class HyperEdges(msgspec.Struct):
+    """
+    A type describing the hyper edges
+    """
+    v: list
+    e: list
+

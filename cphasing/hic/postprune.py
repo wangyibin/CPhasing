@@ -76,9 +76,7 @@ def post_prune(group, contigs, at, pt, cr):
         v2 = pt.get_contact([pair[1]], correct_contigs, cr)
        
         contact_db[pair] = (v1, v2)
-        # if group == "group12":
-        #     print(pair, v1, v2, file=sys.stderr)
-        
+    
         if v1 == 0 and v2 == 0:
             continue
         elif v1 > v2 and v2 != 0:

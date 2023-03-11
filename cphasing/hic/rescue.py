@@ -7,7 +7,7 @@ import os
 import os.path as op
 import sys
 
-from .core import (
+from ..core import (
     ClusterTable, 
     CountRE, 
     PairTable

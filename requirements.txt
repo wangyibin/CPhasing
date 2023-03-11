@@ -5,7 +5,6 @@ dask
 distributed
 fanc
 hicexplorer >= 3.7.2
-hypernetx
 igraph
 intervaltree
 joblib

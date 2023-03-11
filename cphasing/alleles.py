@@ -155,10 +155,10 @@ class PartigRecords:
         for record in self.S:
             i += 1
             
-            if format == "allele1":
+            if fmt == "allele1":
                 print(i, i, record.seqName1, 
                             record.seqName2, sep='\t', file=output)
-            elif format == "allele2":
+            elif fmt == "allele2":
                 print(i, record.mzShared, record.seqName1, 
                             record.seqName2, sep='\t', file=output)
 
@@ -217,7 +217,7 @@ class PartigAllele:
                 if p.returncode != 0:
                     raise Exception('Failed to execute command:' 
                                         f'\t{" ".join(cmd)}.')
-                                        
+
         self.pr = PartigRecords(self.partig_res)
         self.pr.convert(self.fasta)
 

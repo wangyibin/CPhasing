@@ -5,24 +5,70 @@ import os
 import dask.array as da
 import gc
 import numpy as np
+import msgspec
 import networkx as nx
 import pandas as pd 
 import igraph as ig
-import hypernetx as hnx
 
 from collections import OrderedDict
-from joblib import Memory
+# from joblib import Memory
 from joblib import Parallel, delayed
 from scipy.sparse import (
     identity, 
     dia_matrix, 
     csr_matrix, 
-    hstack
 )
 
 logger = logging.getLogger(__name__)
 
-memory = Memory('./cachedir', verbose=0)
+# memory = Memory('./cachedir', verbose=0)
+
+class HyperEdges(msgspec.Struct):
+    """
+    A type describing the hyper edges
+
+    Params:
+    --------
+    idx: contig idx 
+    row: contigs
+    col: hyperedges
+    """
+    idx: dict 
+    row: list
+    col: list
+
+class HyperGraph:
+    """
+    HyperGraph 
+
+    Params:
+    --------
+    edges: HyperEdges
+        HyperEdges
+    """
+    def __init__(self, edges):
+        self.edges = edges 
+        self.shape = (len(self.edges.idx), max(self.edges.col) + 1)
+        self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+
+    def incidence_matrix(self, remove_zero=True):
+        matrix = csr_matrix((np.ones(len(self.edges.row), dtype=np.int8), 
+                             (self.edges.row, self.edges.col)
+                             ), 
+                             shape= self.shape
+                             )
+
+        if remove_zero:
+            non_zero_contig_idx = np.where(matrix.sum(axis=1).T != 0)[-1]
+            matrix = matrix[non_zero_contig_idx]
+            self.nodes = self.nodes[non_zero_contig_idx]
+            logger.info(f"{self.shape[0] - non_zero_contig_idx.shape[0]} non-singal contigs were removed")
+            
+            # non_zero_edges_idx = np.where(matrix.sum(axis=0).T != 0)[-1]
+            # matrix = matrix[:, non_zero_edges_idx]
+            self.shape = matrix.shape 
+            
+        return matrix 
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -124,7 +170,7 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
-def IRMM(H, NW, 
+def IRMM(H, # NW, 
             P_idx=None,
             resolution=1, 
             threshold=0.01, 
@@ -167,7 +213,8 @@ def IRMM(H, NW,
     W = identity(m, dtype=np.float32)
     
     ## D_e - I 
-    D_e_num = H.sum(axis=0) - 1
+    D_e_num = (H.sum(axis=0) - 1).astype(np.int8)
+    
     # D_e = dia_matrix((D_e_num, np.array([0])), W.shape, dtype=np.int8)
     
     ## inverse diagonal matrix D_e
@@ -177,6 +224,7 @@ def IRMM(H, NW,
                             W.shape, dtype=np.float32)
     
     H_T = H.T
+    
     A = H @ W @ D_e_inv @ H_T
     ## normalization
     # A = A.toarray() * NW
@@ -186,6 +234,10 @@ def IRMM(H, NW,
 
     # A.setdiag(0)
     # A.prune()
+
+    if max_round <= 1:
+        del W, D_e_num, D_e_inv, H_T
+        gc.collect() 
 
     if P_idx:
         # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
@@ -215,8 +267,10 @@ def IRMM(H, NW,
     
     del A, G
     gc.collect()
+    
+    if max_round > 1:
+        W_prev = W.copy()
 
-    W_prev = W.copy()
     iter_round = 1
     diff_value = 1
 
@@ -280,6 +334,7 @@ def IRMM(H, NW,
     
     return cluster_assignments
 
+## old version through hypernetx
 def generate_hypergraph(edges):
     """
     generate hypergraph incidence matrix
@@ -300,17 +355,18 @@ def generate_hypergraph(edges):
     --------
     >>> H, vertices = generate_hypergraph(edges)
     """
-   
-    HG = hnx.Hypergraph(edges, use_nwhy=True)
+    pass
+    # import hypernetx as hnx
+    # HG = hnx.Hypergraph(edges, use_nwhy=True)
 
-    del edges
-    gc.collect()
+    # del edges
+    # gc.collect()
 
-    H = HG.incidence_matrix().astype(np.int8)
-    vertices = list(HG.nodes)
+    # H = HG.incidence_matrix().astype(np.int8)
+    # vertices = list(HG.nodes)
 
     
-    return H, vertices
+    # return H, vertices
 
 # generate_hypergraph = memory.cache(generate_hypergraph)
 

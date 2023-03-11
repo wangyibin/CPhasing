@@ -31,7 +31,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     url='http://github.com/wangyibin/CPhasing',
-    description="Genome scaffold by Pore-C or Hi-C",
+    description="Phasing and scaffolding polyploid genomes based on Pore-C or Hi-C data",
     long_description=h.long_description,
     long_description_content_type='test/markdown',
     install_requires=requirements

@@ -550,3 +550,73 @@ def recluster(
 
     rc = reCluster(clustertable, alleletable, ploidy, count_re, pairtable)
     rc.run(method=method)
+
+
+@hic.command()
+@click.argument(
+    'clustertable',
+    metavar='ClusterTable',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'count_re',
+    metavar='CountRE',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'pairtable',
+    metavar='PairTable',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-e',
+    '--exclude',
+    help='Groups list to exclude rescuing.',
+    multiple=True,
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-m',
+    '--min-score',
+    'min_score',
+    help='Minimum score for rescuing contigs.',
+    type=float,
+    metavar='FLOAT',
+    default=0.01,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def rescue(
+    clustertable, 
+    count_re, 
+    pairtable,
+    exclude,
+    min_score,
+    output
+    ):
+    """
+    Rescue uncluster contigs into already groups.
+
+        ClusterTable : Path to cluster table.
+
+        CountRE : Path to countRE file.
+
+        PairTable : Path to pair table.
+    """
+    from .rescue import Rescuer
+
+    r = Rescuer(clustertable, 
+                count_re, 
+                pairtable, 
+                exclude, 
+                min_score
+                )
+    r.rescue()
+    r.save(output)

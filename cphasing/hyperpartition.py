@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import logging
+import gc
 import os 
 import sys
 
@@ -17,11 +18,12 @@ from pathlib import Path
 from pyfaidx import Fasta
 
 from .algorithms.hypergraph import (
+    HyperGraph,
     IRMM,
     extract_incidence_matrix, 
     remove_incidence_matrix
     )
-from .utilities import listify, list_flatten
+from .utilities import list_flatten, get_contigs
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -47,11 +49,10 @@ class HyperPartition:
                     threshold=0.01,
                     max_round=10, 
                     threads=4,
-                    chunksize=400000
+                    chunksize=None
                     ):
         
         self.edges = edges
-
         self.fasta = fasta
         self.prune = prune 
 
@@ -61,13 +62,17 @@ class HyperPartition:
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
-        self.chunksize = int(chunksize) 
+        self.chunksize = int(chunksize) if chunksize else None
 
-        self.contigs = self.get_contigs()
+        self.contigs = get_contigs(self.fasta)
         self.H, self.vertices = self.get_hypergraph()
         
+        ## remove edges
+        del self.edges, edges 
+        gc.collect()
+
         self.filter_hypergraph()
-        self.NW = self.get_normalize_weight()
+        # self.NW = self.get_normalize_weight()
 
         if prune:
             self.P_idx, self.prune_pair_df = self.get_prune_pairs()
@@ -84,15 +89,6 @@ class HyperPartition:
         contig_size_db = OrderedDict(list(map(lambda x: (x.name, len(x)), list(fasta))))
         
         return contig_size_db 
-
-    def get_contigs(self):
-        fasta = Fasta(self.fasta)
-        contigs = list(map(lambda x: x.name, fasta))
-        lengths = list(map(len, list(fasta)))
-        length_db = dict(zip(contigs, lengths))
-        contigs = sorted(contigs, key=lambda x: length_db[x], reverse=True)
-
-        return contigs
 
     def get_prune_pairs(self):
         
@@ -113,8 +109,8 @@ class HyperPartition:
         return P_idx, pair_df
     
     def get_hypergraph(self):
-        from .algorithms.hypergraph import generate_hypergraph
         if self.chunksize:
+            from .algorithms.hypergraph import generate_hypergraph
             args = [] 
             pesudo_idx = []
             idx = 0
@@ -145,7 +141,12 @@ class HyperPartition:
             vertices = np.array(self.contigs)[non_zero_contig_idx]
 
         else:
-            H, vertices = generate_hypergraph(self.edges)
+            HG = HyperGraph(self.edges)
+            H = HG.incidence_matrix()
+            vertices = HG.nodes
+
+            del HG 
+            gc.collect()
 
         logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
                     f" and {H.shape[1]} hyperedges.")
@@ -186,14 +187,19 @@ class HyperPartition:
         return NW
 
     
-    @classmethod
-    def _multi_partition(self, k, prune_pair_df, H, NW, resolution, threshold, max_round, num):
+    @staticmethod
+    def _multi_partition(k, prune_pair_df, H, #NW, 
+                         resolution, threshold, max_round, num):
         """
         single function for multi_partition.
         """
         k = np.array(list(k))
         sub_H, _ = extract_incidence_matrix(H, k)
-        sub_NW = NW[list(k)][:, list(k)]
+        
+        del H 
+        gc.collect() 
+        
+        #sub_NW = NW[list(k)][:, list(k)]
 
         sub_old2new_idx = dict(zip(k, range(len(k))))
         sub_new2old_idx = dict(zip(range(len(k)), k))
@@ -209,7 +215,7 @@ class HyperPartition:
 
         sub_P_idx = [sub_prune_pair_df[0], sub_prune_pair_df[1]]
         
-        new_K = IRMM(sub_H, sub_NW, 
+        new_K = IRMM(sub_H, #sub_NW, 
                         sub_P_idx, 
                         resolution, threshold, 
                         max_round, threads=1, 
@@ -227,8 +233,8 @@ class HyperPartition:
         """
         prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
 
-        self.K = IRMM(self.H, self.NW, None, 
-                        self.resolution1, self.threshold, 
+        self.K = IRMM(self.H, #self.NW, 
+                      None, self.resolution1, self.threshold, 
                         self.max_round, threads=self.threads)
         self.K = filter(lambda x: len(x) > 1, self.K)
 
@@ -236,13 +242,13 @@ class HyperPartition:
         # results = []
         args = []
         for num, k in enumerate(self.K, 1):
-            args.append((k, prune_pair_df, self.H, self.NW, 
+            args.append((k, prune_pair_df, self.H, #self.NW, 
                         self.resolution2, self.threshold, self.max_round, num))
            
         results = Parallel(n_jobs=min(self.threads, len(args)))(
-                        delayed(self._multi_partition)
-                                (i, j, k, l, m, n, o, p) 
-                                    for i, j, k, l, m, n, o, p in args)
+                        delayed(HyperPartition._multi_partition)
+                                (i, j, k, l, m, n, o) 
+                                    for i, j, k, l, m, n, o in args)
 
         self.K = list_flatten(results)
         logger.info(f"Multi partition results: {list(map(len, self.K))}")
@@ -250,7 +256,8 @@ class HyperPartition:
     def single_partition(self):
         
         logger.info("Starting to cluster ...")
-        self.K = IRMM(self.H, self.NW, self.P_idx,
+        self.K = IRMM(self.H, #self.NW, 
+                        self.P_idx,
                         self.resolution1, 
                         self.threshold, self.max_round,
                         threads=self.threads)
@@ -261,6 +268,7 @@ class HyperPartition:
         self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         
         return self.K
+
 
     def to_cluster(self, output):
         idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))

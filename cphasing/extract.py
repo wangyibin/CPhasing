@@ -17,12 +17,14 @@ import dask.dataframe as dd
 from joblib import Parallel, delayed, Memory
 from pathlib import Path
 
+
 from .core import Pairs
+from .algorithms.hypergraph import HyperEdges
 from .utilities import listify, list_flatten 
 from ._config import *
 
 logger = logging.getLogger(__name__)
-memory = Memory('./cachedir', verbose=0)
+# memory = Memory('./cachedir', verbose=0)
 
 
 class Extractor:
@@ -33,6 +35,8 @@ class Extractor:
     --------
     pairs_pathes: list
         list of pairs file
+    contig_idx: dict
+        dictionary of contig idx
     threads: int
         number of threads
     
@@ -41,65 +45,112 @@ class Extractor:
     >>> extractor = Extractor(pairs_pathes)
  
     """
-    def __init__(self, pairs_pathes, threads=4):
+    def __init__(self, pairs_pathes, contig_idx, threads=4):
         self.pairs_pathes = listify(pairs_pathes)
+        self.contig_idx = contig_idx
         self.threads = threads 
         self.edges = self.generate_edges()
 
-        
+    @staticmethod
+    def _process_df(df, contig_idx):
+        df['chrom1'] = df['chrom1'].map(contig_idx.get)
+        df['chrom2'] = df['chrom2'].map(contig_idx.get)
+
+        return df
+
     def generate_edges(self):
+        """
+        """
         
         if len(self.pairs_pathes) == 1:
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
                                 header=None, index_col=None,
-                                usecols=[1, 3])
-            
-    
-        
-            res = p.data.values.tolist()
-            
-            
+                                usecols=[1, 3], names=['chrom1', 'chrom2'])
+           
+            res = Extractor._process_df(p, self.contig_idx)    
+            res = res.reset_index()
+  
+            res = pd.concat([res[['chrom1', 'index']].rename(
+                                        columns={'chrom1': 'row', 'index': 'col'}),
+                              res[['chrom2', 'index']].rename(
+                                        columns={'chrom2': 'row', 'index': 'col'})], 
+                              axis=1)
+
+
         else: 
             p_list = self.pairs_pathes
-            res_list = Parallel(n_jobs=self.threads)(delayed(
+            res = Parallel(n_jobs=self.threads)(delayed(
                 lambda x: pd.read_csv(x, sep='\t', comment="#",
                                 header=None, index_col=None,
-                                usecols=[1, 3]))(i) for i in p_list)
+                                usecols=[1, 3], names=['chrom1', 'chrom2']))
+                                (i) for i in p_list)
             
-            res_df = pd.concat(res_list, axis=1)
-            res = res_df.values.tolist()
+            args = []
+            for i in res:
+                args.append((i, self.contig_idx))
 
-        return res
+            res = Parallel(n_jobs=self.threads)(delayed(
+                                Extractor._process_df)(i, j) for i, j in args)
+            
+            res = pd.concat(res, axis=1)
+            res = res.reset_index()
+            res = pd.concat([res[['chrom1', 'index']].rename(
+                                        columns={'chrom1': 'row', 'index': 'col'}),
+                              res[['chrom2', 'index']].rename(
+                                        columns={'chrom2': 'row', 'index': 'col'})], 
+                              axis=1)
+
+        return HyperEdges(idx=self.contig_idx, 
+                            row=res['row'].values.flatten().tolist(), 
+                            col=res['col'].values.flatten().tolist())
 
     def save(self, output):
         with open(output, 'wb') as out:
             out.write(msgspec.msgpack.encode(self.edges))
+        
         logger.info(f"Successful output edges into `{output}`")
+    
+    # def save(self, output):
+    #     with open(output, 'wb') as out:
+    #         out.write(msgspec.msgpack.encode(self.edges))
+    
 
 
-def process_pore_c_table(df, npartition, 
-                            min_order, max_order, 
-                            min_alignments, use_dask=False):
+def process_pore_c_table(df, contig_idx, npartition, 
+                            min_order=2, max_order=50, 
+                            min_alignments=50, use_dask=False):
     if use_dask:
         df = df.partitions[npartition]
         df = df.compute()
-    df['chrom_idx'] = df['chrom'].cat.codes
-    chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
-                        df.chrom.cat.categories))
+    df['chrom_idx'] = df['chrom'].map(contig_idx.get).astype('int')
+
+    # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
+    #                     df.chrom.cat.categories))
     df = (df.assign(alignment_length=lambda x: x.end - x.start)
             .query(f"alignment_length >= {min_alignments}")
             .set_index('read_idx')
     )
-    df_grouped = df.groupby('read_idx')['chrom_idx']
+    df_grouped = df.groupby('read_idx', sort=False)['chrom_idx']
     df_grouped_nunique = df_grouped.nunique()
     df = df.loc[(df_grouped_nunique >= min_order) 
                     & (df_grouped_nunique <= max_order)]
-    edges = df.groupby('read_idx')['chrom_idx'].unique()
-    edges = edges.apply(lambda x: list(map(chrom_db.get, x)))
 
-    return edges
+    df = df[['chrom_idx']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
+    df['read_idx'] = df['read_idx'].astype('category')
+    df['read_idx'] = df['read_idx'].cat.codes
+    
+    #df = df.groupby('read_idx', sort=False)['chrom_idx'].unique()
+    
+    # df = df.apply(lambda x: pd.Series(x))
 
-process_pore_c_table = memory.cache(process_pore_c_table)
+    # df = df.reset_index(drop=True).stack().astype('int')
+
+    
+    # edges = edges.apply(lambda x: list(map(chrom_db.get, x)))
+
+    return df
+
+# process_pore_c_table = memory.cache(process_pore_c_table)
 
 class HyperExtractor:
     """
@@ -117,13 +168,15 @@ class HyperExtractor:
         use dask to parse pore-c table
     """
     def __init__(self, pore_c_table_pathes, 
+                            contig_idx,
                             min_order=2, 
-                            max_order=15, 
-                            min_alignments=500,
+                            max_order=50, 
+                            min_alignments=100,
                             threads=4,
                             use_dask=False):
         
         self.pore_c_table_pathes = listify(pore_c_table_pathes)
+        self.contig_idx = contig_idx
         self.min_order = min_order
         self.max_order = max_order
         self.min_alignments = min_alignments
@@ -200,7 +253,6 @@ class HyperExtractor:
         """
         generate hypergraph incidence matrix
 
-       
 
         Returns:
         --------
@@ -219,31 +271,31 @@ class HyperExtractor:
             pore_c_table = self.pore_c_tables[0]
             args = []
             for i in range(pore_c_table.npartitions):
-                args.append((pore_c_table, i,
+                args.append((pore_c_table, self.contig_idx, i,
                             self.min_order, self.max_order, 
                             self.min_alignments, self.use_dask))
         else:
             args = []
             for i, pore_c_table in enumerate(self.pore_c_tables):
-                args.append((pore_c_table, i, 
+                args.append((pore_c_table, self.contig_idx, i, 
                             self.min_order, self.max_order, 
                             self.min_alignments, self.use_dask))
         
         res = Parallel(n_jobs=self.threads)(
-                        delayed(process_pore_c_table)(i, j, k, l, m, n) 
-                                for i, j, k, l, m, n in args)
+                        delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
+                                for i, j, k, l, m, n, o in args)
         
         res_df = pd.concat(res)
-        edges = res_df.values.tolist()
         
+        edges = HyperEdges(idx=self.contig_idx, 
+                       row=res_df['chrom_idx'].values.flatten().tolist(),
+                       col=res_df['read_idx'].values.flatten().tolist())
         logger.info(f"Only retained Pore-C concatemer that: \n"
                         f"\talignment length >= {self.min_alignments}\n"
                         f"\t{self.min_order} <= contig order <= {self.max_order}")
                         
-        del res, res_df, pore_c_table
+        del pore_c_table
         gc.collect()
-
-        
 
         return edges
     
@@ -252,3 +304,4 @@ class HyperExtractor:
             out.write(msgspec.msgpack.encode(self.edges))
 
         logger.info(f"Successful output edges into `{output}`")
+

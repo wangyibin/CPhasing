@@ -93,6 +93,7 @@ def pipeline(fasta, data, method):
     pass
 
 
+
 @cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
 @click.pass_context
 def alignments(ctx):
@@ -157,6 +158,7 @@ def paf2pairs(paf, chromsize, output,
                         min_length=min_length)
     paf.to_pairs(chromsize, output)
     paf.clean_tempoary()
+
 
 @alignments.command()
 @click.argument(
@@ -511,6 +513,128 @@ def table_intersection(table, bed, output, threads):
     pct.read_table(table)
     pct.intersection(bed, output)
 
+@cli.group(cls=CommandGroup, short_help='Prepare for subsequence analysis.')
+@click.pass_context
+def prepare(ctx):
+    pass
+
+@prepare.command()
+@click.argument(
+    "fasta",
+    metavar="INPUT_FASTA_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-e",
+    "--enzyme",
+    help="""
+    The enzyme used in conformation capture experiments, 
+        such as the HindIII or MboI.
+    """,
+    metavar="RESTRICT_ENZYME",
+    type=str,
+    default="HindIII",
+    show_default=True
+)
+@click.option(
+    "--only-size",
+    help="Only output the size of contigs.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    "--only-re",
+    help="Only output the RE count of contigs.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def refgenome(fasta, enzyme, only_size, only_re):
+    """
+    cacluate the size and RE on each contigs
+
+        INPUT_FASTA_PATH : Path of fasta file, uncompressed.
+
+    """
+    from .prepare import write_chrom_sizes, count_re_in_genome
+
+    prefix = op.basename(fasta).rsplit(".", 1)[0]
+    output_size = f"{prefix}.chromsizes"
+    output_count_re = f"{prefix}.counts_{enzyme}.txt"
+    if only_size:
+        write_chrom_sizes(fasta, output_size)
+
+    if only_re:
+        count_re_in_genome(fasta, enzyme, output_count_re)
+    
+    if not only_re and not only_size:
+        df = count_re_in_genome(fasta, enzyme, output_count_re)
+        df[["#Contig", "Length"]].to_csv(output_size, sep='\t', 
+                                            header=None, index=None) 
+        logger.info(f"Successful output contigs size file in `{output_size}`.")
+
+@prepare.command()
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH"
+)
+@click.argument(
+    "chromsize",
+    metavar="CHROM_SIZE",
+)
+@click.argument(
+    "outcool",
+    metavar="OUT_COOL_PATH"
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    help="Bin size in bp.",
+    type=int,
+    default=10000,
+    show_default=True
+)
+def pairs2cool(pairs, chromsize, outcool,
+               binsize):
+    """
+    Convert pairs file into a specified resolution cool file.
+
+        INPUT_PAIRS_PATH : Path of pairs file, can be compressed.
+
+        CHROM_SIZE : Two columns of chromosomes or contigs size.
+
+        OUT_COOL_PATH : Output path of cool file.
+    """
+
+    from cooler.cli.cload import pairs as cload_pairs
+    from .utilities import merge_matrix
+
+    logger.info(f"Load pairs: `{pairs}`.")
+    logger.info(f"Bin size: {binsize}.")
+    try:
+        cload_pairs.main(args=[
+                         f"{chromsize}:{binsize}",
+                         pairs, 
+                         outcool, 
+                         "-c1", 2,
+                         "-p1", 3,
+                         "-c2", 4,
+                         "-p2", 5],
+                         prog_name='cload')
+    except SystemExit as e:
+        exc_info = sys.exc_info()
+        exit_code = e.code
+        if exit_code is None:
+            exit_code = 0
+        
+        if exit_code != 0:
+            raise e
+    
+    logger.info(f'Output binning contact matrix into `{outcool}`')
+    
+    merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
+
 
 
 
@@ -682,6 +806,11 @@ def prune(
     type=click.Path(exists=True)
 )
 @click.argument(
+    "fasta",
+    metavar="Fasta",
+    type=click.Path(exists=True),
+)
+@click.argument(
     "output",
     metavar="OUTPUT"
 )
@@ -741,10 +870,14 @@ def prune(
     metavar='INT',
     show_default=True,
 )
-def extract(contacts, min_order, 
-            max_order, min_alignments, 
+def extract(contacts,
+            fasta,
+            output,
+            min_order, 
+            max_order, 
+            min_alignments, 
             pairs, 
-            fofn, output, threads):
+            fofn, threads):
     """
     Extract edges from pore-c table. 
 
@@ -754,6 +887,9 @@ def extract(contacts, min_order,
         OUTPUT : Path of output edges.
     """
     from .extract import HyperExtractor, Extractor
+    from .utilities import get_contig_idx
+
+    contig_idx = get_contig_idx(fasta)
 
     if not pairs:
         if fofn:
@@ -761,7 +897,7 @@ def extract(contacts, min_order,
         else:
             pore_c_tables = contacts
 
-        he = HyperExtractor(pore_c_tables, min_order, 
+        he = HyperExtractor(pore_c_tables, contig_idx, min_order, 
                             max_order, min_alignments, threads)
         he.save(output)
     
@@ -772,7 +908,7 @@ def extract(contacts, min_order,
         else:
             pairs_files = contacts
 
-        e = Extractor(pairs_files, threads)
+        e = Extractor(pairs_files, contig_idx, threads)
         e.save(output)
 
 
@@ -850,19 +986,19 @@ def extract(contacts, min_order,
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=1,
     metavar='INT',
     show_default=True,
 )
-@click.option(
-    '-cs',
-    '--chunksize',
-    help='Chunk size of edges',
-    type=float,
-    default=None,
-    metavar='Float',
-    show_default=True
-)
+# @click.option(
+#     '-cs',
+#     '--chunksize',
+#     help='Chunk size of edges',
+#     type=float,
+#     default=None,
+#     metavar='Float',
+#     show_default=True
+# )
 @click.option(
     '--multi',
     help='Using multipartition algorithm',
@@ -880,7 +1016,7 @@ def hyperpartition(edges,
                     threshold, 
                     max_round, 
                     threads,
-                    chunksize,
+                    # chunksize,
                     multi):
     """
     Separate contigs into several groups by hypergraph cluster.
@@ -893,10 +1029,10 @@ def hyperpartition(edges,
     """
     import msgspec 
     from .hyperpartition import HyperPartition
+    from .algorithms.hypergraph import HyperEdges
     
     logger.info(f"Load edges.")
-    edges = msgspec.msgpack.decode(open(edges, 'rb').read())
-    
+    edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
     
     hp = HyperPartition(edges, 
                             fasta,
@@ -907,7 +1043,8 @@ def hyperpartition(edges,
                             threshold, 
                             max_round, 
                             threads, 
-                            chunksize)
+                            # chunksize
+                            )
 
     if not prune:
         hp.single_partition()
@@ -919,75 +1056,39 @@ def hyperpartition(edges,
             
     hp.to_cluster(output)
 
-
 @cli.command()
 @click.argument(
-    'clustertable',
-    metavar='ClusterTable',
+    "group", 
+    metavar="Group_CountRE_PATH",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    'coolfile',
+    metavar="INPUT_COOL_PATH",
     type=click.Path(exists=True)
 )
 @click.argument(
-    'count_re',
-    metavar='CountRE',
-    type=click.Path(exists=True)
+    'output',
+    metavar="OUTPUT_SCORE_PATH",
 )
-@click.argument(
-    'pairtable',
-    metavar='PairTable',
-    type=click.Path(exists=True)
-)
-@click.option(
-    '-e',
-    '--exclude',
-    help='Groups list to exclude rescuing.',
-    multiple=True,
-    default=None,
-    show_default=True
-)
-@click.option(
-    '-m',
-    '--min-score',
-    'min_score',
-    help='Minimum score for rescuing contigs.',
-    type=float,
-    metavar='FLOAT',
-    default=0.01,
-    show_default=True
-)
-@click.option(
-    "-o",
-    "--output",
-    help="Output of results [default: stdout]",
-    type=click.File('w'),
-    default=sys.stdout
-)
-def rescue(
-    clustertable, 
-    count_re, 
-    pairtable,
-    exclude,
-    min_score,
-    output
-    ):
+def optimize(group, coolfile, output):
     """
-    Rescue uncluster contigs into already groups.
+    Ordering and orientation the contigs
 
-        ClusterTable : Path to cluster table.
-
-        CountRE : Path to countRE file.
-
-        PairTable : Path to pair table.
     """
-    from .rescue import Rescuer
 
-    r = Rescuer(clustertable, 
-                count_re, 
-                pairtable, 
-                exclude, 
-                min_score
-                )
-    r.rescue()
-    r.save(output)
+    import cooler 
+    from .core import CountRE
+    from .algorithms.optimize import SimpleOptimize
+    
+    cr = CountRE(group, minRE=1)
+    contigs = cr.contigs 
+    cool = cooler.Cooler(coolfile)
+    so = SimpleOptimize(contigs, cool)
+
+    so.save(output)
+
+
 
 @cli.command()
 @click.argument(
@@ -1404,3 +1505,40 @@ def countRE2cluster(count_re, output, fofn):
     for group_name, cr in zip(group_name, countREs):
         print(f"{group_name}\t{cr.ncontigs}\t{' '.join(cr.contigs)}", 
                 file=output) 
+        
+
+
+@utils.command()
+@click.argument(
+    "coolfile",
+    metavar="INPUT_COOL_PATH"
+)
+@click.argument(
+    "outcool",
+    metavar="OUTPUT_COOL_PATH"
+)
+@click.option(
+    '--no_mask_nan',
+    help='Do not mask nan bins.',
+    default=False,
+    show_default=True
+)
+@click.option(
+    '--symmetric_upper',
+    default=True,
+    show_default=True,
+)
+def merge_cool(coolfile, 
+            outcool, 
+            no_mask_nan,
+            symmetric_upper):
+    """
+    merge slidewindows matrix into whole contig matrix.
+    
+    INPUT_COOL_PATH : Path to COOL file.
+
+    OUTPUT_COOL_PATH : Path to output COOL file.
+
+    """
+    from .utilities import merge_matrix
+    merge_matrix(coolfile, outcool, no_mask_nan, symmetric_upper)

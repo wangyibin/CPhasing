@@ -14,7 +14,6 @@ import shutil
 import sys
 
 import dask.dataframe as dd
-import msgspec
 import numpy as np
 import pandas as pd 
 import pyranges as pr 
@@ -2514,12 +2513,3 @@ class PoreCTable:
                                 version=PQ_VERSION)
     
         logger.info(f"Successfully output pore_c_table to `{output}`")
-
-
-class HyperEdges(msgspec.Struct):
-    """
-    A type describing the hyper edges
-    """
-    v: list
-    e: list
-

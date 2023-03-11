@@ -1,9 +1,25 @@
 # Release notes #
 
+## [v0.0.12]
+Date: 2023-03-11
+### New features
+- `HyperGraph`, instead of hypernetx to speed up 
+- `prepare`, a cli function for some preparation for C-Phasing
+- `optimize.cpp`, optimize algorithm v1
+### Enhancement
+- `HyperEdges`, restruct to {idx, row, col}
+- `Extractor` and `HyperExtractor`, change to export `HyperEdges` 
+- `process_pore_c_table`, speed up
+- `HyperPartition`, use custom `HyperGraph` to speed up
+- `merge_matrix`, merge binning matrix into whole contigs
+- `optimize`, cli for optimize score cacluation
+### Bug fixes
+- `alleles`, fix the bug of empty allele table
+
 ## [v0.0.11]
 Date: 2023-03-08
 ### Enhancement
-- `Extractor` and `HyperExtractor`, change export dict to list
+- `Extractor` and `HyperExtractor`, change to export dict to list
 - `HyperPartition`, add parallel in hypergraph generation 
 ## [v0.0.10]
 Date: 2023-03-08
@@ -56,7 +72,6 @@ Date: 2022-10-31
 - `AdapativePartition`, partition by adapative pipeline for find best results
 - `PoreCMapper`, Pore-C reads mapping pipeline.
 - `PAFTable`, a function for processing paf file. (include `to_pairs`)
-### Bug fixes
 
 ### Enhancement
 - `correct`, increase recall and precision to 70%

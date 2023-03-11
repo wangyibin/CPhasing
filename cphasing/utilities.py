@@ -11,10 +11,13 @@ import os.path as op
 import sys
 import re
 
+import cooler
 import numpy as np
 import pandas as pd
 
+from collections import OrderedDict
 from pathlib import Path, PosixPath
+from pyfaidx import Fasta
 
 logger = logging.getLogger(__name__)
 
@@ -397,11 +400,38 @@ def get_genome_size(fasta):
     >>> get_genome_size("sample.fasta")
     100000
     """
-    from pyfaidx import Fasta
+    
     fasta = Fasta(fasta)
     sizes = [record.unpadded_len for record in fasta]
     
     return sum(sizes)
+
+def get_contigs(fasta):
+    """
+    get contigs from fasta
+    """
+    length_db = get_contig_length(fasta)
+    contigs = list(length_db.keys())
+
+    return contigs
+
+def get_contig_length(fasta):
+    """
+    get contig length database from fasta
+    """
+    fasta = Fasta(fasta)
+    contigs = list(map(lambda x: x.name, fasta))
+    lengths = list(map(len, list(fasta)))
+    length_db = OrderedDict(zip(contigs, lengths))
+
+    return length_db 
+
+def get_contig_idx(fasta):
+    """
+    get contigs and it's idx
+    """
+    contigs = get_contigs(fasta)
+    return dict(zip(contigs, range(len(contigs))))
 
 def check_allhic_version():
     from shutil import which
@@ -430,7 +460,7 @@ def check_allhic_version():
     assert version_check(version), "the version of `allhic` must be >= 0.9.14."
 
 
-def read_fasta(fasta: str) -> dict:
+def read_fasta(fasta: str) ->OrderedDict:
     """
     Create a directory of fasta record.
 
@@ -441,16 +471,18 @@ def read_fasta(fasta: str) -> dict:
     
     Returns:
     --------
-    dict:
+    OrderedDict:
         {"seq_id", Seq()}
     
     Examples:
     --------
+    >>> read_fasta('sample.fasta')
+    OrderedDict(('ctg1', 1000))
     """
     from Bio import SeqIO
     
     logger.info(f'Load fasta file: `{fasta}`.')
-    db = {}
+    db = OrderedDict()
     
     fasta = SeqIO.parse(xopen(fasta), 'fasta')
     for record in fasta:
@@ -501,3 +533,66 @@ def to_humanized(size):
         label = "{:,.1f}".format((size / 1e6)) + "m"
     
     return label
+
+
+def merge_matrix(coolfile, 
+                outcool, 
+                no_mask_nan=False,
+                symmetric_upper=True):
+    """
+    merge slidewindows matrix into whole contig matrix.
+    
+    INPUT_COOL_PATH : Path to COOL file.
+
+    OUTPUT_COOL_PATH : Path to output COOL file.
+
+    """
+    from scipy.sparse import coo_matrix, dia_matrix, triu
+
+    logger.info(f'Loading {coolfile} ...')
+    cool = cooler.Cooler(coolfile)
+
+    pixels = cool.matrix(balance=False, sparse=True, 
+                            as_pixels=True, join=True)[:]
+    if no_mask_nan:
+        matrix = cool.matrix(balance=False, sparse=True)
+        sum_matrix = matrix[:].sum(axis=1)
+        
+
+    logger.info('Merging matrix ...')
+    pix_counts = pixels.groupby(by=['chrom1', 'chrom2'], 
+                            observed=True)['count'].sum().dropna()
+    
+    pix_counts = pix_counts.to_frame().reset_index()
+    
+    ## reset chromosome into bin id
+    pix_counts['chrom1'] = pix_counts['chrom1'].cat.codes.values
+    pix_counts['chrom2'] = pix_counts['chrom2'].cat.codes.values
+    pix_counts.columns = ['bin1_id', 'bin2_id', 'count']
+    
+    ## create sparse matrix 
+    row = pix_counts['bin1_id']
+    col = pix_counts['bin2_id']
+    data = pix_counts['count']
+    m, n = len(cool.chromnames), len(cool.chromnames)
+    matrix = coo_matrix((data, (row, col)), shape=(m, n))
+    dia = dia_matrix(([matrix.diagonal()], [0]), shape=matrix.shape)
+    matrix = matrix + matrix.T - dia
+    if symmetric_upper:
+        matrix = triu(matrix).tocoo()
+    
+        new_pixels = dict(zip(['bin1_id', 'bin2_id', 'count'],
+                            [matrix.row, matrix.col, matrix.data]))
+    
+    ## new bins 
+    new_bins = pd.DataFrame(cool.chromsizes)
+    new_bins = new_bins.reset_index()
+    new_bins.columns = ['chrom', 'end']
+    new_bins['start'] = 0
+    new_bins = new_bins[['chrom', 'start', 'end']]
+
+    cooler.create_cooler(outcool, new_bins, new_pixels, 
+                            dtypes=dict(count='float16'),
+                            symmetric_upper=symmetric_upper)
+    logger.info(f'Successful merge matrix into whole contig: `{outcool}`')
+

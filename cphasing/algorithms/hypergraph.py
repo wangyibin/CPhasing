@@ -7,16 +7,17 @@ import gc
 import numpy as np
 import msgspec
 import networkx as nx
-import pandas as pd 
 import igraph as ig
 
-from collections import OrderedDict
+from .._config import HYPERGRAPH_ORDER_DTYPE
+
 # from joblib import Memory
 from joblib import Parallel, delayed
 from scipy.sparse import (
     identity, 
     dia_matrix, 
     csr_matrix, 
+    coo_matrix
 )
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class HyperGraph:
         self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
 
     def incidence_matrix(self, remove_zero=True):
-        matrix = csr_matrix((np.ones(len(self.edges.row), dtype=np.int8), 
+        matrix = csr_matrix((np.ones(len(self.edges.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
                              (self.edges.row, self.edges.col)
                              ), 
                              shape= self.shape
@@ -158,7 +159,32 @@ def extract_incidence_matrix(mat, idx):
     
     return mat.T.tocsr(), remove_col_index
 
-def remove_incidence_matrix(mat, idx):
+def extract_incidence_matrix2(mat, idx):
+    A = coo_matrix(mat, copy=False)
+    
+    retain = np.isin(A.row, idx)
+    row = A.row[retain]
+    col = A.col[retain]
+    data = A.data[retain]
+
+    A = coo_matrix((data, (row, col)), shape=A.shape).asformat('csr')
+
+    # non_zero_contig_idx = np.where(A.sum(axis=1).T != 0)[-1]
+    # zero_contig_idx = np.where(A.sum(axis=1).T == 0)[-1]
+    
+    A = A[idx]
+
+    if A.shape[0] != 0 and A.shape[1] !=0 : 
+        non_zero_edges_idx = np.where(A.sum(axis=0).T > 1)[0]
+        remove_edges_idx = np.where(A.sum(axis=0).T <= 1)[0]
+        A = A[:, non_zero_edges_idx]
+    
+    return A, remove_edges_idx
+
+
+    
+
+def remove_incidence_matrix(mat, idx):   
     if not isinstance(mat, csr_matrix):
         raise ValueError("works only for CSR format -- use .tocsr() first")
     
@@ -174,7 +200,7 @@ def IRMM(H, # NW,
             P_idx=None,
             resolution=1, 
             threshold=0.01, 
-            max_round=10, 
+            max_round=1, 
             chunk=10000, 
             threads=10, 
             outprefix="all"):
@@ -213,7 +239,7 @@ def IRMM(H, # NW,
     W = identity(m, dtype=np.float32)
     
     ## D_e - I 
-    D_e_num = (H.sum(axis=0) - 1).astype(np.int8)
+    D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
     
     # D_e = dia_matrix((D_e_num, np.array([0])), W.shape, dtype=np.int8)
     
@@ -262,7 +288,7 @@ def IRMM(H, # NW,
     # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
     # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
     cluster_stat = list(map(len, cluster_assignments))
-    logger.info(f"Cluster Statistics: {cluster_stat}")
+    
 
     
     del A, G

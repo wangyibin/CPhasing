@@ -13,6 +13,7 @@ import re
 import shutil
 import sys
 
+import cooler
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd 
@@ -227,7 +228,7 @@ class AlleleTable:
 
         logger.info(f'Load allele table: `{self.filename}`.')
         self.check()
-        self.get_data(sort)
+        self.get_data()
 
     def check(self):
         """
@@ -248,7 +249,7 @@ class AlleleTable:
         
         self.columns = list(range(n + 2))
 
-    def get_data(self, sort=True):
+    def get_data(self):
         def sort_row(row):
             row_filter = filter(lambda x: not pd.isna(x), row)
             return pd.Series(sorted(row_filter), name=row.name)
@@ -261,13 +262,17 @@ class AlleleTable:
         
         if self.fmt == "allele1":
             df = df.drop(1, axis=1)
-            df = df.apply(sort_row, axis=1) if sort else df
+            df = df.apply(sort_row, axis=1) if self.sort else df
             df.columns = list(range(1, len(df.columns) + 1))
+            df = df.drop_duplicates(list(range(1, len(df.columns) + 1)))
         elif self.fmt == "allele2":
-            df.columns = ["score"] + list(range(1, len(df.columns) ))
-        
+            df.columns = ["score"] + list(range(1, len(df.columns)))
 
-        self.data = df
+            df = df.drop_duplicates(list(range(1, len(df.columns))))
+            
+        df = df.reset_index(drop=True)
+
+        self.data = df 
 
     def filter(self, contigs):
         """
@@ -1691,7 +1696,7 @@ class Pairs:
         for i in range(self.data.npartitions):  
             args.append((self.data, i, source_gr, columns, meta))
              
-        res = Parallel(n_jobs=min(threads, len(args)))(
+        res = Parallel(n_jobs=min(threads, len(args) + 1))(
             delayed(self._chrom2contig)(i, j, k, l, m)
                 for i, j, k, l, m in args)
 
@@ -1872,6 +1877,17 @@ class MndTable:
         os.remove(f'{output}.header')
 
         logger.info(f'Successful written pairs file into `{output}`.')
+
+class Contacts:
+    def __init__(self, coolfile):
+        self.coolfile = coolfile 
+        self.cool = cooler.Cooler(self.coolfile)
+    
+    def get_contacts(self):
+        pass
+
+    
+    
 
 class PAFLine:
     def __init__(self, line):

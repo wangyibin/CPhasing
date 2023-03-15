@@ -8,6 +8,7 @@ import os.path as op
 
 import pandas as pd
 
+from collections import OrderedDict
 from pathlib import Path
 
 from . import __version__
@@ -560,7 +561,7 @@ def refgenome(fasta, enzyme, only_size, only_re):
     from .prepare import write_chrom_sizes, count_re_in_genome
 
     prefix = op.basename(fasta).rsplit(".", 1)[0]
-    output_size = f"{prefix}.chromsizes"
+    output_size = f"{prefix}.contigsizes"
     output_count_re = f"{prefix}.counts_{enzyme}.txt"
     if only_size:
         write_chrom_sizes(fasta, output_size)
@@ -611,7 +612,7 @@ def pairs2cool(pairs, chromsize, outcool,
     from .utilities import merge_matrix
 
     logger.info(f"Load pairs: `{pairs}`.")
-    logger.info(f"Bin size: {binsize}.")
+    logger.info(f"Bin size: {binsize}")
     try:
         cload_pairs.main(args=[
                          f"{chromsize}:{binsize}",
@@ -634,8 +635,6 @@ def pairs2cool(pairs, chromsize, outcool,
     logger.info(f'Output binning contact matrix into `{outcool}`')
     
     merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
-
-
 
 
 @cli.command()
@@ -685,7 +684,7 @@ def pairs2cool(pairs, chromsize, outcool,
     help="minimum k-mer similarity for similarity calculation.",
     metavar="FLOAT",
     type=float,
-    default=.8,
+    default=.2,
     show_default=True
 )
 @click.option(
@@ -746,10 +745,6 @@ def alleles(fasta, method,
         logger.warning('Incompletely developing function')
 
 
-def normalize():
-    pass
-
-
 @cli.command()
 @click.argument(
     'alleletable',
@@ -757,47 +752,24 @@ def normalize():
     type=click.Path(exists=True)
 )
 @click.argument(
-    'count_re',
-    metavar='CountRE',
-    type=click.Path(exists=True)
-)
-@click.argument(
-    'pairtable',
-    metavar='PairTable',
+    'coolfile',
+    metavar='INPUT_COOL_PATH',
     type=click.Path(exists=True)
 )
 @click.option(
-    '-n',
-    '--normalize',
-    help='If normalize the contacts.',
-    is_flag=True,
-    default=False,
-    show_default=True
+    '-o',
+    '--output',
+    help='output prune list',
+    default='prune.contig.list',
+    show_default=True,
 )
-def prune(
-    alleletable, 
-    count_re,
-    pairtable,
-    normalize
-):
-    """
-    Prune allelic signal by allele table.
+def kprune(alleletable, coolfile, output):
+    from .kprune import KPruner
 
-        AlleleTable : Path to allele table.
+    kp = KPruner(alleletable, coolfile)
+    kp.run()
+    kp.save_prune_list(output)
 
-        CountRE : Path to countRE file.
-
-        PairTable : Path to allhic pairs table.
-
-    """
-    from .prune import Prune
-
-    at = AlleleTable(alleletable, sort=False)
-    cr = CountRE(count_re)
-    pt = PairTable(pairtable, symmetric=False)
-
-    Prune(at, cr, pt, normalize)
-    pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
 @cli.command()
 @click.argument(
@@ -806,8 +778,8 @@ def prune(
     type=click.Path(exists=True)
 )
 @click.argument(
-    "fasta",
-    metavar="Fasta",
+    "chromsize",
+    metavar="Chrom_sizes",
     type=click.Path(exists=True),
 )
 @click.argument(
@@ -871,13 +843,14 @@ def prune(
     show_default=True,
 )
 def extract(contacts,
-            fasta,
+            chromsize,
             output,
             min_order, 
             max_order, 
             min_alignments, 
             pairs, 
-            fofn, threads):
+            fofn,
+            threads):
     """
     Extract edges from pore-c table. 
 
@@ -887,10 +860,10 @@ def extract(contacts,
         OUTPUT : Path of output edges.
     """
     from .extract import HyperExtractor, Extractor
-    from .utilities import get_contig_idx
+    from .utilities import read_chrom_sizes
 
-    contig_idx = get_contig_idx(fasta)
-
+    contigs = read_chrom_sizes(chromsize).index.values.tolist()
+    contig_idx = OrderedDict(zip(contigs, range(len(contigs))))
     if not pairs:
         if fofn:
             pore_c_tables = [i.strip() for i in open(contacts) if i.strip()]
@@ -919,8 +892,8 @@ def extract(contacts,
     type=click.Path(exists=True)
 )
 @click.argument(
-    "fasta",
-    metavar="Fasta",
+    "contigsizes",
+    metavar="contigsizes",
     type=click.Path(exists=True),
 )
 @click.argument(
@@ -951,6 +924,7 @@ def extract(contacts,
     show_default=True
 )
 @click.option(
+    "-r1",
     "--resolution1",
     help="Resolution of the first partition",
     type=click.FloatRange(0.0, 1.2),
@@ -958,16 +932,25 @@ def extract(contacts,
     show_default=True
 )
 @click.option(
+    "-r2",
     "--resolution2",
     help="Resolution of the second partition",
     type=click.FloatRange(0.0, 1.2),
-    default=0.6,
+    default=0.8,
+    show_default=True
+)
+@click.option(
+    "-ms",
+    "--min_scaffold_length",
+    help="The minimum length of the output scaffolding.",
+    type=float,
+    default=5e5,
     show_default=True
 )
 @click.option(
     "--threshold",
     metavar="FLOAT",
-    help="Threshold of reweight",
+    help="Threshold of reweight.",
     type=float,
     default=0.01,
     show_default=True
@@ -1007,12 +990,13 @@ def extract(contacts,
     show_default=True
 )
 def hyperpartition(edges, 
-                    fasta, 
+                    contigsizes, 
                     output,
                     prune,
                     min_length, 
                     resolution1,
                     resolution2,
+                    min_scaffold_length,
                     threshold, 
                     max_round, 
                     threads,
@@ -1023,23 +1007,27 @@ def hyperpartition(edges,
 
         Edges : Path of the edges.
 
-        Fasta : Path of fasta file.
+        Contig_sizes : Path of contig sizes.
 
         Output : Path of output clusters.
     """
     import msgspec 
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges
-    
-    logger.info(f"Load edges.")
+    from .utilities import read_chrom_sizes 
+
+    contigsizes = read_chrom_sizes(contigsizes)
+
+    logger.info(f"Load hyperedges.")
     edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
-    
+
     hp = HyperPartition(edges, 
-                            fasta,
+                            contigsizes,
                             prune,
                             min_length,
                             resolution1, 
                             resolution2,
+                            min_scaffold_length,
                             threshold, 
                             max_round, 
                             threads, 
@@ -1104,14 +1092,22 @@ def optimize(group, coolfile, output):
     default="groups.asm.fasta",
     show_default=True
 )
-def build(fasta, output):
+@click.option(
+    "--only-agp",
+    "only_agp",
+    help="Only output the agp file.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def build(fasta, output, only_agp):
     """
     Build genome release.
 
     Fasta : contig-level fasta file
     """
     from .build import Build
-    Build(fasta, output)
+    Build(fasta, output, only_agp=only_agp)
 
 @cli.command()
 @click.option(
@@ -1518,18 +1514,29 @@ def countRE2cluster(count_re, output, fofn):
     metavar="OUTPUT_COOL_PATH"
 )
 @click.option(
-    '--no_mask_nan',
+    '--min-contacts',
+    'min_contacts',
+    help='Minimum contacts for contig pair',
+    default=3,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '--no-mask-nan',
+    'no_mask_nan',
     help='Do not mask nan bins.',
     default=False,
     show_default=True
 )
 @click.option(
-    '--symmetric_upper',
+    '--symmetric-upper',
+    'symmetric_upper',
     default=True,
     show_default=True,
 )
 def merge_cool(coolfile, 
             outcool, 
+            min_contacts, 
             no_mask_nan,
             symmetric_upper):
     """
@@ -1541,4 +1548,7 @@ def merge_cool(coolfile,
 
     """
     from .utilities import merge_matrix
-    merge_matrix(coolfile, outcool, no_mask_nan, symmetric_upper)
+    merge_matrix(coolfile, outcool, 
+                    min_contacts=min_contacts, 
+                    no_mask_nan=no_mask_nan, 
+                    symmetric_upper=symmetric_upper)

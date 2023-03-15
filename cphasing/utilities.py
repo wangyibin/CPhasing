@@ -433,6 +433,31 @@ def get_contig_idx(fasta):
     contigs = get_contigs(fasta)
     return dict(zip(contigs, range(len(contigs))))
 
+def read_chrom_sizes(chrom_size):
+    """
+    read chrom size file
+
+    Params:
+    --------
+    chrom_size: str
+        path of chrom size (two columns)
+    
+    Returns:
+    --------
+    chrom_sizes: pd.DataFrame
+        dataframe of chromsizes
+    
+    Examples:
+    --------
+    >>> df = read_chrom_sizes("sample.chromsizes")
+    """
+    # logger.info(f"Loading contig sizes `{chrom_size}`...")
+    df = pd.read_csv(chrom_size, sep='\t', header=None, index_col=0, names=['chrom', 'length'])
+
+    return df 
+
+
+
 def check_allhic_version():
     from shutil import which
     assert which('allhic') is not None, "No such command of `allhic`" 
@@ -537,8 +562,10 @@ def to_humanized(size):
 
 def merge_matrix(coolfile, 
                 outcool, 
+                min_contacts=3,
                 no_mask_nan=False,
-                symmetric_upper=True):
+                symmetric_upper=True,
+                no_dia=True):
     """
     merge slidewindows matrix into whole contig matrix.
     
@@ -549,7 +576,7 @@ def merge_matrix(coolfile,
     """
     from scipy.sparse import coo_matrix, dia_matrix, triu
 
-    logger.info(f'Loading {coolfile} ...')
+    logger.info(f'Loading `{coolfile}` ...')
     cool = cooler.Cooler(coolfile)
 
     pixels = cool.matrix(balance=False, sparse=True, 
@@ -565,6 +592,8 @@ def merge_matrix(coolfile,
     
     pix_counts = pix_counts.to_frame().reset_index()
     
+    pix_counts = pix_counts[pix_counts['count'] >= min_contacts]
+
     ## reset chromosome into bin id
     pix_counts['chrom1'] = pix_counts['chrom1'].cat.codes.values
     pix_counts['chrom2'] = pix_counts['chrom2'].cat.codes.values
@@ -577,7 +606,12 @@ def merge_matrix(coolfile,
     m, n = len(cool.chromnames), len(cool.chromnames)
     matrix = coo_matrix((data, (row, col)), shape=(m, n))
     dia = dia_matrix(([matrix.diagonal()], [0]), shape=matrix.shape)
-    matrix = matrix + matrix.T - dia
+    
+    if no_dia:
+        matrix = matrix + matrix.T - (2 * dia)
+    else:
+        matrix = matrix + matrix.T - dia
+    
     if symmetric_upper:
         matrix = triu(matrix).tocoo()
     

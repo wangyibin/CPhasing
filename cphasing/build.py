@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 GAP = 'N'*100
 
-def Build(fasta, output='groups.asm.fasta', threads=1):
+def Build(fasta, output='groups.asm.fasta', only_agp=False):
     
     fasta = Fasta(fasta)
     p = Path('./')
@@ -51,8 +51,9 @@ def Build(fasta, output='groups.asm.fasta', threads=1):
     
     agp_df = pd.concat([agp_df, unanchor_df], axis=0)
     agp_df.to_csv(agp, sep='\t', header=False, index=False)
-            
-    with xopen(output, 'w') as out:
-        agp2fasta(agp, fasta.filename, out)
+    
+    if not only_agp:
+        with xopen(output, 'w') as out:
+            agp2fasta(agp, fasta.filename, out)
     
     

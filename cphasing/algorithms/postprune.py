@@ -11,15 +11,17 @@ import numpy as np
 import pandas as pd
 
 from collections import defaultdict, OrderedDict
-from itertools import combinations, permutations
+from itertools import combinations
 from joblib import Parallel, delayed
 
-from cphasing.core import AlleleTable, ClusterTable, PairTable, CountRE
-from cphasing.utilities import list_flatten
+from ..core import AlleleTable, ClusterTable, PairTable, CountRE
+from ..utilities import list_flatten
+
+logger = logging.getLogger(__name__)
 
 def post_prune(group, contigs, at, pt, cr):
     """
-    
+    so
     Params:
     --------
     contigs: list

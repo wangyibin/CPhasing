@@ -1,5 +1,16 @@
 # Release notes #
 
+## [v0.0.13]
+Date: 2023-03-12
+### New features
+- `KPruner`, prune contig contacts according similarity allele table
+### Enhancement
+- `extract_incidence_matrix`, restruct to speed up 
+- `extract`, `hyperpartition`, import contig sizes instead of fasta
+- `HyperPartition`, add filter function of minimum scaffolding length  
+- `build`, add only-agp option
+### Bug fixes
+- `HyperExtractor`, fixed the problem of read index for multi dataframe concat
 ## [v0.0.12]
 Date: 2023-03-11
 ### New features

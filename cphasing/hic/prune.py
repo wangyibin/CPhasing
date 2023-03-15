@@ -15,7 +15,7 @@ import numpy as np
 
 from itertools import combinations
 
-from .core import (
+from ..core import (
     AlleleTable, 
     CountRE, 
     PairTable

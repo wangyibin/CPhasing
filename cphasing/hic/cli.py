@@ -351,6 +351,55 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
     pt = PairTable(pairtable)
     pregroup(at, cr, pt, fasta, outdir, threads)
 
+@hic.command()
+@click.argument(
+    'alleletable',
+    metavar='AlleleTable',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'count_re',
+    metavar='CountRE',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'pairtable',
+    metavar='PairTable',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-n',
+    '--normalize',
+    help='If normalize the contacts.',
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def prune(
+    alleletable, 
+    count_re,
+    pairtable,
+    normalize
+):
+    """
+    Prune allelic signal by allele table.
+
+        AlleleTable : Path to allele table.
+
+        CountRE : Path to countRE file.
+
+        PairTable : Path to allhic pairs table.
+
+    """
+    from .prune import Prune
+
+    at = AlleleTable(alleletable, sort=False)
+    cr = CountRE(count_re)
+    pt = PairTable(pairtable, symmetric=False)
+
+    Prune(at, cr, pt, normalize)
+    pt.save(pt.filename.replace(".txt", ".prune.txt"))
+
 
 @hic.command()
 @click.argument(

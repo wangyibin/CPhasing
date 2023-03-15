@@ -61,11 +61,17 @@ class Extractor:
     def generate_edges(self):
         """
         """
-        
+        logger.info(f"Extract edges from pairs.") 
+
         if len(self.pairs_pathes) == 1:
+            # if self.pairs_pathes[0][-3:] == ".gz":
+            #     compression = 'gzip'
+            # else:
+            #     compression='infer'
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
                                 header=None, index_col=None,
-                                usecols=[1, 3], names=['chrom1', 'chrom2'])
+                                usecols=[1, 3], names=['chrom1', 'chrom2'], 
+                               )
            
             res = Extractor._process_df(p, self.contig_idx)    
             res = res.reset_index()
@@ -79,9 +85,15 @@ class Extractor:
 
         else: 
             p_list = self.pairs_pathes
+            # if p_list[0][-3:] == ".gz":
+            #     compression = 'gzip'
+            # else:
+            #     compression='infer'
+
             res = Parallel(n_jobs=self.threads)(delayed(
                 lambda x: pd.read_csv(x, sep='\t', comment="#",
-                                header=None, index_col=None,
+                                header=None, index_col=None, 
+                                # compression=compression,
                                 usecols=[1, 3], names=['chrom1', 'chrom2']))
                                 (i) for i in p_list)
             
@@ -128,18 +140,19 @@ def process_pore_c_table(df, contig_idx, npartition,
     #                     df.chrom.cat.categories))
     df = (df.assign(alignment_length=lambda x: x.end - x.start)
             .query(f"alignment_length >= {min_alignments}")
-            .set_index('read_idx')
-    )
-    df_grouped = df.groupby('read_idx', sort=False)['chrom_idx']
+            .set_index('read_idx'))
+    df = df[['chrom_idx']]
+    df_grouped = df.groupby('read_idx')['chrom_idx']
     df_grouped_nunique = df_grouped.nunique()
     df = df.loc[(df_grouped_nunique >= min_order) 
                     & (df_grouped_nunique <= max_order)]
 
     df = df[['chrom_idx']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
+  
     df['read_idx'] = df['read_idx'].astype('category')
     df['read_idx'] = df['read_idx'].cat.codes
     
-    #df = df.groupby('read_idx', sort=False)['chrom_idx'].unique()
+    # df = df.groupby('read_idx', sort=False)['chrom_idx'].unique()
     
     # df = df.apply(lambda x: pd.Series(x))
 
@@ -266,7 +279,10 @@ class HyperExtractor:
         >>> H, vertices = generate_hypergraph("pore_c.pq")
         """
         logger.info("Processing Pore-C table ...")
-        
+        logger.info(f"Only retained Pore-C concatemer that: \n"
+                        f"\talignment length >= {self.min_alignments}\n"
+                        f"\t{self.min_order} <= contig order <= {self.max_order}")
+
         if self.use_dask:
             pore_c_table = self.pore_c_tables[0]
             args = []
@@ -285,17 +301,23 @@ class HyperExtractor:
                         delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
                                 for i, j, k, l, m, n, o in args)
         
+        idx = 0
+        for i, df in enumerate(res):
+            df['read_idx'] = df['read_idx'] + idx 
+            res[i] = df
+            idx += len(df)
+           
         res_df = pd.concat(res)
         
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),
                        col=res_df['read_idx'].values.flatten().tolist())
-        logger.info(f"Only retained Pore-C concatemer that: \n"
-                        f"\talignment length >= {self.min_alignments}\n"
-                        f"\t{self.min_order} <= contig order <= {self.max_order}")
-                        
-        del pore_c_table
-        gc.collect()
+        
+        number_of_contigs = len(self.contig_idx)
+        number_of_hyperedges = res_df['read_idx'].max()
+        logger.info(f"Result of {number_of_hyperedges} raw "
+                    f"hyperedges of {number_of_contigs} contigs. "
+                    "Note: it's not the final statistics for hypergraph.")
 
         return edges
     

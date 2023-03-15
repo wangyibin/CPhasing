@@ -1,5 +1,5 @@
 ## legacy from ALLHiC
-    These functions were developed to 
+    These functions were developing for ALLHiC2 but deprecated.
 
 
     - [gmap](http://research-pub.gene.com/gmap/)

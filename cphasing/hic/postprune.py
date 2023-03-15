@@ -14,8 +14,8 @@ from collections import defaultdict, OrderedDict
 from itertools import combinations, permutations
 from joblib import Parallel, delayed
 
-from cphasing.core import AlleleTable, ClusterTable, PairTable, CountRE
-from cphasing.utilities import list_flatten
+from ..core import AlleleTable, ClusterTable, PairTable, CountRE
+from ..utilities import list_flatten
 
 def post_prune(group, contigs, at, pt, cr):
     """

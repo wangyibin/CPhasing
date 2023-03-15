@@ -20,7 +20,8 @@ from pyfaidx import Fasta
 from .algorithms.hypergraph import (
     HyperGraph,
     IRMM,
-    extract_incidence_matrix, 
+    extract_incidence_matrix,
+    extract_incidence_matrix2, 
     remove_incidence_matrix
     )
 from .utilities import list_flatten, get_contigs
@@ -41,30 +42,32 @@ class HyperPartition:
 
     """
     def __init__(self, edges, 
-                    fasta,
+                    contigsizes,
                     prune=None,
                     min_length=10000, 
                     resolution1=0.8,
                     resolution2=0.6,
+                    min_scaffold_length=10000,
                     threshold=0.01,
-                    max_round=10, 
+                    max_round=1, 
                     threads=4,
                     chunksize=None
                     ):
         
         self.edges = edges
-        self.fasta = fasta
+        self.contigsizes = contigsizes
         self.prune = prune 
 
         self.min_length = min_length
         self.resolution1 = resolution1
         self.resolution2 = resolution2
+        self.min_scaffold_length = min_scaffold_length
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
         self.chunksize = int(chunksize) if chunksize else None
 
-        self.contigs = get_contigs(self.fasta)
+        self.contigs = self.contigsizes.index.values.tolist()
         self.H, self.vertices = self.get_hypergraph()
         
         ## remove edges
@@ -84,12 +87,11 @@ class HyperPartition:
         return dict(zip(self.vertices, 
                         range(len(self.vertices))))
     @property
-    def contig_sizes(self):
-        fasta = Fasta(self.fasta)
-        contig_size_db = OrderedDict(list(map(lambda x: (x.name, len(x)), list(fasta))))
+    def idx_to_vertices(self):
+        idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
         
-        return contig_size_db 
-
+        return idx_to_vertices
+    
     def get_prune_pairs(self):
         
         vertices_idx = self.vertices_idx
@@ -155,10 +157,9 @@ class HyperPartition:
 
     def filter_hypergraph(self):
         ## remove too short contigs
-        contig_sizes = self.contig_sizes
         vertices_idx = self.vertices_idx
-        short_contigs = [i for i in contig_sizes
-                                if contig_sizes[i] < self.min_length]
+        
+        short_contigs = self.contigsizes[self.contigsizes < self.min_length]
 
         short_contig_idx = []
         for i in short_contigs:
@@ -172,7 +173,9 @@ class HyperPartition:
 
         logger.info(f"Total {len(short_contig_idx)} contigs were removed, "
                         "because it's length too short.")
+        logger.info("start to remove ...")
         self.H, _ = remove_incidence_matrix(self.H, short_contig_idx)
+        logger.info("done")
         self.vertices = np.delete(self.vertices, short_contig_idx)
 
     def get_normalize_weight(self):
@@ -186,7 +189,26 @@ class HyperPartition:
  
         return NW
 
-    
+    def single_partition(self):
+        logger.info("Starting cluster ...")
+        self.K = IRMM(self.H, #self.NW, 
+                        self.P_idx,
+                        self.resolution1, 
+                        self.threshold, self.max_round,
+                        threads=self.threads)
+        logger.info("Cluster done.")
+
+
+        # self.K = list(filter(lambda x: len(x) > 1, self.K))
+        self.K = list(map(list, self.K))
+        self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
+        self.K = self.filter_cluster()
+
+        logger.info(f"Hyperpartition result {len(self.K)} groups: "
+                    f"{list(map(len, self.K))}")
+        
+        return self.K  
+        
     @staticmethod
     def _multi_partition(k, prune_pair_df, H, #NW, 
                          resolution, threshold, max_round, num):
@@ -194,7 +216,7 @@ class HyperPartition:
         single function for multi_partition.
         """
         k = np.array(list(k))
-        sub_H, _ = extract_incidence_matrix(H, k)
+        sub_H, _ = extract_incidence_matrix2(H, k)
         
         del H 
         gc.collect() 
@@ -222,7 +244,8 @@ class HyperPartition:
                         outprefix=num)
         
         ## remove single group
-        new_K = filter(lambda x: len(x) > 1, new_K)
+        new_K = list(filter(lambda x: len(x) > 1, new_K))
+        logger.info(f"Cluster Statistics: {list(map(len, new_K))}")
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         
         return new_K
@@ -231,52 +254,57 @@ class HyperPartition:
         """
         multiple partition for autopolyploid.
         """
+        logger.info("Starting first partition ...")
         prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
 
         self.K = IRMM(self.H, #self.NW, 
                       None, self.resolution1, self.threshold, 
                         self.max_round, threads=self.threads)
-        self.K = filter(lambda x: len(x) > 1, self.K)
-
-        logger.info("multi-partition ...")
-        # results = []
+        
+        # self.K = list(filter(lambda x: len(x) > 1, self.K))
+        self.K = self.filter_cluster()
+        logger.info(f"First hyperpartition resulted {len(self.K)} groups:"
+                    f" {list(map(len, self.K))}")
+        
+        logger.info("Starting second hyperpartition ...")
+    
         args = []
         for num, k in enumerate(self.K, 1):
             args.append((k, prune_pair_df, self.H, #self.NW, 
                         self.resolution2, self.threshold, self.max_round, num))
-           
-        results = Parallel(n_jobs=min(self.threads, len(args)))(
+            # results.append(HyperPartition._multi_partition(k, prune_pair_df, self.H, #self.NW, 
+            #             self.resolution2, self.threshold, self.max_round, num))
+            
+        results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._multi_partition)
                                 (i, j, k, l, m, n, o) 
                                     for i, j, k, l, m, n, o in args)
 
         self.K = list_flatten(results)
-        logger.info(f"Multi partition results: {list(map(len, self.K))}")
+        self.K = self.filter_cluster()
+        logger.info(f"Second hyperpartition resulted {len(self.K)} groups:"
+                    f" {list(map(len, self.K))}")
 
-    def single_partition(self):
+    def post_check(self):
+        pass
+
+    @staticmethod
+    def get_k_size(k, contigsizes, idx_to_vertices):
+        k = list(map(idx_to_vertices.get, k))
         
-        logger.info("Starting to cluster ...")
-        self.K = IRMM(self.H, #self.NW, 
-                        self.P_idx,
-                        self.resolution1, 
-                        self.threshold, self.max_round,
-                        threads=self.threads)
-        logger.info("Cluster done.")
-
-
-        self.K = filter(lambda x: len(x) > 1, self.K)
-        self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
+        return contigsizes.loc[k].sum().values[0]
+    
+    def filter_cluster(self):
+        logger.info(f"Removed scaffolding less than {self.min_scaffold_length} in length.")
+        return list(
+            filter(lambda x: HyperPartition.get_k_size(
+                    x, self.contigsizes, self.idx_to_vertices) \
+                        >= self.min_scaffold_length, 
+                    self.K))
         
-        return self.K
-
-
     def to_cluster(self, output):
-        idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
+        idx_to_vertices = self.idx_to_vertices
 
-        with open('idx_to_vertices.list', 'w') as out:
-            for idx, contig in idx_to_vertices.items():
-                print(idx, contig, sep='\t', file=out)
-                
         clusters = list(map(lambda y: list(
                         map(lambda x: idx_to_vertices[x], y)), 
                         self.K))

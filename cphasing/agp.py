@@ -200,6 +200,7 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
         print(f'>{chrom}', file=output)
         print(out_seq, file=output)
 
+    logger.info(f"Output chromosome-level fasta into `{output.name}`.")
 
 def agp2tour(agp, outdir, force=False):
     """

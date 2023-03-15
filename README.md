@@ -17,7 +17,6 @@ The advantages of `C-Phasing`:
 ## Dependencies
 ### For core function.
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
-
 ### For Hi-C pipeline.
 - [chromap](https://github.com/haowenz/chromap)
 
@@ -51,10 +50,10 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing alleles -f draft.asm.fasta
     ```
-    - `prune`
+    - `kprune`
     > for polyploid or diploid phasing
     ```bash
-    cphasing prune allele.table contigs.whole.cool 
+    cphasing kprune allele.table contigs.whole.cool 
     ```
     - `extract`
     ```bash
@@ -64,7 +63,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     ## for haploid scaffolding 
     cphasing hyperpartition sample.hyperedges draft.asm.fasta output.clusters.txt 
-    ## for polyploid or diploid phasing
+    ## for polyploid or diploid phasing must add prune information and use the multi partition mode
     cphasing hyperpartition sample.hyperedges draft.asm.fasta output.clusters.txt --prune prune.contig.list --multi  
     ```
     - `build`

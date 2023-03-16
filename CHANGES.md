@@ -1,7 +1,11 @@
 # Release notes #
 
+## [v0.0.14]
+Date: 2023-03-20
+### New features
+
 ## [v0.0.13]
-Date: 2023-03-12
+Date: 2023-03-15
 ### New features
 - `KPruner`, prune contig contacts according similarity allele table
 ### Enhancement

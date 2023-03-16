@@ -15,6 +15,7 @@ from itertools import permutations
 from joblib import Parallel, delayed
 from scipy.sparse import hstack
 from pathlib import Path
+from pprint import pformat
 from pyfaidx import Fasta
 
 from .algorithms.hypergraph import (
@@ -44,6 +45,7 @@ class HyperPartition:
     def __init__(self, edges, 
                     contigsizes,
                     prune=None,
+                    min_contacts=3,
                     min_length=10000, 
                     resolution1=0.8,
                     resolution2=0.6,
@@ -55,13 +57,14 @@ class HyperPartition:
                     ):
         
         self.edges = edges
-        self.contigsizes = contigsizes
+        self.contigsizes = contigsizes ## dataframe
+        self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.prune = prune 
-
+        self.min_contacts = min_contacts
         self.min_length = min_length
         self.resolution1 = resolution1
         self.resolution2 = resolution2
-        self.min_scaffold_length = min_scaffold_length
+        self.min_scaffold_length = int(min_scaffold_length)
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
@@ -92,6 +95,17 @@ class HyperPartition:
         
         return idx_to_vertices
     
+    @property
+    def vertices_idx_sizes(self):
+        """
+        through vertices idx to get contig size
+        """
+        vertices_idx_sizes = {}
+        for i, j in self.vertices_idx.items():
+            vertices_idx_sizes[j] = self.contig_sizes[i]
+        
+        return vertices_idx_sizes
+
     def get_prune_pairs(self):
         
         vertices_idx = self.vertices_idx
@@ -144,7 +158,7 @@ class HyperPartition:
 
         else:
             HG = HyperGraph(self.edges)
-            H = HG.incidence_matrix()
+            H = HG.incidence_matrix(self.min_contacts)
             vertices = HG.nodes
 
             del HG 
@@ -201,16 +215,21 @@ class HyperPartition:
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
         self.K = list(map(list, self.K))
-        self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
+        # self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         self.K = self.filter_cluster()
-
-        logger.info(f"Hyperpartition result {len(self.K)} groups: "
-                    f"{list(map(len, self.K))}")
+        
+        self.K = sorted(self.K, 
+                        key=lambda x: self.contigsizes.iloc[x]['length'].sum(), 
+                        reverse=True)
+        length_contents = pformat(list(map(
+            lambda  x: "{:,}".format(self.contigsizes.iloc[x]['length'].sum()), self.K)))
+        logger.info(f"Hyperpartition result {len(self.K)} groups:\n"
+                    f"{length_contents}")
         
         return self.K  
         
     @staticmethod
-    def _multi_partition(k, prune_pair_df, H, #NW, 
+    def _multi_partition(k, prune_pair_df, H, contigsizes, #NW, 
                          resolution, threshold, max_round, num):
         """
         single function for multi_partition.
@@ -244,10 +263,11 @@ class HyperPartition:
                         outprefix=num)
         
         ## remove single group
-        new_K = list(filter(lambda x: len(x) > 1, new_K))
+        # new_K = list(filter(lambda x: len(x) > 1, new_K))
         logger.info(f"Cluster Statistics: {list(map(len, new_K))}")
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
-        
+        new_K = sorted(new_K, key=lambda x: contigsizes.iloc[x]['length'].sum(), reverse=True)
+
         return new_K
 
     def multi_partition(self):
@@ -261,29 +281,36 @@ class HyperPartition:
                       None, self.resolution1, self.threshold, 
                         self.max_round, threads=self.threads)
         
-        # self.K = list(filter(lambda x: len(x) > 1, self.K))
+        self.K = list(map(list, self.K))
         self.K = self.filter_cluster()
-        logger.info(f"First hyperpartition resulted {len(self.K)} groups:"
-                    f" {list(map(len, self.K))}")
+        self.to_cluster(f'first.clusters.txt')
+
+        length_contents = pformat(list(map(
+            lambda  x: "{:,}".format(self.contigsizes.iloc[x]['length'].sum()), self.K)))
+        logger.info(f"First hyperpartition resulted {len(self.K)} groups:\n"
+                    f"{length_contents}")
         
+
         logger.info("Starting second hyperpartition ...")
     
         args = []
         for num, k in enumerate(self.K, 1):
-            args.append((k, prune_pair_df, self.H, #self.NW, 
+            args.append((k, prune_pair_df, self.H, self.contigsizes,#self.NW, 
                         self.resolution2, self.threshold, self.max_round, num))
             # results.append(HyperPartition._multi_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._multi_partition)
-                                (i, j, k, l, m, n, o) 
-                                    for i, j, k, l, m, n, o in args)
+                                (i, j, k, l, m, n, o, p) 
+                                    for i, j, k, l, m, n, o, p in args)
 
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
-        logger.info(f"Second hyperpartition resulted {len(self.K)} groups:"
-                    f" {list(map(len, self.K))}")
+        length_contents = pformat(list(map(
+            lambda  x: "{:,}".format(self.contigsizes.iloc[x]['length'].sum()), self.K)))
+        logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
+                    f"{length_contents}")
 
     def post_check(self):
         pass
@@ -313,4 +340,4 @@ class HyperPartition:
                 print(f'group{i}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
 
-        logger.info(f"Successful output cluster results in `{output}`.")
+        logger.info(f"Successful output hyperpartition results in `{output}`.")

@@ -52,24 +52,37 @@ class HyperGraph:
         self.shape = (len(self.edges.idx), max(self.edges.col) + 1)
         self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
 
-    def incidence_matrix(self, remove_zero=True):
+    def incidence_matrix(self, min_contacts=3):
+        """
+        The incidence matrix of hypergraph
+
+        Params:
+        --------
+        min_contacts: int
+            minimum contacts of contig
+
+        """
         matrix = csr_matrix((np.ones(len(self.edges.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
                              (self.edges.row, self.edges.col)
                              ), 
                              shape= self.shape
                              )
 
-        if remove_zero:
-            non_zero_contig_idx = np.where(matrix.sum(axis=1).T != 0)[-1]
+
+        if min_contacts:
+            non_zero_contig_idx = np.where(matrix.sum(axis=1).T >= min_contacts)[-1]
             matrix = matrix[non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
-            logger.info(f"{self.shape[0] - non_zero_contig_idx.shape[0]} non-singal contigs were removed")
+            logger.info(f"{self.shape[0] - non_zero_contig_idx.shape[0]} low-singal contigs were removed")
             
-            # non_zero_edges_idx = np.where(matrix.sum(axis=0).T != 0)[-1]
-            # matrix = matrix[:, non_zero_edges_idx]
+            non_zero_edges_idx = np.where(matrix.sum(axis=0) >= 2)[-1]
+       
+            matrix = matrix[:, non_zero_edges_idx]
             self.shape = matrix.shape 
-            
+
         return matrix 
+
+    
 
 def calc_new_weight(k, c, e_c, m):
     """

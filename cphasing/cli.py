@@ -915,6 +915,15 @@ def extract(contacts,
     type=click.Path(exists=True)
 )
 @click.option(
+    "--min-conatacts",
+    "min_contacts",
+    help="Minimum contacts of contigs",
+    metavar="INT",
+    type=int,
+    default=3,
+    show_default=True
+)
+@click.option(
     "--min-length",
     "min_length",
     help="Minimum length of contigs",
@@ -993,6 +1002,7 @@ def hyperpartition(edges,
                     contigsizes, 
                     output,
                     prune,
+                    min_contacts,
                     min_length, 
                     resolution1,
                     resolution2,
@@ -1024,6 +1034,7 @@ def hyperpartition(edges,
     hp = HyperPartition(edges, 
                             contigsizes,
                             prune,
+                            min_contacts,
                             min_length,
                             resolution1, 
                             resolution2,

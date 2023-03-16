@@ -25,6 +25,7 @@ from .algorithms.hypergraph import (
     extract_incidence_matrix2, 
     remove_incidence_matrix
     )
+from .algorithms.postcheck import post_prune, post_rescue
 from .utilities import list_flatten, get_contigs
 from ._config import *
 
@@ -313,7 +314,17 @@ class HyperPartition:
                     f"{length_contents}")
 
     def post_check(self):
+        """
+        check the partition results remove the allelic 
+            mis-assembly and add it to correctly groups
+        """
+
+        
+
+
         pass
+
+
 
     @staticmethod
     def get_k_size(k, contigsizes, idx_to_vertices):

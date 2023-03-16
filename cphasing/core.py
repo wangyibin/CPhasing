@@ -546,6 +546,7 @@ class PairTable:
         _pairs_df = _pairs_df[_pairs_df['#X'] < _pairs_df['Y']]
         self.data = _pairs_df.sort_values(by=['#X', 'Y'])
 
+    @property
     def is_symmetric(self):
         """
         Detect the pairtable whether symmetry
@@ -590,7 +591,7 @@ class PairTable:
             utg001 utg002   3  20  1247  532  46             426.6                       ok
                    utg003   3  29  1247  558  28             430.0                       ok
         """
-        assert self.is_symmetric, "The pair table must be symmetric"
+        assert self.is_symmetric, "The pair table must be symmetric."
 
         tmp_df = self.data.reindex((i, j) for i in contig1 for j in contig2)
         tmp_df = tmp_df.dropna(how='all', axis=0)
@@ -1878,15 +1879,136 @@ class MndTable:
 
         logger.info(f'Successful written pairs file into `{output}`.')
 
-class Contacts:
-    def __init__(self, coolfile):
+class Contact:
+    def __init__(self, coolfile, symmetric=True):
         self.coolfile = coolfile 
         self.cool = cooler.Cooler(self.coolfile)
-    
-    def get_contacts(self):
-        pass
 
+        self.data = self.get_symmetric_pixels()
     
+    @property
+    def count_db(self):
+        """
+        get the symmetric contact counts database 
+        """
+
+        db = self.data.to_dict()['count']
+        db = defaultdict(lambda :0, db)
+        
+        return db
+
+    def get_symmetric_pixels(self):
+        """
+        get the symmetric pixels
+        """
+
+        pixels1 = self.cool.matrix(balance=False, join=True, 
+                                       as_pixels=True)[:][['chrom1', 'chrom2', 'count']]
+        
+        pixels2 = pixels1.copy()
+        pixels2.columns = ['chrom2', 'chrom1', 'count']
+     
+        pixels = pd.concat([pixels1, pixels2], axis=0)
+        pixels.set_index(['chrom1', 'chrom2'], inplace=True)
+
+        return pixels
+
+    @property
+    def is_symmetric(self):
+        """
+        Detect the contact data whether symmetry
+
+        Returns:
+        --------
+        bool
+            returns a boolefffan indicating whether the contact data is symmetric
+
+        Examples:
+        --------
+        >>> contact.is_symmetric
+        True
+        """
+       
+        return (self.data.index.get_level_values(0) > 
+                    self.data.index.get_level_values(1)).any()
+
+
+
+    def get_contacts(self, contig1, contig2):
+        """
+        get contacts dataframe between two contig lists, 
+        the pairs table must be symmetric and index by Contig1
+        and Contig2
+
+        Params:
+        --------
+        contig1: list or list-like
+            list of contigs
+        contig2: list or list-like
+            list of contigs
+        
+        Returns:
+        --------
+        pd.DataFrame:
+            dataframe of two contig lists
+
+        Examples:
+        --------
+        >>> contig1 = ['utg001']
+        >>> contig2 = ['utg002', 'utg003']
+        >>> contact.get_contacts(contig1, contig2)
+
+        """
+        assert self.is_symmetric, "The contact data must be symmetric."
+        
+        tmp_df = self.data.reindex(((i, j) for i in contig1  for j in contig2), fill_value=0)
+        tmp_df = tmp_df.dropna(how='all', axis=0)
+
+        return tmp_df
+
+    def get_contact(self, contig1, contig2, count_re=None):
+        """
+        get unnormalized contact between two contig lists
+
+        Params:
+        --------
+        contig1: list or list-like
+            list of contigs
+        contig2: list or list-like
+            list of contigs
+        count_re: CountRE
+            count RE table
+
+        Returns:
+        --------
+        float:
+            normalized contact
+
+        Examples:
+        --------
+        >>> contig1 = ['utg001']
+        >>> contig2 = ['utg002', 'utg003']
+        >>> pt.get_normalized_contact(contig1, contig2)
+        0.05
+        """
+        tmp_df = self.get_contacts(contig1, contig2)
+        
+        if tmp_df.empty:
+            return 0
+
+        L = tmp_df['count'].sum()
+        if count_re:
+            
+            C1 = count_re.data.reindex(contig1)['RECounts'].sum()
+            C2 = count_re.data.reindex(contig2)['RECounts'].sum()
+
+
+            return L * 1000 / (C1 * C2)
+        else:
+            return L
+        
+
+
     
 
 class PAFLine:

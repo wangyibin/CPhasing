@@ -105,25 +105,7 @@ class KPruner:
         edges = [(a, b) for a in allele_pair1 for b in allele_pair2]
         scores = [score_db[i] for i in edges]
 
-        # allele_pair_idx1 = list(range(len(allele_pair1)))
-        # allele_pair_idx2 = list(range(len(allele_pair_idx1),  len(allele_pair_idx1) + len(allele_pair2)))
-        # edges = [(a, b) for a in allele_pair_idx1 for b in allele_pair_idx2]
         edges = [(0, 2), (0, 3), (1, 2), (1, 3)]
-      
-        ## networkx slowly (0.0022s)
-        # weighted_edges = [(0, 2, scores[0]), 
-        #                     (0, 3, scores[1]), 
-        #                     (1, 2, scores[2]), 
-        #                     (1, 3, scores[3])]
-        # G = nx.Graph()
-        # G.add_weighted_edges_from(weighted_edges)
-        # matching = nx.max_weight_matching(G)
-        
-        # if (0, 2) in matching or (2, 0) in matching:
-        #     return True
-        
-        # else:
-        #     return False
 
         ## igraph quickly (0.000331s)
         g = ig.Graph.Bipartite([0, 0, 1, 1], edges)

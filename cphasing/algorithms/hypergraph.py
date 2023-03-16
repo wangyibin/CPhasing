@@ -17,7 +17,8 @@ from scipy.sparse import (
     identity, 
     dia_matrix, 
     csr_matrix, 
-    coo_matrix
+    coo_matrix,
+    save_npz
 )
 
 logger = logging.getLogger(__name__)
@@ -302,7 +303,7 @@ def IRMM(H, # NW,
     # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
     cluster_stat = list(map(len, cluster_assignments))
     
-
+    save_npz(f'{outprefix}.A.npz', A)
     
     del A, G
     gc.collect()

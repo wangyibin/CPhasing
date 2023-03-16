@@ -576,7 +576,7 @@ def merge_matrix(coolfile,
     """
     from scipy.sparse import coo_matrix, dia_matrix, triu
 
-    logger.info(f'Loading `{coolfile}` ...')
+    logger.info(f'Load `{coolfile}` ...')
     cool = cooler.Cooler(coolfile)
 
     pixels = cool.matrix(balance=False, sparse=True, 

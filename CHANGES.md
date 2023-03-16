@@ -4,6 +4,12 @@
 Date: 2023-03-20
 ### New features
 
+### Enhancement
+- `HyperPartition`
+    - add post check to increase the accuracy of partition
+    - add min-contacts parameters to remove low contact contig pairs
+
+
 ## [v0.0.13]
 Date: 2023-03-15
 ### New features

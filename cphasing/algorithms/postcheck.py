@@ -14,12 +14,12 @@ from collections import defaultdict, OrderedDict
 from itertools import combinations
 from joblib import Parallel, delayed
 
-from ..core import AlleleTable, ClusterTable, PairTable, CountRE
-from ..utilities import list_flatten
+from cphasing.core import AlleleTable, ClusterTable, Contact, CountRE
+from cphasing.utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 
-def post_prune(group, contigs, at, pt, cr):
+def post_prune(group, contigs, at, contact, cr):
     """
     so
     Params:
@@ -28,7 +28,7 @@ def post_prune(group, contigs, at, pt, cr):
 
     at: AlleleTable
 
-    pt: PairTable
+    contact: Contact
 
     Returns:
     --------
@@ -74,8 +74,8 @@ def post_prune(group, contigs, at, pt, cr):
     contact_db = {}
     for pair in conflict_contig_pairs:
         
-        v1 = pt.get_contact([pair[0]], correct_contigs, cr)
-        v2 = pt.get_contact([pair[1]], correct_contigs, cr)
+        v1 = contact.get_contact([pair[0]], correct_contigs, cr)
+        v2 = contact.get_contact([pair[1]], correct_contigs, cr)
        
         contact_db[pair] = (v1, v2)
         # if group == "group12":
@@ -107,7 +107,7 @@ def post_prune(group, contigs, at, pt, cr):
     
     return group, new_contigs, error_contigs 
 
-def post_rescue(groups, error_contigs, at, cr, pt, mzTotal):
+def post_rescue(groups, error_contigs, at, cr, contact, mzTotal):
     """
     
     rescue error contigs after post prune 
@@ -133,7 +133,7 @@ def post_rescue(groups, error_contigs, at, cr, pt, mzTotal):
 
         for group in groups:
             group_contigs = groups[group]
-            c = pt.get_contact([contig], group_contigs, cr)
+            c = contact.get_contact([contig], group_contigs, cr)
             contacts.append(c)
             s = allelic_contigs.intersection(group_contigs)
             s = sum(score_db[(contig, i)] for i in s)
@@ -174,7 +174,7 @@ def test(args):
     pReq.add_argument('allele_table', 
             help='')
     pReq.add_argument('cluster_table')
-    pReq.add_argument('pair_table')
+    pReq.add_argument('coolfile')
     pReq.add_argument('count_re')
     pReq.add_argument('mz_total')
     pOpt.add_argument('-h', '--help', action='help',
@@ -184,7 +184,7 @@ def test(args):
 
     at = AlleleTable(args.allele_table, sort=False, fmt="allele2")
     ct = ClusterTable(args.cluster_table)
-    pt = PairTable(args.pair_table)
+    contact = Contact(args.coolfile)
     cr = CountRE(args.count_re, minRE=1)
     
     mzTotal = dict((i.strip().split("\t")[0], int(i.strip().split("\t")[1]))
@@ -192,9 +192,9 @@ def test(args):
 
     args = []
     for group in ct.data:
-        args.append((group, ct.data[group], at, pt, cr))
+        args.append((group, ct.data[group], at, contact, cr))
     
-    res = Parallel(n_jobs=10)(delayed(
+    res = Parallel(n_jobs=1)(delayed(
                     post_prune)(i, j, k, l, m) for i, j, k, l, m in args)
     
     
@@ -210,7 +210,7 @@ def test(args):
     #     # print(group, len(error_contigs), " ".join(sorted(error_contigs)), 
         #             sep='\t', file=sys.stdout)
 
-    new_groups = post_rescue(pruned_db, error_contigs, at, cr, pt, mzTotal)
+    new_groups = post_rescue(pruned_db, error_contigs, at, cr, contact, mzTotal)
 
     for group, new_contigs in new_groups.items():
         print(group, len(new_contigs), " ".join(sorted(new_contigs)), 

@@ -206,7 +206,7 @@ class OldOptimize:
         pass
 
     def minimum_spanning_tree(self):
-        pass
+        mst_tree = self.G.spanning_tree()
 
 
 class SimpleOptimize:
@@ -368,19 +368,64 @@ class SimpleOptimize2:
     """
     orientations = ["++", "+-", "-+", "--"]
     
-    def __init__(self, contigs, cool, threads=10):
+    def __init__(self, contigs, cool, method="so", threads=10):
         self.cool = cool
-        self.contigs = sorted(contigs, key=lambda x: self.cool.chromnames.index(x))
+        self.contigs = contigs #sorted(contigs, key=lambda x: self.cool.chromnames.index(x))
         self.contig_idx = dict(zip(self.contigs, range(len(self.contigs))))
+        self.idx_to_contig = dict(zip(range(len(self.contigs)), self.contigs))
 
         self.matrix = cool.matrix(balance=False, sparse=True)
         
+        self.method = method
         self.threads = threads 
         
         self.data = self.parse()
 
     @staticmethod
-    def _parse(matrix, pair):
+    def _parse_by_so(matrix, pair):
+        """
+        single pair parser
+        """
+        res = []
+        contig1, contig2 = pair 
+        sub_matrix = matrix.fetch(contig1, contig2)
+        if sub_matrix.getnnz() == 0:
+            return
+        sub_matrix = sub_matrix.tocsr()
+        l1, l2 = sub_matrix.shape
+        d1 = int(np.ceil(l1 / 2))
+        d2 = int(np.ceil(l2 / 2))
+
+        k = l2 - l1 if l1 < l2 else 0 
+
+        ## contig+ contig+
+        c = tril(sub_matrix[d1:, :d2], k).sum()
+        s = c / (d1 * d2)
+        res.append(s)
+        # print(f"{contig1}+ {contig2}+\t{s}")
+        
+        ## contig+ contig-
+        c = tril(sub_matrix[:, ::-1][d1:, :d2], k).sum()
+        s = c / (d1 * d2)
+        res.append(s)
+        # print(f"{contig1}+ {contig2}-\t{s}")
+
+        ## contig- contig+
+        c = tril(sub_matrix[::-1, :][d1:, :d2], k).sum()
+        s = c / (d1 * d2)
+        res.append(s)
+        # print(f"{contig1}- {contig2}+\t{s}")
+
+        ##contig- contig-
+        c = tril(sub_matrix[::-1, ::-1][d1:, :d2], k).sum()
+        s = c / (d1 * d2)
+        res.append(s)
+        # print(f"{contig1}- {contig2}-\t{s}")
+
+        return pair, res 
+
+    @staticmethod
+    def _parse_by_so2(matrix, pair):
         """
         single pair parser
         """
@@ -438,8 +483,10 @@ class SimpleOptimize2:
             
             args.append((self.matrix, pair))
         
+        _parse = SimpleOptimize2._parse_by_so if self.method == "so" else SimpleOptimize2._parse_by_so2
+
         res = Parallel(n_jobs=self.threads)(
-                delayed(SimpleOptimize2._parse)(i, j) for i, j in args )
+                delayed(_parse)(i, j) for i, j in args )
         
         ## remove None value
         res = dict(filter(lambda x: x is not None, res))
@@ -471,10 +518,10 @@ class SimpleOptimize2:
             graph_df['source'] = graph_df['source'].map(self.contig_idx.get)
             graph_df['target'] = graph_df['target'].map(self.contig_idx.get)
             
-
+        
         return graph_df, orientation_res
     
-    def save(self, output):
+    def save_score(self, output):
         """
         save the score data.
 
@@ -499,18 +546,97 @@ class SimpleOptimize2:
         """
         construct a graph
         """
-        graph_df, orientation_res = self.filter(as_idx=True)
-        # graph_df['weight'] = 1 / graph_df['weight']
+
+        graph_df, self.orientation_info = self.filter(as_idx=True)
+    
+        graph_df2 = graph_df[['target', 'source', 'weight']]
+        graph_df2.columns = ['source', 'target', 'weight']
+
+        graph_df = pd.concat([graph_df, graph_df2], axis=0)
+        graph_df['weight'] = 1 / graph_df['weight']
+        # graph_df['weight'] = max(graph_df['weight']) - graph_df['weight']
+        # graph_df['weight'] = graph_df['weight'].astype(int)
         G = ig.Graph.DataFrame(graph_df, directed=False)
         
-        return G
 
-    def _dfs(self, start):
+        return G, graph_df
+
+    def get_global_score(self, order_list):
+        order_pairs = [(i, j) for i, j in zip(order_list[:-1], order_list[1:])]
+    
+        scores = self.graph_df.reindex(order_pairs, fill_value=0)
         
-        pass 
+        score = sum(scores['weight'])
 
-    def dfs(self):
-        pass
+        return score
+    
+    def bfs(self, start):
+        res = self.G.bfs(start)[0]
+        
+        if len(res) == 1:
+            return None
+        # res = list(map(self.idx_to_contig.get, res[0]))
+        return  self.get_global_score(res), res
+
+    def dfs(self, start):
+        
+        res = self.G.dfs(start)[0]
+        
+        if len(res) == 1:
+            return None
+        # res = list(map(self.idx_to_contig.get, res[0]))
+        return  self.get_global_score(res), res
+
+    def order(self, algorithm='dfs'):
+        
+        args = []
+        for idx in range(len(self.contigs)):
+            args.append(idx)
+        
+        res = Parallel(n_jobs=self.threads)(
+                delayed(getattr(self, algorithm))(i) for i in args)
+
+        res = list(filter(lambda x: x is not None, res))
+        res = sorted(res, key=lambda x: x[0])
+
+        print(list(map(self.idx_to_contig.get, res[0][1])))
+        return list(map(self.idx_to_contig.get, res[0][1]))
+
+    def tsp_order(self):
+        import networkx as nx
+        tsp = nx.approximation.traveling_salesman_problem
+
+        G = self.G.to_networkx()
+        # SA_tsp = nx.approximation.simulated_annealing_tsp
+        # method = lambda G, wt: SA_tsp(G, "greedy", weight=wt, move='1-0', temp=500)
+        # path = tsp(G, cycle=False, method=method)
+        
+        path = tsp(G, cycle=False)
+
+        return list(map(self.idx_to_contig.get, path))
+    
+    def lkh_order(self):
+        import elkai
+        import networkx as nx 
+        G = self.G.to_networkx()
+        M = nx.adjacency_matrix(G).todense()
+        print(M)
+        path = elkai.solve_int_matrix(M)
+
+        return list(map(self.idx_to_contig.get, path))
+    
+    def orientation(self):
+        
+        for i, j in zip(self.ordering[:-1], self.ordering[1:]):
+            try:
+                print(i, j, self.orientations[self.orientation_info[(i, j)]])
+            except:
+                print(i, j)
+
+
+    def save(self, output):
+        with open(output, "w") as out:
+            print("\n".join(self.ordering), file=out)
 
     def minimum_spanning_tree(self):
         pass

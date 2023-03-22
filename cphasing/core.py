@@ -62,8 +62,8 @@ class CountRE:
     def __init__(self, countRE, minRE=3):
         self.filename = countRE
         self._path = Path(self.filename)
-        self.suffix = re.match(r'.*(counts_.*.txt)$', 
-                                self.filename).groups()[0]
+        # self.suffix = re.match(r'.*(counts_.*.txt)$', 
+        #                         self.filename).groups()[0]
         self.minRE = minRE
 
         self.parse()
@@ -856,9 +856,9 @@ class ClusterTable:
         for group in self.groups:
             _contigs = self.data[group]
             tmp_df = self.CountRE.data.loc[_contigs]
-            tmp_df.to_csv(f'{prefix}.{group}.txt', sep='\t',
+            tmp_df.to_csv(f'{group}.txt', sep='\t',
                             header=True, index=True)
-            logger.info(f'Output countRE file into `{prefix}.{group}.txt`')
+            logger.info(f'Output countRE file into `{group}.txt`')
 
     def to_assembly(self, fasta, output):
         from pyfaidx import Fasta

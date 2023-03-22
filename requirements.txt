@@ -1,10 +1,9 @@
 biopython
 click
+colormaps
 cooler >= 0.8.11
 dask
 distributed
-fanc
-hicexplorer >= 3.7.2
 igraph
 intervaltree
 joblib
@@ -20,5 +19,6 @@ pyarrow >= 8.0.0
 pyfaidx >= 0.7.0
 pyranges
 pytools
+seaborn
 rich
 scipy

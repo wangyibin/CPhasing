@@ -745,7 +745,7 @@ def alleles(fasta, method,
         logger.warning('Incompletely developing function')
 
 
-@cli.command()
+@cli.command(short_help="generate contig pair list which shoud be pruning.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -763,12 +763,27 @@ def alleles(fasta, method,
     default='prune.contig.list',
     show_default=True,
 )
-def kprune(alleletable, coolfile, output):
+@click.option(
+    '--symmetric',
+    help='output the symmetric contig pairs',
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def kprune(alleletable, coolfile, output, symmetric):
+    """
+    generate contig pair list which shoud be pruning by sequences similarity.
+
+        AlleleTable : allele table from cphasing allele in allele2 format.
+
+        INPUT_COOL_PATH : path of whole contigs contacts from prepare pair2cools.
+        
+    """
     from .kprune import KPruner
 
     kp = KPruner(alleletable, coolfile)
     kp.run()
-    kp.save_prune_list(output)
+    kp.save_prune_list(output, symmetric)
 
 
 @cli.command()
@@ -778,8 +793,8 @@ def kprune(alleletable, coolfile, output):
     type=click.Path(exists=True)
 )
 @click.argument(
-    "chromsize",
-    metavar="Chrom_sizes",
+    "contigsize",
+    metavar="Contig_sizes",
     type=click.Path(exists=True),
 )
 @click.argument(
@@ -843,7 +858,7 @@ def kprune(alleletable, coolfile, output):
     show_default=True,
 )
 def extract(contacts,
-            chromsize,
+            contigsize,
             output,
             min_order, 
             max_order, 
@@ -862,7 +877,7 @@ def extract(contacts,
     from .extract import HyperExtractor, Extractor
     from .utilities import read_chrom_sizes
 
-    contigs = read_chrom_sizes(chromsize).index.values.tolist()
+    contigs = read_chrom_sizes(contigsize).index.values.tolist()
     contig_idx = OrderedDict(zip(contigs, range(len(contigs))))
     if not pairs:
         if fofn:
@@ -908,14 +923,36 @@ def extract(contacts,
 # )
 @click.option(
     "--prune",
-    metavar="STR",
-    help="prune list from prune.",
+    metavar="PATH",
+    help="Path to prune list from kprune.",
     default=None,
     show_default=True,
     type=click.Path(exists=True)
 )
 @click.option(
-    "--min-conatacts",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "--blacklist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to exclude from hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "--min-contacts",
     "min_contacts",
     help="Minimum contacts of contigs",
     metavar="INT",
@@ -992,8 +1029,9 @@ def extract(contacts,
 #     show_default=True
 # )
 @click.option(
-    '--multi',
-    help='Using multipartition algorithm',
+    '-inc',
+    '--incremental',
+    help='Using incremental partition algorithm',
     is_flag=True,
     default=False,
     show_default=True
@@ -1002,6 +1040,8 @@ def hyperpartition(edges,
                     contigsizes, 
                     output,
                     prune,
+                    whitelist,
+                    blacklist,
                     min_contacts,
                     min_length, 
                     resolution1,
@@ -1011,7 +1051,7 @@ def hyperpartition(edges,
                     max_round, 
                     threads,
                     # chunksize,
-                    multi):
+                    incremental):
     """
     Separate contigs into several groups by hypergraph cluster.
 
@@ -1031,9 +1071,19 @@ def hyperpartition(edges,
     logger.info(f"Load hyperedges.")
     edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
 
+    if whitelist:
+        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
+    if blacklist:
+        blacklist = [i.strip() for i in open(blacklist) if i.strip()]
+
+    assert whitelist is None or blacklist is None, \
+        "Only support one list of whitelist or blacklist"
+
     hp = HyperPartition(edges, 
                             contigsizes,
                             prune,
+                            whitelist,
+                            blacklist,
                             min_contacts,
                             min_length,
                             resolution1, 
@@ -1048,8 +1098,8 @@ def hyperpartition(edges,
     if not prune:
         hp.single_partition()
     if prune:
-        if multi:
-            hp.multi_partition()
+        if incremental:
+            hp.incremental_partition()
         else:
             hp.single_partition()
             
@@ -1078,14 +1128,22 @@ def optimize(group, coolfile, output):
 
     import cooler 
     from .core import CountRE
-    from .algorithms.optimize import SimpleOptimize
+    from .algorithms.optimize import SimpleOptimize2
     
     cr = CountRE(group, minRE=1)
     contigs = cr.contigs 
     cool = cooler.Cooler(coolfile)
-    so = SimpleOptimize(contigs, cool)
-
-    so.save(output)
+    so2 = SimpleOptimize2(contigs, cool)
+    so2.G, so2.graph_df = so2.graph()
+    so2.graph_df = so2.graph_df.set_index(['source', 'target'])
+    
+    so2.ordering = so2.tsp_order()
+    # so2.contigs = sorted(contigs, key=lambda x: so2.ordering.index(x))
+    # so2.contig_idx = dict(zip(so2.contigs, range(len(so2.contigs))))
+    # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))
+    # so2.ordering = so2.order()
+    # so2.orientation()
+    so2.save(output)
 
 
 
@@ -1144,20 +1202,6 @@ def build(fasta, output, only_agp):
     show_default=True
 )
 @click.option(
-    '--chromosomes',
-    help='Chromosomes and order in which the chromosomes should be plotted. '
-            'Comma seperated.',
-    default=''
-)
-@click.option(
-    '--per-chromosomes',
-    'per_chromosomes',
-    help='Instead of plotting the whole matrix, '
-            'each chromosome is plotted next to the other.',
-    is_flag=True,
-    default=False
-)
-@click.option(
     '--no-adjust',
     'no_adjust',
     help='Matrix is chromosome-level, no need adjust.',
@@ -1206,6 +1250,28 @@ def build(fasta, output, only_agp):
     show_default=True,
 )
 @click.option(
+    '--chromosomes',
+    help='Chromosomes and order in which the chromosomes should be plotted. '
+            'Comma seperated.',
+    default=''
+)
+@click.option(
+    '--per-chromosomes',
+    'per_chromosomes',
+    help='Instead of plotting the whole matrix, '
+            'each chromosome is plotted next to the other.',
+    is_flag=True,
+    default=False
+)
+@click.option(
+    '--chrom-per-row',
+    'chrom_per_row',
+    help='Number of chromosome plot in each row',
+    type=int,
+    default=4,
+    show_default=True
+)
+@click.option(
     '--dpi',
     help='Resolution for the image.',
     default=600,
@@ -1213,22 +1279,48 @@ def build(fasta, output, only_agp):
 )
 @click.option(
     '--cmap',
-    help='Colormap of heatmap.',
-    default='RdYlBu_r',
+    help="""
+    Colormap of heatmap. 
+    Available values can be seen : 
+    https://pratiman-91.github.io/colormaps/ 
+    and http://matplotlib.org/examples/color/colormaps_reference.html
+    """,
+    default='redp1_r',
     show_default=True
 )
-def plot(matrix, agp, factor,
-        chromosomes, per_chromosomes, 
-        no_adjust, only_adjust, no_coarsen,
-        only_plot, output,
-        threads, dpi, cmap):
+@click.option(
+    '--no-lines',
+    'no_lines',
+    help="""
+    Don't add dash line in chromosome boundaries.
+    """,
+    default=False,
+    show_default=True,
+    is_flag=True,
+)
+def plot(matrix, 
+            agp, 
+            factor,
+            no_adjust, 
+            only_adjust, 
+            no_coarsen,
+            only_plot, 
+            output,
+            threads, 
+            chromosomes, 
+            per_chromosomes,
+            chrom_per_row, 
+            dpi, 
+            cmap,
+            no_lines,):
     """
     Adjust or Plot the contacts matrix after assembling.
     """
     from .plot import (
-        adjust_matrix, 
-        plot_matrix,
-        coarsen_matrix,
+        adjust_matrix,
+        coarsen_matrix, 
+        plot_heatmap
+        
     )
     if not only_plot:
         if not no_adjust:
@@ -1242,17 +1334,21 @@ def plot(matrix, agp, factor,
         if not no_coarsen:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
-    chromosomes = chromosomes.strip().strip(",").split(',')
+    chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
 
-    plot_matrix(matrix, 
-                output,
-                chromosomes,
-                per_chromosomes,
-                dpi=dpi,
-                cmap=cmap)
+    plot_heatmap(matrix,
+                 output,
+                 chromosomes=chromosomes,
+                 per_chromosomes=per_chromosomes,
+                 chrom_per_row=chrom_per_row,
+                 dpi=dpi,
+                 cmap=cmap, 
+                 add_lines=False if no_lines else True,
+                 threads=threads)
 
-
+## hic subcommand
 from .hic.cli import hic
+
 
 @cli.group(cls=CommandGroup, short_help='Misc tools.')
 @click.pass_context

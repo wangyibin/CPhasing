@@ -37,15 +37,41 @@ class HyperPartition:
 
     Params:
     --------
-    edges: list
+    edges: HyperEdges
         Hyperedges
-    k: str
-        Number of groups. Set to k1:k2 to perform multipartition.
+    contigsizes: pd.DataFrame
+        contig's sizes 
+    prune: None (default) or list
+        a list contain several contig pairs that should be prune
+    whitelist: None (default) or list
+        a list contain several contigs that only use it to hyperpartition
+    blacklist: None (default) or list
+        a list contain several contigs that don't use it to hyperpartition
+    min_contacts: int
+        minimum contacts of contig pairs 
+    min_length: int
+        minimum length of contigs
+    resolution1: float
+        the resolution of first partition
+    resolution2: float
+        the resolution of second partition
+    min_scaffold_length: int 
+        minimum length of scaffoldings
+    threshold: int
+        the threshold for IRMM algorithms, default not adapt IRMM
+    max_round: int
+        max round of IRMM, if set 1, we only partition through louvain algorithms
+    threads: int
+        number of threads
+    chunksize: None (default) or int
+        not used
 
     """
     def __init__(self, edges, 
                     contigsizes,
                     prune=None,
+                    whitelist=None,
+                    blacklist=None,
                     min_contacts=3,
                     min_length=10000, 
                     resolution1=0.8,
@@ -59,8 +85,9 @@ class HyperPartition:
         
         self.edges = edges
         self.contigsizes = contigsizes ## dataframe
-        self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.prune = prune 
+        self.whitelist = whitelist
+        self.blacklist = blacklist
         self.min_contacts = min_contacts
         self.min_length = min_length
         self.resolution1 = resolution1
@@ -71,6 +98,7 @@ class HyperPartition:
         self.threads = threads
         self.chunksize = int(chunksize) if chunksize else None
 
+        self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
         self.H, self.vertices = self.get_hypergraph()
         
@@ -82,9 +110,9 @@ class HyperPartition:
         # self.NW = self.get_normalize_weight()
 
         if prune:
-            self.P_idx, self.prune_pair_df = self.get_prune_pairs()
+            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
         else:
-            self.P_idx, self.prune_pair_df = None, None
+            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None
 
     @property
     def vertices_idx(self):
@@ -107,23 +135,6 @@ class HyperPartition:
         
         return vertices_idx_sizes
 
-    def get_prune_pairs(self):
-        
-        vertices_idx = self.vertices_idx
-
-        pair_df = pd.read_csv(self.prune, sep='\t', 
-                                header=None, index_col=None)
-        pair_df[0] = pair_df[0].map(lambda x: vertices_idx.get(x, np.nan))
-        pair_df[1] = pair_df[1].map(lambda x: vertices_idx.get(x, np.nan))
-        pair_df = pair_df.dropna(axis=0)
-        pair_df2 = pair_df.reindex(columns=[1, 0])
-        pair_df2.columns = [0, 1]
-        pair_df = pd.concat([pair_df, pair_df2], axis=0)
-        pair_df = pair_df.drop_duplicates(subset=[0, 1])
-  
-        P_idx = [pair_df[0], pair_df[1]]
-       
-        return P_idx, pair_df
     
     def get_hypergraph(self):
         if self.chunksize:
@@ -171,27 +182,59 @@ class HyperPartition:
         return H, vertices
 
     def filter_hypergraph(self):
-        ## remove too short contigs
+        ## remove too short contigs and according the whitelist or blacklist 
+        ## to remove contigs
         vertices_idx = self.vertices_idx
         
         short_contigs = self.contigsizes[self.contigsizes < self.min_length]
+        
+        remove_contigs = set()
+        if self.whitelist:
+            remove_contigs.update(set(self.contigs) - set(self.whitelist))
 
-        short_contig_idx = []
-        for i in short_contigs:
+        if self.blacklist:
+            remove_contigs.update(set(self.blacklist))
+
+        remove_contigs.update(set(short_contigs))
+
+        remove_contig_idx = []
+        for i in remove_contigs:
             try:
-                short_contig_idx.append(vertices_idx[i])
+                remove_contig_idx.append(vertices_idx[i])
             except KeyError:
                 continue
         
-        if len(short_contig_idx) == 0:
+        if len(remove_contig_idx) == 0:
             return
 
-        logger.info(f"Total {len(short_contig_idx)} contigs were removed, "
-                        "because it's length too short.")
+        logger.info(f"Total {len(remove_contig_idx)} contigs were removed, "
+                        "because it's length too short or your specified.")
         logger.info("start to remove ...")
-        self.H, _ = remove_incidence_matrix(self.H, short_contig_idx)
+        self.H, _ = remove_incidence_matrix(self.H, remove_contig_idx)
         logger.info("done")
-        self.vertices = np.delete(self.vertices, short_contig_idx)
+        self.vertices = np.delete(self.vertices, remove_contig_idx)
+
+    def get_prune_pairs(self):
+        
+        vertices_idx = self.vertices_idx
+
+        pair_df = pd.read_csv(self.prune, sep='\t', 
+                                header=None, index_col=None)
+        pair_df[0] = pair_df[0].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df[1] = pair_df[1].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df = pair_df.dropna(axis=0).astype({0: 'int', 1: 'int', 2: 'int'})
+  
+        pair_df2 = pair_df.reindex(columns=[1, 0, 2])
+        pair_df2.columns = [0, 1, 2]
+        pair_df = pd.concat([pair_df, pair_df2], axis=0)
+        pair_df = pair_df.drop_duplicates(subset=[0, 1])
+        pair_df = pair_df.reset_index(drop=True)
+        # P_idx = [pair_df[0], pair_df[1]]
+        tmp_df = pair_df[pair_df[2] == 0]
+        P_allelic_idx = [tmp_df[0], tmp_df[1]]
+        tmp_df = pair_df[pair_df[2] == 1]
+        P_weak_idx = [tmp_df[0], tmp_df[1]]
+        return P_allelic_idx, P_weak_idx, pair_df
 
     def get_normalize_weight(self):
         contig_sizes = self.contig_sizes
@@ -207,7 +250,8 @@ class HyperPartition:
     def single_partition(self):
         logger.info("Starting cluster ...")
         self.K = IRMM(self.H, #self.NW, 
-                        self.P_idx,
+                        self.P_allelic_idx,
+                        self.P_weak_idx,
                         self.resolution1, 
                         self.threshold, self.max_round,
                         threads=self.threads)
@@ -230,10 +274,10 @@ class HyperPartition:
         return self.K  
         
     @staticmethod
-    def _multi_partition(k, prune_pair_df, H, contigsizes, #NW, 
+    def _incremental_partition(k, prune_pair_df, H, contigsizes, #NW, 
                          resolution, threshold, max_round, num):
         """
-        single function for multi_partition.
+        single function for incremental_partition.
         """
         k = np.array(list(k))
         sub_H, _ = extract_incidence_matrix2(H, k)
@@ -254,11 +298,15 @@ class HyperPartition:
     
         sub_prune_pair_df[0] = sub_prune_pair_df[0].map(lambda x: sub_old2new_idx[x])
         sub_prune_pair_df[1] = sub_prune_pair_df[1].map(lambda x: sub_old2new_idx[x])
-
-        sub_P_idx = [sub_prune_pair_df[0], sub_prune_pair_df[1]]
+        
+        tmp_df = sub_prune_pair_df[sub_prune_pair_df[2] == 0]
+        sub_P_allelic_idx = [tmp_df[0], tmp_df[1]]
+        tmp_df = sub_prune_pair_df[sub_prune_pair_df[2] == 1]
+        sub_P_weak_idx = [tmp_df[0], tmp_df[1]]
         
         new_K = IRMM(sub_H, #sub_NW, 
-                        sub_P_idx, 
+                        sub_P_allelic_idx, 
+                        sub_P_weak_idx,
                         resolution, threshold, 
                         max_round, threads=1, 
                         outprefix=num)
@@ -271,19 +319,20 @@ class HyperPartition:
 
         return new_K
 
-    def multi_partition(self):
+    def incremental_partition(self):
         """
-        multiple partition for autopolyploid.
+        incremental partition for autopolyploid.
         """
         logger.info("Starting first partition ...")
         prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
 
         self.K = IRMM(self.H, #self.NW, 
-                      None, self.resolution1, self.threshold, 
+                      None, None, self.resolution1, self.threshold, 
                         self.max_round, threads=self.threads)
         
         self.K = list(map(list, self.K))
         self.K = self.filter_cluster()
+        self.K = sorted(self.K, key=lambda x: self.contigsizes.iloc[x]['length'].sum(), reverse=True)
         self.to_cluster(f'first.clusters.txt')
 
         length_contents = pformat(list(map(
@@ -298,11 +347,11 @@ class HyperPartition:
         for num, k in enumerate(self.K, 1):
             args.append((k, prune_pair_df, self.H, self.contigsizes,#self.NW, 
                         self.resolution2, self.threshold, self.max_round, num))
-            # results.append(HyperPartition._multi_partition(k, prune_pair_df, self.H, #self.NW, 
+            # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
-                        delayed(HyperPartition._multi_partition)
+                        delayed(HyperPartition._incremental_partition)
                                 (i, j, k, l, m, n, o, p) 
                                     for i, j, k, l, m, n, o, p in args)
 
@@ -318,13 +367,7 @@ class HyperPartition:
         check the partition results remove the allelic 
             mis-assembly and add it to correctly groups
         """
-
-        
-
-
         pass
-
-
 
     @staticmethod
     def get_k_size(k, contigsizes, idx_to_vertices):

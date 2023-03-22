@@ -211,7 +211,8 @@ def remove_incidence_matrix(mat, idx):
     return mat.T.tocsr(), remove_col_index
 
 def IRMM(H, # NW, 
-            P_idx=None,
+            P_allelic_idx=None,
+            P_weak_idx=None,
             resolution=1, 
             threshold=0.01, 
             max_round=1, 
@@ -279,13 +280,19 @@ def IRMM(H, # NW,
         del W, D_e_num, D_e_inv, H_T
         gc.collect() 
 
-    if P_idx:
+    if P_allelic_idx or P_weak_idx:
         # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
         # P[np.diag_indices_from(P)] = 0
         # P[P_idx[0], P_idx[1]] = 0
         # A = A * P 
         A = A.tolil()
-        A[P_idx[0], P_idx[1]] = 0
+        if P_allelic_idx:
+            A[P_allelic_idx[0], P_allelic_idx[1]] = \
+                  - A[P_allelic_idx[0], P_allelic_idx[1]]
+        
+        if P_weak_idx:
+            A[P_weak_idx[0], P_weak_idx[1]] = 0
+            
         A = A.tocsr()
 
     try:
@@ -294,14 +301,17 @@ def IRMM(H, # NW,
         return [list(range(A.shape[0]))]
 
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-    cluster_assignments = list(cluster_assignments.as_cover())
-    cluster_assignments = list(map(set, cluster_assignments))
+    cluster_results = list(cluster_assignments.as_cover())
+    cluster_results = list(map(set, cluster_results))
+
+    
+
     # G.write_graphml(f'{outprefix}.out.edgelist')
     
     # G = G.to_networkx()
     # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
     # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
-    cluster_stat = list(map(len, cluster_assignments))
+    cluster_stat = list(map(len, cluster_results))
     
     save_npz(f'{outprefix}.A.npz', A)
     
@@ -321,7 +331,7 @@ def IRMM(H, # NW,
 
         a = da.from_array(H_T, chunks=(chunk, H_T.shape[1]))
 
-        args = [(a, cluster_assignments, W, i, chunk) 
+        args = [(a, cluster_results, W, i, chunk) 
                         for i in range(a.npartitions)]
 
         res = Parallel(n_jobs=min(a.npartitions, threads))(
@@ -342,9 +352,19 @@ def IRMM(H, # NW,
         # A = csr_matrix((values, (row, col)), shape=A.shape)
         # A.setdiag(0)
         # A.prune()
-        if P_idx:
+        if P_allelic_idx or P_weak_idx:
+            # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
+            # P[np.diag_indices_from(P)] = 0
+            # P[P_idx[0], P_idx[1]] = 0
+            # A = A * P 
             A = A.tolil()
-            A[P_idx[0], P_idx[1]] = 0
+            if P_allelic_idx:
+                A[P_allelic_idx[0], P_allelic_idx[1]] = 0 #\
+                    # - A[P_allelic_idx[0], P_allelic_idx[1]]
+            
+            if P_weak_idx:
+                A[P_weak_idx[0], P_weak_idx[1]] = 0
+                
             A = A.tocsr()
 
         try:
@@ -353,17 +373,17 @@ def IRMM(H, # NW,
             return cluster_assignments
         
         # ## use igraph 
-        # cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-        # cluster_assignments = list(cluster_assignments.as_cover())
-        # cluster_assignments = list(map(set, cluster_assignments))
+        cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
+        cluster_results = list(cluster_assignments.as_cover())
+        cluster_results = list(map(set, cluster_results))
 
         ## use networkx 
-        G = G.to_networkx()
-        cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
+        # G = G.to_networkx()
+        # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
         del A, G
         gc.collect()
 
-        cluster_stat = list(map(len, cluster_assignments))
+        cluster_stat = list(map(len, cluster_results))
         logger.info(f"Cluster Statistics: {cluster_stat}")
         
 
@@ -372,7 +392,7 @@ def IRMM(H, # NW,
         
         iter_round += 1
     
-    return cluster_assignments
+    return cluster_results
 
 ## old version through hypernetx
 def generate_hypergraph(edges):

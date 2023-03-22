@@ -14,6 +14,7 @@ import sys
 
 import cooler
 import igraph as ig
+import numpy as np
 import pandas as pd 
 
 from collections import defaultdict
@@ -66,13 +67,14 @@ class KPruner:
      
         self.pixels = pd.concat([self.pixels1, self.pixels2], axis=0)
         self.pixels.set_index(['chrom1', 'chrom2'], inplace=True)
-        
+        self.pixels.replace([np.inf, -np.inf], 0, inplace=True)
         del self.pixels1, self.pixels2
         gc.collect()
 
         self.score_db = self.get_score_db()
 
-        self.prune_list = []
+        self.allelic_prune_list = []
+        self.weak_prune_list = []
 
     def get_allele_group(self):
         tmp_df = self.alleletable.data.drop_duplicates(1)
@@ -93,7 +95,7 @@ class KPruner:
         _allelic = set(_allelic).intersection(self.contig_pairs)
         logger.info(f"Removed {len(_allelic)} allelic contacts.")
         
-        self.prune_list.extend(_allelic)
+        self.allelic_prune_list.extend(_allelic)
 
         self.pixels.loc[self.pixels.reindex(_allelic).dropna().index] = 0
         self.pixels = self.pixels.loc[self.pixels['count'] > 0]
@@ -112,6 +114,7 @@ class KPruner:
         g.es['weight'] = scores
 
         matching = g.maximum_bipartite_matching(weights='weight')
+        
         if matching.match_of(0) == 2:
             return True
         else:
@@ -125,9 +128,7 @@ class KPruner:
         except KeyError:
             return None
         
-        allele_pair1 = (ctg1, allele1)
-        allele_pair2 = (ctg2, allele2)
-        flag = KPruner.is_strong_contact(allele_pair1, allele_pair2, score_db)
+        flag = KPruner.is_strong_contact((ctg1, allele1), (ctg2, allele2), score_db)
         if not flag:
             return (ctg1, ctg2)
         else:
@@ -136,8 +137,9 @@ class KPruner:
     def remove_weak_with_allelic(self):
         args = []
         res = []
+        print(len(self.contig_pairs))
         for ctg1, ctg2 in self.contig_pairs:
-            args.append((ctg1, ctg2, self.allele_group_db, self.score_db))
+            # args.append((ctg1, ctg2, self.allele_group_db, self.score_db))
             res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, self.allele_group_db, self.score_db))
         # res = Parallel(n_jobs=self.threads)(
         #         delayed(KPruner._remove_weak_with_allelic)(i, j, k, l)
@@ -146,13 +148,19 @@ class KPruner:
         res = list(filter(lambda x: x is not None, res))
         weak_contacts = len(res)
         logger.info(f"Removed {weak_contacts} weak contacts with allelic.")
-        self.prune_list.extend(res)
+        self.weak_prune_list.extend(res)
     
-    def save_prune_list(self, output):
+    def save_prune_list(self, output, symmetric=False):
         with open(output, 'w') as out:
-            for pair in self.prune_list:
-                print("\t".join(pair), file=out)
-                print("\t".join(pair[::-1]), file=out)
+            for pair in self.allelic_prune_list:
+                print("\t".join(pair) + "\t0", file=out)
+                if symmetric:
+                    print("\t".join(pair[::-1]) + "\t0", file=out)
+
+            for pair in self.weak_prune_list:
+                print("\t".join(pair) + "\t1", file=out)
+                if symmetric:
+                    print("\t".join(pair[::-1]) + "\t1", file=out)
 
     def run(self):
         self.remove_allelic()

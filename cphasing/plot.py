@@ -10,7 +10,6 @@ import warnings
 
 from pandas.core.common import SettingWithCopyWarning
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
-import gc
 import tempfile
 from collections import OrderedDict
 
@@ -18,8 +17,10 @@ import cooler
 import numpy as np
 import pandas as pd
 
+from math import ceil
 from intervaltree import Interval, IntervalTree
 from multiprocessing import Lock, Pool
+from joblib import Parallel, delayed
 from pandarallel import pandarallel
 from scipy.sparse import triu
 
@@ -556,27 +557,288 @@ def coarsen_matrix(cool, k, out, threads):
 
     return out
 
-def plot_matrix(matrix, output, chroms, 
-                per_chromosomes, cmap, dpi):
-    from hicexplorer import hicPlotMatrix
+# def plot_matrix(matrix, output, chroms, 
+#                 per_chromosomes, cmap, dpi):
+#     from hicexplorer import hicPlotMatrix
 
-    addition_options = []
-    if per_chromosomes:
-        addition_options.append('--perChromosome')
+#     addition_options = []
+#     if per_chromosomes:
+#         addition_options.append('--perChromosome')
 
-    if chroms and chroms[0] != "":
-        addition_options.append('--chromosomeOrder')
-        addition_options.extend(list(chroms))
-        # cool = cooler.Cooler(matrix)
+#     if chroms and chroms[0] != "":
+#         addition_options.append('--chromosomeOrder')
+#         addition_options.extend(list(chroms))
+#         # cool = cooler.Cooler(matrix)
         
   
     
-    hicPlotMatrix.main(args=['-m', matrix,
-                            '--dpi', str(dpi),
-                            '--outFileName', output,
-                            '--colorMap', cmap,
-                            '--log1p'] 
-                            + 
-                            addition_options)
+#     hicPlotMatrix.main(args=['-m', matrix,
+#                             '--dpi', str(dpi),
+#                             '--outFileName', output,
+#                             '--colorMap', cmap,
+#                             '--log1p'] 
+#                             + 
+#                             addition_options)
     
+#     logger.info(f'Successful, plotted the heatmap into `{output}`')
+
+def plot_heatmap(matrix, output, 
+                    vmin=None, vmax=None,
+                    log=False, log1p=True, 
+                    xlabel=None, ylabel=None, 
+                    xticks=True, yticks=True,
+                    remove_short_bin=True,
+                    add_lines=False,
+                    chromosomes=None, 
+                    per_chromosomes=False,
+                    chrom_per_row=4,
+                    dpi=1200, 
+                    cmap="redp1_r",
+                    threads=1):
+    import matplotlib.pyplot as plt
+
+    from matplotlib.colors import LogNorm
+
+    cool = cooler.Cooler(matrix)
+
+    if not per_chromosomes:
+        chrom_offset = cool._load_dset('indexes/chrom_offset')
+        chromsizes = cool.chromsizes
+        binsize = cool.binsize
+        bins = cool.bins()[:].reset_index(drop=False)
+        bins['chrom'] = bins['chrom'].astype('str')
+        bins = bins.set_index('chrom')
+
+        chromnames = cool.chromnames
+        matrix = cool.matrix(balance=False, sparse=True)[:]
+
+        if chromosomes:
+            new_idx = bins.loc[chromosomes]['index']
+            
+            matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+            chromnames = chromosomes
+            chrom_offset = np.r_[0, 
+                                np.cumsum(new_idx
+                                            .reset_index()
+                                            .groupby('chrom', sort=False)
+                                            .count()
+                                            .values
+                                            .flatten())
+                                            ].tolist()
+        else:
+            if remove_short_bin:
+                retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
+                new_idx = bins.loc[retain_chroms]['index']
+                matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+                chromnames = retain_chroms
+                chrom_offset = np.r_[0, 
+                                    np.cumsum(new_idx
+                                                .reset_index()
+                                                .groupby('chrom', sort=False)
+                                                .count()
+                                                .values
+                                                .flatten())
+                                                ].tolist()
+        
+        matrix = matrix.todense()
+
+        if log1p or log:
+            mask = matrix == 0
+            mask_nan = np.isnan(matrix)
+            mask_inf = np.isinf(matrix)
+
+            try:
+                matrix[mask] = np.nanmin(matrix[mask == False])
+                matrix[mask_nan] = np.nanmin(matrix[mask_nan == False])
+                matrix[mask_inf] = np.nanmin(matrix[mask_inf == False])
+            except Exception:
+                pass 
+
+        if log1p:
+            matrix += 1 
+            norm = LogNorm()
+            # matrix = np.log10(matrix)
+        elif log:
+            norm = LogNorm()
+        else:
+            norm = None
+
+        factor = round(matrix.shape[0] / 5000 + 1, 2)   
+        fig_width = round(7 * factor, 2) 
+        fig_height = round(8 * factor, 2)
+
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
+        
+
+        ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
+                            chrom_offset=chrom_offset, norm=norm,
+                            xticks=xticks, yticks=yticks,
+                            cmap=cmap, add_lines=add_lines)
+    
+    else: 
+        plot_per_chromosome_heatmap(cool, chromosomes, chrom_per_row=chrom_per_row,
+                                        cmap=cmap, threads=threads)
+        pass
+
+    plt.savefig(output, dpi=dpi, bbox_inches='tight')
+
     logger.info(f'Successful, plotted the heatmap into `{output}`')
+
+
+def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, 
+                                    chrom_per_row=4, remove_short_bin=True,
+                                    cmap='redp1_r', threads=1):
+    """
+    modified from hicPlotMatrix plotPerChr
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib import gridspec
+    from matplotlib.colors import LogNorm
+    
+
+    chrom_offset = cool._load_dset('indexes/chrom_offset')
+    chromsizes = cool.chromsizes
+    binsize = cool.binsize
+    bins = cool.bins()[:].reset_index(drop=False)
+    bins['chrom'] = bins['chrom'].astype('str')
+    bins = bins.set_index('chrom')
+
+    matrix = cool.matrix(balance=False, sparse=True)[:]
+
+    if chromosomes:
+        new_idx = bins.loc[chromosomes]['index']
+    
+        matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+        chrom_offset = np.r_[0, 
+                            np.cumsum(new_idx
+                                        .reset_index()
+                                        .groupby('chrom', sort=False)
+                                        .count()
+                                        .values
+                                        .flatten())
+                                        ].tolist()
+    else:
+        if remove_short_bin:
+            retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
+            new_idx = bins.loc[retain_chroms]['index']
+            matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+            chromosomes = retain_chroms
+            chrom_offset = np.r_[0, 
+                                np.cumsum(new_idx
+                                            .reset_index()
+                                            .groupby('chrom', sort=False)
+                                            .count()
+                                            .values
+                                            .flatten())
+                                            ].tolist()
+
+    chromosomes = chromosomes if chromosomes else cool.chromnames
+    
+    num_rows = int(ceil(float(len(chromosomes)) / chrom_per_row))
+    num_cols = min(chrom_per_row, len(chromosomes))
+    width_ratios = [1.0] * num_cols + [0.05]
+    grids = gridspec.GridSpec(num_rows, num_cols + 1,
+                                width_ratios=width_ratios,
+                                height_ratios=[1] * num_rows)
+
+    fig_height = 6 * num_rows
+    fig_width = sum((np.array(width_ratios) + 0.05) * 6)
+
+
+    fig = plt.figure(figsize=(fig_width, fig_height))
+
+    def _plot(ax, chrom, matrix, chrom_range):
+        chrom_matrix = matrix[chrom_range[0]:chrom_range[1], :][:, chrom_range[0]:chrom_range[1]]
+        chrom_matrix = chrom_matrix.toarray()
+        if log1p:
+            mask = chrom_matrix == 0
+            mask_nan = np.isnan(chrom_matrix)
+            mask_inf = np.isinf(chrom_matrix)
+
+            try:
+                chrom_matrix[mask] = np.nanmin(chrom_matrix[mask == False])
+                chrom_matrix[mask_nan] = np.nanmin(chrom_matrix[mask_nan == False])
+                chrom_matrix[mask_inf] = np.nanmin(chrom_matrix[mask_inf == False])
+            except Exception:
+                pass 
+
+        if log1p:
+            chrom_matrix += 1
+            norm = LogNorm()
+
+
+        plot_heatmap_core(chrom_matrix, ax, norm=norm, xlabel=chrom,
+                            cmap=cmap, xticks=False, yticks=False)
+    args = []
+    for i, chrom in enumerate(chromosomes):
+        row = i // chrom_per_row
+        col = i % chrom_per_row
+    
+        ax = plt.subplot(grids[row, col])
+        chrom_range = (chrom_offset[i], chrom_offset[i+1])
+        args.append((ax, chrom, matrix, chrom_range))
+        _plot(ax, chrom, matrix, chrom_range)
+    # Parallel(n_jobs=threads)(
+    #     delayed(_plot)(i, j, k,l) for i, j, k, l in args)
+
+    return fig
+
+def plot_heatmap_core(matrix, 
+                        ax,
+                        chromnames=None,
+                        chrom_offset=None,
+                        norm=None,
+                        xlabel=None, ylabel=None, 
+                        xticks=True, yticks=True,
+                        cmap="redp1_r",
+                        add_lines=False):
+    import colormaps as cmaps
+    import seaborn as sns 
+
+    try:
+        """
+        https://pratiman-91.github.io/colormaps/
+        """
+        colormap = getattr(cmaps, cmap)
+    except:
+        colormap = cmap 
+    
+    # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
+    sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
+                    norm=norm,
+                    cbar=True, 
+                    cbar_kws=dict(shrink=.4, pad=0.03))
+    
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=10)
+
+    if add_lines and chrom_offset:
+        ax.hlines(chrom_offset[1:], *ax.get_xlim(), 
+                    linewidth=0.5, color='black', linestyles="--")
+        ax.vlines(chrom_offset[1:], *ax.get_ylim(), 
+                    linewidth=0.5, color='black', linestyles="--")
+    
+    if chrom_offset:
+        mid_tick_pos = list((np.array(chrom_offset)[:-1] + np.array(chrom_offset)[1:]) / 2)
+   
+    ax.tick_params(width=0)
+    if xticks and chromnames:
+        ax.set_xticks(mid_tick_pos)
+        ax.set_xticklabels(chromnames, fontsize=16)
+    else:
+        ax.set_xticks([])
+    if yticks and chromnames:
+        ax.set_yticks(mid_tick_pos)
+        ax.set_yticklabels(chromnames, fontsize=16)
+    else:
+        ax.set_yticks([])
+
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=18, labelpad=15)
+    
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=18, labelpad=15)
+     
+    sns.despine(top=False, right=False)
+
+    return ax

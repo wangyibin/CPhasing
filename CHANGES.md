@@ -1,14 +1,18 @@
 # Release notes #
 
 ## [v0.0.14]
-Date: 2023-03-20
+Date: 2023-03-22
 ### New features
-
+- `plot_heatmap`, custom function to plot heatmap 
 ### Enhancement
 - `HyperPartition`
     - add post check to increase the accuracy of partition
     - add min-contacts parameters to remove low contact contig pairs
-
+    - add negative allelic algorithm
+    - change multi to incremental
+    - add whitelist and blacklist parameters
+## Bug fixes
+- `KPrune`, dropna in pixels which will let igraph fall into loops
 
 ## [v0.0.13]
 Date: 2023-03-15

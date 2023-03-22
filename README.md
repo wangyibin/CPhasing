@@ -57,14 +57,18 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```
     - `extract`
     ```bash
-    cphasing extract sample.merge.pq draft.asm.fasta sample.hyperedges
+    cphasing extract sample.merge.pq draft.asm.contigs sample.hyperedges
     ```
     - `hyperpartition`
     ```bash
     ## for haploid scaffolding 
-    cphasing hyperpartition sample.hyperedges draft.asm.fasta output.clusters.txt 
+    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt 
     ## for polyploid or diploid phasing must add prune information and use the multi partition mode
-    cphasing hyperpartition sample.hyperedges draft.asm.fasta output.clusters.txt --prune prune.contig.list --multi  
+    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list --multi  
+    ```
+    - `ordering and orientation`
+    ```
+    cphasing optimize group1.count_HindIII.txt sample.10000.cool 
     ```
     - `build`
     ```bash

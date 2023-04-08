@@ -380,6 +380,8 @@ class SimpleOptimize2:
         self.threads = threads 
         
         self.data = self.parse()
+        self.score_df, self.orientation_res = self.filter(mode='score')
+
 
     @staticmethod
     def _parse_by_so(matrix, pair):
@@ -493,7 +495,7 @@ class SimpleOptimize2:
            
         return res
 
-    def filter(self, as_idx=False):
+    def filter(self, mode='graph', as_idx=False):
         """
         only retain the max score in different orientation pairs
 
@@ -510,16 +512,32 @@ class SimpleOptimize2:
             score_res[pair] = max_score
             orientation_res[pair] = max_index
         
-        graph_df = pd.DataFrame(score_res, index=['weight']).T
-        graph_df = graph_df.reset_index()
-        graph_df.columns = ['source', 'target', 'weight']
-        
-        if as_idx:
-            graph_df['source'] = graph_df['source'].map(self.contig_idx.get)
-            graph_df['target'] = graph_df['target'].map(self.contig_idx.get)
+        if mode == 'graph':
+            graph_df = pd.DataFrame(score_res, index=['weight']).T
+            graph_df = graph_df.reset_index()
+            graph_df.columns = ['source', 'target', 'weight']
             
+            if as_idx:
+                graph_df['source'] = graph_df['source'].map(self.contig_idx.get)
+                graph_df['target'] = graph_df['target'].map(self.contig_idx.get)
+       
+            return graph_df, orientation_res
         
-        return graph_df, orientation_res
+        elif mode == 'score':
+            score_df = pd.DataFrame(score_res, index=['score']).T
+            score_df = score_df.reset_index()
+            score_df.columns = ['contig1', 'contig2', 'score']
+            score_df2 = score_df.rename(columns={"contig1": "contig2",
+                                                    "contig2": "contig1"})
+            score_df = pd.concat([score_df, score_df2], axis=0)
+
+            score_df.set_index(["contig1", "contig2"], inplace=True)
+
+            return score_df, orientation_res
+        else:
+            raise ValueError("mode must in {'graph', 'score'}")
+        
+        
     
     def save_score(self, output):
         """
@@ -625,6 +643,38 @@ class SimpleOptimize2:
 
         return list(map(self.idx_to_contig.get, path))
     
+
+    def nn_tsp(self, contigs, score_df, start=0):
+
+        start_contig = "Chr5.ctg1" #contigs[start]
+        candicate_contigs = set(set(contigs) - {start_contig})
+        tour = [start_contig]
+        print(start_contig)
+        added_contigs = set() 
+        added_contigs.add(start_contig)
+
+        while candicate_contigs:
+            next_contig = score_df.loc[tour[-1]].idxmax().values[0]
+            tmp_df = score_df.loc[tour[-1]].sort_values(by=['score'], ascending=False)
+            if next_contig in added_contigs:
+                # print(score_df.loc[tour[-1]]['score'].nlargest(2, keep='all'))
+                next_contig = score_df.loc[tour[-1]]['score'].nlargest(2, keep='all').index[1]
+                i = 1
+                while next_contig in added_contigs:
+                    i += 1
+                    next_contig = tmp_df.index[i]
+
+            if next_contig not in contigs:
+                continue
+            
+            print(next_contig)
+            added_contigs.add(next_contig)
+            tour.append(next_contig)
+
+            candicate_contigs.remove(next_contig)
+
+        return tour
+
     def orientation(self):
         
         for i, j in zip(self.ordering[:-1], self.ordering[1:]):
@@ -640,6 +690,12 @@ class SimpleOptimize2:
 
     def minimum_spanning_tree(self):
         pass
+
+
+
+    
+
+
 
 
 

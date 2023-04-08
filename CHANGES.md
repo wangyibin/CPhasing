@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.0.15]
+Date: 2023-04-08
+### New features
+- `PruneTable`, Object for prune table.
+### Enhancement
+- `kprune`, output prune table
 ## [v0.0.14]
 Date: 2023-03-22
 ### New features
@@ -10,7 +16,7 @@ Date: 2023-03-22
     - add min-contacts parameters to remove low contact contig pairs
     - add negative allelic algorithm
     - change multi to incremental
-    - add whitelist and blacklist parameters
+    - add `whitelist` and `blacklist` parameters
 ## Bug fixes
 - `KPrune`, dropna in pixels which will let igraph fall into loops
 

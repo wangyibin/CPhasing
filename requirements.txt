@@ -9,8 +9,8 @@ intervaltree
 joblib
 natsort
 ncls
+networkx
 numpy >= 1.22.0
-nwhy
 matplotlib
 msgspec
 pandas

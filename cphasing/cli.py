@@ -196,6 +196,15 @@ def paf2pairs(paf, chromsize, output,
     show_default=True
 )
 @click.option(
+    '-cs',
+    '--chunksize',
+    help='Chunk size of edges',
+    type=float,
+    default=1000000,
+    metavar='Float',
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -204,21 +213,29 @@ def paf2pairs(paf, chromsize, output,
     metavar='INT',
     show_default=True,
 )
-def paf2table(paf, output, threads, 
-                min_quality, min_identity, min_length):
+def paf2table(paf, output, 
+                min_quality, min_identity, min_length, 
+                chunksize, threads):
     """
     Convert paf to pore_c_table.
     """
+    print(paf, output, 
+                min_quality, min_identity, min_length, 
+                chunksize, threads)
     from .core import PAFTable
 
-    paf = PAFTable(paf, threads=threads, 
+    chunksize = int(chunksize)
+    paf = PAFTable(paf, 
+                    output=output,
+                    threads=threads, 
+                    chunksize=chunksize,
                     min_quality=min_quality, 
                     min_identity=min_identity, 
                     min_length=min_length)
-    paf.filter()
-    pore_c_table = paf.to_pore_c_table()
+    # paf.filter()
+    # pore_c_table = paf.to_pore_c_table()
 
-    pore_c_table.save(output, paf.tmpdir)
+    # pore_c_table.save(output, paf.tmpdir)
     paf.clean_tempoary()
 
 @alignments.command()
@@ -759,8 +776,8 @@ def alleles(fasta, method,
 @click.option(
     '-o',
     '--output',
-    help='output prune list',
-    default='prune.contig.list',
+    help='output prune table',
+    default='prune.contig.table',
     show_default=True,
 )
 @click.option(
@@ -915,12 +932,12 @@ def extract(contacts,
     "output",
     metavar="Output",
 )
-# @click.option(
-#     "-k",
-#     help="Number of groups.",
-#     default=None,
-#     show_default=True,
-# )
+@click.option(
+    "-k",
+    help="Number of groups.",
+    default=None,
+    show_default=True,
+)
 @click.option(
     "--prune",
     metavar="PATH",
@@ -973,7 +990,7 @@ def extract(contacts,
     "-r1",
     "--resolution1",
     help="Resolution of the first partition",
-    type=click.FloatRange(0.0, 1.2),
+    type=click.FloatRange(0.0, 1.5),
     default=1,
     show_default=True
 )
@@ -981,7 +998,7 @@ def extract(contacts,
     "-r2",
     "--resolution2",
     help="Resolution of the second partition",
-    type=click.FloatRange(0.0, 1.2),
+    type=click.FloatRange(0.0, 1.5),
     default=0.8,
     show_default=True
 )
@@ -1039,6 +1056,7 @@ def extract(contacts,
 def hyperpartition(edges, 
                     contigsizes, 
                     output,
+                    k,
                     prune,
                     whitelist,
                     blacklist,
@@ -1097,11 +1115,13 @@ def hyperpartition(edges,
 
     if not prune:
         hp.single_partition()
+
     if prune:
         if incremental:
             hp.incremental_partition()
         else:
             hp.single_partition()
+            # hp.post_check()
             
     hp.to_cluster(output)
 
@@ -1134,10 +1154,11 @@ def optimize(group, coolfile, output):
     contigs = cr.contigs 
     cool = cooler.Cooler(coolfile)
     so2 = SimpleOptimize2(contigs, cool)
+
     so2.G, so2.graph_df = so2.graph()
     so2.graph_df = so2.graph_df.set_index(['source', 'target'])
-    
-    so2.ordering = so2.tsp_order()
+    print(so2.score_df.sort_index())
+    so2.ordering = so2.nn_tsp(so2.contigs, so2.score_df)
     # so2.contigs = sorted(contigs, key=lambda x: so2.ordering.index(x))
     # so2.contig_idx = dict(zip(so2.contigs, range(len(so2.contigs))))
     # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))

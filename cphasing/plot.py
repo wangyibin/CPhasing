@@ -7,9 +7,12 @@ import sys
 import time
 import warnings
 
+try:
+    from pandas.core.common import SettingWithCopyWarning
+    warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+except ImportError:
+    pass
 
-from pandas.core.common import SettingWithCopyWarning
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 import tempfile
 from collections import OrderedDict
 
@@ -31,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 HIC_METADATA = {}
 HIC_METADATA['matrix-generated-by'] = np.string_(
-    'CPhasing_plot'
+    'CPhasing'
 )
 HIC_METADATA['matrix-generated-by-url'] = np.string_(
     'https://github.com/wangyibin/CPhasing'
@@ -167,8 +170,9 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
                     zip(tmp_chrom_bins, tmp_contig_bins):
 
                 tmp_row = row.copy()
-                tmp_row['start', 'end', 'tig_start', 'tig_end'] = start, \
-                    end, tig_start, tig_end
+                tmp_row.loc[['start', 'end', 'tig_start', 'tig_end']] = start, \
+                        end, tig_start, tig_end
+        
                 db.append(tmp_row)
 
     res_df = pd.concat(db, axis=1).T
@@ -217,6 +221,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins):
                      header=None, index_col=None,
                      dtype={9: 'category'})
     
+    print(_file1.name, _file2.name, _file3.name)
     _file1.close()
     _file2.close()
     _file3.close()
@@ -599,6 +604,7 @@ def plot_heatmap(matrix, output,
 
     from matplotlib.colors import LogNorm
 
+    logger.info(f"Load contact matrix `{matrix}`.")
     cool = cooler.Cooler(matrix)
 
     if not per_chromosomes:

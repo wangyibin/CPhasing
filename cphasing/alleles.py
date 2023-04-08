@@ -159,8 +159,12 @@ class PartigRecords:
                 print(i, i, record.seqName1, 
                             record.seqName2, sep='\t', file=output)
             elif fmt == "allele2":
-                print(i, record.mzShared, record.seqName1, 
-                            record.seqName2, sep='\t', file=output)
+                print(i, i, record.seqName1, 
+                            record.seqName2, 
+                            record.mzConsidered1,
+                            record.mzConsidered2,
+                            record.mzShared,
+                            record.kmerSimilarity, sep='\t', file=output)
 
 
 class PartigAllele:
@@ -173,7 +177,7 @@ class PartigAllele:
                     log_dir='logs'):
         self.fasta = fasta
         self.prefix = op.basename(fasta).rsplit(".", 1)[0] 
-        self.partig_res = f"{self.prefix}.partig.res"
+        self.partig_res = f"{self.prefix}.similarity.res"
 
         ## parameters for partig
         self.k = k
@@ -200,7 +204,7 @@ class PartigAllele:
         try:
             pipelines.append(
                 Popen(cmd, stdout=open(self.partig_res, 'w'),
-                stderr=open(f"{self.log_dir}/partig.log", 'w'),
+                stderr=open(f"{self.log_dir}/alleles.core.log", 'w'),
                 bufsize=-1)
             )
             pipelines[-1].wait()

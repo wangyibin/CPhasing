@@ -6,7 +6,6 @@ import dask.array as da
 import gc
 import numpy as np
 import msgspec
-import networkx as nx
 import igraph as ig
 
 from .._config import HYPERGRAPH_ORDER_DTYPE
@@ -50,8 +49,35 @@ class HyperGraph:
     """
     def __init__(self, edges):
         self.edges = edges 
-        self.shape = (len(self.edges.idx), max(self.edges.col) + 1)
+        self.get_data()
+       
+
+    def get_data(self):
+        """
+        initial assign row and edges
+        """
         self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+        self.row = np.array(self.edges.row)
+        self.col = np.array(self.edges.col)
+        self.shape = (len(self.nodes), max(self.col) + 1)
+        
+        self.removed_count = 0
+
+    def remove_rows(self, contigs):
+        """
+        remove rows by contig list
+        """
+        contig_idx = [self.edges.idx[i] for i in contigs ]
+        remove_idx = np.isin(self.row, contig_idx)
+
+        self.removed_count += len(contig_idx)
+        self.row = self.row[~remove_idx]
+        self.col = self.col[~remove_idx]
+
+
+        # self.nodes = np.delete(self.nodes, contig_idx)
+
+        # self.shape = (len(self.nodes), max(self.col) + 1)
 
     def incidence_matrix(self, min_contacts=3):
         """
@@ -63,8 +89,8 @@ class HyperGraph:
             minimum contacts of contig
 
         """
-        matrix = csr_matrix((np.ones(len(self.edges.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
-                             (self.edges.row, self.edges.col)
+        matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
+                             (self.row, self.col)
                              ), 
                              shape= self.shape
                              )
@@ -74,7 +100,8 @@ class HyperGraph:
             non_zero_contig_idx = np.where(matrix.sum(axis=1).T >= min_contacts)[-1]
             matrix = matrix[non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
-            logger.info(f"{self.shape[0] - non_zero_contig_idx.shape[0]} low-singal contigs were removed")
+            logger.info(f"Total {self.shape[0] - non_zero_contig_idx.shape[0] - self.removed_count} "
+                        f"low-singal (contacts < {min_contacts}) contigs were removed")
             
             non_zero_edges_idx = np.where(matrix.sum(axis=0) >= 2)[-1]
        
@@ -83,7 +110,7 @@ class HyperGraph:
 
         return matrix 
 
-    
+
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -192,7 +219,9 @@ def extract_incidence_matrix2(mat, idx):
         non_zero_edges_idx = np.where(A.sum(axis=0).T > 1)[0]
         remove_edges_idx = np.where(A.sum(axis=0).T <= 1)[0]
         A = A[:, non_zero_edges_idx]
-    
+    else:
+        remove_edges_idx = np.array([])
+
     return A, remove_edges_idx
 
 
@@ -287,8 +316,8 @@ def IRMM(H, # NW,
         # A = A * P 
         A = A.tolil()
         if P_allelic_idx:
-            A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                  - A[P_allelic_idx[0], P_allelic_idx[1]]
+            A[P_allelic_idx[0], P_allelic_idx[1]] =  \
+                   - A[P_allelic_idx[0], P_allelic_idx[1]]
         
         if P_weak_idx:
             A[P_weak_idx[0], P_weak_idx[1]] = 0
@@ -312,11 +341,11 @@ def IRMM(H, # NW,
     # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
     # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
     cluster_stat = list(map(len, cluster_results))
+    # if outprefix:
+    #     save_npz(f'{outprefix}.A.npz', A)
     
-    save_npz(f'{outprefix}.A.npz', A)
-    
-    del A, G
-    gc.collect()
+    # del A, G
+    # gc.collect()
     
     if max_round > 1:
         W_prev = W.copy()
@@ -380,8 +409,8 @@ def IRMM(H, # NW,
         ## use networkx 
         # G = G.to_networkx()
         # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
-        del A, G
-        gc.collect()
+        # del A, G
+        # gc.collect()
 
         cluster_stat = list(map(len, cluster_results))
         logger.info(f"Cluster Statistics: {cluster_stat}")
@@ -392,7 +421,7 @@ def IRMM(H, # NW,
         
         iter_round += 1
     
-    return cluster_results
+    return cluster_assignments, cluster_results
 
 ## old version through hypernetx
 def generate_hypergraph(edges):

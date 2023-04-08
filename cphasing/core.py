@@ -24,6 +24,7 @@ from collections import Counter, OrderedDict
 from dask.distributed import Client
 from joblib import Parallel, delayed
 from itertools import combinations
+from multiprocessing import Process, Pool
 from pathlib import Path
 from pandarallel import pandarallel
 from subprocess import check_call
@@ -184,7 +185,7 @@ class AlleleLine:
         if format == "allele1":
             self.contigs = line_list[2:]
         elif format == "allele2":
-            self.contigs = line_list[2:-1]
+            self.contigs = line_list[2:5]
             self.score = int(line_list[-1])
 
         self.n = len(self.contigs)
@@ -208,7 +209,7 @@ class AlleleTable:
                 Chr01 12345 contig1 contig2 contig3 ...
                 or 1 1 contig1 contig2
             allele2: new format for table contains the scores 
-                1 1 contig1 contig2 60
+                1 1 contig1 contig2 mzConsidered1 mzConsidered2 mzShared kmerSimilarity
 
     Examples:
     --------
@@ -216,6 +217,8 @@ class AlleleTable:
     >>> at = AlleleTable(infile)
 
     """
+    AlleleHeader2 = ['idx1', 'idx2', 'contig1', 'contig2', 
+                     'mz1', 'mz2', 'mzShared', 'similarity']
     def __init__(self, infile, sort=True, fmt="allele1"):
         self.filename = infile
         self.sort = sort
@@ -259,16 +262,17 @@ class AlleleTable:
                             usecols=self.columns)
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
-        
+
         if self.fmt == "allele1":
             df = df.drop(1, axis=1)
             df = df.apply(sort_row, axis=1) if self.sort else df
             df.columns = list(range(1, len(df.columns) + 1))
             df = df.drop_duplicates(list(range(1, len(df.columns) + 1)))
         elif self.fmt == "allele2":
-            df.columns = ["score"] + list(range(1, len(df.columns)))
+            df = df.drop(1, axis=1)
+            df.columns = [1, 2] + self.AlleleHeader2[-4:]
 
-            df = df.drop_duplicates(list(range(1, len(df.columns))))
+            df = df.drop_duplicates([1, 2])
             
         df = df.reset_index(drop=True)
 
@@ -305,6 +309,7 @@ class AlleleTable:
 
     @property
     def groups(self):
+        assert self.fmt == "allele1", "only support for format `allele1`"
         _groups = OrderedDict()
         _groupby = self.data.groupby(0)
         for chrom, item in _groupby:
@@ -318,13 +323,17 @@ class AlleleTable:
         """
         the number of allelic contigs per row
         """
-        return len(self.columns) - 2
+        if self.fmt == 'allele1':
+            return len(self.columns) - 2
+        else:
+            return len(self.columns) - 2 - 4
 
     @property
     def chromnames(self):
         """
         list of chromosomes
         """
+        assert self.fmt == "allele1", "only support for format `allele1`"
         return self.groups.keys()
 
     @property
@@ -332,6 +341,7 @@ class AlleleTable:
         """
         number of chromosomes
         """
+        assert self.fmt == "allele1", "only support for format `allele1`"
         return len(self.chromnames)
 
     @property
@@ -352,13 +362,13 @@ class AlleleTable:
         return len(self.contigs)
     
     @property
-    def scores(self):
+    def similarity(self):
         assert self.fmt == "allele2", \
             "only support for allele2 format"
         
         df = self.data.set_index(list(range(1, self.n + 1)))
         
-        return df["score"].to_dict()
+        return df["similarity"].to_dict()
 
     def get_shared(self, symmetrix=True):
         """
@@ -416,6 +426,44 @@ class AlleleTable:
         """
         self.data.to_csv(output, sep='\t', header=None, index=True)
     
+class PruneTable:
+    Header = ['contig1', 'contig2', 
+              'mz1', 'mz2',
+              'mzShared', 'similarity',
+              'type']
+    META = {
+        'contig1': 'object',
+        'contig2': 'object',
+        'mz1': 'int64',
+        'mz2': 'int64',
+        'mzShared': 'int64',
+        'similarity': 'float32',
+        'type': 'category'
+    }
+    def __init__(self, prunetable, symmetric=True):
+        self.file = Path(prunetable)
+        self.filename = self.file.name
+        self.data = self.read_table()
+
+    def read_table(self):
+        data = pd.read_csv(self.file, sep='\t', 
+                            header=None, index_col=None,
+                            names=self.Header, 
+                            dtype=self.META)
+        return data
+    
+    def symmetric_table(self):
+        
+        tmp_df2 = self.data.rename(columns={"contig1": "contig2",
+                                            "contig2": "contig1"})
+        
+        data = pd.concat([self.data, tmp_df2], axis=0)
+        self.data = data.reset_index(drop=True)
+        
+        return data
+        
+
+        
 
 class PairTable:
     """
@@ -425,7 +473,7 @@ class PairTable:
     --------
     infile: str
         input file of pairs table
-    symmetrix: bool
+    symmetric: bool
         symmetric pairs [True]
     index_contig: bool
         index by contig [True]
@@ -2031,6 +2079,32 @@ class PAFLine:
     def __str__(self):
         return self.line
 
+def _process(args):
+    n, df, low_mq_condition, output, tmpdir = args
+    df = (df
+        .assign(identity=lambda x: 
+                (x.matches/x.aln_length).round(2).astype(np.float32))
+        .assign(fragment_length=lambda x: (x.end - x.start))
+        .assign(pass_filter=True)
+        .assign(filter_reason="pass")
+    )
+
+    
+    df = PAFTable._filter(n, df, low_mq_condition, tmpdir)
+    df.to_parquet(f"{output}/part.{n}.parquet")
+
+def _get_chunk(scans, read_idx, chunks, low_mq_condition, output, tmpdir):
+
+    idx = 0
+    for i, scan in enumerate(scans):
+        try:
+            df = chunks.get_chunk(scan)
+        except StopIteration:
+            return
+        df['read_idx'] = read_idx[idx: idx + scan]
+        idx += scan
+
+        yield (i, df, low_mq_condition, output, tmpdir)
 
 class PAFRecords:
     
@@ -2092,23 +2166,25 @@ class PAFTable:
         "identity": PERCENTAGE_DTYPE
     }
     def __init__(self, paf: str, 
+                    output: str = "out.pq",
                     min_quality: int = 1,
                     min_identity: float = 0.75,
                     min_length: int = 50,
                     no_read: bool = False,
                     use_dask: bool = False,
+                    chunksize: int = 100000,
                     threads: int = 4):
         self.file = Path(paf)
         self.filename = self.file.name
+        self.output = output
         self.min_quality = min_quality
         self.min_identity = min_identity
         self.min_length = min_length
 
         self.use_dask = use_dask
+        self.chunksize = chunksize
         self.threads = threads
-        
-        if not no_read:
-            self.data = self.read_table()
+        self.tmpdir = tempfile.mkdtemp(prefix="tmp", dir='./')
         
         if self.file.suffix == ".gz":
             self.is_gz = True
@@ -2117,10 +2193,36 @@ class PAFTable:
 
         if self.use_dask:
             self.client = Client(n_workers=self.threads) if self.threads > 1 else None
-        self.tmpdir = tempfile.mkdtemp(prefix="tmp", dir='./')
+        
+        if not no_read:
+            self.read_table()
     
+    
+    def read_split_info(self):
+        """
+        import read_name to get the split information
+        """
+        read_names = pd.read_csv(self.file, sep='\t', usecols=[0],
+                                 header=None)
+        read_names = pd.Categorical(read_names[0], pd.unique(read_names[0]), ordered=True)
+        
+        read_idx = read_names.codes 
+        del read_names
+        gc.collect() 
+
+        _, counts = np.unique(read_idx, return_counts=True)
+
+        scan = list(range(0, len(read_idx), self.chunksize)) + [len(read_idx)]  
+
+        a = np.searchsorted(np.cumsum(counts), scan[1:], side='right')
+        b = np.searchsorted(read_idx, a, side='right')
+
+        c = b - np.r_[0, b[:-1]]
+      
+        return read_idx, c
+
     def read_table(self):
-        logger.info('Starting ...')
+        logger.info(f'Load paf file of `{self.filename}`.')
         if self.use_dask:
             df = dd.read_csv(self.file, sep='\t', usecols=range(12), 
                             header=None, names=self.PAF_HEADER[:12], 
@@ -2129,29 +2231,47 @@ class PAFTable:
             # df = (df.set_index('read_idx')
             #         .repartition(df.npartitions)
             #         .reset_index())
+            df = (df
+                .assign(identity=lambda x: 
+                        (x.matches/x.aln_length).round(2).astype(np.float32))
+                .assign(fragment_length=lambda x: (x.read_end - x.read_start))
+                .assign(pass_filter=True)
+                .assign(filter_reason="pass")
+            )
         else:
-            df = pd.read_csv(self.file, sep='\t', usecols=range(12), 
+            
+            Path(self.output).mkdir(exist_ok=True)
+            
+            read_idx, scans = self.read_split_info()
+            print(len(read_idx), sum(scans), len(scans))
+            chunks = pd.read_csv(self.file, sep='\t', usecols=range(12), 
                             header=None, names=self.PAF_HEADER[:12], 
-                            dtype=self.META,)
-            df['read_idx'] = df['read_name'].cat.codes 
-        ## init
-        df = (df
-            .assign(identity=lambda x: 
-                    (x.matches/x.aln_length).round(2).astype(np.float32))
-            .assign(fragment_length=lambda x: (x.read_end - x.read_start))
-            .assign(pass_filter=True)
-            .assign(filter_reason="pass")
-        )
-        
-        logger.info(f'Load paf file of `{self.filename}`.')
+                            dtype=self.META, iterator=True)
+            
 
-        return df
+            low_mq_condition = (self.min_quality, self.min_identity, self.min_length)
+            filter_condition = (f'map_quality < {self.min_quality}'
+                                     f' | identity < {self.min_identity}'
+                                     f' | fragment_length < {self.min_length}')
+            logger.info(f"Filter low mapping quality by: {filter_condition}")
+            
+
+            new_chunk_iter = _get_chunk(scans, read_idx, chunks, low_mq_condition, self.output, self.tmpdir)
+            
+            pool = Pool(self.threads)
+            pool.map(_process, new_chunk_iter)
+            
+            # for args in new_chunk_iter:
+            #     _process(args)
+
+            logger.info(f"Successfully output pore_c_table to `{self.output}`")
+
     
     @staticmethod
     def _filter_low_mq(df,
                     min_quality: int=1, 
                     min_identity: float=0.75,
-                    min_length: int=50,
+                    min_length: int=10,
                     use_dask: bool=False):
         if use_dask:
             df["pass_mq"] = ((df.mapping_quality >= min_quality)
@@ -2284,6 +2404,7 @@ class PAFTable:
 
     def clean_tempoary(self):
         shutil.rmtree(self.tmpdir)
+
 class PoreCTable:
     HEADER = ["read_idx", "chrom", "start", "end", 
                 "strand", "read_name", "read_start", 

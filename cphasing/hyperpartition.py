@@ -7,11 +7,12 @@ import os
 import sys
 
 import numpy as np
+import igraph as ig
 import pandas as pd
 
 
 from collections import OrderedDict 
-from itertools import permutations
+from itertools import permutations, combinations
 from joblib import Parallel, delayed
 from scipy.sparse import hstack
 from pathlib import Path
@@ -23,10 +24,9 @@ from .algorithms.hypergraph import (
     IRMM,
     extract_incidence_matrix,
     extract_incidence_matrix2, 
-    remove_incidence_matrix
     )
-from .algorithms.postcheck import post_prune, post_rescue
-from .utilities import list_flatten, get_contigs
+from .core import PruneTable
+from .utilities import list_flatten
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class HyperPartition:
 
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
-        self.H, self.vertices = self.get_hypergraph()
+        self.HG = HyperGraph(self.edges)
         
         ## remove edges
         del self.edges, edges 
@@ -108,11 +108,11 @@ class HyperPartition:
 
         self.filter_hypergraph()
         # self.NW = self.get_normalize_weight()
-
+        self.H, self.vertices = self.get_hypergraph()
         if prune:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
         else:
-            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None
+            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None, None
 
     @property
     def vertices_idx(self):
@@ -169,12 +169,9 @@ class HyperPartition:
             vertices = np.array(self.contigs)[non_zero_contig_idx]
 
         else:
-            HG = HyperGraph(self.edges)
-            H = HG.incidence_matrix(self.min_contacts)
-            vertices = HG.nodes
-
-            del HG 
-            gc.collect()
+            
+            H = self.HG.incidence_matrix(self.min_contacts)
+            vertices = self.HG.nodes
 
         logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
                     f" and {H.shape[1]} hyperedges.")
@@ -184,56 +181,62 @@ class HyperPartition:
     def filter_hypergraph(self):
         ## remove too short contigs and according the whitelist or blacklist 
         ## to remove contigs
-        vertices_idx = self.vertices_idx
+        # vertices_idx = self.vertices_idx
         
         short_contigs = self.contigsizes[self.contigsizes < self.min_length]
-        
+        short_contigs = short_contigs.dropna().index.tolist()
+      
         remove_contigs = set()
+        remove_contigs.update(set(short_contigs))
+
         if self.whitelist:
             remove_contigs.update(set(self.contigs) - set(self.whitelist))
 
         if self.blacklist:
             remove_contigs.update(set(self.blacklist))
 
-        remove_contigs.update(set(short_contigs))
-
-        remove_contig_idx = []
-        for i in remove_contigs:
-            try:
-                remove_contig_idx.append(vertices_idx[i])
-            except KeyError:
-                continue
+        # remove_contig_idx = []
+        # for i in remove_contigs:
+        #     try:
+        #         remove_contig_idx.append(vertices_idx[i])
+        #     except KeyError:
+        #         continue
         
-        if len(remove_contig_idx) == 0:
+        if len(remove_contigs) == 0:
             return
 
-        logger.info(f"Total {len(remove_contig_idx)} contigs were removed, "
+        logger.info(f"Total {len(remove_contigs)} contigs were removed, "
                         "because it's length too short or your specified.")
-        logger.info("start to remove ...")
-        self.H, _ = remove_incidence_matrix(self.H, remove_contig_idx)
-        logger.info("done")
-        self.vertices = np.delete(self.vertices, remove_contig_idx)
+        # self.H, _ = remove_incidence_matrix(self.H, remove_contig_idx)
+        # self.vertices = np.delete(self.vertices, remove_contig_idx)
+
+        self.HG.remove_rows(remove_contigs)
+        
 
     def get_prune_pairs(self):
         
         vertices_idx = self.vertices_idx
 
-        pair_df = pd.read_csv(self.prune, sep='\t', 
-                                header=None, index_col=None)
-        pair_df[0] = pair_df[0].map(lambda x: vertices_idx.get(x, np.nan))
-        pair_df[1] = pair_df[1].map(lambda x: vertices_idx.get(x, np.nan))
-        pair_df = pair_df.dropna(axis=0).astype({0: 'int', 1: 'int', 2: 'int'})
-  
-        pair_df2 = pair_df.reindex(columns=[1, 0, 2])
-        pair_df2.columns = [0, 1, 2]
-        pair_df = pd.concat([pair_df, pair_df2], axis=0)
-        pair_df = pair_df.drop_duplicates(subset=[0, 1])
+        prunetable = PruneTable(self.prune)
+        pair_df = prunetable.data
+        pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df = pair_df.dropna(axis=0).astype({'contig1': 'int', 'contig2': 'int', 'type': 'int'})
+
+        prunetable.data = pair_df
+        prunetable.symmetric_table()
+
+        pair_df = prunetable.data
+        # pair_df = pd.concat([pair_df, pair_df2], axis=0)
+        pair_df = pair_df.drop_duplicates(subset=['contig1', 'contig2'])
         pair_df = pair_df.reset_index(drop=True)
+        
         # P_idx = [pair_df[0], pair_df[1]]
-        tmp_df = pair_df[pair_df[2] == 0]
-        P_allelic_idx = [tmp_df[0], tmp_df[1]]
-        tmp_df = pair_df[pair_df[2] == 1]
-        P_weak_idx = [tmp_df[0], tmp_df[1]]
+        tmp_df = pair_df[pair_df['type'] == 0]
+        P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        tmp_df = pair_df[pair_df['type'] == 1]
+        P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
+
         return P_allelic_idx, P_weak_idx, pair_df
 
     def get_normalize_weight(self):
@@ -248,14 +251,14 @@ class HyperPartition:
         return NW
 
     def single_partition(self):
-        logger.info("Starting cluster ...")
-        self.K = IRMM(self.H, #self.NW, 
-                        self.P_allelic_idx,
-                        self.P_weak_idx,
-                        self.resolution1, 
-                        self.threshold, self.max_round,
-                        threads=self.threads)
-        logger.info("Cluster done.")
+        logger.info("Start hyperpartition ...")
+        self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
+                                                self.P_allelic_idx,
+                                                self.P_weak_idx,
+                                                self.resolution1, 
+                                                self.threshold, self.max_round,
+                                                threads=self.threads)
+        logger.info("Partition done.")
 
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
@@ -263,11 +266,14 @@ class HyperPartition:
         # self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         self.K = self.filter_cluster()
         
+        vertices_idx_sizes = self.vertices_idx_sizes
+        vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
         self.K = sorted(self.K, 
-                        key=lambda x: self.contigsizes.iloc[x]['length'].sum(), 
+                        key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                         reverse=True)
+        print(list(map(len, self.K)))
         length_contents = pformat(list(map(
-            lambda  x: "{:,}".format(self.contigsizes.iloc[x]['length'].sum()), self.K)))
+            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
         logger.info(f"Hyperpartition result {len(self.K)} groups:\n"
                     f"{length_contents}")
         
@@ -275,7 +281,7 @@ class HyperPartition:
         
     @staticmethod
     def _incremental_partition(k, prune_pair_df, H, contigsizes, #NW, 
-                         resolution, threshold, max_round, num):
+                         resolution, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
         """
@@ -296,20 +302,20 @@ class HyperPartition:
         sub_prune_pair_df = prune_pair_df.reindex(list(permutations(k, 2)))
         sub_prune_pair_df = sub_prune_pair_df.dropna().reset_index()
     
-        sub_prune_pair_df[0] = sub_prune_pair_df[0].map(lambda x: sub_old2new_idx[x])
-        sub_prune_pair_df[1] = sub_prune_pair_df[1].map(lambda x: sub_old2new_idx[x])
+        sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(lambda x: sub_old2new_idx[x])
+        sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(lambda x: sub_old2new_idx[x])
         
-        tmp_df = sub_prune_pair_df[sub_prune_pair_df[2] == 0]
-        sub_P_allelic_idx = [tmp_df[0], tmp_df[1]]
-        tmp_df = sub_prune_pair_df[sub_prune_pair_df[2] == 1]
-        sub_P_weak_idx = [tmp_df[0], tmp_df[1]]
+        tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 0]
+        sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 1]
+        sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
         
-        new_K = IRMM(sub_H, #sub_NW, 
-                        sub_P_allelic_idx, 
-                        sub_P_weak_idx,
-                        resolution, threshold, 
-                        max_round, threads=1, 
-                        outprefix=num)
+        cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
+                                            sub_P_allelic_idx, 
+                                            sub_P_weak_idx,
+                                            resolution, threshold, 
+                                            max_round, threads=1, 
+                                            outprefix=num)
         
         ## remove single group
         # new_K = list(filter(lambda x: len(x) > 1, new_K))
@@ -317,16 +323,16 @@ class HyperPartition:
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: contigsizes.iloc[x]['length'].sum(), reverse=True)
 
-        return new_K
+        return cluster_assignments, new_K
 
     def incremental_partition(self):
         """
         incremental partition for autopolyploid.
         """
         logger.info("Starting first partition ...")
-        prune_pair_df = self.prune_pair_df.reset_index().set_index([0, 1])
+        prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
 
-        self.K = IRMM(self.H, #self.NW, 
+        _, self.K = IRMM(self.H, #self.NW, 
                       None, None, self.resolution1, self.threshold, 
                         self.max_round, threads=self.threads)
         
@@ -354,7 +360,7 @@ class HyperPartition:
                         delayed(HyperPartition._incremental_partition)
                                 (i, j, k, l, m, n, o, p) 
                                     for i, j, k, l, m, n, o, p in args)
-
+        self.cluster_assignments, results = zip(*results)
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
         length_contents = pformat(list(map(
@@ -362,12 +368,73 @@ class HyperPartition:
         logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
                     f"{length_contents}")
 
+
     def post_check(self):
         """
         check the partition results remove the allelic 
             mis-assembly and add it to correctly groups
         """
-        pass
+        cluster_assignment = self.cluster_assignments
+        allelic_idx_set = set(map(tuple, 
+                        self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
+                                            (self.prune_pair_df['similarity'] >= 0.85)]
+                        [['contig1', 'contig2']].values)
+                        )
+        idx_to_vertices = self.idx_to_vertices
+        graph = cluster_assignment.graph
+        for i, group in enumerate(self.K):
+            res = set(combinations(group, 2)).intersection(allelic_idx_set)
+            res_flatten = set(list_flatten(res))
+
+            print(len(res_flatten))
+            _, new_K = HyperPartition._incremental_partition(res_flatten, 
+                                                          self.prune_pair_df, 
+                                                          self.H, self.contigsizes,
+                                                          self.resolution1, num=None)
+            group = np.array(group)
+            
+            modularity_results = []
+            for new_group in new_K:
+                tmp_modularity = []
+                for j in range(len(self.K)):
+                    new_membership = np.array(cluster_assignment.membership)
+                    new_membership[group[np.isin(group, new_group)]] = j
+                    tmp_modularity.append(graph.modularity(new_membership))
+
+                modularity_results.append(np.array(tmp_modularity))
+
+            modularity_results = np.array(modularity_results)
+            drop_groups = []
+            if all(modularity_results[:, i] == np.max(modularity_results[:, i]) ):
+                print("equal")
+                continue
+            
+            retain_idx = np.argmax(modularity_results[:, i])
+            
+            for n, new_group in enumerate(new_K):
+                if n != retain_idx:
+                    other_indexes = list(range(len(self.K)))
+                    other_indexes.pop(i)
+                    modularity_results[n][i] = 0 
+                    rescue_to_idx = np.argmax(modularity_results[n])
+                    print(modularity_results[n])
+                    print(rescue_to_idx)
+                    rescued_group = self.K[rescue_to_idx]
+                    rescued_group.extend(new_group)
+                    self.K[rescue_to_idx] =  rescued_group
+
+                    retain_group = self.K[i]
+                    print(len(retain_group), len(new_group))
+                    retain_group = [contig for contig in retain_group if contig not in new_group]
+                    print(len(retain_group)), len(new_group)
+                    self.K[i] = retain_group
+                # self.K[i] = list(filter(lambda x: x not in new_group, self.K[i])) 
+                # print(list(idx_to_vertices[j] for j in new_group))
+            # clusters = list(map(lambda y: list(
+            #             map(lambda x: idx_to_vertices[x], y)), new_K))
+
+        print(list(map(len, self.K)))
+            
 
     @staticmethod
     def get_k_size(k, contigsizes, idx_to_vertices):

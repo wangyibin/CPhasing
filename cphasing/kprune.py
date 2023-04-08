@@ -19,6 +19,7 @@ import pandas as pd
 
 from collections import defaultdict
 from joblib import Parallel, delayed
+from scipy.sparse import triu
 
 from .core import AlleleTable 
 
@@ -48,8 +49,8 @@ class KPruner:
     >>> kp.save_prune_list('prune.contig.list')
     
     """
-    def __init__(self, alleletable, coolfile, threads=1):
-        self.alleletable = AlleleTable(alleletable, sort=False)
+    def __init__(self, alleletable, coolfile, threads=4):
+        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')
         self.coolfile = coolfile 
         self.threads = threads
 
@@ -92,7 +93,7 @@ class KPruner:
                         self.alleletable.data[1] < self.alleletable.data[2]
                         ][[1, 2]].values.tolist()
         _allelic = list(map(tuple, _allelic))
-        _allelic = set(_allelic).intersection(self.contig_pairs)
+        _allelic = list(set(_allelic).intersection(self.contig_pairs))
         logger.info(f"Removed {len(_allelic)} allelic contacts.")
         
         self.allelic_prune_list.extend(_allelic)
@@ -137,10 +138,11 @@ class KPruner:
     def remove_weak_with_allelic(self):
         args = []
         res = []
-        print(len(self.contig_pairs))
+        score_db = self.score_db 
+        allele_group_db = self.allele_group_db
         for ctg1, ctg2 in self.contig_pairs:
-            # args.append((ctg1, ctg2, self.allele_group_db, self.score_db))
-            res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, self.allele_group_db, self.score_db))
+            # args.append((ctg1, ctg2, allele_group_db, score_db))
+            res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db))
         # res = Parallel(n_jobs=self.threads)(
         #         delayed(KPruner._remove_weak_with_allelic)(i, j, k, l)
         #             for i, j, k, l in args )
@@ -151,16 +153,33 @@ class KPruner:
         self.weak_prune_list.extend(res)
     
     def save_prune_list(self, output, symmetric=False):
-        with open(output, 'w') as out:
-            for pair in self.allelic_prune_list:
-                print("\t".join(pair) + "\t0", file=out)
-                if symmetric:
-                    print("\t".join(pair[::-1]) + "\t0", file=out)
+        allele_data = self.alleletable.data.set_index([1, 2])
+        
+        allelic_res = allele_data.reindex(self.allelic_prune_list) 
+        allelic_res = allelic_res.reset_index()
+        allelic_res.columns = self.alleletable.AlleleHeader2[2:]
+        allelic_res['type'] = 0 
 
-            for pair in self.weak_prune_list:
-                print("\t".join(pair) + "\t1", file=out)
-                if symmetric:
-                    print("\t".join(pair[::-1]) + "\t1", file=out)
+        weak_res = pd.DataFrame(self.weak_prune_list)
+        weak_res.columns = self.alleletable.AlleleHeader2[2:4]
+        weak_res['type'] = 1 
+        weak_res['mz1'] = 0
+        weak_res['mz2'] = 0
+        weak_res['mzShared'] = 0
+        weak_res['similarity'] = 0
+        
+        if symmetric:
+            allelic_res2 = allelic_res.rename(columns={'contig1': 'contig2',
+                                                        'conrig2': 'conrig1'})
+            weak_res2 = weak_res.rename(columns={'contig1': 'contig2',
+                                                        'conrig2': 'conrig1'})
+            res = pd.concat([allelic_res, allelic_res2, 
+                                weak_res, weak_res2], axis=0)    
+        else:
+            res = pd.concat([allelic_res, weak_res], axis=0)
+        res.to_csv(output, sep='\t', header=None, index=None)
+        
+      
 
     def run(self):
         self.remove_allelic()

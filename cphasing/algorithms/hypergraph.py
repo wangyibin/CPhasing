@@ -181,8 +181,12 @@ def reweight(d_array, cluster_assignments, W, n, chunk):
     for e in array:
         e_nodes = set(e.indices)
         e_c = len(e_nodes)
-        k = np.array([len(e_nodes & cluster_assignments[i]) for i in range(c)])
         w_prev = W.data[0][idx]
+        if e_c <= 2:
+            W_tmp.append(w_prev)
+            continue
+        k = np.array([len(e_nodes & cluster_assignments[i]) for i in range(c)])
+        
         w_new = calc_new_weight(k, c, e_c, m)
         W_tmp.append(0.5 * (w_new + w_prev))
         idx += 1
@@ -223,9 +227,6 @@ def extract_incidence_matrix2(mat, idx):
         remove_edges_idx = np.array([])
 
     return A, remove_edges_idx
-
-
-    
 
 def remove_incidence_matrix(mat, idx):   
     if not isinstance(mat, csr_matrix):
@@ -421,7 +422,7 @@ def IRMM(H, # NW,
         
         iter_round += 1
     
-    return cluster_assignments, cluster_results
+    return A, cluster_assignments, cluster_results
 
 ## old version through hypernetx
 def generate_hypergraph(edges):

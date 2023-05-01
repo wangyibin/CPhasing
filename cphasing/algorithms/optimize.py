@@ -12,6 +12,7 @@ import os.path as op
 import sys
 
 import cooler
+import random
 import igraph as ig
 import numpy as np
 import pandas as pd
@@ -683,7 +684,6 @@ class SimpleOptimize2:
             except:
                 print(i, j)
 
-
     def save(self, output):
         with open(output, "w") as out:
             print("\n".join(self.ordering), file=out)
@@ -692,9 +692,78 @@ class SimpleOptimize2:
         pass
 
 
-
     
+class SAOptimizer:
+    """
+    Simulated Annealing
+    """
+    def __init__(self) -> None:
+        pass 
 
+    def cooling_schedule(self, t):
+        return 0.99 * t
+    
+    def acceptance_probability(self, energy, new_energy, temperature):
+        if new_energy < energy:
+            return 1.0
+        return np.exp((energy - new_energy) / temperature)
+    
+    def simulated_annealing(self, graph, start, iterations=1000):
+        """
+        Simulated Annealing
+
+        Params:
+        -------
+        graph: np.array
+            adjacency matrix
+        start: list 
+            start node
+        iterations: int
+            number of iterations
+        
+        Returns:
+        --------
+        current_path: list
+        current_cost: int
+
+        Example:
+        --------
+        >>> graph = np.array([[0, 1, 2, 3],
+                                [1, 0, 4, 5],
+                                [2, 4, 0, 6],  
+                                [3, 5, 6, 0]])
+        >>> start = 0
+        >>> iterations = 1000
+        >>> sa = SA()
+        >>> current_path, current_cost = sa.simulated_annealing(graph, start, iterations)
+        >>> print(current_path, current_cost)
+        [0, 1, 2, 3] 12
+        """
+        # initial state
+        current_path = [start]
+        current_cost = 0
+        unvisited_nodes = set(range(len(graph))) - {start}
+    
+        # iteration
+        for i in range(iterations):
+            # cooling
+            T = self.cooling_schedule(iterations / i)
+    
+            # random neighbour
+            current_node = current_path[-1]
+            next_node = random.sample(unvisited_nodes, 1)[0]
+    
+            # calculate current and neighbour path cost
+            current_cost += graph[current_node][next_node]
+            new_cost = current_cost - graph[current_node][next_node] + graph[next_node][current_node]
+    
+            # accept neighbour or not
+            if self.acceptance_probability(current_cost, new_cost, T) > random.random():
+                current_cost = new_cost
+                current_path.append(next_node)
+                unvisited_nodes.remove(next_node)
+    
+        return current_path, current_cost
 
 
 

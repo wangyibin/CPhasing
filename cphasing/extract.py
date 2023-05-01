@@ -130,10 +130,8 @@ class Extractor:
 
 def process_pore_c_table(df, contig_idx, npartition, 
                             min_order=2, max_order=50, 
-                            min_alignments=50, use_dask=False):
-    if use_dask:
-        df = df.partitions[npartition]
-        df = df.compute()
+                            min_alignments=50, is_parquet=False):
+   
     df['chrom_idx'] = df['chrom'].map(contig_idx.get).astype('int')
 
     # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
@@ -152,18 +150,8 @@ def process_pore_c_table(df, contig_idx, npartition,
     df['read_idx'] = df['read_idx'].astype('category')
     df['read_idx'] = df['read_idx'].cat.codes
     
-    # df = df.groupby('read_idx', sort=False)['chrom_idx'].unique()
-    
-    # df = df.apply(lambda x: pd.Series(x))
-
-    # df = df.reset_index(drop=True).stack().astype('int')
-
-    
-    # edges = edges.apply(lambda x: list(map(chrom_db.get, x)))
-
     return df
 
-# process_pore_c_table = memory.cache(process_pore_c_table)
 
 class HyperExtractor:
     """
@@ -180,13 +168,18 @@ class HyperExtractor:
     use_dask: bool, default False
         use dask to parse pore-c table
     """
+    HEADER = ["read_idx", "read_length", 
+              "read_start", "read_end",  
+              "strand", "chrom", "start",
+              "end", "mapping_quality", "identity", 
+              "filter_reason"]
     def __init__(self, pore_c_table_pathes, 
                             contig_idx,
                             min_order=2, 
                             max_order=50, 
                             min_alignments=100,
                             threads=4,
-                            use_dask=False):
+                            is_parquet=False):
         
         self.pore_c_table_pathes = listify(pore_c_table_pathes)
         self.contig_idx = contig_idx
@@ -194,7 +187,7 @@ class HyperExtractor:
         self.max_order = max_order
         self.min_alignments = min_alignments
         self.threads = threads
-        self.use_dask = use_dask 
+        self.is_parquet = is_parquet
 
         self.pore_c_tables = self.import_pore_c_table()
         self.edges = self.generate_edges()
@@ -211,22 +204,26 @@ class HyperExtractor:
             else:
                 infile = self.pore_c_table_pathes[0]
             
-            if self.use_dask:
-                df = dd.read_parquet(infile, 
-                                    columns=['read_idx', 'chrom',
-                                            'start', 'end', 
-                                            'pass_filter'],
-                                    engine=PQ_ENGINE)
-            else:
+            if self.is_parquet:
                 df = pd.read_parquet(infile, 
                                         columns=['read_idx', 'chrom',
                                                 'start', 'end', 
-                                                'pass_filter'],
+                                                'filter_reason'],
                                     engine=PQ_ENGINE)
+            else: 
+                df = pd.read_csv(infile, 
+                                 sep='\t',
+                                 header=None,
+                                 index_col=None,
+                                    usecols=['read_idx', 'chrom',
+                                            'start', 'end', 
+                                            'filter_reason'],
+                                    names=self.HEADER)
             
-            df = df.query("pass_filter == True")
+            df = df.query("filter_reason == 'pass'")
             df_list = [df]
-            
+        
+
         else:
             infiles = []
             for i in self.pore_c_table_pathes:
@@ -234,30 +231,37 @@ class HyperExtractor:
                     infiles.append(os.readlink(i))
                 else:
                     infiles.append(i)
-
-            if self.use_dask:
-                df_list = list(map(lambda x: dd.read_parquet(
-                                    x, columns=['read_idx', 'chrom', 
-                                                'start', 'end', 
-                                                'pass_filter'], 
-                                    engine='pyarrow'), infiles))
-
-                df = dd.concat(df_list, axis=0)
-                # df['read_idx'] = df['read_name'].cat.as_known().cat.codes
-                df = df.query("pass_filter == True").drop("pass_filter", axis=1)
-                df_list = [df]
-            else:
+            
+            if self.is_parquet:
                 df_list = list(map(lambda x: pd.read_parquet(
                                 x, columns=['read_idx', 'chrom', 
                                             'start', 'end', 
-                                            'pass_filter'], 
+                                            'filter_reason'], 
                                     engine='pyarrow',),
+                                    infiles))
+                df_list = Parallel(n_jobs=self.threads)(delayed(
+                                    lambda x: x.query("filter_reason == 'pass'")
+                                                .drop("filter_reason", axis=1)
+                                                )(i) for i in df_list)
+
+                
+            else:
+                df_list = list(map(lambda x: pd.read_csv(
+                                x, names=self.HEADER, 
+                                    usecols=['read_idx', 'chrom', 
+                                            'start', 'end', 
+                                            'filter_reason'], 
+                                    sep='\t',
+                                    index_col=None,
+                                    header=None,
+                                    ),
                                     #filters=[('pass_filter', '=', True)]),
                                     infiles))
                 df_list = Parallel(n_jobs=self.threads)(delayed(
-                                    lambda x: x.query("pass_filter == True")
-                                                .drop("pass_filter", axis=1)
+                                    lambda x: x.query("filter_reason == 'pass'")
+                                                .drop("filter_reason", axis=1)
                                                 )(i) for i in df_list)
+            
 
         return df_list
     
@@ -283,19 +287,12 @@ class HyperExtractor:
                         f"\talignment length >= {self.min_alignments}\n"
                         f"\t{self.min_order} <= contig order <= {self.max_order}")
 
-        if self.use_dask:
-            pore_c_table = self.pore_c_tables[0]
-            args = []
-            for i in range(pore_c_table.npartitions):
-                args.append((pore_c_table, self.contig_idx, i,
-                            self.min_order, self.max_order, 
-                            self.min_alignments, self.use_dask))
-        else:
-            args = []
-            for i, pore_c_table in enumerate(self.pore_c_tables):
-                args.append((pore_c_table, self.contig_idx, i, 
-                            self.min_order, self.max_order, 
-                            self.min_alignments, self.use_dask))
+    
+        args = []
+        for i, pore_c_table in enumerate(self.pore_c_tables):
+            args.append((pore_c_table, self.contig_idx, i, 
+                        self.min_order, self.max_order, 
+                        self.min_alignments, self.is_parquet))
         
         res = Parallel(n_jobs=self.threads)(
                         delayed(process_pore_c_table)(i, j, k, l, m, n, o) 

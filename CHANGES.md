@@ -1,11 +1,13 @@
 # Release notes #
 
 ## [v0.0.15]
-Date: 2023-04-08
+Date: 2023-05-01
 ### New features
 - `PruneTable`, Object for prune table.
 ### Enhancement
 - `kprune`, output prune table
+- `hyperpartition`
+    - add k parameter to output the specified number groups
 ## [v0.0.14]
 Date: 2023-03-22
 ### New features

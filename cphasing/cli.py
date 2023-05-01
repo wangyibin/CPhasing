@@ -990,7 +990,7 @@ def extract(contacts,
     "-r1",
     "--resolution1",
     help="Resolution of the first partition",
-    type=click.FloatRange(0.0, 1.5),
+    type=click.FloatRange(0.0, 3.0),
     default=1,
     show_default=True
 )
@@ -998,7 +998,7 @@ def extract(contacts,
     "-r2",
     "--resolution2",
     help="Resolution of the second partition",
-    type=click.FloatRange(0.0, 1.5),
+    type=click.FloatRange(0.0, 3.0),
     default=0.8,
     show_default=True
 )
@@ -1097,8 +1097,17 @@ def hyperpartition(edges,
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
 
+    k = k.split(":") if k else [None]
+
+    for i, v in enumerate(k):
+        if v:
+            k[i] = int(v)
+        else:
+            k[i] = 0
+
     hp = HyperPartition(edges, 
                             contigsizes,
+                            k,
                             prune,
                             whitelist,
                             blacklist,
@@ -1114,13 +1123,13 @@ def hyperpartition(edges,
                             )
 
     if not prune:
-        hp.single_partition()
+        hp.single_partition(int(k[0]))
 
     if prune:
         if incremental:
-            hp.incremental_partition()
+            hp.incremental_partition(k)
         else:
-            hp.single_partition()
+            hp.single_partition(int(k[0]))
             # hp.post_check()
             
     hp.to_cluster(output)
@@ -1156,9 +1165,13 @@ def optimize(group, coolfile, output):
     so2 = SimpleOptimize2(contigs, cool)
 
     so2.G, so2.graph_df = so2.graph()
+    score_df, _ = so2.filter(mode="score")
+    print(score_df)
     so2.graph_df = so2.graph_df.set_index(['source', 'target'])
-    print(so2.score_df.sort_index())
-    so2.ordering = so2.nn_tsp(so2.contigs, so2.score_df)
+    print(so2.graph_df)
+
+    
+    # so2.ordering = so2.nn_tsp(so2.contigs, so2.score_df)
     # so2.contigs = sorted(contigs, key=lambda x: so2.ordering.index(x))
     # so2.contig_idx = dict(zip(so2.contigs, range(len(so2.contigs))))
     # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))
@@ -1346,7 +1359,8 @@ def plot(matrix,
     if not only_plot:
         if not no_adjust:
             assert agp is not None, \
-                "Must provide agp file for matrix adjustment."
+                "Must provide agp file for matrix adjustment. " \
+                    "or you want to only plot the matrix with `--only-plot`."
             matrix = adjust_matrix(matrix, agp)
 
         if only_adjust:

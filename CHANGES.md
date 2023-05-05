@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.0.16]
+Date: 2023-05-05
+## Enhancement
+- `hyperpartition`, add mutual exclusion merge
+## Bug fixes
+- `hyperpartition`, fixed the bug that incorrect scaffold length in`_incremental_partition` 
 ## [v0.0.15]
 Date: 2023-05-01
 ### New features

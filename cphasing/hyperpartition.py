@@ -300,12 +300,11 @@ class HyperPartition:
         # self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         self.K = self.filter_cluster()
         
-        if k:
-            self.K = HyperPartition._merge(A, self.K, k, self.prune_pair_df)
-        
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
         
+        if k:
+            self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, self.prune_pair_df)
         
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -321,8 +320,8 @@ class HyperPartition:
         return self.K  
         
     @staticmethod
-    def _incremental_partition(K, k, prune_pair_df, H, contigsizes, #NW, 
-                         resolution, threshold=0.01, max_round=1, num=None):
+    def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, #NW, 
+                         resolution, min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
         """
@@ -336,6 +335,10 @@ class HyperPartition:
 
         sub_old2new_idx = dict(zip(K, range(len(K))))
         sub_new2old_idx = dict(zip(range(len(K)), K))
+        
+        sub_vertices_idx_sizes = vertices_idx_sizes.loc[K]
+        sub_vertices_new_idx_sizes = sub_vertices_idx_sizes
+        sub_vertices_new_idx_sizes.index = sub_vertices_idx_sizes.index.map(lambda x: sub_old2new_idx[x])
 
         # sub_vertices = list(np.array(self.vertices)[k])
         # sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
@@ -350,7 +353,9 @@ class HyperPartition:
         sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
         tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 1]
         sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
-        
+
+        sub_prune_pair_df = sub_prune_pair_df.reset_index()
+
         A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
                                             sub_P_allelic_idx, 
                                             sub_P_weak_idx,
@@ -358,20 +363,17 @@ class HyperPartition:
                                             max_round, threads=1, 
                                             outprefix=num)
 
-       
-        
-        ## remove single group
-        new_K = list(filter(lambda x: len(x) > 1, new_K))
+        ## remove the scaffold that is too short
+        new_K = list(filter(
+                        lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \
+                            >= min_scaffold_length, new_K)
+        )
         new_K = list(map(list, new_K))
         if k:
-            new_K = HyperPartition._merge(A, new_K, k)
-        # new_K = list(filter(lambda x: HyperPartition.get_k_size(
-        #     x, contigsizes, idx_to_vertices) >= min_scaffold_length, 
-        #     new_K
-        # ))
-        logger.info(f"Cluster Statistics: {list(map(len, new_K))}")
+            new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, sub_prune_pair_df)
+        
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
-        new_K = sorted(new_K, key=lambda x: contigsizes.iloc[x]['length'].sum(), reverse=True)
+        new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
         return cluster_assignments, new_K
 
@@ -388,38 +390,41 @@ class HyperPartition:
 
         self.K = list(map(list, self.K))
         self.K = self.filter_cluster()
-
+        
+        vertices_idx_sizes = self.vertices_idx_sizes
+        vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+        
         if k[0]:
-            self.K = HyperPartition._merge(A, self.K, k[0])
+            self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0])
 
-        self.K = sorted(self.K, key=lambda x: self.contigsizes.iloc[x]['length'].sum(), reverse=True)
+        self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
         self.to_cluster(f'first.clusters.txt')
 
         length_contents = pformat(list(map(
-            lambda  x: "{:,}".format(self.contigsizes.iloc[x]['length'].sum()), self.K)))
+            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
         logger.info(f"First hyperpartition resulted {len(self.K)} groups:\n"
                     f"{length_contents}")
         
 
         logger.info("Starting second hyperpartition ...")
-    
+
+        # prune_pair_df = prune_pair_df.reset_index()
         args = []
         for num, sub_k in enumerate(self.K, 1):
-            args.append((sub_k, k[1], prune_pair_df, self.H, self.contigsizes,#self.NW, 
-                        self.resolution2, self.threshold, self.max_round, num))
+            args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
+                        self.resolution2, self.min_scaffold_length, self.threshold, self.max_round, num))
             # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q) 
-                                    for i, j, _k, l, m, n, o, p, q in args)
+                                (i, j, _k, l, m, n, o, p, q, r) 
+                                    for i, j, _k, l, m, n, o, p, q, r in args)
         self.cluster_assignments, results = zip(*results)
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
 
-        vertices_idx_sizes = self.vertices_idx_sizes
-        vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+        
         length_contents = pformat(list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
         logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
@@ -427,60 +432,53 @@ class HyperPartition:
 
 
     @staticmethod
-    def _merge(A, K, k=None, prune_pair_df=None):
-
+    def _merge(A, K, vertices_idx_sizes, k=None, prune_pair_df=None):
+        if not k:
+            return K 
+        
         if prune_pair_df is not None:
             allelic_idx_set = set(map(tuple, 
                             prune_pair_df[(prune_pair_df['type'] == 0) & 
                                                 (prune_pair_df['similarity'] >= 0.85)]
                             [['contig1', 'contig2']].values)
                             )
-        
-        tmp_prune_pair_df = prune_pair_df[(prune_pair_df['type'] == 0) & 
-                                        (prune_pair_df['similarity'] >= 0.85)]
-        
-        index1 = tmp_prune_pair_df['contig1'].values
-        index2 = tmp_prune_pair_df['contig2'].values
-        values = ( (tmp_prune_pair_df["mzShared"] ** 2)
-                    / (tmp_prune_pair_df['mz1'] * tmp_prune_pair_df['mz1'])  )
-        values = values.values
-        
-        n_rows = max(index1) + 1
-        n_cols = max(index2) + 1
-
-        mz_matrix = np.zeros((n_rows, n_cols))
-
-        for i in range(len(index1)):
-            mz_matrix[index1[i], index2[i]] = values[i]
-
-        mz_matrix = 1 - mz_matrix
-        
 
         iter_round = 0 
-        
-        print(A.shape, mz_matrix.shape)
-        # A = A * mz_matrix
+        flag = 1
+      
         while k and len(K) > k:
-            # if iter_round > 10:
-            #     break
+            if iter_round > 100:
+                break
 
             value_matrix = np.zeros(shape=(len(K), len(K)))
+            flag_matrix = np.ones(shape=(len(K), len(K)))
             res = {}
             for i, group1 in enumerate(K):
                 group1 = list(group1)
                 for j in range(i + 1, len(K)):
                     group2 = list(K[j])
 
-                    min_group = group1 if len(group1) <= len(group2) else group2 
-                    min_group_length = len(min_group)
+                    group1_length = vertices_idx_sizes.loc[list(group1)].sum().values[0]
+                    group2_length = vertices_idx_sizes.loc[list(group2)].sum().values[0]
+                    
                     if prune_pair_df is not None:
-                        allelic = set([(x, y) for x, y in product(group1, group2)])
-                        print(i, j, len(allelic & allelic_idx_set), min_group_length)
+                        product_contig_pair = set([(x, y) for x, y in product(group1, group2)])
+                        allelic = product_contig_pair & allelic_idx_set
+                        if allelic:
+                            tmp1, tmp2 = list(map(set, zip(*allelic)))
+                            tmp1_length = vertices_idx_sizes.loc[list(tmp1)].sum().values[0]
+                            tmp2_length = vertices_idx_sizes.loc[list(tmp2)].sum().values[0]
+                            overlap1 = tmp1_length/group1_length
+                            overlap2 = tmp2_length/group2_length
 
-            
+                            if overlap1 > 0.1 or overlap2 > 0.1:
+                                flag = 0
+                        
                     value = A[group1, ][:,group2 ].sum() 
                     value_matrix[i, j] = value
-            
+                    flag_matrix[i, j] = flag
+                    flag = 1
+
             total_value = value_matrix.sum()
         
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
@@ -490,12 +488,19 @@ class HyperPartition:
                 for j in range(i+1, len(K)):
                     j_value = value_matrix[j].sum()
                     value =  value_matrix[i, j]
+                    flag = flag_matrix[i, j]
+                    if flag:
+                        Q = value - (j_value * i_value)/total_value
+                    else:
+                        Q = - 2**64
 
-                    Q = value - (j_value * i_value)/total_value
                     res[(i, j)] = Q
 
             i1, i2 = max(res,  key=lambda x: res[x])
-        
+
+            if max(res) == 0:
+                return K
+            
             group1 = K[i1]
             group2 = K[i2]
     
@@ -504,11 +509,9 @@ class HyperPartition:
             K[i1] = group1 
             K.pop(i2)
 
-            # iter_round += 1
+            iter_round += 1
         
         return K
-
-
 
     def post_check(self):
         """

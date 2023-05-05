@@ -991,7 +991,7 @@ def extract(contacts,
     "--resolution1",
     help="Resolution of the first partition",
     type=click.FloatRange(0.0, 3.0),
-    default=1,
+    default=1.0,
     show_default=True
 )
 @click.option(
@@ -999,7 +999,7 @@ def extract(contacts,
     "--resolution2",
     help="Resolution of the second partition",
     type=click.FloatRange(0.0, 3.0),
-    default=0.8,
+    default=1.0,
     show_default=True
 )
 @click.option(

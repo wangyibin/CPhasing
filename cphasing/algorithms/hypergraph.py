@@ -10,7 +10,6 @@ import igraph as ig
 
 from .._config import HYPERGRAPH_ORDER_DTYPE
 
-# from joblib import Memory
 from joblib import Parallel, delayed
 from scipy.sparse import (
     identity, 
@@ -22,7 +21,6 @@ from scipy.sparse import (
 
 logger = logging.getLogger(__name__)
 
-# memory = Memory('./cachedir', verbose=0)
 
 class HyperEdges(msgspec.Struct):
     """
@@ -457,6 +455,4 @@ def generate_hypergraph(edges):
 
     
     # return H, vertices
-
-# generate_hypergraph = memory.cache(generate_hypergraph)
 

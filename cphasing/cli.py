@@ -1097,7 +1097,7 @@ def hyperpartition(edges,
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
 
-    k = k.split(":") if k else [None]
+    k = k.split(":") if k else [None, None]
 
     for i, v in enumerate(k):
         if v:

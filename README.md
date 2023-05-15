@@ -17,6 +17,8 @@ The advantages of `C-Phasing`:
 ## Dependencies
 ### For core function.
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
+### For Pore-C pipeline.
+- [minimap2](https://github.com/lh3/minimap2)
 ### For Hi-C pipeline.
 - [chromap](https://github.com/haowenz/chromap)
 
@@ -33,16 +35,19 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 
 ## Pore-C 
 ### Polyploid
-1. **mapping**
-    - pore-c-snakemake 
-        > Time consuming and memory consuming.   
-    - minimap2  
-        > This will lose a lot of signals and lead to unsatisfactory results.
 
-2. **prepare**
+
+1. **prepare**
     ```bash
-    cphasing prepare genome draft.asm.fasta HindIII
-    cphasing prepare cool sample.pairs draft.asm.chromsizes 
+    cphasing-rs chromsizes draft.asm.fasta > draft.asm.contigsizes
+    ```
+2. **mapping**
+    ```bash
+    minimap2 -x map-ont --secondary=no -c draft.asm.fasta sample.fastq.gz \
+         | cphasing-rs paf2table - -o sample.porec.gz
+    
+    cphasing-rs porec2pairs sample.porec.gz draft.asm.contigsizes -o sample.pairs.gz 
+    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes
     ```
 
 3. **prunning**
@@ -64,10 +69,11 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ## for haploid scaffolding 
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt 
     ## for polyploid or diploid phasing must add prune information and use the multi partition mode
-    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list --multi  
+    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
     ```
+
     - `ordering and orientation`
-    ```
+    ```bash
     cphasing optimize group1.count_HindIII.txt sample.10000.cool 
     ```
     - `build`
@@ -78,8 +84,3 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
-    
-
-
-
-

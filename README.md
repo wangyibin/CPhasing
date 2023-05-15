@@ -69,7 +69,10 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ## for haploid scaffolding 
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt 
     ## for polyploid or diploid phasing must add prune information and use the multi partition mode
+    ### auto generate groups
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
+    ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
+    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
 
     - `ordering and orientation`
@@ -84,3 +87,20 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
+
+### Evalutation 
+- A diploid that simulated from two rice genome
+
+- Haplotype resolved human genome
+
+- Tetraploid genome
+
+- Hexaploid genome
+
+## To do list
+- [ ] mapper
+- [x] kprune
+- [x] hyperpartition
+- [ ] optimize
+- [x] plot
+- [ ] pipeline

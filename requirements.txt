@@ -4,6 +4,7 @@ colormaps
 cooler >= 0.8.11
 dask
 distributed
+hicmatrix
 igraph
 intervaltree
 joblib

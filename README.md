@@ -60,9 +60,10 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing kprune allele.table contigs.whole.cool 
     ```
+4. **partition**
     - `extract`
     ```bash
-    cphasing extract sample.merge.pq draft.asm.contigs sample.hyperedges
+    cphasing extract sample.porec.gz draft.asm.contigsizes sample.hyperedges
     ```
     - `hyperpartition`
     ```bash
@@ -74,8 +75,8 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
-
-    - `ordering and orientation`
+5. **optimize**
+    - `ordering and orientation` **incomplete**
     ```bash
     cphasing optimize group1.count_HindIII.txt sample.10000.cool 
     ```
@@ -83,6 +84,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing build draft.asm.fasta
     ```
+6. **plot**
     - `plot`
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
@@ -91,13 +93,13 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ### Evalutation 
 - A diploid that simulated from two rice genome
 
-- Haplotype resolved human genome
+- Simulation data from haplotype resolved human genome
 
-- Tetraploid genome
-
+- Autotetraploid genome
+![AP heatmap](pictures/AP/groups.wg.png)
 - Hexaploid genome
 
-## To do list
+## ToDo list
 - [ ] mapper
 - [x] kprune
 - [x] hyperpartition

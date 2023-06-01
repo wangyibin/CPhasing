@@ -664,6 +664,13 @@ def pairs2cool(pairs, chromsize, outcool,
     required=True
 )
 @click.option(
+    "-o",
+    "--output",
+    metavar="PATH",
+    help="path of output allele table [default: fasta_prefix]",
+    default=None
+)
+@click.option(
     "--method",
     help="method for allele table constructions.",
     default='similarity',
@@ -737,7 +744,7 @@ def pairs2cool(pairs, chromsize, outcool,
     is_flag=True,
     show_default=True
 )
-def alleles(fasta, method, 
+def alleles(fasta, output, method, 
                 kmer_size, window_size, minimum_similarity,
                 cds, bed, ploidy, skip_gmap_index, threads):
     """
@@ -752,8 +759,10 @@ def alleles(fasta, method,
                         threads=threads)
         ga.run()
     elif method == 'similarity':
-        prefix = op.basename(fasta).rsplit(".", 1)[0] 
-        output = f"{prefix}.allele.table"
+        if not output:
+            prefix = op.basename(fasta).rsplit(".", 1)[0] 
+            output = f"{prefix}.allele.table"
+        
         pa = PartigAllele(fasta, kmer_size, window_size, 
                                 minimum_similarity, output)
         pa.run()
@@ -842,7 +851,7 @@ def kprune(alleletable, coolfile, output, symmetric):
     help="Minimum length of pore-c alignments",
     metavar="INT",
     type=int,
-    default=100,
+    default=30,
     show_default=True
 )
 @click.option(
@@ -934,19 +943,61 @@ def extract(contacts,
 )
 @click.option(
     "-k",
-    help="Number of groups.",
+    help="""
+    Number of groups. If set to 0 or None, the partition will be run automatically.
+    If in incremental mode, you can set to k1:k2, 
+    which meaning that generate k1 groups in the first round partition
+    and generate k2 groups in the second round partition. 
+    Also, you can set k1:0 to set the second round partition to automatical mode. [default: 0]
+    """,
     default=None,
     show_default=True,
 )
 @click.option(
+    "-p",
     "--prune",
     metavar="PATH",
-    help="Path to prune list from kprune.",
+    help="Path to prune table that is generated from kprune.",
     default=None,
     show_default=True,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-zero",
+    "--zero-allelic",
+    "zero_allelic",
+    help="Use the allelic weighted zero algorithm",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    "-as",
+    "--allelic-similarity",
+    "allelic_similarity",
+    help="The similarity of allelic",
+    default=0.8,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+@click.option(
+    '-inc',
+    '--incremental',
+    help='Use incremental partition algorithm',
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '-fc',
+    '--first-cluster',
+    'first_cluster',
+    help='Use the existing first cluster results to second cluster',
+    default=None,
+    show_default=True
+)
+@click.option(
+    "-wl",
     "--whitelist",
     metavar="PATH",
     help="""
@@ -958,6 +1009,7 @@ def extract(contacts,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-bl",
     "--blacklist",
     metavar="PATH",
     help="""
@@ -969,6 +1021,7 @@ def extract(contacts,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-mc",
     "--min-contacts",
     "min_contacts",
     help="Minimum contacts of contigs",
@@ -978,6 +1031,7 @@ def extract(contacts,
     show_default=True
 )
 @click.option(
+    "-ml",
     "--min-length",
     "min_length",
     help="Minimum length of contigs",
@@ -990,7 +1044,7 @@ def extract(contacts,
     "-r1",
     "--resolution1",
     help="Resolution of the first partition",
-    type=click.FloatRange(0.0, 3.0),
+    type=click.FloatRange(0.0, 10.0),
     default=1.0,
     show_default=True
 )
@@ -998,7 +1052,7 @@ def extract(contacts,
     "-r2",
     "--resolution2",
     help="Resolution of the second partition",
-    type=click.FloatRange(0.0, 3.0),
+    type=click.FloatRange(0.0, 10.0),
     default=1.0,
     show_default=True
 )
@@ -1045,19 +1099,15 @@ def extract(contacts,
 #     metavar='Float',
 #     show_default=True
 # )
-@click.option(
-    '-inc',
-    '--incremental',
-    help='Using incremental partition algorithm',
-    is_flag=True,
-    default=False,
-    show_default=True
-)
 def hyperpartition(edges, 
                     contigsizes, 
                     output,
                     k,
                     prune,
+                    zero_allelic,
+                    allelic_similarity,
+                    incremental,
+                    first_cluster,
                     whitelist,
                     blacklist,
                     min_contacts,
@@ -1068,8 +1118,8 @@ def hyperpartition(edges,
                     threshold, 
                     max_round, 
                     threads,
-                    # chunksize,
-                    incremental):
+                    # chunksize
+                    ):
     """
     Separate contigs into several groups by hypergraph cluster.
 
@@ -1078,6 +1128,7 @@ def hyperpartition(edges,
         Contig_sizes : Path of contig sizes.
 
         Output : Path of output clusters.
+
     """
     import msgspec 
     from .hyperpartition import HyperPartition
@@ -1096,6 +1147,13 @@ def hyperpartition(edges,
 
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
+    
+    if incremental is False and first_cluster is not None:
+        logger.warn("First cluster only support for incremental method, will be not used.")
+
+    if k is not None:
+        if ":" in k and incremental is False:
+            logger.warn("Second round partition will not be run, or `-inc` parameters must be added")
 
     k = k.split(":") if k else [None, None]
 
@@ -1109,6 +1167,8 @@ def hyperpartition(edges,
                             contigsizes,
                             k,
                             prune,
+                            zero_allelic,
+                            allelic_similarity,
                             whitelist,
                             blacklist,
                             min_contacts,
@@ -1121,18 +1181,21 @@ def hyperpartition(edges,
                             threads, 
                             # chunksize
                             )
-
+    
     if not prune:
         hp.single_partition(int(k[0]))
 
     if prune:
         if incremental:
-            hp.incremental_partition(k)
+            if first_cluster:
+                first_cluster = list(ClusterTable(first_cluster).data.values())
+                
+            hp.incremental_partition(k, first_cluster)
         else:
             hp.single_partition(int(k[0]))
-            # hp.post_check()
             
     hp.to_cluster(output)
+
 
 @cli.command()
 @click.argument(
@@ -1162,13 +1225,13 @@ def optimize(group, coolfile, output):
     cr = CountRE(group, minRE=1)
     contigs = cr.contigs 
     cool = cooler.Cooler(coolfile)
-    so2 = SimpleOptimize2(contigs, cool)
+    so2 = SimpleOptimize2(contigs, cool, method="so")
 
-    so2.G, so2.graph_df = so2.graph()
-    score_df, _ = so2.filter(mode="score")
-    print(score_df)
-    so2.graph_df = so2.graph_df.set_index(['source', 'target'])
-    print(so2.graph_df)
+    # so2.G, so2.graph_df = so2.graph()
+    # score_df, _ = so2.filter(mode="score")
+    # print(score_df)
+    # so2.graph_df = so2.graph_df.set_index(['source', 'target'])
+    # print(so2.graph_df)
 
     
     # so2.ordering = so2.nn_tsp(so2.contigs, so2.score_df)
@@ -1177,7 +1240,7 @@ def optimize(group, coolfile, output):
     # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))
     # so2.ordering = so2.order()
     # so2.orientation()
-    so2.save(output)
+    so2.save_score(output)
 
 
 
@@ -1229,8 +1292,8 @@ def build(fasta, output, only_agp):
     '--factor',
     '-k',
     help='Factor of plot matrix. '
-            'If you input 10k matrix and want to plot heatmap at 500k,'
-            'factor should be set 50.',
+            'If you input 10k matrix and want to plot heatmap at 500k, '
+            'factor should be set with 50.',
     type=int,
     default=50,
     show_default=True
@@ -1277,7 +1340,7 @@ def build(fasta, output, only_agp):
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads.',
+    help='Number of threads. (unused)',
     type=int,
     default=4,
     metavar='INT',
@@ -1356,11 +1419,13 @@ def plot(matrix,
         plot_heatmap
         
     )
+    if agp is None:
+        only_plot = True 
+        logger.warning( "Only plot the matrix."
+                "If you want to adjust matrix, please provide agp file. ")
+
     if not only_plot:
         if not no_adjust:
-            assert agp is not None, \
-                "Must provide agp file for matrix adjustment. " \
-                    "or you want to only plot the matrix with `--only-plot`."
             matrix = adjust_matrix(matrix, agp)
 
         if only_adjust:
@@ -1694,3 +1759,63 @@ def merge_cool(coolfile,
                     min_contacts=min_contacts, 
                     no_mask_nan=no_mask_nan, 
                     symmetric_upper=symmetric_upper)
+    
+@utils.command()
+@click.argument(
+    "coolfile",
+    metavar="INPUT_COOL_PATH"
+)
+@click.argument(
+    "chromlist",
+    metavar="CHROM_LIST_PATH"
+)
+@click.argument(
+    "outcool",
+    metavar="OUTPUT_COOL_PATH"
+)
+def extract_matrix(coolfile, chromlist, outcool):
+    """
+    extract matrix from a cool by chrom/contig list
+
+        INPUT_COOL_PATH: Path of cool file.
+
+        CHROM_LIAT_PATH: Path of chrom/contig list, one column.
+
+        OUTPUT_COOL_PATH: Path of output cool file.
+
+    """
+    from .utilities import extract_matrix
+    chromlist = [i.strip() for i in open(chromlist) if i.strip()]
+    extract_matrix(coolfile, chromlist, outcool)
+
+@utils.command()
+@click.argument(
+    "coolfile",
+    metavar="INPUT_COOL_PATH"
+)
+@click.argument(
+    "prunetable",
+    metavar="PRUNE_TABLE_PATH"
+)
+@click.argument(
+    "outcool",
+    metavar="OUTPUT_COOL_PATH"
+)
+def prune_matrix(coolfile, prunetable, outcool):
+    """
+    prune matrix by a prunetable
+
+        INPUT_COOL_PATH: Path of cool file.
+
+        PRUNE_TABLE_PATH: Path of prune table.
+
+        OUTPUT_COOL_PATH: Path of output cool file.
+
+    """
+    from .utilities import prune_matrix
+    from .core import PruneTable
+    pt = PruneTable(prunetable)
+    prunepairs = pt.data[['contig1', 'contig2']].values.tolist()
+    prunepairs = list(map(tuple, prunepairs))
+
+    prune_matrix(coolfile, prunepairs, outcool)

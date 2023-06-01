@@ -1,0 +1,34 @@
+
+
+mode: pore-c 
+
+reference: draft.asm.fasta
+
+datadir: data
+reads: ['_R1', '_R2']
+ext: '.fastq.gz'
+enzyme: HindIII
+
+workdir: workdir
+
+
+k: 5
+r1: 1
+r2: 1
+min_contacts: 3
+min_length: 10000
+min_scaffold_length: 500000
+
+
+
+software:
+  minimap2:
+    path: "minimap2"
+    params: "-c --secondary=no"
+    threads: 10 
+  
+  chromap:
+    path: "chromap"
+    params: ""
+    threads: 10
+  

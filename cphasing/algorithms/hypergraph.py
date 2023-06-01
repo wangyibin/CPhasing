@@ -108,6 +108,28 @@ class HyperGraph:
 
         return matrix 
 
+    @staticmethod
+    def clique_expansion(H):
+        """
+        clique expansion/reduction
+        """
+        m = H.shape[1]
+        W = identity(m, dtype=np.float32)
+
+        D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+
+        ## inverse diagonal matrix D_e
+        D_e_inv = 1/D_e_num
+        D_e_inv[D_e_inv == -np.inf] = 0
+        D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
+                                W.shape, dtype=np.float32)
+        
+        H_T = H.T
+        
+        A = H @ W @ D_e_inv @ H_T
+
+        return A
+
 
 
 def calc_new_weight(k, c, e_c, m):
@@ -241,6 +263,7 @@ def remove_incidence_matrix(mat, idx):
 def IRMM(H, # NW, 
             P_allelic_idx=None,
             P_weak_idx=None,
+            zero_allelic=False,
             resolution=1, 
             threshold=0.01, 
             max_round=1, 
@@ -248,7 +271,7 @@ def IRMM(H, # NW,
             threads=10, 
             outprefix="all"):
     """
-    Iteratively reweight modularity maximization.
+    Iteratively reweight modularity maximization. （Kumar et al. Applied Network Science）
     
     Params:
     --------
@@ -315,8 +338,11 @@ def IRMM(H, # NW,
         # A = A * P 
         A = A.tolil()
         if P_allelic_idx:
-            A[P_allelic_idx[0], P_allelic_idx[1]] =  \
-                   - A[P_allelic_idx[0], P_allelic_idx[1]]
+            if zero_allelic: 
+                A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+            else:
+                A[P_allelic_idx[0], P_allelic_idx[1]] = \
+                        - A[P_allelic_idx[0], P_allelic_idx[1]]
         
         if P_weak_idx:
             A[P_weak_idx[0], P_weak_idx[1]] = 0
@@ -387,9 +413,11 @@ def IRMM(H, # NW,
             # A = A * P 
             A = A.tolil()
             if P_allelic_idx:
-                A[P_allelic_idx[0], P_allelic_idx[1]] = 0 #\
-                    # - A[P_allelic_idx[0], P_allelic_idx[1]]
-            
+                if zero_allelic: 
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+                else:
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = \
+                            - A[P_allelic_idx[0], P_allelic_idx[1]]
             if P_weak_idx:
                 A[P_weak_idx[0], P_weak_idx[1]] = 0
                 

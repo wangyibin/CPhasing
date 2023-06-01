@@ -1,5 +1,22 @@
 # Release notes #
 
+## [v0.0.17]
+Date: 2023-06-01
+## Enhancement
+- `environment.yml`, update
+- `hyperpartition`
+    - add `--first-cluster` to load exists first cluster results
+    - expose `--zero-allelic` parameter
+    - expose `--allelic-similarity` parameter
+- `PoreCTable`, change to cphasing-rs porec table
+## New features
+- `docs`, add docs
+- `utils`
+    - `extract_matrix`, extract matrix by th contig list
+    - `prune_matrix`, prune matrix by prune table
+## Bug fixes
+- `merge-matrix`, fixed the empty contact in result
+
 ## [v0.0.16]
 Date: 2023-05-05
 ## Enhancement

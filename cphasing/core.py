@@ -1313,7 +1313,10 @@ class Tour:
         i = 1
         old_end = 0
         for contig, orient in self:
-            length = len(fasta[contig])
+            try:
+                length = len(fasta[contig])
+            except KeyError:
+                continue
             
             start = old_end + 1
             end = start + length - 1
@@ -2406,15 +2409,16 @@ class PAFTable:
         shutil.rmtree(self.tmpdir)
 
 class PoreCTable:
-    HEADER = ["read_idx", "chrom", "start", "end", 
-                "strand", "read_name", "read_start", 
-                "read_end", "mapping_quality", "identity", 
-                "pass_filter", "filter_reason"]
+    HEADER = ["read_idx", "read_length",
+              "read_start", "read_end", 
+              "strand", "chrom", "start", 
+              "end", "mapping_quality", 
+              "identity", "filter_reason"]
+    
     META = {
         "chrom": "category",
         "start": CHROM_COORD_DTYPE,
         "end": CHROM_COORD_DTYPE,
-        "read_name": "category",
         "read_start": READ_COORD_DTYPE,
         "read_end": READ_COORD_DTYPE,
         "strand": pd.CategoricalDtype(["+", "-"], ordered=False),
@@ -2436,7 +2440,9 @@ class PoreCTable:
             self.data = dd.read_parquet(pore_c_table, engine=PQ_ENGINE, columns=None, )
             self.data = self.data.set_index('read_idx').reset_index()
         else:
-            self.data = pd.read_parquet(pore_c_table, engine=PQ_ENGINE, columns=columns)
+            self.data = pd.read_csv(pore_c_table, sep='\s+', comment='#', 
+                                    names=self.HEADER, header=None, index_col=None)
+            
             self.data = self.data.astype(self.META)
 
     def from_dask(self, data):
@@ -2738,19 +2744,22 @@ class PoreCTable:
             bed_gr = bed
         else:
             raise TypeError("source must be string/dataframe/pyranges.")
-        
+
         query_gr = pr.PyRanges(self.data.reset_index()[['chrom', 'start', 'end', 'index']]
                                 .rename(columns={'chrom': 'Chromosome', 
                                                 'start': 'Start', 
                                                 'end': 'End',
                                                 'index': 'Index'}))
         res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
+        if res_df.empty:
+            logger.warn('Could not found anything.')
+            return
         res_index = res_df['Index'].astype(int)
 
         del query_gr, res_df
         gc.collect()
 
-        self.data.loc[res_index].to_parquet(output)
+        self.data.loc[res_index].sort_index().to_csv(output, sep='\t', index=False, header=False)
         logger.info(f"Successful output result in `{output}`")
 
     

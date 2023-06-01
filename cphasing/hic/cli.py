@@ -22,7 +22,7 @@ from ..utilities import run_cmd
 
 logger = logging.getLogger(__name__)
 
-@cli.group(cls=CommandGroup, short_help='Sub-command for Hi-C pipeline.')
+@cli.group(cls=CommandGroup, short_help='Sub-command for the legacy Hi-C pipeline.')
 @click.pass_context
 def hic(ctx):
     pass

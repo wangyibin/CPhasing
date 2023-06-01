@@ -593,7 +593,7 @@ def merge_matrix(coolfile,
     pix_counts = pix_counts.to_frame().reset_index()
     
     pix_counts = pix_counts[pix_counts['count'] >= min_contacts]
-
+    
     ## reset chromosome into bin id
     pix_counts['chrom1'] = pix_counts['chrom1'].cat.codes.values
     pix_counts['chrom2'] = pix_counts['chrom2'].cat.codes.values
@@ -624,9 +624,64 @@ def merge_matrix(coolfile,
     new_bins.columns = ['chrom', 'end']
     new_bins['start'] = 0
     new_bins = new_bins[['chrom', 'start', 'end']]
-
+  
     cooler.create_cooler(outcool, new_bins, new_pixels, 
-                            dtypes=dict(count='float16'),
+                            dtypes=dict(count='float32'),
                             symmetric_upper=symmetric_upper)
     logger.info(f'Successful merge matrix into whole contig: `{outcool}`')
 
+
+def extract_matrix(coolfile, chrom_list, out):
+    """
+    Extract matrix from a cool by chrom list.
+    """
+    from hicmatrix import HiCMatrix as hm
+    num = len(chrom_list)
+    hic_matrix = hm.hiCMatrix(coolfile)
+    hic_matrix.reorderChromosomes(chrom_list)
+    hic_matrix.save(out)
+    logger.info(f'Extract {num} chromosomes into `{out}`.') 
+
+def prune_matrix(coolfile, prunepairs, outcool):
+    """
+    Prune matrix by a chrom/contig pairs.
+    """
+    cool = cooler.Cooler(coolfile)
+   
+    chrom_index = cool.bins()[:]['chrom'].reset_index()
+    chrom_index.set_index('chrom', inplace=True)
+    chrom_index = chrom_index.to_dict()['index']
+    bins = cool.bins()[:]
+    bins.set_index('chrom')
+    pairs = list(set(prunepairs))
+
+    new_pairs = []
+    for i, pair in enumerate(pairs):
+        try:
+            if chrom_index[pair[0]] > chrom_index[pair[1]]:
+                pairs = pairs[::-1] 
+        except KeyError:
+            continue
+
+        new_pairs.append(pair)
+
+    new_pairs = list(set(new_pairs))
+
+    pixels = cool.matrix(balance=False, sparse=True, as_pixels=True, join=True)
+    pixels = pixels[:]
+
+    pixels = pixels.reset_index(drop=False).set_index(['chrom1', 'chrom2'])
+
+    pruned_idx = []
+    for pair in new_pairs:
+        try:
+            pruned_idx.extend(pixels.loc[pair]['index'].values.tolist())
+        except KeyError:
+            continue
+
+    pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)[:]
+
+    pixels.loc[pruned_idx] = 0
+    pixels = pixels[pixels['count'] != 0]
+  
+    cooler.create_cooler(outcool, cool.bins()[:], pixels)

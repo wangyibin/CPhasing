@@ -221,7 +221,6 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins):
                      header=None, index_col=None,
                      dtype={9: 'category'})
     
-    print(_file1.name, _file2.name, _file3.name)
     _file1.close()
     _file2.close()
     _file3.close()
@@ -621,7 +620,7 @@ def plot_heatmap(matrix, output,
         if chromosomes:
             new_idx = bins.loc[chromosomes]['index']
             
-            matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+            matrix = matrix.tocsr()[new_idx, :][:, new_idx]
             chromnames = chromosomes
             chrom_offset = np.r_[0, 
                                 np.cumsum(new_idx
@@ -635,7 +634,7 @@ def plot_heatmap(matrix, output,
             if remove_short_bin:
                 retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
                 new_idx = bins.loc[retain_chroms]['index']
-                matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+                matrix = matrix.tocsr()[new_idx, :][:, new_idx]
                 chromnames = retain_chroms
                 chrom_offset = np.r_[0, 
                                     np.cumsum(new_idx
@@ -714,7 +713,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     if chromosomes:
         new_idx = bins.loc[chromosomes]['index']
     
-        matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+        matrix = matrix.tocsr()[new_idx, :][:, new_idx]
         chrom_offset = np.r_[0, 
                             np.cumsum(new_idx
                                         .reset_index()
@@ -727,7 +726,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
         if remove_short_bin:
             retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
             new_idx = bins.loc[retain_chroms]['index']
-            matrix = matrix.tocsr()[new_idx.values, :][:, new_idx]
+            matrix = matrix.tocsr()[new_idx, :][:, new_idx]
             chromosomes = retain_chroms
             chrom_offset = np.r_[0, 
                                 np.cumsum(new_idx

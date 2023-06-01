@@ -239,8 +239,8 @@ class SimpleOptimize:
             return
         sub_matrix = sub_matrix.tocsr()
         l1, l2 = sub_matrix.shape
-        d1 = int(np.ceil(l1 / 2))
-        d2 = int(np.ceil(l2 / 2))
+        d1 = float(int(np.ceil(l1 / 2)))
+        d2 = float(int(np.ceil(l2 / 2)))
 
         k = l2 - l1 if l1 < l2 else 0 
 

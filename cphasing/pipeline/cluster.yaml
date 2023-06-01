@@ -1,0 +1,20 @@
+mapping:
+  memory: 30G
+
+alleles:
+  memory: 30G
+
+kprune:
+  memory: 2G
+
+extract:
+  memory: 4G
+
+hypartition:
+  memory: 30G
+
+plot:
+  memory: 10G 
+
+build: 
+  memory:  3G

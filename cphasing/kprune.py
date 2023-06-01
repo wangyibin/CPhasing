@@ -79,7 +79,8 @@ class KPruner:
 
     def get_allele_group(self):
         tmp_df = self.alleletable.data.drop_duplicates(1)
-        
+        #return tmp_df.groupby(1)[2].apply(list).to_dict()
+      
         return tmp_df.set_index(1).to_dict()[2]
     
     def get_score_db(self):
@@ -124,8 +125,8 @@ class KPruner:
     @staticmethod
     def _remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db):
         try:
-            allele1= allele_group_db[ctg1]
-            allele2= allele_group_db[ctg2]
+            allele1 = allele_group_db[ctg1]
+            allele2 = allele_group_db[ctg2]
         except KeyError:
             return None
         

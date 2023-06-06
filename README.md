@@ -98,6 +98,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 - Autotetraploid genome
 ![AP heatmap](pictures/AP/groups.wg.png)
 - Hexaploid genome
+![SP heatmap](pictures/SP/groups.wg.png)
 
 ## ToDo list
 - [ ] mapper

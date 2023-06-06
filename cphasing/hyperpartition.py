@@ -25,7 +25,8 @@ from .algorithms.hypergraph import (
     extract_incidence_matrix,
     extract_incidence_matrix2, 
     )
-from .core import PruneTable
+from .core import AlleleTable, PruneTable
+from .kprune import KPruneHyperGraph
 from .utilities import list_flatten
 from ._config import *
 
@@ -74,7 +75,8 @@ class HyperPartition:
     def __init__(self, edges, 
                     contigsizes,
                     k=None,
-                    prune=None,
+                    alleletable=None,
+                    prunetable=None,
                     zero_allelic=False,
                     allelic_similarity=0.8,
                     whitelist=None,
@@ -95,7 +97,8 @@ class HyperPartition:
         self.contigsizes = contigsizes ## dataframe
         self.k = k
 
-        self.prune = prune 
+        self.prunetable = prunetable
+        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')if alleletable else None
         self.zero_allelic = zero_allelic
         self.allelic_similarity = allelic_similarity
 
@@ -107,7 +110,7 @@ class HyperPartition:
 
         self.resolution1 = resolution1
         self.resolution2 = resolution2
-        self.min_weight = 1.0
+        self.min_weight = min_weight
         self.min_scaffold_length = int(min_scaffold_length)
 
         self.threshold = threshold
@@ -128,8 +131,10 @@ class HyperPartition:
         
         self.H, self.vertices = self.get_hypergraph()
         # self.NW = self.get_normalize_weight()
-        if prune:
+        if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
+        elif self.alleletable:
+            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs_kprune()
         else:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None, None
 
@@ -198,10 +203,10 @@ class HyperPartition:
         return H, vertices
 
     def filter_hypergraph(self):
-        ## remove too short contigs and according the whitelist or blacklist 
-        ## to remove contigs
-        # vertices_idx = self.vertices_idx
-        
+        """
+        remove too short contigs and according the whitelist or blacklist 
+        to remove contigs
+        """
         short_contigs = self.contigsizes[self.contigsizes < self.min_length]
         short_contigs = short_contigs.dropna().index.tolist()
       
@@ -213,29 +218,31 @@ class HyperPartition:
 
         if self.blacklist:
             remove_contigs.update(set(self.blacklist))
-
-        # remove_contig_idx = []
-        # for i in remove_contigs:
-        #     try:
-        #         remove_contig_idx.append(vertices_idx[i])
-        #     except KeyError:
-        #         continue
         
         if len(remove_contigs) == 0:
             return
 
         logger.info(f"Total {len(remove_contigs)} contigs were removed, "
                         f"because it's length too short (<{self.min_length}) or your specified.")
-        # self.H, _ = remove_incidence_matrix(self.H, remove_contig_idx)
-        # self.vertices = np.delete(self.vertices, remove_contig_idx)
 
         self.HG.remove_rows(remove_contigs)
-        
+
+    def get_prune_pairs_kprune(self):
+        """
+        get prune information by execute kprune on hypergraph
+        """
+        vertices_idx = self.vertices_idx
+        A = HyperGraph.clique_expansion_init(self.H)
+        kph = KPruneHyperGraph(self.alleletable, A, vertices_idx)
+        kph.run() 
+        kph.prunetable = kph.get_prune_table() 
+        print(kph.prunetable)
+        return kph.allelic_prune_list, kph.weak_prune_list, kph.prunetable
 
     def get_prune_pairs(self):
         
         vertices_idx = self.vertices_idx
-
+        
         prunetable = PruneTable(self.prune)
         pair_df = prunetable.data
         pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))

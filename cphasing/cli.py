@@ -954,10 +954,22 @@ def extract(contacts,
     show_default=True,
 )
 @click.option(
-    "-p",
-    "--prune",
+    "-at",
+    "--alleletable",
     metavar="PATH",
-    help="Path to prune table that is generated from kprune.",
+    help="""
+    Path to allele table that is generated from `alleles`. 
+        Skip when prunetable parameter added.
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-pt",
+    "--prunetable",
+    metavar="PATH",
+    help="Path to prune table that is generated from `kprune`.",
     default=None,
     show_default=True,
     type=click.Path(exists=True)
@@ -1112,7 +1124,8 @@ def hyperpartition(edges,
                     contigsizes, 
                     output,
                     k,
-                    prune,
+                    alleletable,
+                    prunetable,
                     zero_allelic,
                     allelic_similarity,
                     incremental,
@@ -1158,6 +1171,10 @@ def hyperpartition(edges,
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
     
+    if alleletable:
+        if prunetable:
+            logger.warn("The allele table will not be used, becauese prunetable parameter added.")
+
     if incremental is False and first_cluster is not None:
         logger.warn("First cluster only support for incremental method, will be not used.")
 
@@ -1176,7 +1193,8 @@ def hyperpartition(edges,
     hp = HyperPartition(edges, 
                             contigsizes,
                             k,
-                            prune,
+                            alleletable,
+                            prunetable,
                             zero_allelic,
                             allelic_similarity,
                             whitelist,
@@ -1193,10 +1211,10 @@ def hyperpartition(edges,
                             # chunksize
                             )
     
-    if not prune:
+    if not prunetable and not alleletable:
         hp.single_partition(int(k[0]))
 
-    if prune:
+    if prunetable or alleletable:
         if incremental:
             if first_cluster:
                 first_cluster = list(ClusterTable(first_cluster).data.values())

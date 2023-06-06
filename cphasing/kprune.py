@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class KPruner:
     """
-    generate a prune list by allele table
+    generate a prune list by kmer similarity allele table
         rewrite of allhic prune to adapt the cool file.
 
     Params:
@@ -192,9 +192,39 @@ class KPruner:
     
     
 
-class KPruneHyperGraph:
+class KPruneHyperGraph: 
+    """
+    generate a prune list by kmer similarity allele table
+        rewrite of allhic prune to adapt the hypergraph.
+
+    Params:
+    --------
+    alleletable: str
+        alleletable file
+    A: csr_matrix
+        csr_matrix of hypergraph from clique expansion 
+    contig2idx: dict
+        contig to idx
+        
+    Examples:
+    --------
+    >>> kph = KPruneHyperGraph('allele.table', A, contig2idx)
+    run allelic and weak with allelic contacts removing
+    >>> kph.run()
+    save the prune list
+    >>> kph.save_prune_list('prune.contig.list')
+    """
     def __init__(self, alleletable, A, contig2idx):
-        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')
+        self.alleletable = alleletable
+        _alleletable = alleletable.data.copy()
+        _alleletable[1] = _alleletable[1].map(contig2idx.get)
+        _alleletable[2] = _alleletable[2].map(contig2idx.get)
+        _alleletable = _alleletable.dropna()
+        _alleletable[1] = _alleletable[1].astype(int)
+        _alleletable[2] = _alleletable[2].astype(int)
+
+        self.alleletable_idx = _alleletable
+
         self.A = A 
         self.A.setdiag(0)
         self.A = self.A.tocsr()
@@ -228,14 +258,13 @@ class KPruneHyperGraph:
 
     def get_score_db(self):
         db = self.A.todok()
+        db = defaultdict(lambda :0, db.items())
 
         return db 
 
     def remove_allelic(self):
-        _allelic = self.alleletable.data[self.alleletable.data[1] < self.alleletable.data[2]
+        _allelic = self.alleletable_idx[self.alleletable_idx[1] < self.alleletable_idx[2]
                             ][[1, 2]]
-        _allelic[1] = _allelic[1].map(self.contig2idx.get)
-        _allelic[2] = _allelic[2].map(self.contig2idx.get)
         _allelic = _allelic.values.tolist()
         _allelic = list(map(tuple, _allelic))
         _allelic = list(set(_allelic).intersection(self.contig_pairs))
@@ -295,9 +324,8 @@ class KPruneHyperGraph:
         logger.info(f"Removed {weak_contacts} weak contacts with allelic.")
         self.weak_prune_list.extend(res)
     
-    def save_prune_list(self, output, symmetric=False):
-        allele_data = self.alleletable.data.set_index([1, 2])
-        
+    def get_prune_table(self, symmetric=False):
+        allele_data = self.alleletable_idx.set_index([1, 2])
         allelic_res = allele_data.reindex(self.allelic_prune_list) 
         allelic_res = allelic_res.reset_index()
         allelic_res.columns = self.alleletable.AlleleHeader2[2:]
@@ -320,8 +348,8 @@ class KPruneHyperGraph:
                                 weak_res, weak_res2], axis=0)    
         else:
             res = pd.concat([allelic_res, weak_res], axis=0)
-        res.to_csv(output, sep='\t', header=None, index=None)
-        
+
+        return res
 
     def run(self):
         self.remove_allelic()

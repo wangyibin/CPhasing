@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.0.19]
+Date: 2023-06-10
+## Enhancement 
+- `KPruneHyperGraph`, speed up
+- `HyperPartition`, add the get_prunetable_KPrune
+
 ## [v0.0.18]
 Data: 2023-06-06
 ## Enhancement

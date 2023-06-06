@@ -83,6 +83,7 @@ class HyperPartition:
                     min_length=10000, 
                     resolution1=0.8,
                     resolution2=0.6,
+                    min_weight=1.0,
                     min_scaffold_length=10000,
                     threshold=0.01,
                     max_round=1, 
@@ -93,16 +94,22 @@ class HyperPartition:
         self.edges = edges
         self.contigsizes = contigsizes ## dataframe
         self.k = k
+
         self.prune = prune 
         self.zero_allelic = zero_allelic
         self.allelic_similarity = allelic_similarity
+
         self.whitelist = whitelist
         self.blacklist = blacklist
+
         self.min_contacts = min_contacts
         self.min_length = min_length
+
         self.resolution1 = resolution1
         self.resolution2 = resolution2
+        self.min_weight = 1.0
         self.min_scaffold_length = int(min_scaffold_length)
+
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
@@ -244,11 +251,11 @@ class HyperPartition:
         pair_df = pair_df.reset_index(drop=True)
         
         # P_idx = [pair_df[0], pair_df[1]]
-        tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= self.allelic_similarity)]
+        tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= 0.2)]
         P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
         tmp_df = pair_df[(pair_df['type'] == 1) | \
-                         ((pair_df['type'] == 0) & (pair_df['similarity'] < self.allelic_similarity)) ]
+                         ((pair_df['type'] == 0) & (pair_df['similarity'] < 0.2)) ]
         P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
         return P_allelic_idx, P_weak_idx, pair_df
@@ -303,11 +310,9 @@ class HyperPartition:
                                                 self.P_weak_idx,
                                                 self.zero_allelic,
                                                 self.resolution1, 
+                                                self.min_weight,
                                                 self.threshold, self.max_round,
                                                 threads=self.threads)
-        logger.info("Partition done.")
-
-        
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
         self.K = list(map(list, self.K))
@@ -336,7 +341,7 @@ class HyperPartition:
         
     @staticmethod
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, #NW, 
-                            resolution, allelic_similarity=0.8, zero_allelic=False,
+                            resolution, min_weight=1, allelic_similarity=0.8, zero_allelic=False,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -376,7 +381,9 @@ class HyperPartition:
                                             sub_P_allelic_idx, 
                                             sub_P_weak_idx,
                                             zero_allelic,
-                                            resolution, threshold, 
+                                            resolution, 
+                                            min_weight,
+                                            threshold, 
                                             max_round, threads=1, 
                                             outprefix=num)
 
@@ -407,7 +414,8 @@ class HyperPartition:
 
         if not first_cluster:
             A, _, self.K = IRMM(self.H, #self.NW, 
-                        None, None, self.zero_allelic, self.resolution1, self.threshold, 
+                        None, None, self.zero_allelic, self.resolution1, 
+                            self.min_weight, self.threshold, 
                             self.max_round, threads=self.threads)
 
             self.K = list(map(list, self.K))
@@ -438,15 +446,16 @@ class HyperPartition:
         args = []
         for num, sub_k in enumerate(self.K, 1):
             args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
-                        self.resolution2, self.allelic_similarity, self.zero_allelic, 
+                        self.resolution2, self.min_weight, self.allelic_similarity, self.zero_allelic, 
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u in args)
+        
         self.cluster_assignments, results = zip(*results)
         self.K = list_flatten(results)
         self.K = self.filter_cluster()

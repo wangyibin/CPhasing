@@ -1057,6 +1057,15 @@ def extract(contacts,
     show_default=True
 )
 @click.option(
+    "-mw",
+    "--min-weight",
+    "min_weight",
+    help="Minimum weight of graph",
+    type=float,
+    default=1.0,
+    show_default=True
+)
+@click.option(
     "-ms",
     "--min_scaffold_length",
     help="The minimum length of the output scaffolding.",
@@ -1114,6 +1123,7 @@ def hyperpartition(edges,
                     min_length, 
                     resolution1,
                     resolution2,
+                    min_weight,
                     min_scaffold_length,
                     threshold, 
                     max_round, 
@@ -1175,6 +1185,7 @@ def hyperpartition(edges,
                             min_length,
                             resolution1, 
                             resolution2,
+                            min_weight,
                             min_scaffold_length,
                             threshold, 
                             max_round, 
@@ -1337,15 +1348,15 @@ def build(fasta, output, only_agp):
     default=None,
     show_default=True
 )
-@click.option(
-    '-t',
-    '--threads',
-    help='Number of threads. (unused)',
-    type=int,
-    default=4,
-    metavar='INT',
-    show_default=True,
-)
+# @click.option(
+#     '-t',
+#     '--threads',
+#     help='Number of threads. (unused)',
+#     type=int,
+#     default=4,
+#     metavar='INT',
+#     show_default=True,
+# )
 @click.option(
     '--chromosomes',
     help='Chromosomes and order in which the chromosomes should be plotted. '
@@ -1403,7 +1414,7 @@ def plot(matrix,
             no_coarsen,
             only_plot, 
             output,
-            threads, 
+            # threads, 
             chromosomes, 
             per_chromosomes,
             chrom_per_row, 
@@ -1419,6 +1430,8 @@ def plot(matrix,
         plot_heatmap
         
     )
+    threads = 1
+
     if agp is None:
         only_plot = True 
         logger.warning( "Only plot the matrix."

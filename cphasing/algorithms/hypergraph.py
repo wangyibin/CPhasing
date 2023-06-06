@@ -16,6 +16,7 @@ from scipy.sparse import (
     dia_matrix, 
     csr_matrix, 
     coo_matrix,
+    triu,
     save_npz
 )
 
@@ -109,7 +110,7 @@ class HyperGraph:
         return matrix 
 
     @staticmethod
-    def clique_expansion(H):
+    def clique_expansion_init(H, min_value=0.5):
         """
         clique expansion/reduction
         """
@@ -128,7 +129,9 @@ class HyperGraph:
         
         A = H @ W @ D_e_inv @ H_T
 
-        return A
+        mask = A >= min_value
+
+        return A.multiply(mask)
 
 
 
@@ -265,6 +268,7 @@ def IRMM(H, # NW,
             P_weak_idx=None,
             zero_allelic=False,
             resolution=1, 
+            min_weight=1,
             threshold=0.01, 
             max_round=1, 
             chunk=10000, 
@@ -318,6 +322,9 @@ def IRMM(H, # NW,
     H_T = H.T
     
     A = H @ W @ D_e_inv @ H_T
+
+    mask = A >= min_weight
+    A = A.multiply(mask)
     ## normalization
     # A = A.toarray() * NW
     # row, col = np.nonzero(A)
@@ -349,6 +356,7 @@ def IRMM(H, # NW,
             
         A = A.tocsr()
 
+
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
     except ValueError:
@@ -357,8 +365,6 @@ def IRMM(H, # NW,
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
     cluster_results = list(cluster_assignments.as_cover())
     cluster_results = list(map(set, cluster_results))
-
-    
 
     # G.write_graphml(f'{outprefix}.out.edgelist')
     
@@ -399,6 +405,7 @@ def IRMM(H, # NW,
         gc.collect()
 
         A = H @ W @ D_e_inv @ H_T
+        
         ## normalization
         # A = A.toarray() * NW
         # row, col = np.nonzero(A)

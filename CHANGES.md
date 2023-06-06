@@ -1,5 +1,14 @@
 # Release notes #
 
+## [v0.0.18]
+Data: 2023-06-06
+## Enhancement
+- `hyperpartition`
+    - `min_weight`, add a parameter of the graph minimum weight 
+- `IRMM`, add a function of the graph filter by minimum weight
+## New features
+- `KPruneHyperGraph`, add a function that implement pruning on hypergraph
+
 ## [v0.0.17]
 Date: 2023-06-01
 ## Enhancement

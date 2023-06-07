@@ -193,6 +193,18 @@ class AlleleLine:
     def __str__(self):
         return self.line 
 
+class AlleleInfo:
+    """
+    object function of Allele table additional information
+    """
+    def __init__(self, line):
+        self.line_list = line.strip("\n").strip("#").split()
+        self.contig = self.line_list[0]
+        self.length = self.line_list[1]
+        self.mz = self.line_list[2]
+        self.mzUnique = self.line_list[3]
+    
+
 class AlleleTable:
     """
     Allele table
@@ -230,10 +242,11 @@ class AlleleTable:
             sys.exit()
 
         logger.info(f'Load allele table: `{self.filename}`.')
-        self.check()
+        self.info = OrderedDict()
+        self.check(self.fmt)
         self.get_data()
 
-    def check(self):
+    def check(self, fmt="allele1"):
         """
         check file to resolve uneuqal fields in different lines
 
@@ -246,6 +259,13 @@ class AlleleTable:
             for line in fp:
                 if not line.strip():
                     continue
+                if line[0] == "#":
+                    if fmt == "allele1":
+                        continue
+                    else:
+                        _info = AlleleInfo(line)
+                        self.info[_info.contig] = _info 
+
                 al = AlleleLine(line)
                 if al.n > n:
                     n = al.n

@@ -1,7 +1,16 @@
 # Release notes #
+## [v0.0.20]
+Date: 2023-06-07
+## Enhancement 
+- `AlleleTable`, load info
+- `PartigRecord`, output allele table with additional information
+## New features
+- `AlleleInfo`, object function of allele table information
+## Bug fixed
+- `HyperPartition`, fixed bug of prunt -> prunetable
 
 ## [v0.0.19]
-Date: 2023-06-10
+Date: 2023-06-06
 ## Enhancement 
 - `KPruneHyperGraph`, speed up
 - `HyperPartition`, add the get_prunetable_KPrune

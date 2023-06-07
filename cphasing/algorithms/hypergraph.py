@@ -322,7 +322,7 @@ def IRMM(H, # NW,
     H_T = H.T
     
     A = H @ W @ D_e_inv @ H_T
-
+    
     mask = A >= min_weight
     A = A.multiply(mask)
     ## normalization

@@ -152,6 +152,14 @@ class PartigRecords:
         self.convert(fasta)
         i = 0
 
+        if fmt == "allele2":
+            for record in self.C:
+                print(f"#{record.seqName} "
+                      f"{record.seqLen} "
+                      f"{record.minimizerConsidered} "
+                      f"{record.mzUnique}", file=output) 
+            
+        
         for record in self.S:
             i += 1
             

@@ -988,7 +988,7 @@ def extract(contacts,
     "--allelic-similarity",
     "allelic_similarity",
     help="The similarity of allelic",
-    default=0.8,
+    default=0.85,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
@@ -1160,8 +1160,8 @@ def hyperpartition(edges,
 
     contigsizes = read_chrom_sizes(contigsizes)
 
-    logger.info(f"Load hyperedges.")
     edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
+    logger.info(f"Load hyperedges.")
 
     if whitelist:
         whitelist = [i.strip() for i in open(whitelist) if i.strip()]

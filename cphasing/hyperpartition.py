@@ -17,12 +17,10 @@ from joblib import Parallel, delayed
 from scipy.sparse import hstack
 from pathlib import Path
 from pprint import pformat
-from pyfaidx import Fasta
 
 from .algorithms.hypergraph import (
     HyperGraph,
     IRMM,
-    extract_incidence_matrix,
     extract_incidence_matrix2, 
     )
 from .core import AlleleTable, PruneTable
@@ -83,8 +81,8 @@ class HyperPartition:
                     blacklist=None,
                     min_contacts=3,
                     min_length=10000, 
-                    resolution1=0.8,
-                    resolution2=0.6,
+                    resolution1=1.0,
+                    resolution2=1.0,
                     min_weight=1.0,
                     min_scaffold_length=10000,
                     threshold=0.01,
@@ -98,7 +96,7 @@ class HyperPartition:
         self.k = k
 
         self.prunetable = prunetable
-        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')if alleletable else None
+        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
         self.zero_allelic = zero_allelic
         self.allelic_similarity = allelic_similarity
 
@@ -133,7 +131,9 @@ class HyperPartition:
         # self.NW = self.get_normalize_weight()
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
+            print("1")
         elif self.alleletable:
+            print("2")
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs_kprune()
         else:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None, None
@@ -243,7 +243,7 @@ class HyperPartition:
         
         vertices_idx = self.vertices_idx
         
-        prunetable = PruneTable(self.prune)
+        prunetable = PruneTable(self.prunetable)
         pair_df = prunetable.data
         pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
         pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
@@ -258,11 +258,13 @@ class HyperPartition:
         pair_df = pair_df.reset_index(drop=True)
         
         # P_idx = [pair_df[0], pair_df[1]]
-        tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= 0.2)]
+        #  tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= 0.2)]
+        tmp_df = pair_df[pair_df['type'] == 0]
         P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
-        tmp_df = pair_df[(pair_df['type'] == 1) | \
-                         ((pair_df['type'] == 0) & (pair_df['similarity'] < 0.2)) ]
+        # tmp_df = pair_df[(pair_df['type'] == 1) | \
+        #                  ((pair_df['type'] == 0) & (pair_df['similarity'] < 0.2)) ]
+        tmp_df = pair_df[pair_df['type'] == 1]
         P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
         return P_allelic_idx, P_weak_idx, pair_df
@@ -318,7 +320,8 @@ class HyperPartition:
                                                 self.zero_allelic,
                                                 self.resolution1, 
                                                 self.min_weight,
-                                                self.threshold, self.max_round,
+                                                self.threshold, 
+                                                self.max_round,
                                                 threads=self.threads)
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
@@ -391,7 +394,8 @@ class HyperPartition:
                                             resolution, 
                                             min_weight,
                                             threshold, 
-                                            max_round, threads=1, 
+                                            max_round, 
+                                            threads=1, 
                                             outprefix=num)
 
         ## remove the scaffold that is too short
@@ -515,7 +519,7 @@ class HyperPartition:
                             overlap1 = tmp1_length/group1_length
                             overlap2 = tmp2_length/group2_length
 
-                            if overlap1 > 0.1 or overlap2 > 0.1:
+                            if overlap1 > 0.1 or overlap2 > 1:
                                 flag = 0
                         
                     value = A[group1, ][:,group2 ].sum() 
@@ -534,7 +538,7 @@ class HyperPartition:
                     value =  value_matrix[i, j]
                     flag = flag_matrix[i, j]
                     if flag:
-                        Q = value - (j_value * i_value)/total_value
+                        Q = value - (j_value * i_value) / total_value
                     else:
                         Q = - 2**64
 
@@ -542,7 +546,7 @@ class HyperPartition:
 
             i1, i2 = max(res,  key=lambda x: res[x])
 
-            if max(res) == 0:
+            if i1 == i2:
                 return K
             
             group1 = K[i1]

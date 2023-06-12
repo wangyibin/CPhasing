@@ -975,12 +975,12 @@ def extract(contacts,
     type=click.Path(exists=True)
 )
 @click.option(
-    "-zero",
-    "--zero-allelic",
-    "zero_allelic",
-    help="Use the allelic weighted zero algorithm",
-    is_flag=True,
-    default=False,
+    "-af",
+    "--allelic-factor",
+    "allelic_factor",
+    help="Factor of allelic weight.",
+    default=-1,
+    type=int,
     show_default=True
 )
 @click.option(
@@ -999,6 +999,24 @@ def extract(contacts,
     is_flag=True,
     default=False,
     show_default=True
+)
+@click.option(
+    '-uc',
+    '--ultra-complex',
+    'ultra_complex',
+    metavar='FLOAT',
+    help='ultra-complex polyploid',
+    default=0,
+    type=click.FloatRange(0.0, 10.0),
+    show_default=True,
+)
+@click.option(
+    "--merge-cluster",
+    "merge_cluster",
+    metavar="PATH",
+    help="Don't run hyperpartition, only merge this cluster into k group",
+    default=None,
+    show_default=True,
 )
 @click.option(
     '-fc',
@@ -1126,9 +1144,11 @@ def hyperpartition(edges,
                     k,
                     alleletable,
                     prunetable,
-                    zero_allelic,
+                    allelic_factor,
                     allelic_similarity,
                     incremental,
+                    ultra_complex,
+                    merge_cluster,
                     first_cluster,
                     whitelist,
                     blacklist,
@@ -1158,25 +1178,6 @@ def hyperpartition(edges,
     from .algorithms.hypergraph import HyperEdges
     from .utilities import read_chrom_sizes 
 
-    contigsizes = read_chrom_sizes(contigsizes)
-
-    edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
-    logger.info(f"Load hyperedges.")
-
-    if whitelist:
-        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
-    if blacklist:
-        blacklist = [i.strip() for i in open(blacklist) if i.strip()]
-
-    assert whitelist is None or blacklist is None, \
-        "Only support one list of whitelist or blacklist"
-    
-    if alleletable:
-        if prunetable:
-            logger.warn("The allele table will not be used, becauese prunetable parameter added.")
-
-    if incremental is False and first_cluster is not None:
-        logger.warn("First cluster only support for incremental method, will be not used.")
 
     if k is not None:
         if ":" in k and incremental is False:
@@ -1190,13 +1191,46 @@ def hyperpartition(edges,
         else:
             k[i] = 0
 
+    contigsizes = read_chrom_sizes(contigsizes)
+
+    edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
+    logger.info(f"Load hyperedges.")
+
+
+    if whitelist:
+        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
+    if blacklist:
+        blacklist = [i.strip() for i in open(blacklist) if i.strip()]
+
+    if merge_cluster:
+        assert k[0] != 0, "parameter `k` must add to run merge cluster"
+        logger.info("Only run the algorithm of clusters merging.")
+        _merge_cluster = ClusterTable(merge_cluster)
+        if whitelist:
+            whitelist = list(set(whitelist) & set(_merge_cluster.contigs))
+        else:
+            whitelist = _merge_cluster.contigs
+
+
+    assert whitelist is None or blacklist is None, \
+        "Only support one list of whitelist or blacklist"
+    
+    if alleletable:
+        if prunetable:
+            logger.warn("The allele table will not be used, becauese prunetable parameter added.")
+
+    if incremental is False and first_cluster is not None:
+        logger.warn("First cluster only support for incremental method, will be not used.")
+
+
     hp = HyperPartition(edges, 
                             contigsizes,
                             k,
                             alleletable,
                             prunetable,
-                            zero_allelic,
+                            allelic_factor,
                             allelic_similarity,
+                            ultra_complex,
                             whitelist,
                             blacklist,
                             min_contacts,
@@ -1212,8 +1246,11 @@ def hyperpartition(edges,
                             )
     
     if not prunetable and not alleletable:
-        hp.single_partition(int(k[0]))
-
+        if merge_cluster:
+            hp.merge_cluster(_merge_cluster)
+        else:
+            hp.single_partition(int(k[0]))
+    
     if prunetable or alleletable:
         if incremental:
             if first_cluster:
@@ -1221,8 +1258,11 @@ def hyperpartition(edges,
                 
             hp.incremental_partition(k, first_cluster)
         else:
-            hp.single_partition(int(k[0]))
-            
+            if merge_cluster:
+                hp.merge_cluster(_merge_cluster)
+            else:
+                hp.single_partition(int(k[0]))
+    
     hp.to_cluster(output)
 
 
@@ -1462,7 +1502,7 @@ def plot(matrix,
         if only_adjust:
             sys.exit()
 
-        if not no_coarsen:
+        if not no_coarsen and factor > 1:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
     chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None

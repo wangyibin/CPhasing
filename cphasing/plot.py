@@ -507,6 +507,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
+    os.remove(order_cool_path)
+    
     return f'{outprefix}.chrom.cool'
 
 def coarsen_matrix(cool, k, out, threads):

@@ -14,7 +14,6 @@ import shutil
 import sys
 
 import cooler
-import dask.dataframe as dd
 import numpy as np
 import pandas as pd 
 import pyranges as pr 
@@ -2215,6 +2214,7 @@ class PAFTable:
             self.is_gz = False
 
         if self.use_dask:
+            import dask.dataframe as dd
             self.client = Client(n_workers=self.threads) if self.threads > 1 else None
         
         if not no_read:
@@ -2451,6 +2451,7 @@ class PoreCTable:
         self.use_dask = use_dask
 
         if self.use_dask:
+            import dask.dataframe as dd
             self.client = Client(n_workers=self.threads)
         else:
             pandarallel.initialize(nb_workers=self.threads, verbose=0)

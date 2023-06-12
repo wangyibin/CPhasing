@@ -110,7 +110,10 @@ class HyperGraph:
         return matrix 
 
     @staticmethod
-    def clique_expansion_init(H, min_value=0.5):
+    def clique_expansion_init(H, P_allelic_idx=None, 
+                              P_weak_idx=None, 
+                              allelic_factor=-1,
+                              min_value=1.0):
         """
         clique expansion/reduction
         """
@@ -130,8 +133,26 @@ class HyperGraph:
         A = H @ W @ D_e_inv @ H_T
 
         mask = A >= min_value
+        A.multiply(mask)
 
-        return A.multiply(mask)
+        if P_allelic_idx or P_weak_idx:
+            # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
+            # P[np.diag_indices_from(P)] = 0
+            # P[P_idx[0], P_idx[1]] = 0
+            # A = A * P 
+            A = A.tolil()
+            if P_allelic_idx:
+                if allelic_factor == 0: 
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+                else:
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = \
+                        allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
+            
+            if P_weak_idx:
+                A[P_weak_idx[0], P_weak_idx[1]] = 0
+                
+            A = A.tocsr()
+        return A
 
 
 
@@ -266,7 +287,7 @@ def remove_incidence_matrix(mat, idx):
 def IRMM(H, # NW, 
             P_allelic_idx=None,
             P_weak_idx=None,
-            zero_allelic=False,
+            allelic_factor=-1,
             resolution=1, 
             min_weight=1,
             threshold=0.01, 
@@ -345,11 +366,11 @@ def IRMM(H, # NW,
         # A = A * P 
         A = A.tolil()
         if P_allelic_idx:
-            if zero_allelic: 
+            if allelic_factor == 0: 
                 A[P_allelic_idx[0], P_allelic_idx[1]] = 0
             else:
                 A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                        - A[P_allelic_idx[0], P_allelic_idx[1]]
+                       allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
         
         if P_weak_idx:
             A[P_weak_idx[0], P_weak_idx[1]] = 0
@@ -420,11 +441,11 @@ def IRMM(H, # NW,
             # A = A * P 
             A = A.tolil()
             if P_allelic_idx:
-                if zero_allelic: 
+                if allelic_factor == 0: 
                     A[P_allelic_idx[0], P_allelic_idx[1]] = 0
                 else:
                     A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                            - A[P_allelic_idx[0], P_allelic_idx[1]]
+                            allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
             if P_weak_idx:
                 A[P_weak_idx[0], P_weak_idx[1]] = 0
                 

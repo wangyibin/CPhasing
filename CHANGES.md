@@ -1,4 +1,15 @@
 # Release notes #
+
+## [v0.0.21]
+Date: 2023-06-08
+## Enhancement
+- `hyperpartition`
+    - change `zero-allelic` to `allelic-factor`
+    - add `merge_cluster`
+    - init `ultra_complex`
+## Bug fixed 
+- `plot`, enable `factor` can set to 1
+
 ## [v0.0.20]
 Date: 2023-06-07
 ## Enhancement 

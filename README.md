@@ -8,7 +8,7 @@
                                            |___/ 
 ```
 ## Introduction
-The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solving this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffolding by Hi-C data, but will be slowly. 
+The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solve this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffold by Hi-C data, but will be slowly. 
   
 The advantages of `C-Phasing`:   
 - High speed.   
@@ -69,7 +69,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     ## for haploid scaffolding 
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt 
-    ## for polyploid or diploid phasing must add prune information and use the multi partition mode
+    ## for polyploid or diploid phasing must add prune information and use the incremental partition mode
     ### auto generate groups
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
@@ -80,11 +80,12 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing optimize group1.count_HindIII.txt sample.10000.cool 
     ```
+6. **build**
     - `build`
     ```bash
     cphasing build draft.asm.fasta
     ```
-6. **plot**
+7. **plot**
     - `plot`
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
@@ -99,6 +100,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ![AP heatmap](pictures/AP/groups.wg.png)
 - Hexaploid genome
 ![SP heatmap](pictures/SP/groups.wg.png)
+- Ultra-complex polyploid
 
 ## ToDo list
 - [ ] mapper

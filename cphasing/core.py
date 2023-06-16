@@ -275,10 +275,10 @@ class AlleleTable:
         def sort_row(row):
             row_filter = filter(lambda x: not pd.isna(x), row)
             return pd.Series(sorted(row_filter), name=row.name)
-
+        
         df = pd.read_csv(self.filename, sep='\t', header=None, 
                             index_col=0, names=self.columns,
-                            usecols=self.columns)
+                            usecols=self.columns, comment="#")
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
 
@@ -919,7 +919,7 @@ class ClusterTable:
         >>> ct.to_countRE(countRE)
         """
         self.CountRE = CountRE(countRE, minRE=1)
-        prefix = Path(countRE).stem
+        
         for group in self.groups:
             _contigs = self.data[group]
             tmp_df = self.CountRE.data.loc[_contigs]
@@ -1071,7 +1071,7 @@ class Clm(object):
 
     @property
     def contigs(self):
-        return list_flatten(list(self.data.key()))
+        return list_flatten(list(self.data.keys()))
                             
     @property
     def strands(self):

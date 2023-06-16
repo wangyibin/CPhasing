@@ -93,6 +93,79 @@ def pipeline(fasta, data, method):
     """
     pass
 
+@cli.command()
+@click.argument(
+    "reference",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "fastq",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-k",
+    "kmer_size",
+    help="kmer size for mapping.",
+    metavar="INT",
+    type=int,
+    default=15,
+    show_default=True
+)
+@click.option(
+    "-w",
+    "window_size",
+    help="minimizer window size for mapping.",
+    metavar="INT",
+    type=int,
+    default=10,
+    show_default=True
+)
+@click.option(
+    '-q',
+    '--mapq',
+    help='Minimum quality of mapping [0, 60].',
+    metavar='INT',
+    type=click.IntRange(0, 60, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-f',
+    '--force',
+    help='Force run all the command, ignore existing results.',
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def mapper(reference, fastq, kmer_size, 
+            window_size, mapq, force, 
+            threads):
+    """
+    mapper for pore-c read.
+
+        REFERENCE: Path of reference
+
+        FASTQ: Path of pore-c reads
+
+    """
+    from .mapper import PoreCMapper
+
+    pcm = PoreCMapper(reference, fastq,
+                        k = kmer_size,
+                        w = window_size,
+                        force=force,
+                        min_quality=mapq,
+                        threads=threads)
+    pcm.run()
 
 
 @cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
@@ -978,6 +1051,7 @@ def extract(contacts,
     "-af",
     "--allelic-factor",
     "allelic_factor",
+    metavar="INT",
     help="Factor of allelic weight.",
     default=-1,
     type=int,
@@ -987,6 +1061,7 @@ def extract(contacts,
     "-as",
     "--allelic-similarity",
     "allelic_similarity",
+    metavar="FLOAT",
     help="The similarity of allelic",
     default=0.85,
     type=click.FloatRange(0.0, 1.0),
@@ -1022,7 +1097,9 @@ def extract(contacts,
     '-fc',
     '--first-cluster',
     'first_cluster',
+    metavar="PATH",
     help='Use the existing first cluster results to second cluster',
+    type=click.Path(exists=True),
     default=None,
     show_default=True
 )
@@ -1073,6 +1150,7 @@ def extract(contacts,
 @click.option(
     "-r1",
     "--resolution1",
+    metavar="FLOAT",
     help="Resolution of the first partition",
     type=click.FloatRange(0.0, 10.0),
     default=1.0,
@@ -1081,6 +1159,7 @@ def extract(contacts,
 @click.option(
     "-r2",
     "--resolution2",
+    metavar="FLOAT",
     help="Resolution of the second partition",
     type=click.FloatRange(0.0, 10.0),
     default=1.0,
@@ -1268,33 +1347,56 @@ def hyperpartition(edges,
 
 @cli.command()
 @click.argument(
-    "group", 
-    metavar="Group_CountRE_PATH",
+    "clustertable",
+    metavar="ClusterTable",
     type=click.Path(exists=True),
 )
 @click.argument(
-    'coolfile',
-    metavar="INPUT_COOL_PATH",
-    type=click.Path(exists=True)
+    "count_re", 
+    metavar="Count_RE",
+    type=click.Path(exists=True),
 )
 @click.argument(
-    'output',
-    metavar="OUTPUT_SCORE_PATH",
+    "clm",
+    metavar="CLM",
+    type=click.Path(exists=True),
 )
-def optimize(group, coolfile, output):
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. (unused)',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+# @click.argument(
+#     'coolfile',
+#     metavar="INPUT_COOL_PATH",
+#     type=click.Path(exists=True)
+# )
+# @click.argument(
+#     'output',
+#     metavar="OUTPUT_SCORE_PATH",
+# )
+def optimize(clustertable, count_re, clm, threads):
     """
-    Ordering and orientation the contigs
+    Ordering and orientation the contigs by allhic
 
     """
 
-    import cooler 
-    from .core import CountRE
-    from .algorithms.optimize import SimpleOptimize2
+    from .algorithms.optimize import AllhicOptimize
+    ao = AllhicOptimize(clustertable, count_re, clm, threads=threads)
+    ao.run()
+
+    # import cooler 
+    # from .core import CountRE
+    # from .algorithms.optimize import SimpleOptimize2
     
-    cr = CountRE(group, minRE=1)
-    contigs = cr.contigs 
-    cool = cooler.Cooler(coolfile)
-    so2 = SimpleOptimize2(contigs, cool, method="so")
+    # cr = CountRE(group, minRE=1)
+    # contigs = cr.contigs 
+    # cool = cooler.Cooler(coolfile)
+    # so2 = SimpleOptimize2(contigs, cool, method="so")
 
     # so2.G, so2.graph_df = so2.graph()
     # score_df, _ = so2.filter(mode="score")
@@ -1309,7 +1411,7 @@ def optimize(group, coolfile, output):
     # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))
     # so2.ordering = so2.order()
     # so2.orientation()
-    so2.save_score(output)
+    # so2.save_score(output)
 
 
 
@@ -1464,6 +1566,16 @@ def build(fasta, output, only_agp):
     show_default=True,
     is_flag=True,
 )
+@click.option(
+    '--no-ticks',
+    'no_ticks',
+    help="""
+    Don't add ticks both in x axis and y axis.
+    """,
+    default=False,
+    show_default=True,
+    is_flag=True,
+)
 def plot(matrix, 
             agp, 
             factor,
@@ -1478,7 +1590,8 @@ def plot(matrix,
             chrom_per_row, 
             dpi, 
             cmap,
-            no_lines,):
+            no_lines,
+            no_ticks,):
     """
     Adjust or Plot the contacts matrix after assembling.
     """
@@ -1507,6 +1620,13 @@ def plot(matrix,
     
     chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
 
+    if no_ticks:
+        xticks = False 
+        yticks = False
+    else: 
+        xticks = True 
+        yticks = True
+
     plot_heatmap(matrix,
                  output,
                  chromosomes=chromosomes,
@@ -1514,6 +1634,8 @@ def plot(matrix,
                  chrom_per_row=chrom_per_row,
                  dpi=dpi,
                  cmap=cmap, 
+                 xticks=xticks, 
+                 yticks=yticks,
                  add_lines=False if no_lines else True,
                  threads=threads)
 

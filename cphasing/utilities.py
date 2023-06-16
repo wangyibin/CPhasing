@@ -125,6 +125,7 @@ def run_cmd(command, log=sys.stderr, out2err=False):
                 p.terminate()
         else:
             return p.returncode
+        
     return 0
 
 
@@ -554,9 +555,12 @@ def to_humanized(size):
         label = "{:,.0f}".format((size)) + ""
     elif size < 1e6:
         label = "{:,.0f}".format((size / 1e3)) + "k"
-    else:
+    elif size < 1e9:
         label = "{:,.1f}".format((size / 1e6)) + "m"
     
+    else:
+        label = "{:,.0f}".format((size / 1e9)) + "g"
+
     return label
 
 
@@ -583,8 +587,6 @@ def merge_matrix(coolfile,
                             as_pixels=True, join=True)[:]
     if no_mask_nan:
         matrix = cool.matrix(balance=False, sparse=True)
-        sum_matrix = matrix[:].sum(axis=1)
-        
 
     logger.info('Merging matrix ...')
     pix_counts = pixels.groupby(by=['chrom1', 'chrom2'], 

@@ -15,7 +15,11 @@ from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
 
-from .utilities import run_cmd, ligation_site
+from .utilities import (
+    run_cmd,
+    ligation_site,
+    to_humanized
+)
 
 logger = logging.getLogger(__name__)
 class HisatMapper(object):
@@ -279,24 +283,13 @@ class ChromapMapper:
 
 
 class PoreCMapper:
-    def __init__(self, reference, read, enzyme, min_quality=1, 
-                    threads=4, path='falign', log_dir='logs'):
+    def __init__(self, reference, read, k=15, w=10, min_quality=1, 
+                    threads=4, path='minimap2', log_dir='logs',
+                    force=False):
         self.reference = Path(reference)
+        self.index_path = Path(f'{self.reference.stem}.index')
+        self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
         self.read = Path(read)
-
-        try:
-            self.enzyme = enzyme
-            self.enzyme_site = (getattr(Restriction, enzyme)
-                                .elucidate()
-                                .replace("N", "")
-                                .replace("_", "")
-            )
-        except AttributeError:
-            logger.Error('Error enzyme name.')
-            sys.exit()
-
-        self.threads = threads
-        self.min_quality = min_quality
 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -305,28 +298,93 @@ class PoreCMapper:
         if which(self._path) is None:
             raise ValueError(f"{self._path}: command not found")
         
+        if which('pigz') is None:
+            raise ValueError(f"pigz: command not found")
+        
+        if which('cphasing-rs') is None:
+            raise ValueError(f"cphasing-rs: command not found")
+
+
         self.prefix = self.read.with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
             self.prefix = self.prefix.with_suffix('')
         self.prefix = Path(str(self.prefix))
 
-        self.outpaf = f'{self.prefix}.paf'
+
+        if self.get_genome_size() > 4e9:
+            self.batchsize = to_humanized(self.get_genome_size())
+        else:
+            self.batchsize = "4g"
+
+        self.threads = threads
+        self.min_quality = min_quality
+        self.k = k 
+        self.w = w
+        self.force = force
+  
+        self.outpaf = f'{self.prefix}.paf.gz'
+        self.outporec = f'{self.prefix}.porec.gz'
+        self.outpairs = f'{self.prefix}.pairs.gz'
+
+    def get_genome_size(self):
+        from .utilities import get_genome_size
+
+        return get_genome_size(self.reference)
+
+    def get_contig_sizes(self):
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
+                "-o", str(self.contigsizes)]
+        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+
+    def index(self):
+        """
+        Create minimap2 index
+        """
+        cmd = [self._path, "-t", str(self.threads), 
+                "-x", "map-ont",
+                "-k", str(self.k),
+                "-w", str(self.w),
+                "-I", self.batchsize,
+                "-d", str(self.index_path),
+                str(self.reference)]
+
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
+        assert flag == 0, "Failed to execute command, please check log."
+
 
     def mapping(self):
-        cmd = [self._path, '-outfmt', 'paf', 
-                '-num_threads', str(self.threads),
-                self.enzyme_site, str(self.reference),
+        cmd = [self._path, 
+                '-x', 'map-ont', 
+                '-t', str(self.threads),
+                 '-k', str(self.k),
+                 '-w', str(self.w),
+                '-c',
+                '--secondary=no',
+                '-I', self.batchsize,
+                str(self.index_path),
                 str(self.read)]
         
+        cmd2 = ["pigz", "-c", "-p", "4"]
+
+        logger.info('Running command:')
+        logger.info('\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
+                    + ' > ' + str(self.outpaf))
         #run_cmd(cmd)
         pipelines = []
         try:
             pipelines.append(
-                Popen(cmd, stdout=open(self.outpaf, 'w'),
+                Popen(cmd, stdout=PIPE,
                 stderr=open(f'{self.log_dir}/{self.prefix}'
                 '.mapping.log', 'w'),
                 bufsize=-1)
+            )
 
+            pipelines.append(
+                Popen(cmd2, stdin=pipelines[-1].stdout,
+                      stdout=open(self.outpaf, 'wb'),
+                      stderr=open(f'{self.log_dir}/{self.prefix}'
+                '.mapping.log', 'w'),
+                bufsize=-1)
             )
             pipelines[-1].wait()
         
@@ -337,11 +395,39 @@ class PoreCMapper:
             else:
                 assert pipelines != [], \
                     "Failed to execute command, please check log."
-        
-    def generate_pairs(self):
-        pass
-
-    def run(self):
-        self.mapping()
-
     
+    def paf2table(self):
+        cmd = ["cphasing-rs", "paf2table", f"{self.outpaf}", "-o", f"{self.outporec}"]
+
+        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2table.log')
+    
+
+    def porec2pairs(self):
+        cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
+               str(self.contigsizes),
+                "-o", f"{self.outpairs}"]
+        
+        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
+    
+    def run(self):
+        if not self.index_path.exists() or self.force:
+            self.index()
+        else:
+            logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
+        
+        if not op.exists(self.outpaf) or self.force:
+            self.mapping()
+        else:
+            logger.warning(f"The paf of `{self.outpaf} existing, skipped ...")
+
+        if not op.exists(self.outporec) or self.force:
+            self.paf2table()
+        else:
+            logger.warning(f"The porec table of {self.outporec} existing, skipped ...")
+        
+        if not op.exists(self.outpairs) or self.force:
+            self.porec2pairs()
+        else:
+            logger.warning(f"The pairs of {self.outpairs} existing, skipped ...")
+
+        logger.info("Done.")

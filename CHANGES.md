@@ -1,7 +1,15 @@
 # Release notes #
 
+## [v0.0.22]
+Date: 2023-06-12
+## New features
+- `tmpoptimze`, a temp function for order and orientation
+- `PoreCMapper`, based on minimap2 and cphasing-rs
+## Enhancement
+- `plot`, add `--no-ticks` to remove ticks from picture
+
 ## [v0.0.21]
-Date: 2023-06-08
+Date: 2023-06-12
 ## Enhancement
 - `hyperpartition`
     - change `zero-allelic` to `allelic-factor`

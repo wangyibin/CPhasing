@@ -76,9 +76,9 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
 5. **optimize**
-    - `ordering and orientation` **incomplete**
+    - `ordering and orientation`
     ```bash
-    cphasing optimize group1.count_HindIII.txt sample.10000.cool 
+    cphasing optimize output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
     ```
 6. **build**
     - `build`
@@ -103,9 +103,9 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 - Ultra-complex polyploid
 
 ## ToDo list
-- [ ] mapper
+- [x] mapper
 - [x] kprune
 - [x] hyperpartition
-- [ ] optimize
+- [x] optimize
 - [x] plot
 - [ ] pipeline

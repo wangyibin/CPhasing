@@ -10,6 +10,7 @@ import logging
 import os
 import os.path as op
 import sys
+import tempfile
 
 import cooler
 import random
@@ -19,14 +20,85 @@ import pandas as pd
 
 from collections import defaultdict
 from joblib import Parallel, delayed
-from itertools import combinations
+from itertools import combinations, permutations
 from pytools import natsorted
 from scipy.sparse import tril
 
 
-from cphasing.core import CountRE, Clm
+from ..core import CountRE, ClusterTable, Clm
+from ..utilities import run_cmd
 
 logger = logging.getLogger(__name__)
+
+class AllhicOptimize:
+
+    def __init__(self, clustertable, count_re, clm, 
+                    tmp_dir='optimize_tmp', threads=4):
+        self.clustertable = ClusterTable(clustertable)
+        self.count_re = CountRE(count_re, minRE=1)
+        self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.tmp_dir = tmp_dir 
+        self.threads = threads 
+
+    @staticmethod
+    def extract_count_re(group, contigs, count_re):
+        tmp_df = count_re.data.loc[contigs]
+        tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
+
+        return f"{group}.txt"
+
+    @staticmethod
+    def extract_clm(group, contigs, clm):
+        
+        contig_pairs = list(permutations(contigs, 2))
+        contig_with_orientation_pairs = []
+        for pair in contig_pairs:
+            for strand1, strand2 in [('+', '+'), ('+', '-'),
+                                    ('-', '+'), ('-', '-')]:
+                contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
+        
+        tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+        tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+
+        return f"{group}.clm"
+
+    @staticmethod
+    def run_allhic_optimize(count_re, clm):
+        cmd = ["allhic", "optimize", count_re, clm]
+        run_cmd(cmd, log=os.devnull, out2err=True)
+
+        return count_re.replace(".txt", ".tour")
+
+    @staticmethod
+    def _run(group, contigs, count_re, clm):
+        tmp_res = AllhicOptimize.run_allhic_optimize(count_re, clm)
+
+        return tmp_res
+    
+    def run(self):
+        with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
+            logger.info('Working on temporary directory: {}'.format(tmpDir))
+            os.chdir(tmpDir)
+            args = []
+            for group in self.clustertable.data.keys():
+                contigs = self.clustertable.data[group]
+                tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
+                tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
+                args.append((group, contigs, tmp_count_re, tmp_clm))
+            
+            res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                        self._run)(i, j, k, l) for i, j, k, l in args)
+
+
+            os.system(f"cp *tour ../")
+            logger.info("Removed temporary directory.")
+             
+            os.chdir("../")
+
+        logger.info("Done")
+
+    
+
 
 class OldOptimize0:
     

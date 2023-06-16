@@ -364,6 +364,7 @@ class HyperPartition:
         args = []
         if self.ultra_complex:
             _results = []
+            print(len(self.K))
             for num, group in enumerate(self.K):
                 if len(group) > 1 and HyperPartition.is_error(group, self.allelic_idx_set, vertices_idx_sizes):
                     args.append((group, self.k[0], self.prune_pair_df, self.H, vertices_idx_sizes, self.ultra_complex, 
@@ -381,7 +382,7 @@ class HyperPartition:
             _results.extend(_results2)
 
             self.K = _results 
-
+            print(len(self.K))
         if k:
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
                                             self.prune_pair_df, self.allelic_similarity)

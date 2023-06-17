@@ -332,8 +332,6 @@ def IRMM(H, # NW,
     ## D_e - I 
     D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
     
-    # D_e = dia_matrix((D_e_num, np.array([0])), W.shape, dtype=np.int8)
-    
     ## inverse diagonal matrix D_e
     D_e_inv = 1/D_e_num
     D_e_inv[D_e_inv == -np.inf] = 0
@@ -360,6 +358,9 @@ def IRMM(H, # NW,
         gc.collect() 
 
     if P_allelic_idx or P_weak_idx:
+        # print(A.shape, allelic_factor.shape)
+        # A = A.multiply(allelic_factor)
+
         # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
         # P[np.diag_indices_from(P)] = 0
         # P[P_idx[0], P_idx[1]] = 0

@@ -10,6 +10,7 @@ import pandas as pd
 
 from collections import OrderedDict
 from pathlib import Path
+from shutil import which
 
 from . import __version__
 from .core import (
@@ -856,6 +857,24 @@ def alleles(fasta, output, method,
     type=click.Path(exists=True)
 )
 @click.option(
+    '-c',
+    '--countRE',
+    metavar="CountRE",
+    help="input count RE table to normalize the contacts",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-ns',
+    '--no-sort',
+    'no_sort',
+    metavar="BOOL",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '-o',
     '--output',
     help='output prune table',
@@ -869,7 +888,8 @@ def alleles(fasta, output, method,
     default=False,
     show_default=True
 )
-def kprune(alleletable, coolfile, output, symmetric):
+def kprune(alleletable, coolfile, countre, 
+           no_sort, output, symmetric):
     """
     generate contig pair list which shoud be pruning by sequences similarity.
 
@@ -879,8 +899,10 @@ def kprune(alleletable, coolfile, output, symmetric):
         
     """
     from .kprune import KPruner
-
-    kp = KPruner(alleletable, coolfile)
+    
+    sort_by_similarity = False if no_sort else True
+    print(sort_by_similarity)
+    kp = KPruner(alleletable, coolfile, sort_by_similarity, countre)
     kp.run()
     kp.save_prune_list(output, symmetric)
 
@@ -1068,6 +1090,16 @@ def extract(contacts,
     show_default=True
 )
 @click.option(
+    '-mao',
+    '--min-allelic-overlap',
+    "min_allelic_overlap",
+    metavar="FLOAT",
+    help="Minimum overlap ratio bewteen two group when merging different groups",
+    default=0.1,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+@click.option(
     '-inc',
     '--incremental',
     help='Use incremental partition algorithm',
@@ -1225,6 +1257,7 @@ def hyperpartition(edges,
                     prunetable,
                     allelic_factor,
                     allelic_similarity,
+                    min_allelic_overlap,
                     incremental,
                     ultra_complex,
                     merge_cluster,
@@ -1301,7 +1334,7 @@ def hyperpartition(edges,
     if incremental is False and first_cluster is not None:
         logger.warn("First cluster only support for incremental method, will be not used.")
 
-
+    
     hp = HyperPartition(edges, 
                             contigsizes,
                             k,
@@ -1309,6 +1342,7 @@ def hyperpartition(edges,
                             prunetable,
                             allelic_factor,
                             allelic_similarity,
+                            min_allelic_overlap,
                             ultra_complex,
                             whitelist,
                             blacklist,
@@ -1518,6 +1552,7 @@ def build(fasta, output, only_agp):
 #     show_default=True,
 # )
 @click.option(
+    '-c',
     '--chromosomes',
     help='Chromosomes and order in which the chromosomes should be plotted. '
             'Comma seperated.',
@@ -1610,6 +1645,8 @@ def plot(matrix,
 
     if not only_plot:
         if not no_adjust:
+            if which("bedtools") is None:
+                raise ValueError(f"bedtools: command not found.")
             matrix = adjust_matrix(matrix, agp)
 
         if only_adjust:

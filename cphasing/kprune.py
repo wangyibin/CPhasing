@@ -22,7 +22,7 @@ from copy import deepcopy
 from joblib import Parallel, delayed
 from scipy.sparse import triu
 
-from .core import AlleleTable 
+from .core import AlleleTable, CountRE
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,14 @@ class KPruner:
     >>> kp.save_prune_list('prune.contig.list')
     
     """
-    def __init__(self, alleletable, coolfile, threads=4):
+    def __init__(self, alleletable, coolfile, sort_by_similarity=True, count_re=None, threads=4):
         self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')
+        if sort_by_similarity:
+            _alleletable = self.alleletable.data.sort_values(['similarity'], ascending=False)
+            self.alleletable.data = _alleletable.query('similarity < 1.0')
+            
         self.coolfile = coolfile 
+        
         self.threads = threads
 
         self.allele_group_db = self.get_allele_group()
@@ -63,6 +68,12 @@ class KPruner:
         
         self.contig_pairs = self.pixels1[['chrom1', 'chrom2']].values.tolist()
         self.contig_pairs = set(map(tuple, self.contig_pairs))
+
+        self.count_re = CountRE(count_re, minRE=1) if count_re else None
+        if count_re:
+            self.re_count_db = self.count_re.data.to_dict()['RECounts']
+            self.re_count_db = defaultdict(lambda :0, self.re_count_db)
+            self.normalize_score(self.pixels1)
 
         self.pixels2 = self.pixels1.copy()
         self.pixels2.columns = ['chrom2', 'chrom1', 'count']
@@ -86,12 +97,19 @@ class KPruner:
         return tmp_df.to_dict()
         # return tmp_df.set_index(1).to_dict()[2]
     
+    def normalize_score(self, pixel):
+
+        pixel['RE1'] = pixel['chrom1'].map(self.re_count_db.get)
+        pixel['RE2'] = pixel['chrom2'].map(self.re_count_db.get)
+        pixel['count'] = pixel['count'] / ( pixel['RE1'] *  pixel['RE2'])
+        pixel.drop(['RE1', 'RE2'], axis=1, inplace=True)
+
     def get_score_db(self):
         db = self.pixels.to_dict()['count']
         db = defaultdict(lambda :0, db)
 
         return db
-        
+
     def remove_allelic(self):
         _allelic = self.alleletable.data[
                         self.alleletable.data[1] < self.alleletable.data[2]

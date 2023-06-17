@@ -63,6 +63,24 @@ def hic(ctx):
     show_default=True
 )
 @click.option(
+    "-k",
+    "kmer_size",
+    help="kmer size for mapping.",
+    metavar="INT",
+    type=int,
+    default=17,
+    show_default=True
+)
+@click.option(
+    "-w",
+    "window_size",
+    help="minimizer window size for mapping.",
+    metavar="INT",
+    type=int,
+    default=7,
+    show_default=True
+)
+@click.option(
     '-q',
     '--mapq',
     help='Minimum quality of mapping [0, 60].',
@@ -93,6 +111,8 @@ def mapper(
     read1, 
     read2,
     enzyme,
+    kmer_size,
+    window_size,
     mapq,
     aligner,
     threads
@@ -121,6 +141,8 @@ def mapper(
         res = []
         for r1, r2 in zip(read1, read2):
             cm = ChromapMapper(reference, r1, r2, 
+                                kmer_size=kmer_size,
+                                window_size=window_size,
                                 min_quality=mapq, 
                                 threads=threads)
             cm.run()

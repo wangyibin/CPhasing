@@ -399,7 +399,6 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         outprefix = op.basename(cool.filename).rsplit(".", 1)[0]
     ## get chromosome size database from arguments or agp file
     if not chromSize:
-        chroms = agp_df.index.unique()
         chrom_sizes = agp_df.groupby(agp_df.index)['end'].max()
         chrom_sizes = pd.DataFrame(chrom_sizes)
         chrom_sizes.reset_index(inplace=True)
@@ -507,6 +506,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
+    logger.info(f'Removed `{order_cool_path}`')
     os.remove(order_cool_path)
     
     return f'{outprefix}.chrom.cool'

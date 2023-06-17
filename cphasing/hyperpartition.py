@@ -14,7 +14,7 @@ import pandas as pd
 from collections import OrderedDict 
 from itertools import permutations, combinations, product
 from joblib import Parallel, delayed
-from scipy.sparse import hstack
+from scipy.sparse import hstack, csr_matrix
 from pathlib import Path
 from pprint import pformat
 
@@ -81,6 +81,7 @@ class HyperPartition:
                     prunetable=None,
                     allelic_factor=-1,
                     allelic_similarity=0.8,
+                    min_allelic_overlap=0.1,
                     ultra_complex=5.0,
                     whitelist=None,
                     blacklist=None,
@@ -103,7 +104,9 @@ class HyperPartition:
         self.prunetable = prunetable
         self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
         self.allelic_factor = allelic_factor
+    
         self.allelic_similarity = allelic_similarity
+        self.min_allelic_overlap = min_allelic_overlap
         self.ultra_complex = ultra_complex
 
         self.whitelist = whitelist
@@ -148,6 +151,21 @@ class HyperPartition:
                                     (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
                             [['contig1', 'contig2']].values)
                             )
+        # if allelic_factor is not None:
+        #     self.allelic_factor_df = self.prune_pair_df[
+        #         (self.prune_pair_df['type'] == 0)][['contig1', 'contig2', 'similarity']]
+
+        #     self.allelic_factor_df['factor'] = np.log10(1 - self.allelic_factor_df['similarity'])
+        #     self.allelic_factor_df = self.allelic_factor_df.fillna(0)
+            
+        #     _allelic_factor = np.ones(shape=(self.H.shape[0], self.H.shape[0]))
+        #     _allelic_factor[self.allelic_factor_df['contig1'], self.allelic_factor_df['contig2']] = self.allelic_factor_df['factor']
+
+        #     self.allelic_factor = csr_matrix(_allelic_factor, 
+        #                                     shape=(self.H.shape[0], self.H.shape[0]))
+        # else:
+        #     _allelic_factor = np.ones(shape=(self.H.shape[0], self.H.shape[0]))
+        #     self.allelic_factor = csr_matrix(_allelic_factor, dtype=np.int8)
 
     @property
     def vertices_idx(self):
@@ -246,7 +264,7 @@ class HyperPartition:
         kph = KPruneHyperGraph(self.alleletable, A, vertices_idx)
         kph.run() 
         kph.prunetable = kph.get_prune_table() 
-        print(kph.prunetable)
+       
         return kph.allelic_prune_list, kph.weak_prune_list, kph.prunetable
 
     def get_prune_pairs(self):
@@ -385,7 +403,8 @@ class HyperPartition:
             print(len(self.K))
         if k:
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
-                                            self.prune_pair_df, self.allelic_similarity)
+                                            self.prune_pair_df, self.allelic_similarity,
+                                            self.min_allelic_overlap)
         
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -400,7 +419,8 @@ class HyperPartition:
 
     @staticmethod
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, #NW, 
-                            resolution, min_weight=1, allelic_similarity=0.8, allelic_factor=-1,
+                            resolution, min_weight=1, allelic_similarity=0.8, 
+                            min_allelic_overlap=0.1, allelic_factor=-1,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -433,8 +453,21 @@ class HyperPartition:
         sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
         tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 1]
         sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
-
+        
         sub_prune_pair_df = sub_prune_pair_df.reset_index()
+        
+        # sub_allelic_factor_df = sub_prune_pair_df[
+        #     (sub_prune_pair_df['type'] == 0)][['contig1', 'contig2', 'similarity']]
+        
+        # sub_allelic_factor_df['factor'] = np.log10(1 - sub_allelic_factor_df['similarity'])
+        # sub_allelic_factor_df = sub_allelic_factor_df.fillna(0)
+        
+        # _sub_allelic_factor = np.ones(shape=(sub_H.shape[0], sub_H.shape[0]))
+        # _sub_allelic_factor[
+        #     sub_allelic_factor_df['contig1'], sub_allelic_factor_df['contig2']
+        #             ] = sub_allelic_factor_df['factor']
+
+        # sub_allelic_factor = csr_matrix(_sub_allelic_factor)
 
         A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
                                             sub_P_allelic_idx, 
@@ -455,7 +488,8 @@ class HyperPartition:
         new_K = list(map(list, new_K))
         if k:
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
-                                            sub_prune_pair_df, allelic_similarity)
+                                            sub_prune_pair_df, allelic_similarity, 
+                                            min_allelic_overlap)
         
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
@@ -506,15 +540,16 @@ class HyperPartition:
         args = []
         for num, sub_k in enumerate(self.K, 1):
             args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
-                        self.resolution2, self.min_weight, self.allelic_similarity, self.allelic_factor, 
+                        self.resolution2, self.min_weight, self.allelic_similarity, 
+                        self.min_allelic_overlap, self.allelic_factor, 
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args)
         
         self.cluster_assignments, results = zip(*results)
         self.K = list_flatten(results)
@@ -529,7 +564,8 @@ class HyperPartition:
 
     @staticmethod
     def _merge(A, K, vertices_idx_sizes, k=None, 
-                prune_pair_df=None, allelic_similarity=0.85):
+                prune_pair_df=None, allelic_similarity=0.85,
+                min_allelic_overlap=0.1):
         if not k:
             return K 
         
@@ -568,7 +604,7 @@ class HyperPartition:
                             overlap1 = tmp1_length / group1_length
                             overlap2 = tmp2_length / group2_length
 
-                            if overlap1 > 0.1 or overlap2 > 0.1:
+                            if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
                                 flag = 0
                         
                     value = A[group1, ][:,group2 ].sum() 
@@ -626,7 +662,8 @@ class HyperPartition:
                         reverse=True)
         
         self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, self.k[0],
-                                        self.prune_pair_df, self.allelic_similarity)
+                                        self.prune_pair_df, self.allelic_similarity,
+                                        self.min_allelic_overlap)
 
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 

@@ -225,7 +225,8 @@ class ChromapMapper:
                 min_quality=mapq, threads=threads)
     >>> cm.run()
     """
-    def __init__(self, reference, read1, read2, min_quality=30, 
+    def __init__(self, reference, read1, read2, 
+                    kmer_size=17, window_size=7, min_quality=30, 
                     threads=4, additional_arguments=(), 
                     path='chromap', log_dir='logs'):
         self.reference = Path(reference)
@@ -233,6 +234,8 @@ class ChromapMapper:
         self.read1 = Path(read1)
         self.read2 = Path(read2)
         self.threads = threads
+        self.kmer_size = kmer_size
+        self.window_size = window_size
         self.min_quality = min_quality
         self.additional_artuments=()
         
@@ -255,6 +258,7 @@ class ChromapMapper:
         Create chromap index.
         """
         cmd = [self._path, '-t', str(self.threads), 
+                '-k', str(self.kmer_size), '-w', str(self.window_size),
                 '-i', '-r', str(self.reference), '-o', 
                 str(self.index_path)]
         
@@ -264,6 +268,8 @@ class ChromapMapper:
     def mapping(self):
         cmd = [self._path, '-t', str(self.threads), 
                 '--preset', 'hic', 
+                '-k', str(self.kmer_size), 
+                '-w', str(self.window_size),
                 '-q', str(self.min_quality),
                 '-x', str(self.index_path), 
                 '-r', str(self.reference), '-1', str(self.read1),
@@ -305,7 +311,7 @@ class PoreCMapper:
             raise ValueError(f"cphasing-rs: command not found")
 
 
-        self.prefix = self.read.with_suffix('')
+        self.prefix = Path(self.read.stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
             self.prefix = self.prefix.with_suffix('')
         self.prefix = Path(str(self.prefix))
@@ -313,6 +319,7 @@ class PoreCMapper:
 
         if self.get_genome_size() > 4e9:
             self.batchsize = to_humanized(self.get_genome_size())
+            self.batchsize = str(int(self.batchsize[:-1]) + 1) + self.batchsize[-1]
         else:
             self.batchsize = "4g"
 

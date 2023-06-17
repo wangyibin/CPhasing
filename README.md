@@ -19,6 +19,7 @@ The advantages of `C-Phasing`:
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
 ### For Pore-C pipeline.
 - [minimap2](https://github.com/lh3/minimap2)
+- [pigz](https://github.com/madler/pigz)
 ### For Hi-C pipeline.
 - [chromap](https://github.com/haowenz/chromap)
 
@@ -33,24 +34,14 @@ export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 
-## Pore-C 
+## Pipeline of Pore-C data
 ### Polyploid
-
-
-1. **prepare**
+1. **mapping**
     ```bash
-    cphasing-rs chromsizes draft.asm.fasta > draft.asm.contigsizes
-    ```
-2. **mapping**
-    ```bash
-    minimap2 -x map-ont --secondary=no -c draft.asm.fasta sample.fastq.gz \
-         | cphasing-rs paf2table - -o sample.porec.gz
-    
-    cphasing-rs porec2pairs sample.porec.gz draft.asm.contigsizes -o sample.pairs.gz 
-    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes
+    cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
 
-3. **prunning**
+2. **prunning**
     - `alleles`
     ```bash
     cphasing alleles -f draft.asm.fasta
@@ -58,9 +49,9 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     - `kprune`
     > for polyploid or diploid phasing
     ```bash
-    cphasing kprune allele.table contigs.whole.cool 
+    cphasing kprune allele.table contigs.whole.cool -c sample.counts_HindIII.txt
     ```
-4. **partition**
+3. **partition**
     - `extract`
     ```bash
     cphasing extract sample.porec.gz draft.asm.contigsizes sample.hyperedges
@@ -75,17 +66,17 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
-5. **optimize**
+4. **optimize**
     - `ordering and orientation`
     ```bash
     cphasing optimize output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
     ```
-6. **build**
+5. **build**
     - `build`
     ```bash
     cphasing build draft.asm.fasta
     ```
-7. **plot**
+6. **plot**
     - `plot`
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
@@ -96,10 +87,19 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 
 - Simulation data from haplotype resolved human genome
 
-- Autotetraploid genome
-![AP heatmap](pictures/AP/groups.wg.png)
-- Hexaploid genome
-![SP heatmap](pictures/SP/groups.wg.png)
+- Autotetraploid genome  
+    AP (left) and alfalfa (right)
+    <p float="center">
+        <img src="pictures/AP/groups.wg.png" width="250" />
+        <img src="pictures/M1/groups.wg.png" width="250" />
+    </p>
+    
+
+- Hexaploid genome  
+    sweet potato
+    <p float="center">
+        <img src="pictures/SP/groups.wg.png" width="400" />
+    </p>
 - Ultra-complex polyploid
 
 ## ToDo list

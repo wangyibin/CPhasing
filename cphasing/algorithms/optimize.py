@@ -15,6 +15,7 @@ import tempfile
 import cooler
 import random
 import igraph as ig
+import gc
 import numpy as np
 import pandas as pd
 
@@ -86,6 +87,9 @@ class AllhicOptimize:
                 tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
                 args.append((group, contigs, tmp_count_re, tmp_clm))
             
+            del self.clm
+            gc.collect()
+
             res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
                         self._run)(i, j, k, l) for i, j, k, l in args)
 
@@ -96,8 +100,6 @@ class AllhicOptimize:
             os.chdir("../")
 
         logger.info("Done")
-
-    
 
 
 class OldOptimize0:

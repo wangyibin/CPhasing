@@ -1,7 +1,13 @@
 # Release notes #
-
+## [v0.0.23]
+Date: 2023-06-17
+## New features
+- `pictures`, add the heatmap of M1
+## Enhancement
+- `hyperpartition`, expose `--min-allelic-overlap`
+- `kprune`, add sort and normalize function
 ## [v0.0.22]
-Date: 2023-06-12
+Date: 2023-06-16
 ## New features
 - `tmpoptimze`, a temp function for order and orientation
 - `PoreCMapper`, based on minimap2 and cphasing-rs

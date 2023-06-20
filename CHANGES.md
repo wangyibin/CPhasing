@@ -1,4 +1,11 @@
 # Release notes #
+
+## [v0.0.24]
+Date: 2023-06-20
+## New features
+- `ultra_long`, init ultra_long method
+## Enhancement 
+- `mapper`, add `outprefix` prameter
 ## [v0.0.23]
 Date: 2023-06-17
 ## New features

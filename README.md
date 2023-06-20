@@ -14,15 +14,6 @@ The advantages of `C-Phasing`:
 - High speed.   
 - High anchor rate of genome. 
 - High accuracy of polyploid phasing. 
-## Dependencies
-### For core function.
-- [bedtools](https://bedtools.readthedocs.io/en/latest/)
-### For Pore-C pipeline.
-- [minimap2](https://github.com/lh3/minimap2)
-- [pigz](https://github.com/madler/pigz)
-### For Hi-C pipeline.
-- [chromap](https://github.com/haowenz/chromap)
-
 
 ## Installation
 ```
@@ -33,6 +24,15 @@ conda env create -f environment.yml
 export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
+### Dependencies
+#### For core function.
+- [bedtools](https://bedtools.readthedocs.io/en/latest/)
+#### For Pore-C pipeline.
+- [minimap2](https://github.com/lh3/minimap2)
+- [pigz](https://github.com/madler/pigz)
+#### For Hi-C pipeline.
+- [chromap](https://github.com/haowenz/chromap)
+
 
 ## Pipeline of Pore-C data
 ### Polyploid
@@ -40,7 +40,6 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
-
 2. **prunning**
     - `alleles`
     ```bash
@@ -67,17 +66,14 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
 4. **optimize**
-    - `ordering and orientation`
     ```bash
     cphasing optimize output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
     ```
 5. **build**
-    - `build`
     ```bash
     cphasing build draft.asm.fasta
     ```
 6. **plot**
-    - `plot`
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```

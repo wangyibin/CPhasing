@@ -139,6 +139,13 @@ def pipeline(fasta, data, method):
     show_default=True,
 )
 @click.option(
+    '-o',
+    '--outprefix',
+    help='output prefix, if none use the prefix of fastq',
+    default=None,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -149,9 +156,9 @@ def pipeline(fasta, data, method):
 )
 def mapper(reference, fastq, kmer_size, 
             window_size, mapq, force, 
-            threads):
+            outprefix, threads):
     """
-    mapper for pore-c read.
+    mapper for pore-c reads.
 
         REFERENCE: Path of reference
 
@@ -165,6 +172,7 @@ def mapper(reference, fastq, kmer_size,
                         w = window_size,
                         force=force,
                         min_quality=mapq,
+                        outprefix=outprefix,
                         threads=threads)
     pcm.run()
 
@@ -988,7 +996,7 @@ def extract(contacts,
             fofn,
             threads):
     """
-    Extract edges from pore-c table. 
+    Extract edges from pore-c table or 4DN pairs. 
 
         
         Pore_C_TABLE : Path of Pore-C table.
@@ -1276,7 +1284,7 @@ def hyperpartition(edges,
                     # chunksize
                     ):
     """
-    Separate contigs into several groups by hypergraph cluster.
+    Separate contigs into groups based on hypergraph.
 
         Edges : Path of the edges.
 

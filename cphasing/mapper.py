@@ -290,12 +290,14 @@ class ChromapMapper:
 
 class PoreCMapper:
     def __init__(self, reference, read, k=15, w=10, min_quality=1, 
+                    additional_arguments=(), outprefix=None,
                     threads=4, path='minimap2', log_dir='logs',
                     force=False):
         self.reference = Path(reference)
         self.index_path = Path(f'{self.reference.stem}.index')
         self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
         self.read = Path(read)
+        self.additional_arguments = additional_arguments
 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -314,7 +316,8 @@ class PoreCMapper:
         self.prefix = Path(self.read.stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
             self.prefix = self.prefix.with_suffix('')
-        self.prefix = Path(str(self.prefix))
+       
+        self.prefix = Path(str(self.prefix)) if not outprefix else outprefix
 
 
         if self.get_genome_size() > 4e9:
@@ -370,6 +373,7 @@ class PoreCMapper:
                 '-I', self.batchsize,
                 str(self.index_path),
                 str(self.read)]
+        cmd.extend(list(self.additional_arguments))
         
         cmd2 = ["pigz", "-c", "-p", "4"]
 
@@ -417,6 +421,9 @@ class PoreCMapper:
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
     
     def run(self):
+        
+        self.get_contig_sizes()
+        
         if not self.index_path.exists() or self.force:
             self.index()
         else:

@@ -1,12 +1,8 @@
 # **C**-Phasing: **Phasing** and scaffolding polyploid genomes based on Pore-**C** or Hi-**C** data.
-```
-   ____      ____  _               _             
-  / ___|    |  _ \| |__   __ _ ___(_)_ __   __ _ 
- | |   _____| |_) | '_ \ / _` / __| | '_ \ / _` |
- | |__|_____|  __/| | | | (_| \__ \ | | | | (_| |
-  \____|    |_|   |_| |_|\__,_|___/_|_| |_|\__, |
-                                           |___/ 
-```
+ <p float="center">
+        <img src="pictures/logo/C-Phasing_logo2.jpg" width="300" />  
+</p>
+
 ## Introduction
 The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solve this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffold by Hi-C data, but will be slowly. 
   

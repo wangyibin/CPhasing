@@ -21,5 +21,6 @@ pyfaidx >= 0.7.0
 pyranges
 pytools
 seaborn
+ray
 rich
 scipy

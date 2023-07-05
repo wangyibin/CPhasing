@@ -1,5 +1,14 @@
 # Release notes #
 
+## [v0.0.25]
+Date: 2023-07-05
+## New features
+- `evalutate_known_assembly.py`, evalutate the simulated human genome
+- `cis_trans_by_contigs.py`, calculate the cis and trans contacts by pairs
+- `logo`, add logo
+## Enhancement
+- `hyperpartition`, automatic using the exists first clusters results
+
 ## [v0.0.24]
 Date: 2023-06-20
 ## New features

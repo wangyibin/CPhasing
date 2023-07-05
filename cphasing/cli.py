@@ -1139,7 +1139,6 @@ def extract(contacts,
     'first_cluster',
     metavar="PATH",
     help='Use the existing first cluster results to second cluster',
-    type=click.Path(exists=True),
     default=None,
     show_default=True
 )
@@ -1374,7 +1373,7 @@ def hyperpartition(edges,
     
     if prunetable or alleletable:
         if incremental:
-            if first_cluster:
+            if first_cluster and op.exists(first_cluster):
                 first_cluster = list(ClusterTable(first_cluster).data.values())
                 
             hp.incremental_partition(k, first_cluster)

@@ -1,4 +1,18 @@
 # Release notes #
+## [v0.0.26]
+Date: 2023-07-12
+## New features
+- `statcluster`, stat the clustertable
+- `plot_hist`, plot the distribution of somethings
+## Enhancement
+- `hypergraph`, add prune allelic hyperedges
+- `statagp`, change `agpstat` to `statagp`
+- change `extract` to `hypergraph`
+- change `optimize` to `scaffolding`
+- `hyperpartition`, out "Chr??g?" as chromosome name
+
+## Bug fixed
+- `hyprpartition`, not add `-pt` or `at`, the `-inc` not work
 
 ## [v0.0.25]
 Date: 2023-07-05

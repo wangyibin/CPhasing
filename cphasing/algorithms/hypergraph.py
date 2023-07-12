@@ -5,6 +5,7 @@ import os
 import dask.array as da
 import gc
 import numpy as np
+import pandas as pd
 import msgspec
 import igraph as ig
 
@@ -91,7 +92,7 @@ class HyperGraph:
         matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
                              (self.row, self.col)
                              ), 
-                             shape= self.shape
+                             shape=self.shape
                              )
 
 
@@ -324,6 +325,17 @@ def IRMM(H, # NW,
     --------
     >>> IRMM(H, vertices)
     """
+
+    # if P_allelic_idx or P_weak_idx:
+    #     P_allelic_df = pd.concat(P_allelic_idx, axis=1)
+    #     P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
+    #                     (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
+    #                     shape=([H.shape[0], len(P_allelic_df)])) 
+        
+    #     _P = P.T @ H
+    #     remove_idx = (_P.toarray() == 2).any(axis=0)
+    #     H = H[:, ~remove_idx]
+       
     m = H.shape[1]
     
     ## diagonal matrix of weights
@@ -339,11 +351,13 @@ def IRMM(H, # NW,
                             W.shape, dtype=np.float32)
     
     H_T = H.T
-    
+
+  
     A = H @ W @ D_e_inv @ H_T
     
-    mask = A >= min_weight
-    A = A.multiply(mask)
+    if min_weight > 0:
+        mask = A >= min_weight
+        A = A.multiply(mask)
     ## normalization
     # A = A.toarray() * NW
     # row, col = np.nonzero(A)
@@ -358,6 +372,11 @@ def IRMM(H, # NW,
         gc.collect() 
 
     if P_allelic_idx or P_weak_idx:
+        P_allelic_df = pd.concat(P_allelic_idx, axis=1)
+        P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
+                        (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
+                        shape=([A.shape[0], len(P_allelic_df)]))
+        
         # print(A.shape, allelic_factor.shape)
         # A = A.multiply(allelic_factor)
 
@@ -374,10 +393,14 @@ def IRMM(H, # NW,
                        allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
         
         if P_weak_idx:
-            A[P_weak_idx[0], P_weak_idx[1]] = 0
+            if allelic_factor == 0:
+                A[P_weak_idx[0], P_weak_idx[1]] = 0
+            else:
+                A[P_weak_idx[0], P_weak_idx[1]] = \
+                    allelic_factor * A[P_weak_idx[0], P_weak_idx[1]]
             
         A = A.tocsr()
-
+        
 
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
@@ -388,15 +411,9 @@ def IRMM(H, # NW,
     cluster_results = list(cluster_assignments.as_cover())
     cluster_results = list(map(set, cluster_results))
 
-    # G.write_graphml(f'{outprefix}.out.edgelist')
-    
-    # G = G.to_networkx()
-    # nx.write_weighted_edgelist(G, f'{outprefix}.out.edgelist')
-    # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
+  
     cluster_stat = list(map(len, cluster_results))
-    # if outprefix:
-    #     save_npz(f'{outprefix}.A.npz', A)
-    
+ 
     # del A, G
     # gc.collect()
     
@@ -427,7 +444,9 @@ def IRMM(H, # NW,
         gc.collect()
 
         A = H @ W @ D_e_inv @ H_T
-        
+        if min_weight > 0:
+            mask = A >= min_weight
+            A = A.multiply(mask)
         ## normalization
         # A = A.toarray() * NW
         # row, col = np.nonzero(A)

@@ -790,7 +790,7 @@ def pairs2cool(pairs, chromsize, outcool,
     help="minimum k-mer similarity for similarity calculation.",
     metavar="FLOAT",
     type=float,
-    default=.2,
+    default=.5,
     show_default=True
 )
 @click.option(
@@ -830,7 +830,7 @@ def alleles(fasta, output, method,
                 kmer_size, window_size, minimum_similarity,
                 cds, bed, ploidy, skip_gmap_index, threads):
     """
-    Build allele table for prune.
+    Build allele table.
     """
     
     from .alleles import GmapAllele, PartigAllele
@@ -853,7 +853,7 @@ def alleles(fasta, output, method,
         logger.warning('Incompletely developing function')
 
 
-@cli.command(short_help="generate contig pair list which shoud be pruning.")
+@cli.command(short_help="Generate the allelic contig and cross-allelic contig pairs.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -899,7 +899,7 @@ def alleles(fasta, output, method,
 def kprune(alleletable, coolfile, countre, 
            no_sort, output, symmetric):
     """
-    generate contig pair list which shoud be pruning by sequences similarity.
+    Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
         AlleleTable : allele table from cphasing allele in allele2 format.
 
@@ -909,7 +909,7 @@ def kprune(alleletable, coolfile, countre,
     from .kprune import KPruner
     
     sort_by_similarity = False if no_sort else True
-    print(sort_by_similarity)
+    
     kp = KPruner(alleletable, coolfile, sort_by_similarity, countre)
     kp.run()
     kp.save_prune_list(output, symmetric)
@@ -931,6 +931,7 @@ def kprune(alleletable, coolfile, countre,
     metavar="OUTPUT"
 )
 @click.option(
+    "-min",
     "--min-order",
     "min_order",
     help="Minimum contig order of pore-c reads",
@@ -940,6 +941,7 @@ def kprune(alleletable, coolfile, countre,
     show_default=True
 )
 @click.option(
+    "-max",
     "--max-order",
     "max_order",
     help="Maximum contig order of pore-c reads",
@@ -949,6 +951,7 @@ def kprune(alleletable, coolfile, countre,
     show_default=True
 )
 @click.option(
+    "-ma",
     "--min-alignments",
     "min_alignments",
     help="Minimum length of pore-c alignments",
@@ -980,13 +983,13 @@ def kprune(alleletable, coolfile, countre,
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads.',
+    help='Number of threads. Only when multiple files are input.',
     type=int,
     default=4,
     metavar='INT',
     show_default=True,
 )
-def extract(contacts,
+def hypergraph(contacts,
             contigsize,
             output,
             min_order, 
@@ -996,12 +999,15 @@ def extract(contacts,
             fofn,
             threads):
     """
-    Extract edges from pore-c table or 4DN pairs. 
+    Construct hypergraph from contacts.
 
-        
+    The hyperedges or edges enabled extract from pore-c table or 4DN pairs. 
+
+    
         Pore_C_TABLE : Path of Pore-C table.
-        
+
         OUTPUT : Path of output edges.
+
     """
     from .extract import HyperExtractor, Extractor
     from .utilities import read_chrom_sizes
@@ -1340,7 +1346,9 @@ def hyperpartition(edges,
 
     if incremental is False and first_cluster is not None:
         logger.warn("First cluster only support for incremental method, will be not used.")
-
+    
+    if not prunetable and alleletable:
+        logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
     hp = HyperPartition(edges, 
                             contigsizes,
@@ -1365,23 +1373,19 @@ def hyperpartition(edges,
                             # chunksize
                             )
     
-    if not prunetable and not alleletable:
+  
+    if incremental:
+        if first_cluster and op.exists(first_cluster):
+            first_cluster = list(ClusterTable(first_cluster).data.values())
+        else:
+            first_cluster = None 
+        
+        hp.incremental_partition(k, first_cluster)
+    else:
         if merge_cluster:
             hp.merge_cluster(_merge_cluster)
         else:
             hp.single_partition(int(k[0]))
-    
-    if prunetable or alleletable:
-        if incremental:
-            if first_cluster and op.exists(first_cluster):
-                first_cluster = list(ClusterTable(first_cluster).data.values())
-                
-            hp.incremental_partition(k, first_cluster)
-        else:
-            if merge_cluster:
-                hp.merge_cluster(_merge_cluster)
-            else:
-                hp.single_partition(int(k[0]))
     
     hp.to_cluster(output)
 
@@ -1420,13 +1424,19 @@ def hyperpartition(edges,
 #     'output',
 #     metavar="OUTPUT_SCORE_PATH",
 # )
-def optimize(clustertable, count_re, clm, threads):
+def scaffolding(clustertable, count_re, clm, threads):
     """
-    Ordering and orientation the contigs by allhic
+    Ordering and orientation the contigs.
+
+        ClusterTable: Path of cluster table from hyperpartition.
+
+        Count_RE: Path of counts RE file.
+
+        CLM: Path of clm file.
 
     """
 
-    from .algorithms.optimize import AllhicOptimize
+    from .algorithms.scaffolding import AllhicOptimize
     ao = AllhicOptimize(clustertable, count_re, clm, threads=threads)
     ao.run()
 
@@ -1562,7 +1572,7 @@ def build(fasta, output, only_agp):
     '-c',
     '--chromosomes',
     help='Chromosomes and order in which the chromosomes should be plotted. '
-            'Comma seperated.',
+            'Comma seperated. or a one column file',
     default=''
 )
 @click.option(
@@ -1662,7 +1672,10 @@ def plot(matrix,
         if not no_coarsen and factor > 1:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
-    chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
+    if op.exists(chromosomes):
+        chromosomes = [i.strip() for i in open(chromosomes) if i.strip()]
+    else:
+        chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
 
     if no_ticks:
         xticks = False 
@@ -1823,16 +1836,47 @@ def agp2tour(agp, outdir, force):
     type=click.File('w'),
     default=sys.stdout
 )
-def agpstat(agp, output):
+def statagp(agp, output):
     """
     Statistics of AGP.
 
     AGP : Path to agp file.
 
     """
-    from .agp import agpstat
+    from .agp import statagp
     
-    agpstat(agp, output)
+    statagp(agp, output)
+
+
+@utils.command(short_help='Statistics of ClusterTable.')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="contigsizes",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def statcluster(cluster, contigsizes, output):
+    from .core import ClusterTable
+    from .utilities import read_chrom_sizes
+    
+    ct = ClusterTable(cluster)
+    df = read_chrom_sizes(contigsizes)
+
+    for group in ct.groups:
+        _contigs = ct.data[group]
+        print(group, df.loc[_contigs]['length'].sum(), file=output)
+
 
 @utils.command(short_help='Convert cluster to several count RE files.')
 @click.argument(

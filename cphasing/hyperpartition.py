@@ -11,8 +11,13 @@ import igraph as ig
 import pandas as pd
 
 
-from collections import OrderedDict 
-from itertools import permutations, combinations, product
+from collections import defaultdict, OrderedDict 
+from itertools import (
+    permutations, 
+    combinations, 
+    product, 
+    groupby
+    )
 from joblib import Parallel, delayed
 from scipy.sparse import hstack, csr_matrix
 from pathlib import Path
@@ -264,8 +269,14 @@ class HyperPartition:
         kph = KPruneHyperGraph(self.alleletable, A, vertices_idx)
         kph.run() 
         kph.prunetable = kph.get_prune_table() 
-       
-        return kph.allelic_prune_list, kph.weak_prune_list, kph.prunetable
+        
+        P_allelic_idx_df = pd.DataFrame(kph.allelic_prune_list)
+        P_allelic_idx_df.columns = ['contig1', 'contig2']
+        P_weak_idx_df = pd.DataFrame(kph.weak_prune_list)
+        P_weak_idx_df.columns = ['contig1', 'contig2']
+        
+        return [P_allelic_idx_df['contig1'], P_allelic_idx_df['contig2']], \
+                [P_weak_idx_df['contig1'], P_weak_idx_df['contig2']], kph.prunetable
 
     def get_prune_pairs(self):
         
@@ -286,12 +297,12 @@ class HyperPartition:
         pair_df = pair_df.reset_index(drop=True)
         
         # P_idx = [pair_df[0], pair_df[1]]
-        #  tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= 0.2)]
+        # tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= self.allelic_similarity)]
         tmp_df = pair_df[pair_df['type'] == 0]
         P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
         # tmp_df = pair_df[(pair_df['type'] == 1) | \
-        #                  ((pair_df['type'] == 0) & (pair_df['similarity'] < 0.2)) ]
+        #                   ((pair_df['type'] == 0) & (pair_df['similarity'] < self.allelic_similarity))]
         tmp_df = pair_df[pair_df['type'] == 1]
         P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
@@ -382,7 +393,6 @@ class HyperPartition:
         args = []
         if self.ultra_complex:
             _results = []
-            print(len(self.K))
             for num, group in enumerate(self.K):
                 if len(group) > 1 and HyperPartition.is_error(group, self.allelic_idx_set, vertices_idx_sizes):
                     args.append((group, self.k[0], self.prune_pair_df, self.H, vertices_idx_sizes, self.ultra_complex, 
@@ -552,10 +562,14 @@ class HyperPartition:
                                     for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args)
         
         self.cluster_assignments, results = zip(*results)
+        self.inc_chr_idx = []
+        for i, j in enumerate(results):
+            for _ in j:
+                self.inc_chr_idx.append(i)
+
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
 
-        
         length_contents = pformat(list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
         logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
@@ -754,11 +768,33 @@ class HyperPartition:
     
     def filter_cluster(self):
         logger.info(f"Removed scaffolding less than {self.min_scaffold_length} in length.")
-        return list(
-            filter(lambda x: HyperPartition.get_k_size(
-                    x, self.contigsizes, self.idx_to_vertices) \
-                        >= self.min_scaffold_length, 
-                    self.K))
+
+        try: 
+            self.inc_chr_idx 
+            pop_idx = []
+            _K = []
+            for i, group in enumerate(self.K):
+                _size = HyperPartition.get_k_size(
+                            group, self.contigsizes, self.idx_to_vertices)
+                if _size >= self.min_scaffold_length:
+                    _K.append(group)
+                else:
+                    pop_idx.append(i)
+            
+            _new_inc_chr_idx = []
+            for i, idx in enumerate(self.inc_chr_idx):
+                if i not in pop_idx:
+                    _new_inc_chr_idx.append(idx)
+            self.inc_chr_idx = _new_inc_chr_idx
+
+        except AttributeError:
+            _K = list(
+                filter(lambda x: HyperPartition.get_k_size(
+                        x, self.contigsizes, self.idx_to_vertices) \
+                            >= self.min_scaffold_length, 
+                        self.K))
+        
+        return _K 
         
     def to_cluster(self, output):
         idx_to_vertices = self.idx_to_vertices
@@ -767,8 +803,19 @@ class HyperPartition:
                         map(lambda x: idx_to_vertices[x], y)), 
                         self.K))
         with open(output, 'w') as out:
-            for i, group in enumerate(clusters, 1):
-                print(f'group{i}\t{len(group)}\t{" ".join(group)}', 
+            try:
+                db = defaultdict(lambda :1)
+                for i, chr_idx in enumerate(self.inc_chr_idx):
+                    group = clusters[i]
+                    
+                    hap_idx = db[chr_idx]
+                    print(f'Chr{chr_idx + 1:0>2}g{hap_idx}\t{len(group)}\t{" ".join(group)}', 
+                        file=out)
+                    db[chr_idx] += 1
+
+            except AttributeError:
+                for i, group in enumerate(clusters, 1):
+                    print(f'Chr{i:0>2}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
 
         logger.info(f"Successful output hyperpartition results in `{output}`.")

@@ -1,8 +1,10 @@
-# **C**-Phasing: **Phasing** and scaffolding polyploid genomes based on Pore-**C** or Hi-**C** data.
- <p float="center">
-        <img src="pictures/logo/C-Phasing_logo2.jpg" width="300" />  
-</p>
+<img src="pictures/logo/C-Phasing_logo2.jpg" alt="C-Phasing logo" width="135px" align="right" />
+<h1 align="center">C-Phasing</h1>
+<p align="center">Phasing and scaffolding polyploid genomes based on Pore-C or Hi-C data</p>
 
+***  
+
+**C**-Phasing: **Phasing** and scaffolding polyploid genomes based on Pore-**C** or Hi-**C** data.
 ## Introduction
 The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solve this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffold by Hi-C data, but will be slowly. 
   
@@ -47,7 +49,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     cphasing kprune allele.table contigs.whole.cool -c sample.counts_HindIII.txt
     ```
 3. **partition**
-    - `extract`
+    - `hypergraph`
     ```bash
     cphasing extract sample.porec.gz draft.asm.contigsizes sample.hyperedges
     ```
@@ -61,9 +63,9 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
     cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
-4. **optimize**
+4. **scaffolding**
     ```bash
-    cphasing optimize output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
+    cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
     ```
 5. **build**
     ```bash

@@ -128,9 +128,9 @@ class KPruner:
     @staticmethod
     def is_strong_contact(allele_pair1, allele_pair2, score_db):
         
-        edges = [(a, b) for a in allele_pair1 for b in allele_pair2]
-        scores = [score_db.get(i, 0) for i in edges]
-
+        contig_edges = [(a, b) for a in allele_pair1 for b in allele_pair2]
+        scores = [score_db.get(i, 0) for i in contig_edges]
+        
         edges = [(0, 2), (0, 3), (1, 2), (1, 3)]
 
         ## igraph quickly (0.000331s)
@@ -140,8 +140,13 @@ class KPruner:
         matching = g.maximum_bipartite_matching(weights='weight')
         
         if matching.match_of(0) == 2:
+            if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l',) in contig_edges:
+                print(contig_edges, scores, True)
             return True
         else:
+            if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l') in contig_edges:
+                print(matching.match_of(0))
+                print(contig_edges, scores, False)
             return False
 
     @staticmethod

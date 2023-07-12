@@ -253,7 +253,7 @@ def agp2tour(agp, outdir, force=False):
 
     logger.info('ALL done.')
 
-def agpstat(agp, output):
+def statagp(agp, output):
     """
     Statistics of AGP.
 

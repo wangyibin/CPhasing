@@ -1,4 +1,8 @@
 # Release notes #
+## [v0.0.27]
+Date: 2023-07-14
+## Enhancement
+- remove `check_allhic_version`
 ## [v0.0.26]
 Date: 2023-07-12
 ## New features

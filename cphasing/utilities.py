@@ -457,13 +457,24 @@ def read_chrom_sizes(chrom_size):
 
     return df 
 
+def check_platform():
+    import platform
+    machine = platform.uname().machine
 
+    return machine.split("_")[0]
+
+def choose_software_by_platform(software):
+    if check_platform() == 'arm':
+        return f'{software}'
+    else:
+        return software
 
 def check_allhic_version():
     from shutil import which
-    assert which('allhic') is not None, "No such command of `allhic`" 
+    allhic = choose_software_by_platform('allhic')
+    assert which(allhic) is not None, "No such command of `allhic`" 
     
-    for i in os.popen('allhic --version'):
+    for i in os.popen(f'{allhic} --version'):
         version = i.strip().split()[-1]
     
     def version_check(version):

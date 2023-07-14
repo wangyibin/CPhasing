@@ -27,7 +27,7 @@ from scipy.sparse import tril
 
 
 from ..core import CountRE, ClusterTable, Clm
-from ..utilities import run_cmd
+from ..utilities import choose_software_by_platform, run_cmd
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,8 @@ class AllhicOptimize:
         self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
         self.tmp_dir = tmp_dir 
         self.threads = threads 
+
+        self.allhic_path = choose_software_by_platform("allhic")
 
     @staticmethod
     def extract_count_re(group, contigs, count_re):
@@ -64,14 +66,14 @@ class AllhicOptimize:
         return f"{group}.clm"
 
     @staticmethod
-    def run_allhic_optimize(count_re, clm):
-        cmd = ["allhic", "optimize", count_re, clm]
+    def run_allhic_optimize(allhic_path, count_re, clm):
+        cmd = [allhic_path, "optimize", count_re, clm]
         run_cmd(cmd, log=os.devnull, out2err=True)
 
         return count_re.replace(".txt", ".tour")
 
     @staticmethod
-    def _run(group, contigs, count_re, clm):
+    def _run(allhic_path, count_re, clm):
         tmp_res = AllhicOptimize.run_allhic_optimize(count_re, clm)
 
         return tmp_res
@@ -85,13 +87,13 @@ class AllhicOptimize:
                 contigs = self.clustertable.data[group]
                 tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
                 tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
-                args.append((group, contigs, tmp_count_re, tmp_clm))
+                args.append((self.allhic_path, tmp_count_re, tmp_clm))
             
             del self.clm
             gc.collect()
 
-            res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                        self._run)(i, j, k, l) for i, j, k, l in args)
+            Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                        self._run)(i, j, k) for i, j, k in args)
 
 
             os.system(f"cp *tour ../")

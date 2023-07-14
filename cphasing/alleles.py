@@ -19,6 +19,7 @@ from pyfaidx import Fasta
 
 from .utilities import (
     cmd_exists, 
+    choose_software_by_platform,
     run_cmd, 
     get_genome_size
 )
@@ -196,15 +197,16 @@ class PartigAllele:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
-        if not cmd_exists('partig'):
-            logger.error('No such command of `partig`.')
+        self.path = choose_software_by_platform('partig')
+        if not cmd_exists(self.path):
+            logger.error(f'No such command of `{self.path}`.')
             sys.exit()
 
     def partig(self):
         """
         get partig record
         """
-        cmd = ['partig', f'-k{self.k}', f'-w{self.w}',
+        cmd = [self.path, f'-k{self.k}', f'-w{self.w}',
                 f'-m{self.m}', '-c 100', self.fasta]
         
         logger.info('Calculating the similarity of sequences ...')

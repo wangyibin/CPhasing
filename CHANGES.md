@@ -1,4 +1,10 @@
 # Release notes #
+## [v0.0.28]
+Date: 2023-07-21
+## Enhancement
+- update `environment.yml`
+## Bug fixed
+- `scaffolding`, fixed path error
 ## [v0.0.27]
 Date: 2023-07-14
 ## Enhancement

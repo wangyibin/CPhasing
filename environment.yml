@@ -33,9 +33,9 @@ dependencies:
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.19.0=h5eee18b_0
   - c-blosc2=2.9.2=hb4ffafa_0
-  - ca-certificates=2023.5.7=hbcca054_0
+  - ca-certificates=2023.05.30=h06a4308_0
   - cachetools=5.3.0=pyhd8ed1ab_0
-  - certifi=2023.5.7=pyhd8ed1ab_0
+  - certifi=2023.5.7=py39h06a4308_0
   - cffi=1.15.1=py39he91dace_3
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - chromap=0.2.4=hdcf5f25_2
@@ -97,7 +97,6 @@ dependencies:
   - humanfriendly=10.0=py39hf3d152e_4
   - icu=58.2=hf484d3e_1000
   - idna=3.4=pyhd8ed1ab_0
-  - igraph=0.9.10=ha1f048c_1
   - importlib-metadata=6.6.0=pyha770c72_0
   - importlib-resources=5.12.0=pyhd8ed1ab_0
   - importlib_resources=5.12.0=pyhd8ed1ab_0
@@ -172,7 +171,8 @@ dependencies:
   - numexpr=2.8.4=py39h5ef5dce_100
   - numpy=1.24.3=py39h6183b62_0
   - oauth2client=4.1.3=py_0
-  - openssl=1.1.1u=hd590300_0
+  - openblas=0.3.21=pthreads_h320a7e8_3
+  - openssl=1.1.1u=h7f8727e_0
   - packaging=23.0=py39h06a4308_0
   - pairix=0.3.7=py39hd1f1204_3
   - pandarallel=1.6.5=pyhd8ed1ab_0
@@ -181,6 +181,7 @@ dependencies:
   - partd=1.2.0=pyhd3eb1b0_1
   - patsy=0.5.3=pyhd8ed1ab_0
   - peppy=0.35.5=pyhd8ed1ab_0
+  - pigz=2.6=h27cfd23_0
   - pillow=9.4.0=py39h6a678d5_0
   - pip=23.0.1=py39h06a4308_0
   - pkgutil-resolve-name=1.3.10=pyhd8ed1ab_0
@@ -280,3 +281,9 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
     - colormaps==0.4.0
+    - igraph==0.10.4
+    - python-igraph==0.10.4
+    - pytools==2023.1
+    - ray==2.5.1
+    - texttable==1.6.7
+prefix: /home/wangyibin/software/anaconda3/envs/cphasing

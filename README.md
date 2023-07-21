@@ -1,4 +1,4 @@
-<img src="pictures/logo/C-Phasing_logo2.jpg" alt="C-Phasing logo" width="135px" align="right" />
+<img src="pictures/logo/C-Phasing_logo2.jpg" alt="C-Phasing logo" width="160px" align="right" />
 <h1 align="center">C-Phasing</h1>
 <p align="center">Phasing and scaffolding polyploid genomes based on Pore-C or Hi-C data</p>
 
@@ -38,7 +38,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
-2. **prunning**
+2. **alleles**
     - `alleles`
     ```bash
     cphasing alleles -f draft.asm.fasta
@@ -51,7 +51,7 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 3. **partition**
     - `hypergraph`
     ```bash
-    cphasing extract sample.porec.gz draft.asm.contigsizes sample.hyperedges
+    cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hyperedges
     ```
     - `hyperpartition`
     ```bash

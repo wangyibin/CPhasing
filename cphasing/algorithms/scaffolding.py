@@ -74,7 +74,7 @@ class AllhicOptimize:
 
     @staticmethod
     def _run(allhic_path, count_re, clm):
-        tmp_res = AllhicOptimize.run_allhic_optimize(count_re, clm)
+        tmp_res = AllhicOptimize.run_allhic_optimize(allhic_path, count_re, clm)
 
         return tmp_res
     

@@ -362,6 +362,7 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
     if dtypes is None:
         dtypes = {}
     input_dtypes = cool.pixels().dtypes
+  
     for col in columns:
         if col in input_dtypes:
             dtypes.setdefault(col, input_dtypes[col])
@@ -377,8 +378,9 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
             columns,
             map=pool.map if threads > 1 else map, 
         )
-
+        
         #kwargs.setdefault("append", True)
+    
         create(output, new_bins, iterator, dtypes=dtypes, **kwargs)
     
     finally:
@@ -409,6 +411,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     chrom_sizes = [i for _, i in chrom_sizes.iterrows()]
 
+    logger.info("Converting contig-level coordinate to chromosome-level")
     chrom_bin_interval_df = pd.DataFrame(get_bins(bin_size, chrom_sizes), 
                                     columns=['chrom', 'start', 'end'])
   
@@ -422,7 +425,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
     
     pandarallel.initialize(nb_workers=threads, verbose=0)
-    contig_bins_index = contig_bins[:].parallel_apply(
+    
+    contig_bins_index = contig_bins[:][['chrom', 'start' ,'end']].parallel_apply(
         lambda x: chrRangeID(x.values), axis=1)
     contig_bins_index = contig_bins_index.to_frame().reset_index()
     contig_bins_index.rename(
@@ -466,6 +470,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Starting to reorder matrix ...')
 
     matrix = cool.matrix(balance=False, sparse=True)
+    dtypes = dict(cool.pixels().dtypes)
     
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
     contig2chrom.set_index('chromidx', inplace=True)
@@ -490,7 +495,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     order_cool_path = f"{outprefix}.ordered.cool"
     cooler.create_cooler(order_cool_path, reordered_contig_bins,
-                         chrom_pixels)#, metadata=HIC_METADATA)
+                         chrom_pixels, dtypes=dtypes)#, metadata=HIC_METADATA)
     logger.info('Successful, reorder the contig-level matrix, '
                 f' and output into `{outprefix}.ordered.cool`')
     
@@ -499,7 +504,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
     sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
-                     f'{outprefix}.chrom.cool')#, metadata=HIC_METADATA)
+                     f'{outprefix}.chrom.cool', dtypes=dtypes)#, metadata=HIC_METADATA)
     logger.info('Successful, collasped the contact into chromosome-level'
                 f'and output into {outprefix}.chrom.cool')
     
@@ -507,7 +512,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
     logger.info(f'Removed `{order_cool_path}`')
-    os.remove(order_cool_path)
+    # os.remove(order_cool_path)
     
     return f'{outprefix}.chrom.cool'
 

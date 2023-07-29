@@ -1,8 +1,11 @@
 # Release notes #
 ## [v0.0.28]
-Date: 2023-07-21
+Date: 2023-07-29
+## New features
+- `collapse`, create a collapse rescued contact matrix
 ## Enhancement
 - update `environment.yml`
+- update `cphasing-rs`, which reduce the size of binary and update to `v0.0.4`
 ## Bug fixed
 - `scaffolding`, fixed path error
 ## [v0.0.27]

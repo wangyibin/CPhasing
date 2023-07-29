@@ -140,13 +140,13 @@ class KPruner:
         matching = g.maximum_bipartite_matching(weights='weight')
         
         if matching.match_of(0) == 2:
-            if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l',) in contig_edges:
-                print(contig_edges, scores, True)
+            # if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l',) in contig_edges:
+            #     print(contig_edges, scores, True)
             return True
         else:
-            if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l') in contig_edges:
-                print(matching.match_of(0))
-                print(contig_edges, scores, False)
+            # if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l') in contig_edges:
+            #     print(matching.match_of(0))
+            #     print(contig_edges, scores, False)
             return False
 
     @staticmethod

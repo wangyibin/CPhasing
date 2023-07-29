@@ -70,7 +70,9 @@ def main(args):
     fig, ax = plt.subplots(figsize=(5.7, 5))
     ax = sns.histplot(df, kde=True, color='r', alpha=0.3, stat=args.stat, #linewidth=0,
                       bins=args.bins)
-    ax.set_xlabel(args.x_label.capitalize(), fontsize=20)
+    
+    if args.x_label:
+        ax.set_xlabel(args.x_label.capitalize(), fontsize=20)
     ax.set_ylabel(args.stat.capitalize(), fontsize=20)
     if args.x_min and args.x_max:
         plt.xlim(args.x_min, args.x_max)

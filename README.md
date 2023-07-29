@@ -1,10 +1,9 @@
-<img src="pictures/logo/C-Phasing_logo2.jpg" alt="C-Phasing logo" width="160px" align="right" />
-<h1 align="center">C-Phasing</h1>
-<p align="center">Phasing and scaffolding polyploid genomes based on Pore-C or Hi-C data</p>
+<img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
+<h1 align="center"><b>C</b>-Phasing</h1>
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b> or Hi-<b>C</b> data</p>
 
 ***  
 
-**C**-Phasing: **Phasing** and scaffolding polyploid genomes based on Pore-**C** or Hi-**C** data.
 ## Introduction
 The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solve this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffold by Hi-C data, but will be slowly. 
   
@@ -23,6 +22,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 ### Dependencies
+> All dependencies already add into `environment.yml`.
 #### For core function.
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
 #### For Pore-C pipeline.
@@ -38,7 +38,12 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
-2. **alleles**
+2. **alleles** 
+    - `pairs2cool`
+    > Convert 4DN pairs to cool and calculate contacts between the whole contigs. The `sample.whole.cool` will be generated at the same time.
+    ```
+    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
+    ```
     - `alleles`
     ```bash
     cphasing alleles -f draft.asm.fasta
@@ -50,18 +55,19 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```
 3. **partition**
     - `hypergraph`
+    > Construct a hypergraph of pore-c alignments and store as hypergraph format
     ```bash
-    cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hyperedges
+    cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hg 
     ```
     - `hyperpartition`
     ```bash
     ## for haploid scaffolding 
-    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt 
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt 
     ## for polyploid or diploid phasing must add prune information and use the incremental partition mode
     ### auto generate groups
-    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
-    cphasing hyperpartition sample.hyperedges draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
     ```
 4. **scaffolding**
     ```bash

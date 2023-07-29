@@ -112,6 +112,8 @@ class Extractor:
                                         columns={'chrom2': 'row', 'index': 'col'})], 
                               axis=1)
 
+        
+
         return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.flatten().tolist(), 
                             col=res['col'].values.flatten().tolist())
@@ -120,7 +122,7 @@ class Extractor:
         with open(output, 'wb') as out:
             out.write(msgspec.msgpack.encode(self.edges))
         
-        logger.info(f"Successful output edges into `{output}`")
+        logger.info(f"Successful output graph into `{output}`")
     
     # def save(self, output):
     #     with open(output, 'wb') as out:
@@ -322,5 +324,5 @@ class HyperExtractor:
         with open(output, 'wb') as out:
             out.write(msgspec.msgpack.encode(self.edges))
 
-        logger.info(f"Successful output edges into `{output}`")
+        logger.info(f"Successful output hypergraph into `{output}`")
 

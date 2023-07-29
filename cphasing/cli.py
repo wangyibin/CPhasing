@@ -122,6 +122,13 @@ def pipeline(fasta, data, method):
     show_default=True
 )
 @click.option(
+    "--mm2-params",
+    metavar="STR",
+    help="additional parameters for minimap2",
+    default="",
+    show_default=True
+)
+@click.option(
     '-q',
     '--mapq',
     help='Minimum quality of mapping [0, 60].',
@@ -155,7 +162,7 @@ def pipeline(fasta, data, method):
     show_default=True,
 )
 def mapper(reference, fastq, kmer_size, 
-            window_size, mapq, force, 
+            window_size, mm2_params, mapq, force, 
             outprefix, threads):
     """
     mapper for pore-c reads.
@@ -167,11 +174,14 @@ def mapper(reference, fastq, kmer_size,
     """
     from .mapper import PoreCMapper
 
+    additional_arguments = mm2_params.strip().split()
+
     pcm = PoreCMapper(reference, fastq,
                         k = kmer_size,
                         w = window_size,
                         force=force,
                         min_quality=mapq,
+                        additional_arguments=additional_arguments,
                         outprefix=outprefix,
                         threads=threads)
     pcm.run()
@@ -963,7 +973,7 @@ def kprune(alleletable, coolfile, countre,
 @click.option(
     '--pairs',
     help="""
-    extract the edges from pairs file.
+    construct common graph from pairs file.
     """,
     is_flag=True,
     default=False,
@@ -1001,12 +1011,12 @@ def hypergraph(contacts,
     """
     Construct hypergraph from contacts.
 
-    The hyperedges or edges enabled extract from pore-c table or 4DN pairs. 
+    The hypergraph or graph of pore-c or hic enabled 
+        extract from pore-c table or 4DN pairs. 
 
-    
-        Pore_C_TABLE : Path of Pore-C table.
+        Contacts : Path of Pore-C table or 4DN pairs.
 
-        OUTPUT : Path of output edges.
+        OUTPUT : Path of output hypergraph.
 
     """
     from .extract import HyperExtractor, Extractor
@@ -1037,8 +1047,8 @@ def hypergraph(contacts,
 
 @cli.command()
 @click.argument(
-    "edges",
-    metavar="Edges",
+    "hypergraph",
+    metavar="Hypergraph",
     type=click.Path(exists=True)
 )
 @click.argument(
@@ -1057,7 +1067,7 @@ def hypergraph(contacts,
     If in incremental mode, you can set to k1:k2, 
     which meaning that generate k1 groups in the first round partition
     and generate k2 groups in the second round partition. 
-    Also, you can set k1:0 to set the second round partition to automatical mode. [default: 0]
+    Also, you can set `-k 8:0` to set the second round partition to automatical mode. [default: 0]
     """,
     default=None,
     show_default=True,
@@ -1291,7 +1301,7 @@ def hyperpartition(edges,
     """
     Separate contigs into groups based on hypergraph.
 
-        Edges : Path of the edges.
+        Hypergraph : Path of the hypergraph.
 
         Contig_sizes : Path of contig sizes.
 
@@ -1319,7 +1329,7 @@ def hyperpartition(edges,
     contigsizes = read_chrom_sizes(contigsizes)
 
     edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
-    logger.info(f"Load hyperedges.")
+    logger.info(f"Load raw hypergraph.")
 
 
     if whitelist:

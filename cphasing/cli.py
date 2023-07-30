@@ -1272,7 +1272,7 @@ def hypergraph(contacts,
 #     metavar='Float',
 #     show_default=True
 # )
-def hyperpartition(edges, 
+def hyperpartition(hypergraph, 
                     contigsizes, 
                     output,
                     k,
@@ -1328,7 +1328,7 @@ def hyperpartition(edges,
 
     contigsizes = read_chrom_sizes(contigsizes)
 
-    edges = msgspec.msgpack.decode(open(edges, 'rb').read(), type=HyperEdges)
+    hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
     logger.info(f"Load raw hypergraph.")
 
 
@@ -1360,7 +1360,7 @@ def hyperpartition(edges,
     if not prunetable and alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
-    hp = HyperPartition(edges, 
+    hp = HyperPartition(hypergraph, 
                             contigsizes,
                             k,
                             alleletable,

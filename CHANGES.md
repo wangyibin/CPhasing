@@ -1,4 +1,8 @@
 # Release notes #
+## [v0.0.29]
+Date: 2023-08-01
+## Bug fixed
+- `hyperpartition`, fixed key word of `edges` not yet change to `hypergraph`
 ## [v0.0.28]
 Date: 2023-07-29
 ## New features

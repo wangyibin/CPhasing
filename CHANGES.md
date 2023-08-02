@@ -1,4 +1,9 @@
 # Release notes #
+
+## [v0.0.31]
+Date: 2023-08-02
+## New features
+- `ultra_long`, add v1 pipeline
 ## [v0.0.30]
 Date: 2023-08-02
 ## Enhancement

@@ -68,9 +68,9 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt
     ## for polyploid or diploid phasing must add prune information and use the incremental partition mode
     ### auto generate groups
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -t 4
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.list -inc -t 4
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4 -t 4
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.list -inc -k 8:4 -t 4
     ```
 5. **scaffolding**
     ```bash

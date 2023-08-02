@@ -94,6 +94,9 @@ def pipeline(fasta, data, method):
     """
     pass
 
+## Subcommand of UL ONT pipeline
+# from .ultra_long.cli import ul 
+
 @cli.command()
 @click.argument(
     "reference",

@@ -5,7 +5,7 @@
 ***  
 
 ## Introduction
-The major problem of scaffolding polyploid genome by Hi-C is that the lower unique mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provide a fine way to solve this problem. So, we developed a new pipeline, called `C-Phasing`, specificially tailored to the polyploid phasing and scaffolding by Pore-C data. Also it can be used to scaffold by Hi-C data, but will be slowly. 
+The main problem with Hi-C scaffolding of polyploid genomes is the lower unambiguous mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provides a fine way to solve this problem. So we have developed a new pipeline, called `C-Phasing`, which is specifically tailored to polyploid phasing and scaffolding by Pore-C data. It can also be used to scaffold assembly by Hi-C data, but will be slow.  
   
 The advantages of `C-Phasing`:   
 - High speed.   
@@ -23,27 +23,30 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
 ```
 ### Dependencies
 > All dependencies already add into `environment.yml`.
-#### For core function.
+#### For core function
 - [bedtools](https://bedtools.readthedocs.io/en/latest/)
-#### For Pore-C pipeline.
+#### For Pore-C pipeline
 - [minimap2](https://github.com/lh3/minimap2)
 - [pigz](https://github.com/madler/pigz)
-#### For Hi-C pipeline.
+#### For Hi-C pipeline
 - [chromap](https://github.com/haowenz/chromap)
 
 
 ## Pipeline of Pore-C data
-### Polyploid
-1. **mapping**
+1. **mapping** 
     ```bash
     cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
-2. **alleles** 
+    > For Hi-C data please use `cphasing hic mapper` 
+2. **pairs2cool**
     - `pairs2cool`
-    > Convert 4DN pairs to cool and calculate contacts between the whole contigs. The `sample.whole.cool` will be generated at the same time.
+    > Convert 4DN pairs to cool and calculate contacts between the whole contigs. 
+    > The `sample.whole.cool` will be generated at the same time.
     ```
     cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     ```
+3. **alleles** (Optional for phasing mode)
+   
     - `alleles`
     ```bash
     cphasing alleles -f draft.asm.fasta
@@ -53,31 +56,31 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     ```bash
     cphasing kprune allele.table contigs.whole.cool -c sample.counts_HindIII.txt
     ```
-3. **partition**
+4. **partition**
     - `hypergraph`
     > Construct a hypergraph of pore-c alignments and store as hypergraph format
     ```bash
-    cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hg 
+    cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hg -t 4
     ```
     - `hyperpartition`
     ```bash
     ## for haploid scaffolding 
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt 
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt
     ## for polyploid or diploid phasing must add prune information and use the incremental partition mode
     ### auto generate groups
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -t 4
     ### k aware, 8:4 indicate that this polyploid is a tetraploid with 8 chromosome in each haplotype
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt --prune prune.contig.list -inc -k 8:4 -t 4
     ```
-4. **scaffolding**
+5. **scaffolding**
     ```bash
-    cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 10
+    cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -t 4
     ```
-5. **build**
+6. **build**
     ```bash
     cphasing build draft.asm.fasta
     ```
-6. **plot**
+7. **plot**
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```

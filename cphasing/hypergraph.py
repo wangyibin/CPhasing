@@ -12,20 +12,15 @@ import os
 import os.path as op
 import sys
 
-import dask.dataframe as dd
-
-from joblib import Parallel, delayed, Memory
+from joblib import Parallel, delayed
 from pathlib import Path
+from pandarallel import pandarallel 
 
-
-from .core import Pairs
 from .algorithms.hypergraph import HyperEdges
 from .utilities import listify, list_flatten 
 from ._config import *
 
 logger = logging.getLogger(__name__)
-# memory = Memory('./cachedir', verbose=0)
-
 
 class Extractor:
     """
@@ -52,9 +47,10 @@ class Extractor:
         self.edges = self.generate_edges()
 
     @staticmethod
-    def _process_df(df, contig_idx):
-        df['chrom1'] = df['chrom1'].map(contig_idx.get)
-        df['chrom2'] = df['chrom2'].map(contig_idx.get)
+    def _process_df(df, contig_idx, threads=1):
+        pandarallel.initialize(nb_workers=threads, verbose=0)
+        df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
+        df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
 
         return df
 
@@ -73,7 +69,7 @@ class Extractor:
                                 usecols=[1, 3], names=['chrom1', 'chrom2'], 
                                )
            
-            res = Extractor._process_df(p, self.contig_idx)    
+            res = Extractor._process_df(p, self.contig_idx, self.threads)    
             res = res.reset_index()
   
             res = pd.concat([res[['chrom1', 'index']].rename(
@@ -89,8 +85,10 @@ class Extractor:
             #     compression = 'gzip'
             # else:
             #     compression='infer'
-
-            res = Parallel(n_jobs=self.threads)(delayed(
+            
+            threads_2 = self.threads // len(p_list) + 1
+            threads_1 = int(self.threads / threads_2)
+            res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                 lambda x: pd.read_csv(x, sep='\t', comment="#",
                                 header=None, index_col=None, 
                                 # compression=compression,
@@ -99,10 +97,10 @@ class Extractor:
             
             args = []
             for i in res:
-                args.append((i, self.contig_idx))
+                args.append((i, self.contig_idx, threads_2))
 
-            res = Parallel(n_jobs=self.threads)(delayed(
-                                Extractor._process_df)(i, j) for i, j in args)
+            res = Parallel(n_jobs=threads_1)(delayed(
+                                Extractor._process_df)(i, j, k) for i, j, k in args)
             
             res = pd.concat(res, axis=1)
             res = res.reset_index()
@@ -111,8 +109,6 @@ class Extractor:
                               res[['chrom2', 'index']].rename(
                                         columns={'chrom2': 'row', 'index': 'col'})], 
                               axis=1)
-
-        
 
         return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.flatten().tolist(), 
@@ -124,17 +120,13 @@ class Extractor:
         
         logger.info(f"Successful output graph into `{output}`")
     
-    # def save(self, output):
-    #     with open(output, 'wb') as out:
-    #         out.write(msgspec.msgpack.encode(self.edges))
-    
 
-
-def process_pore_c_table(df, contig_idx, npartition, 
+def process_pore_c_table(df, contig_idx, threads=1,
                             min_order=2, max_order=50, 
                             min_alignments=50, is_parquet=False):
    
-    df['chrom_idx'] = df['chrom'].map(contig_idx.get).astype('int')
+    pandarallel.initialize(nb_workers=threads, verbose=0)
+    df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get).astype('int')
 
     # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
     #                     df.chrom.cat.categories))
@@ -161,14 +153,16 @@ class HyperExtractor:
         --------
     pore_c_table_pathes: list
         pore_c table, at least have four columns: read_id x, chrom, start, end.
+    contig_idx: 
     min_order: int, default 2
         minimum contig order of pore-c reads
-    max_order: int, default 20
+    max_order: int, default 50
         maximum contig order of pore-c reads
+    min_alignments: int, default 30
+        minimum length of alignments
     threads: int, default 10
         number of threads
-    use_dask: bool, default False
-        use dask to parse pore-c table
+
     """
     HEADER = ["read_idx", "read_length", 
               "read_start", "read_end",  
@@ -179,7 +173,7 @@ class HyperExtractor:
                             contig_idx,
                             min_order=2, 
                             max_order=50, 
-                            min_alignments=100,
+                            min_alignments=30,
                             threads=4,
                             is_parquet=False):
         
@@ -289,14 +283,15 @@ class HyperExtractor:
                         f"\talignment length >= {self.min_alignments}\n"
                         f"\t{self.min_order} <= contig order <= {self.max_order}")
 
-    
+        threads_2 = self.threads // len(self.pore_c_tables) + 1
+        threads_1 = int(self.threads / threads_2)
         args = []
         for i, pore_c_table in enumerate(self.pore_c_tables):
-            args.append((pore_c_table, self.contig_idx, i, 
+            args.append((pore_c_table, self.contig_idx, threads_2, 
                         self.min_order, self.max_order, 
                         self.min_alignments, self.is_parquet))
         
-        res = Parallel(n_jobs=self.threads)(
+        res = Parallel(n_jobs=threads_1)(
                         delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
                                 for i, j, k, l, m, n, o in args)
         

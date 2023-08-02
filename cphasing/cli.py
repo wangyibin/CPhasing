@@ -8,7 +8,7 @@ import os.path as op
 
 import pandas as pd
 
-from collections import OrderedDict
+from collections import defaultdict
 from pathlib import Path
 from shutil import which
 
@@ -604,11 +604,11 @@ def pairs_intersection(pairs, bed, output):
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=1,
     metavar='INT',
     show_default=True,
 )
-def table_intersection(table, bed, output, threads):
+def porec_intersection(table, bed, output, threads):
     """
     According several regions to select contact 
 
@@ -1015,15 +1015,17 @@ def hypergraph(contacts,
         extract from pore-c table or 4DN pairs. 
 
         Contacts : Path of Pore-C table or 4DN pairs.
+        
+        Contig_sizes : Path of contig sizes.
 
         OUTPUT : Path of output hypergraph.
 
     """
-    from .extract import HyperExtractor, Extractor
+    from .hypergraph import HyperExtractor, Extractor
     from .utilities import read_chrom_sizes
 
     contigs = read_chrom_sizes(contigsize).index.values.tolist()
-    contig_idx = OrderedDict(zip(contigs, range(len(contigs))))
+    contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
     if not pairs:
         if fofn:
             pore_c_tables = [i.strip() for i in open(contacts) if i.strip()]

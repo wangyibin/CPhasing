@@ -1,6 +1,12 @@
 # Release notes #
+## [v0.0.30]
+Date: 2023-08-02
+## Enhancement
+- `hypergraph`, speed up
+## Bug fixed
+- `porec-intersection`, fixed it can not output result
 ## [v0.0.29]
-Date: 2023-08-01
+Date: 2023-07-31
 ## Bug fixed
 - `hyperpartition`, fixed key word of `edges` not yet change to `hypergraph`
 ## [v0.0.28]

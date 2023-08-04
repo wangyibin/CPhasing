@@ -1,5 +1,9 @@
 # Release notes #
 
+## [v0.0.32]
+Date: 2023-08-04
+## Bug fixed
+- `hypergraph`, fixed it can not parse single porec table 
 ## [v0.0.31]
 Date: 2023-08-02
 ## New features

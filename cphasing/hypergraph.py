@@ -88,6 +88,9 @@ class Extractor:
             
             threads_2 = self.threads // len(p_list) + 1
             threads_1 = int(self.threads / threads_2)
+            if threads_1 == 0:
+                threads_1 = 1
+            
             res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                 lambda x: pd.read_csv(x, sep='\t', comment="#",
                                 header=None, index_col=None, 
@@ -285,6 +288,8 @@ class HyperExtractor:
 
         threads_2 = self.threads // len(self.pore_c_tables) + 1
         threads_1 = int(self.threads / threads_2)
+        if threads_1 == 0:
+            threads_1 = 1
         args = []
         for i, pore_c_table in enumerate(self.pore_c_tables):
             args.append((pore_c_table, self.contig_idx, threads_2, 

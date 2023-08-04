@@ -373,9 +373,9 @@ def IRMM(H, # NW,
 
     if P_allelic_idx or P_weak_idx:
         P_allelic_df = pd.concat(P_allelic_idx, axis=1)
-        P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
-                        (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
-                        shape=([A.shape[0], len(P_allelic_df)]))
+        # P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
+        #                 (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
+        #                 shape=([A.shape[0], len(P_allelic_df)]))
         
         # print(A.shape, allelic_factor.shape)
         # A = A.multiply(allelic_factor)

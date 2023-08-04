@@ -1,5 +1,8 @@
 # Release notes #
-
+## [v0.0.33]
+Date: 2023-08-04
+## Bug fixed
+- `hypergraph`, fixed the column index error
 ## [v0.0.32]
 Date: 2023-08-04
 ## Bug fixed

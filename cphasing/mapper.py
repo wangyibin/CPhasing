@@ -246,6 +246,9 @@ class ChromapMapper:
         if which(self._path) is None:
             raise ValueError(f"{self._path}: command not found")
 
+        if which('pigz') is None:
+            raise ValueError(f"pigz: command not found")
+
         self.prefix = Path(self.read1.stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
             self.prefix = self.prefix.with_suffix('')
@@ -279,6 +282,11 @@ class ChromapMapper:
         assert flag == 0, "Failed to execute command, please check log."
         logger.info("Done.")
 
+    def compress(self):
+        cmd = ['pigz', '-p', str(self.threads), f'{str(self.output_pairs)}']
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_compress.log')
+        assert flag == 0, "Failed to execute command, please check log."
+
     def run(self):
         if not self.index_path.exists():
             self.index()
@@ -286,6 +294,7 @@ class ChromapMapper:
             logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
         
         self.mapping()
+        self.compress()
 
 
 class PoreCMapper:

@@ -1,5 +1,9 @@
 # Release notes #
-## [v0.0.33]
+## [v0.0.34]
+Date: 2023-08-11
+## Enhancement
+- `mapper`, compress hic mapper result
+- `hyperpartition`, add contig filter when import first cluster result
 Date: 2023-08-04
 ## Bug fixed
 - `hypergraph`, fixed the column index error

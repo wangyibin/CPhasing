@@ -67,6 +67,7 @@ class HyperGraph:
         """
         remove rows by contig list
         """
+        contigs = list(filter(lambda x: x not in self.edges.idx, contigs))
         contig_idx = [self.edges.idx[i] for i in contigs ]
         remove_idx = np.isin(self.row, contig_idx)
 

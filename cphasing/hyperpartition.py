@@ -538,6 +538,7 @@ class HyperPartition:
 
         else:
             vertices_idx = self.vertices_idx
+            first_cluster = list(map(lambda y: list(filter(lambda x: x in vertices_idx, y)), first_cluster))
             for sub_group in first_cluster:
                 self.K.append(list(map(lambda x: vertices_idx[x], sub_group)))
 

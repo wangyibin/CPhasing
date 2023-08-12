@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.35]
+Date: 2023-08-12
+## Enhancement
+- `pairs2cool`, add `--fofn` parameter
+- `hyperpartition`, mask `ultra-complex` parameter
 ## [v0.0.34]
 Date: 2023-08-11
 ## Enhancement

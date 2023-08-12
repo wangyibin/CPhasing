@@ -708,8 +708,19 @@ def refgenome(fasta, enzyme, only_size, only_re):
     default=10000,
     show_default=True
 )
+@click.option(
+    '--fofn',
+    help="""
+    If this flag is set then the pairs is a file of
+    filenames corresponding to the 4DN pairs you want to merge.
+    This is workaround for when the command line gets too long.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
 def pairs2cool(pairs, chromsize, outcool,
-               binsize):
+               binsize, fofn):
     """
     Convert pairs file into a specified resolution cool file.
 
@@ -725,6 +736,24 @@ def pairs2cool(pairs, chromsize, outcool,
 
     logger.info(f"Load pairs: `{pairs}`.")
     logger.info(f"Bin size: {binsize}")
+    
+    if fofn:
+        pairs_files = [i.strip() for i in open(pairs) if i.strip()]
+        pid = os.getpid()
+        if pairs_files[0].endswith(".gz"):
+            os.system(f'zgrep "^#" {pairs_files[0]} > temp.{pid}.header')
+            pairs_files = ' '.join(pairs_files)
+            os.system(f'zcat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
+            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
+            os.remove(f'temp1.{pid}.pairs')
+        else:
+            os.system(f'grep "^#" {pairs_files[0]} > temp.{pid}.header')
+            pairs_files = ' '.join(pairs_files)
+            os.system(f'cat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
+            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
+            os.remove(f'temp1.{pid}.pairs')
+        pairs = f'temp.{pid}.pairs'
+            
     try:
         cload_pairs.main(args=[
                          f"{chromsize}:{binsize}",
@@ -745,7 +774,12 @@ def pairs2cool(pairs, chromsize, outcool,
             raise e
     
     logger.info(f'Output binning contact matrix into `{outcool}`')
-    
+    if fofn:
+        if op.exists(f'temp.{pid}.pairs'):
+            os.remove(f'temp.{pid}.pairs')
+        if op.exists(f'temp.{pid}.header'):
+            os.remove(f'temp.{pid}.header')
+
     merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
 
 
@@ -1136,16 +1170,16 @@ def hypergraph(contacts,
     default=False,
     show_default=True
 )
-@click.option(
-    '-uc',
-    '--ultra-complex',
-    'ultra_complex',
-    metavar='FLOAT',
-    help='ultra-complex polyploid',
-    default=0,
-    type=click.FloatRange(0.0, 10.0),
-    show_default=True,
-)
+# @click.option(
+#     '-uc',
+#     '--ultra-complex',
+#     'ultra_complex',
+#     metavar='FLOAT',
+#     help='ultra-complex polyploid',
+#     default=0,
+#     type=click.FloatRange(0.0, 10.0),
+#     show_default=True,
+# )
 @click.option(
     "--merge-cluster",
     "merge_cluster",
@@ -1287,7 +1321,7 @@ def hyperpartition(hypergraph,
                     allelic_similarity,
                     min_allelic_overlap,
                     incremental,
-                    ultra_complex,
+                    # ultra_complex,
                     merge_cluster,
                     first_cluster,
                     whitelist,
@@ -1317,7 +1351,8 @@ def hyperpartition(hypergraph,
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges
     from .utilities import read_chrom_sizes 
-
+    
+    ultra_complex = 5.0
 
     if k is not None:
         if ":" in k and incremental is False:
@@ -1672,7 +1707,7 @@ def plot(matrix,
 
     if agp is None:
         only_plot = True 
-        logger.warning( "Only plot the matrix."
+        logger.warning( "Only plot the matrix. "
                 "If you want to adjust matrix, please provide agp file. ")
 
     if not only_plot:

@@ -1352,7 +1352,7 @@ def hyperpartition(hypergraph,
     from .algorithms.hypergraph import HyperEdges
     from .utilities import read_chrom_sizes 
     
-    ultra_complex = 5.0
+    ultra_complex = None
 
     if k is not None:
         if ":" in k and incremental is False:
@@ -1487,9 +1487,11 @@ def scaffolding(clustertable, count_re, clm, threads):
     """
 
     from .algorithms.scaffolding import AllhicOptimize
+
     ao = AllhicOptimize(clustertable, count_re, clm, threads=threads)
     ao.run()
 
+    
     # import cooler 
     # from .core import CountRE
     # from .algorithms.optimize import SimpleOptimize2

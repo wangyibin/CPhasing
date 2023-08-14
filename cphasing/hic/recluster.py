@@ -279,9 +279,12 @@ class reCluster(object):
         520
         """
         n = 0
+        self.groups = list(filter(lambda x: x in self.reClusterTable.columns[1:-1], self.groups))
+
         db = OrderedDict()
         for i, item in self.reClusterTable.iterrows():
             tmp_df = item[self.groups]
+
             if len(tmp_df.dropna()) == self.ploidy - 1:
                 if pd.isna(item.uncluster) is True:
                     continue
@@ -336,8 +339,11 @@ class reCluster(object):
                                 if pd.isna(i[1]) is not True]):
             contig, group = i
             if contig in db or contig in incorrcet_db:
-                incorrcet_db[contig].append(group)
-                incorrcet_db[contig].append(db.pop(contig))
+                try:
+                    incorrcet_db[contig].append(group)
+                    incorrcet_db[contig].append(db.pop(contig))
+                except KeyError:
+                    print(contig)
             else:
                 db[contig] = group
 

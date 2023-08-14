@@ -116,7 +116,6 @@ class HyperPartition:
 
         self.whitelist = whitelist
         self.blacklist = blacklist
-
         self.min_contacts = min_contacts
         self.min_length = min_length
 
@@ -410,12 +409,14 @@ class HyperPartition:
             _results.extend(_results2)
 
             self.K = _results 
-            print(len(self.K))
+
         if k:
+            logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
                                             self.prune_pair_df, self.allelic_similarity,
                                             self.min_allelic_overlap)
-        
+            logger.info("Merging done.")
+
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                         reverse=True)
@@ -595,22 +596,23 @@ class HyperPartition:
         flag = 1
       
         while k and len(K) > k:
-            if iter_round > 100:
+            if iter_round > (len(K) - k + 10):
                 break
-
-            value_matrix = np.zeros(shape=(len(K), len(K)))
-            flag_matrix = np.ones(shape=(len(K), len(K)))
+            
+            current_group_number = len(K)
+            value_matrix = np.zeros(shape=(current_group_number, current_group_number))
+            flag_matrix = np.ones(shape=(current_group_number, current_group_number))
             res = {}
             for i, group1 in enumerate(K):
                 group1 = list(group1)
-                for j in range(i + 1, len(K)):
+                for j in range(i + 1, current_group_number):
                     group2 = list(K[j])
 
                     group1_length = vertices_idx_sizes.loc[list(group1)].sum().values[0]
                     group2_length = vertices_idx_sizes.loc[list(group2)].sum().values[0]
                     
                     if prune_pair_df is not None:
-                        product_contig_pair = set([(x, y) for x, y in product(group1, group2)])
+                        product_contig_pair = set(product(group1, group2))
                         allelic = product_contig_pair & allelic_idx_set
                         if allelic:
                             tmp1, tmp2 = list(map(set, zip(*allelic)))

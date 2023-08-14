@@ -920,7 +920,8 @@ class ClusterTable:
         """
         self.CountRE = CountRE(countRE, minRE=1)
         
-        for group in self.groups:
+        groups = list(filter(lambda x: x in self.data, self.groups))
+        for group in groups:
             _contigs = self.data[group]
             tmp_df = self.CountRE.data.loc[_contigs]
             tmp_df.to_csv(f'{group}.txt', sep='\t',

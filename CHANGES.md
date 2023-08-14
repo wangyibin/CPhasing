@@ -1,4 +1,13 @@
 # Release notes #
+## [v0.0.36]
+Date: 2023-08-14
+## Bug fixed
+- `hyperpartition`  
+    - fixed bug from v0.0.35 that default run ultra-complex mode
+    - fixed bug that whitelist can not used in single partition
+- `recluster`
+    - fixed bug of `KeyError`
+
 ## [v0.0.35]
 Date: 2023-08-12
 ## Enhancement

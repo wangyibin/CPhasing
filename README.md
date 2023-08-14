@@ -38,12 +38,17 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     cphasing mapper draft.asm.fasta sample.fastq.gz
     ```
     > For Hi-C data please use `cphasing hic mapper` 
-2. **pairs2cool**
+2. **prepare**
     - `pairs2cool`
     > Convert 4DN pairs to cool and calculate contacts between the whole contigs. 
     > The `sample.whole.cool` will be generated at the same time.
-    ```
+    ```bash
     cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
+    ```
+    - `data for allhic`
+    > Prepare the data for order and orientation which are generated from a modified `allhic`  
+    ```bash
+    allhic extract sample.pairs.gz draft.asm.fasta --RE AAGCTT
     ```
 3. **alleles** (Optional for phasing mode)
    
@@ -54,14 +59,18 @@ export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
     - `kprune`
     > for polyploid or diploid phasing
     ```bash
-    cphasing kprune allele.table contigs.whole.cool -c sample.counts_HindIII.txt
+    cphasing kprune allele.table contigs.whole.cool -c sample.counts_AAGCTT.txt
     ```
 4. **partition**
     - `hypergraph`
     > Construct a hypergraph of pore-c alignments and store as hypergraph format
     ```bash
+    ## for single file
     cphasing hypergraph sample.porec.gz draft.asm.contigsizes sample.hg -t 4
+    ## for multiple files
+    cphasing hypergraph <(ls *porec.gz) draft.asm.contigsizes sample.hg -t 4 --fofn 
     ```
+    * The parameter of `--pairs` should be added when you want to import 4DN pairs format.
     - `hyperpartition`
     ```bash
     ## for haploid scaffolding 

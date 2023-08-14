@@ -17,8 +17,6 @@ from scipy.sparse import (
     dia_matrix, 
     csr_matrix, 
     coo_matrix,
-    triu,
-    save_npz
 )
 
 logger = logging.getLogger(__name__)
@@ -66,12 +64,14 @@ class HyperGraph:
     def remove_rows(self, contigs):
         """
         remove rows by contig list
-        """
-        contigs = list(filter(lambda x: x not in self.edges.idx, contigs))
-        contig_idx = [self.edges.idx[i] for i in contigs ]
+        """     
+        contigs = list(filter(lambda x: x not in set(self.edges.idx.values()), contigs))
+        contig_idx = [self.edges.idx[i] for i in contigs]
+        
         remove_idx = np.isin(self.row, contig_idx)
-
+        
         self.removed_count += len(contig_idx)
+        
         self.row = self.row[~remove_idx]
         self.col = self.col[~remove_idx]
 

@@ -1,4 +1,12 @@
 # Release notes #
+## [v0.0.37]
+Date: 2023-08-16
+## Enhancement
+- `README.md`, add detail describtions
+- `scaffolding`, directly output `groups.agp`
+## Bug fixed
+- fixed bug that resulted some misassembly from v0.0.17
+
 ## [v0.0.36]
 Date: 2023-08-14
 ## Bug fixed

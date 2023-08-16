@@ -143,7 +143,8 @@ def pipeline(fasta, data, method):
 @click.option(
     '-f',
     '--force',
-    help='Force run all the command, ignore existing results.',
+    help='Force run all the command, ignore existing results.'
+    ' The index file also will be removed.',
     is_flag=True,
     default=False,
     show_default=True,
@@ -689,6 +690,50 @@ def refgenome(fasta, enzyme, only_size, only_re):
 
 @prepare.command()
 @click.argument(
+    'infile',
+    metavar='InFile',
+    type=click.Path(exists=True)
+
+)
+@click.argument(
+    'fastafile',
+    metavar='FastaFile',
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-e',
+    '--enzyme',
+    metavar='ENZYME',
+    help='Restriction enzyme name, e.g. MboI, HindIII, Arima.',
+    default='MboI',
+    show_default=True,
+)
+@click.option(
+    '--minLinks',
+    'minLinks',
+    help='Minimum number of links for contig pair.',
+    metavar='INT',
+    default=3,
+    type=int,
+    show_default=True
+)
+def extract(infile, fastafile, enzyme, minLinks):
+    """
+    Extract countRE and pair table from 4DN pairs file.
+
+    InFile : Path of 4DN pairs  file (Accepts compressed files).
+
+    FastaFile : Path of fasta file.
+    """
+    from ..utilities import restriction_site
+    cmd = ['allhic', 'extract', infile, fastafile, 
+            '--RE', ",".join(restriction_site(enzyme)), 
+            '--minLinks', str(minLinks)]
+    print(restriction_site(enzyme))
+    run_cmd(cmd)
+
+@prepare.command()
+@click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH"
 )
@@ -837,7 +882,7 @@ def pairs2cool(pairs, chromsize, outcool,
     help="minimum k-mer similarity for similarity calculation.",
     metavar="FLOAT",
     type=float,
-    default=.5,
+    default=.2,
     show_default=True
 )
 @click.option(
@@ -1457,6 +1502,15 @@ def hyperpartition(hypergraph,
     type=click.Path(exists=True),
 )
 @click.option(
+    "-f",
+    "--fasta",
+    metavar="Fasta",
+    help="Input contig-level fasta to build the assembly result."
+    "If None, tour files will be generated.",
+    default=None,
+    type=click.Path(exists=True)
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads. (unused)',
@@ -1474,7 +1528,7 @@ def hyperpartition(hypergraph,
 #     'output',
 #     metavar="OUTPUT_SCORE_PATH",
 # )
-def scaffolding(clustertable, count_re, clm, threads):
+def scaffolding(clustertable, count_re, clm, fasta, threads):
     """
     Ordering and orientation the contigs.
 
@@ -1488,7 +1542,7 @@ def scaffolding(clustertable, count_re, clm, threads):
 
     from .algorithms.scaffolding import AllhicOptimize
 
-    ao = AllhicOptimize(clustertable, count_re, clm, threads=threads)
+    ao = AllhicOptimize(clustertable, count_re, clm, fasta=fasta, threads=threads)
     ao.run()
 
     
@@ -1628,6 +1682,7 @@ def build(fasta, output, only_agp):
     default=''
 )
 @click.option(
+    '-pc',
     '--per-chromosomes',
     'per_chromosomes',
     help='Instead of plotting the whole matrix, '
@@ -1636,6 +1691,7 @@ def build(fasta, output, only_agp):
     default=False
 )
 @click.option(
+    '-cpr',
     '--chrom-per-row',
     'chrom_per_row',
     help='Number of chromosome plot in each row',
@@ -1644,12 +1700,14 @@ def build(fasta, output, only_agp):
     show_default=True
 )
 @click.option(
+    '-dpi',
     '--dpi',
     help='Resolution for the image.',
     default=600,
     show_default=True
 )
 @click.option(
+    '-cmap',
     '--cmap',
     help="""
     Colormap of heatmap. 
@@ -1661,6 +1719,7 @@ def build(fasta, output, only_agp):
     show_default=True
 )
 @click.option(
+    '-nl',
     '--no-lines',
     'no_lines',
     help="""
@@ -1671,6 +1730,7 @@ def build(fasta, output, only_agp):
     is_flag=True,
 )
 @click.option(
+    '-nt',
     '--no-ticks',
     'no_ticks',
     help="""

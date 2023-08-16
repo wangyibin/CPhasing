@@ -22,6 +22,7 @@ import pandas as pd
 from collections import defaultdict
 from joblib import Parallel, delayed
 from itertools import combinations, permutations
+from pathlib import Path
 from pytools import natsorted
 from scipy.sparse import tril
 
@@ -34,10 +35,11 @@ logger = logging.getLogger(__name__)
 class AllhicOptimize:
 
     def __init__(self, clustertable, count_re, clm, 
-                    tmp_dir='optimize_tmp', threads=4):
+                    fasta=None, tmp_dir='scaffolding_tmp', threads=4):
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
         self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.fasta = Path(fasta).absolute() if fasta else None
         self.tmp_dir = tmp_dir 
         self.threads = threads 
 
@@ -79,6 +81,7 @@ class AllhicOptimize:
         return tmp_res
     
     def run(self):
+        from ..cli import build
         with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
             logger.info('Working on temporary directory: {}'.format(tmpDir))
             os.chdir(tmpDir)
@@ -95,8 +98,22 @@ class AllhicOptimize:
             Parallel(n_jobs=min(len(args), self.threads))(delayed(
                         self._run)(i, j, k) for i, j, k in args)
 
-
-            os.system(f"cp *tour ../")
+            if not self.fasta:
+                os.system(f"cp *tour ../")
+            else:
+                try:
+                    build.main(args=[str(self.fasta), "--only-agp"], prog_name='build')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+                    
+                os.system(f"cp groups.agp ../")
+            
             logger.info("Removed temporary directory.")
              
             os.chdir("../")

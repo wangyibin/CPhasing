@@ -122,27 +122,6 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ```
     
 
-
-### Evalutation 
-- A diploid that simulated from two rice genome
-
-- Simulation data from haplotype resolved human genome
-
-- Autotetraploid genome  
-    sugarcane (left) and alfalfa (right)
-    <p float="center">
-        <img src="pictures/AP/groups.wg.png" width="250" />
-        <img src="pictures/M1/groups.wg.png" width="250" />
-    </p>
-    
-
-- Hexaploid genome  
-    sweet potato
-    <p float="center">
-        <img src="pictures/SP/groups.wg.png" width="400" />
-    </p>
-- Ultra-complex polyploid
-
 ## ToDo list
 - [x] mapper
 - [x] kprune

@@ -1,4 +1,7 @@
 # Release notes #
+## [v0.0.39]
+## Enhancement
+- before this version `cphasing-rs` can not found
 ## [v0.0.38]
 Date: 2023-08-18
 ## Bug fixed

@@ -67,7 +67,7 @@ def cli(verbose, quiet):
     else:
         logger.setLevel(logging.INFO)
 
-@cli.command()
+@cli.command(hidden=True)
 @click.argument(
     'fasta'
 )
@@ -196,7 +196,7 @@ def mapper(reference, fastq, kmer_size,
 def alignments(ctx):
     pass
 
-@alignments.command()
+@alignments.command(hidden=True, deprecated=True)
 @click.argument(
     "paf",
     metavar="PAF",
@@ -257,7 +257,7 @@ def paf2pairs(paf, chromsize, output,
     paf.clean_tempoary()
 
 
-@alignments.command()
+@alignments.command(hidden=True, deprecated=True)
 @click.argument(
     "paf",
     type=click.Path(exists=True)
@@ -334,7 +334,7 @@ def paf2table(paf, output,
     # pore_c_table.save(output, paf.tmpdir)
     paf.clean_tempoary()
 
-@alignments.command()
+@alignments.command(hidden=True, deprecated=True)
 @click.argument(
     "pore_c_table",
     metavar="Pore-C-Table",
@@ -1166,7 +1166,8 @@ def hypergraph(contacts,
     """,
     default=None,
     show_default=True,
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    hidden=True
 )
 @click.option(
     "-pt",
@@ -1327,7 +1328,8 @@ def hypergraph(contacts,
     help="Threshold of reweight.",
     type=float,
     default=0.01,
-    show_default=True
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     "--max-round",
@@ -1511,6 +1513,14 @@ def hyperpartition(hypergraph,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-o",
+    "--output",
+    metavar="STR",
+    help="Output genome fasta, '.gz' supported.",
+    default="groups.asm.fasta",
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads. (unused)',
@@ -1528,7 +1538,7 @@ def hyperpartition(hypergraph,
 #     'output',
 #     metavar="OUTPUT_SCORE_PATH",
 # )
-def scaffolding(clustertable, count_re, clm, fasta, threads):
+def scaffolding(clustertable, count_re, clm, fasta, output, threads):
     """
     Ordering and orientation the contigs.
 
@@ -1542,7 +1552,7 @@ def scaffolding(clustertable, count_re, clm, fasta, threads):
 
     from .algorithms.scaffolding import AllhicOptimize
 
-    ao = AllhicOptimize(clustertable, count_re, clm, fasta=fasta, threads=threads)
+    ao = AllhicOptimize(clustertable, count_re, clm, fasta=fasta, output=output, threads=threads)
     ao.run()
 
     
@@ -1587,6 +1597,15 @@ def scaffolding(clustertable, count_re, clm, fasta, threads):
     show_default=True
 )
 @click.option(
+    "-oa",
+    "--output-agp",
+    "output_agp",
+    metavar="STR",
+    help="Output agp file",
+    default="groups.agp",
+    show_default=True
+)
+@click.option(
     "--only-agp",
     "only_agp",
     help="Only output the agp file.",
@@ -1594,14 +1613,15 @@ def scaffolding(clustertable, count_re, clm, fasta, threads):
     default=False,
     show_default=True
 )
-def build(fasta, output, only_agp):
+def build(fasta, output, output_agp, only_agp):
     """
     Build genome release.
 
     Fasta : contig-level fasta file
     """
     from .build import Build
-    Build(fasta, output, only_agp=only_agp)
+    Build(fasta, output, 
+            output_agp=output_agp, only_agp=only_agp)
 
 @cli.command()
 @click.option(
@@ -1633,6 +1653,7 @@ def build(fasta, output, only_agp):
     default=False,
     is_flag=True,
     show_default=True,
+    hidden=True,
 )
 @click.option(
     '--only-adjust',
@@ -1810,6 +1831,33 @@ def plot(matrix,
 
 ## hic subcommand
 from .hic.cli import hic
+
+@cli.group(cls=CommandGroup, short_help='Evaluation tools.', hidden=True)
+@click.pass_context
+def evaluate(ctx):
+    pass
+
+@evaluate.command(short_help='Calculate the allelic error rate')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'alleletable',
+    metavar='AlleleTable',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="contigsizes",
+    type=click.Path(exists=True),
+)
+def allelic_error(cluster, alleletable, contigsizes):
+    from .evaluate import allelic_error
+    allelic_error(cluster, alleletable, contigsizes)
+    pass 
+
 
 
 @cli.group(cls=CommandGroup, short_help='Misc tools.')
@@ -2114,6 +2162,21 @@ def countRE2cluster(count_re, output, fofn):
     metavar="OUTPUT_COOL_PATH"
 )
 @click.option(
+    '-b',
+    '--balanced',
+    help='Load the balanced matrix. If not provided, load unbalanced counts',
+    default=False,
+    is_flag=True,
+    show_default=True,
+)
+@click.option(
+    '--cis',
+    help='output cis contig contacts',
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '--min-contacts',
     'min_contacts',
     help='Minimum contacts for contig pair',
@@ -2136,6 +2199,8 @@ def countRE2cluster(count_re, output, fofn):
 )
 def merge_cool(coolfile, 
             outcool, 
+            balanced,
+            cis,
             min_contacts, 
             no_mask_nan,
             symmetric_upper):
@@ -2148,9 +2213,12 @@ def merge_cool(coolfile,
 
     """
     from .utilities import merge_matrix
+    no_dia = False if cis else True
     merge_matrix(coolfile, outcool, 
+                    balance=balanced,
                     min_contacts=min_contacts, 
                     no_mask_nan=no_mask_nan, 
+                    no_dia=no_dia,
                     symmetric_upper=symmetric_upper)
     
 @utils.command()
@@ -2181,7 +2249,7 @@ def extract_matrix(coolfile, chromlist, outcool):
     chromlist = [i.strip() for i in open(chromlist) if i.strip()]
     extract_matrix(coolfile, chromlist, outcool)
 
-@utils.command()
+@utils.command(hidden=True)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH"

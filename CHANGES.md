@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.38]
+Date: 2023-08-18
+## Bug fixed
+- `build`, fixed bug that can not specify the output of agp
+- `scaffolding`, fixed bug that can not specify the output of agp
 ## [v0.0.37]
 Date: 2023-08-16
 ## Enhancement

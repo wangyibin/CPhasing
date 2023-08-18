@@ -35,11 +35,13 @@ logger = logging.getLogger(__name__)
 class AllhicOptimize:
 
     def __init__(self, clustertable, count_re, clm, 
-                    fasta=None, tmp_dir='scaffolding_tmp', threads=4):
+                    fasta=None, output="groups.agp", 
+                    tmp_dir='scaffolding_tmp', threads=4):
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
         self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
         self.fasta = Path(fasta).absolute() if fasta else None
+        self.output = output
         self.tmp_dir = tmp_dir 
         self.threads = threads 
 
@@ -102,7 +104,7 @@ class AllhicOptimize:
                 os.system(f"cp *tour ../")
             else:
                 try:
-                    build.main(args=[str(self.fasta), "--only-agp"], prog_name='build')
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
                 except SystemExit as e:
                     exc_info = sys.exc_info()
                     exit_code = e.code

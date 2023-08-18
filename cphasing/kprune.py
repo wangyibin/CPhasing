@@ -156,7 +156,7 @@ class KPruner:
             allele2 = allele_group_db[ctg2]
         except KeyError:
             return None
-        
+        # print(ctg1, ctg2, allele1, allele2)
         flag = KPruner.is_strong_contact((ctg1, allele1), (ctg2, allele2), score_db)
         if not flag:
             return (ctg1, ctg2)

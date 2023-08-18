@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 GAP = 'N'*100
 
-def Build(fasta, output='groups.asm.fasta', only_agp=False):
+def Build(fasta, output='groups.asm.fasta', 
+            output_agp='groups.agp', only_agp=False):
     
     fasta = Fasta(fasta)
     p = Path('./')
@@ -33,7 +34,7 @@ def Build(fasta, output='groups.asm.fasta', only_agp=False):
     tour_list = map(Tour, tour_list)
     
 
-    agp = 'groups.agp'
+    agp = output_agp
 
     agp_res = []
     for tour in tour_list:

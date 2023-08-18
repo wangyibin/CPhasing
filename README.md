@@ -1,6 +1,6 @@
 <img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b> or Hi-<b>C</b> data</p>
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>
 
 ***  
 
@@ -64,30 +64,30 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ```
 2. **prepare**
     > Prepare some data for subsequence analysis
-    - `pairs2cool`
-    > Convert 4DN pairs to cool and calculate contacts between the whole contigs. 
-    > The `sample.whole.cool` will be generated at the same time.
+    - **Step1** `pairs2cool`
     ```bash
+    ## results are `sample.10000.cool` and `sample.whole.cool`
     cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     ```
-    - `extract`  
+    - **Step2** `extract`  
     ```bash
+    ## results are `sample.counts_AAGCTT.txt` and `sample.clm`
     cphasing prepare extract sample.pairs.gz draft.asm.fasta -e HindIII
     ```
 3. **alleles** (Optional for phasing mode)
     > This step is specific to diploid and polyploid phasing. If you only want to scaffolding a haploid, ignore this step.
-    - `alleles`
+    - **Step1** `alleles`
     ```bash
     ## result is `draft.asm.allele.table`
     cphasing alleles -f draft.asm.fasta
     ```
-    - `kprune`
+    - **Step2** `kprune`
     ```bash
     ## result is `prune.contig.table`
-    cphasing kprune draft.asm.allele.table contigs.whole.cool -c sample.counts_AAGCTT.txt
+    cphasing kprune draft.asm.allele.table sample.whole.cool -c sample.counts_AAGCTT.txt
     ```
-4. **partition**
-    - `hypergraph`
+4. **partition**  
+    - **Step1** `hypergraph`
     > Construct a hypergraph of pore-c alignments and store as hypergraph format
     ```bash
     ## result is `sample.hg`
@@ -96,8 +96,8 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ## for multiple files
     cphasing hypergraph <(ls *porec.gz) draft.asm.contigsizes sample.hg -t 4 --fofn 
     ```
-    * The parameter of `--pairs` should be added when you want to import 4DN pairs format.
-    - `hyperpartition`
+    Note: The parameter of `--pairs` should be added when you want to import 4DN pairs format.
+    - **Step2** `hyperpartition`
     ```bash
     ## result is `output.clusters.txt`
     ## for haploid scaffolding 
@@ -108,7 +108,8 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ### auto generate groups
     cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -t 4
     ```
-    Notes: If you are not satisfied with the number of groups, you can adjust the resolution parameters (`-r1` or `-r2`)  to make difference groups. `-r1` controls the first cluster while `-r2` controls the second cluster in phasing mode. Increasing the resolution can generate more groups while decreasing it will get fewer groups.
+    Notes: If you are not satisfied with the number of groups, you can adjust the resolution parameters (`-r1` or `-r2`)  to make difference groups. `-r1` controls the first cluster while `-r2` controls the second cluster in phasing mode. Increasing the resolution can generate more groups while decreasing it will get fewer groups.  
+    If you want to group some contigs, you can input a contig list with the `-wl` parameter.
 5. **scaffolding**
     ```bash
     ## result is `groups.agp`
@@ -128,7 +129,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
 - Simulation data from haplotype resolved human genome
 
 - Autotetraploid genome  
-    AP (left) and alfalfa (right)
+    sugarcane (left) and alfalfa (right)
     <p float="center">
         <img src="pictures/AP/groups.wg.png" width="250" />
         <img src="pictures/M1/groups.wg.png" width="250" />

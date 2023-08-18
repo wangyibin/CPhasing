@@ -580,6 +580,7 @@ def merge_matrix(coolfile,
                 min_contacts=3,
                 no_mask_nan=False,
                 symmetric_upper=True,
+                balance=False,
                 no_dia=True):
     """
     merge slidewindows matrix into whole contig matrix.
@@ -594,10 +595,12 @@ def merge_matrix(coolfile,
     logger.info(f'Load `{coolfile}` ...')
     cool = cooler.Cooler(coolfile)
 
-    pixels = cool.matrix(balance=False, sparse=True, 
+    pixels = cool.matrix(balance=balance, sparse=True, 
                             as_pixels=True, join=True)[:]
+    if balance:
+        pixels['count'] = pixels['count'] * pixels['balanced']
     if no_mask_nan:
-        matrix = cool.matrix(balance=False, sparse=True)
+        matrix = cool.matrix(balance=balance, sparse=True)
 
     logger.info('Merging matrix ...')
     pix_counts = pixels.groupby(by=['chrom1', 'chrom2'], 
@@ -616,6 +619,7 @@ def merge_matrix(coolfile,
     row = pix_counts['bin1_id']
     col = pix_counts['bin2_id']
     data = pix_counts['count']
+    
     m, n = len(cool.chromnames), len(cool.chromnames)
     matrix = coo_matrix((data, (row, col)), shape=(m, n))
     dia = dia_matrix(([matrix.diagonal()], [0]), shape=matrix.shape)
@@ -637,9 +641,9 @@ def merge_matrix(coolfile,
     new_bins.columns = ['chrom', 'end']
     new_bins['start'] = 0
     new_bins = new_bins[['chrom', 'start', 'end']]
-  
+    
     cooler.create_cooler(outcool, new_bins, new_pixels, 
-                            dtypes=dict(count='float32'),
+                            dtypes=dict(count='float64'),
                             symmetric_upper=symmetric_upper)
     logger.info(f'Successful merge matrix into whole contig: `{outcool}`')
 

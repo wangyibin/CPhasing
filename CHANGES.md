@@ -1,4 +1,10 @@
 # Release notes #
+## [v0.0.40]
+## Enhancement
+- add `pyproject.toml`
+## Bug fixed
+- `setup.py`, fixed the setup_helper error.
+
 ## [v0.0.39]
 ## Enhancement
 - before this version `cphasing-rs` can not found

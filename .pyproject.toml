@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=40.8.0", "wheel", "setuptools_scm[toml]>=6.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "CPhasing"
+version = "v0.0.40"
+authors = ["Yibin Wang"]
+description = "CPhasing: phasing and scaffolding of contigs using Pore-C or Hi-C data"
+repository = "https://github.com/wangyibin/CPhasing"
+keywords = ["phasing", "scaffolding", "polyploid", "haplotype", "Pore-C", "Hi-C"]
+
+dependencies = [
+    "python >=3.7",
+    "biopython >=1.78",
+    "click",
+    "colormaps",
+    "cooler >=0.8.11",
+    "natsort",
+    "ncls",
+    "networkx",
+    "numpy >=1.22.0",
+    "pandas",
+    "pandarallel",
+    "pyarrow >=8.0.0",
+    "pyfaidx >= 0.7.0",
+    "pyranges",
+    "pytools >=2021.1",
+    "python-igraph >= 0.9.11",
+    "scipy",
+    "matplotlib",
+    "ray",
+    "rich",
+    "seaborn",
+    "intervaltree",
+    "hicmatrix",
+    "msgspec",
+    "joblib >= 1.2.0",
+]
+
+packages = [
+    { include = "cphasing", from = "." }
+]
+readme = "README.md"
+
+
+
+

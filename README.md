@@ -121,11 +121,3 @@ export PATH=/path/to/CPhasing/bin:$PATH
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
     
-
-## ToDo list
-- [x] mapper
-- [x] kprune
-- [x] hyperpartition
-- [x] optimize
-- [x] plot
-- [ ] pipeline

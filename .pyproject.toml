@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "CPhasing"
-version = "v0.0.40"
+version = "v0.0.41"
 authors = ["Yibin Wang"]
 description = "CPhasing: phasing and scaffolding of contigs using Pore-C or Hi-C data"
 repository = "https://github.com/wangyibin/CPhasing"

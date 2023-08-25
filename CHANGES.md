@@ -1,5 +1,10 @@
 # Release notes #
+## [v0.0.41]
+Date: 2023-08-25
+## Bug fixed
+- `scaffolding`, fixed cp groups.agp error when change the name of agp
 ## [v0.0.40]
+Date: 2023-08-19
 ## Enhancement
 - add `pyproject.toml`
 ## Bug fixed

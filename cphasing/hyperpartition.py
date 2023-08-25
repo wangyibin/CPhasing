@@ -76,11 +76,13 @@ class HyperPartition:
     threads: int
         number of threads
     chunksize: None (default) or int
-        not used
+        not use
 
     """
     def __init__(self, edges, 
                     contigsizes,
+                    ultra_long=None,
+                    ul_weight=1.0,
                     k=None,
                     alleletable=None,
                     prunetable=None,
@@ -104,6 +106,8 @@ class HyperPartition:
         
         self.edges = edges
         self.contigsizes = contigsizes ## dataframe
+        self.ultra_long = ultra_long
+        self.ul_weight = ul_weight
         self.k = k
 
         self.prunetable = prunetable

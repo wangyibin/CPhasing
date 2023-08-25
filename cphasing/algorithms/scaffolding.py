@@ -114,7 +114,7 @@ class AllhicOptimize:
                     if exit_code != 0:
                         raise e
                     
-                os.system(f"cp groups.agp ../")
+                os.system(f"cp {self.output} ../")
             
             logger.info("Removed temporary directory.")
              

@@ -55,9 +55,9 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ```  
     > Note: At first, only one data can be run until the index is successfully created.  
 
-    > For Hi-C data please use `cphasing hic mapper` 
+    > For Hi-C data please use `cphasing hic mapper`
 
-    Note: If you mapping multiple pore-c datas, the several `pairs.gz` should be merged by following steps:
+    Note: If you mapping multiple pore-c datas, the multiple `pairs.gz` files should be merged by following steps:
     ```bash
     zgrep "^#" sample-1.pairs.gz > header
     cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz 
@@ -120,4 +120,5 @@ export PATH=/path/to/CPhasing/bin:$PATH
     ```bash
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
-    
+
+

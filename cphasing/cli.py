@@ -705,7 +705,7 @@ def refgenome(fasta, enzyme, only_size, only_re):
     '--enzyme',
     metavar='ENZYME',
     help='Restriction enzyme name, e.g. MboI, HindIII, Arima.',
-    default='MboI',
+    default='HindIII',
     show_default=True,
 )
 @click.option(
@@ -721,15 +721,16 @@ def extract(infile, fastafile, enzyme, minLinks):
     """
     Extract countRE and pair table from 4DN pairs file.
 
-    InFile : Path of 4DN pairs  file (Accepts compressed files).
+        InFile : Path of 4DN pairs  file (Accepts compressed files).
 
-    FastaFile : Path of fasta file.
+        FastaFile : Path of fasta file.
+        
     """
-    from ..utilities import restriction_site
+    from .utilities import restriction_site
     cmd = ['allhic', 'extract', infile, fastafile, 
             '--RE', ",".join(restriction_site(enzyme)), 
             '--minLinks', str(minLinks)]
-    print(restriction_site(enzyme))
+    
     run_cmd(cmd)
 
 @prepare.command()
@@ -1132,17 +1133,42 @@ def hypergraph(contacts,
 @cli.command()
 @click.argument(
     "hypergraph",
-    metavar="Hypergraph",
+    metavar="HyperGraph",
     type=click.Path(exists=True)
 )
 @click.argument(
     "contigsizes",
-    metavar="contigsizes",
+    metavar="ContigSizes",
     type=click.Path(exists=True),
 )
 @click.argument(
     "output",
     metavar="Output",
+)
+@click.option(
+    "-ul",
+    "--ultra-long",
+    metavar="HyperGraph",
+    help="""
+    Add another linking information which generated from ultra-long reads. 
+    Input file must the hypergraph format.
+    """,
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    hidden=True,
+)
+@click.option(
+    "-ul-w",
+    "--ul-weight",
+    metavar="Float",
+    help="""
+    The weight of ultra-long hypergraph.
+    """,
+    default=1.0,
+    type=float,
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     "-k",
@@ -1361,6 +1387,8 @@ def hypergraph(contacts,
 def hyperpartition(hypergraph, 
                     contigsizes, 
                     output,
+                    ultra_long,
+                    ul_weight,
                     k,
                     alleletable,
                     prunetable,
@@ -1449,6 +1477,8 @@ def hyperpartition(hypergraph,
     
     hp = HyperPartition(hypergraph, 
                             contigsizes,
+                            ultra_long,
+                            ul_weight,
                             k,
                             alleletable,
                             prunetable,
@@ -1516,8 +1546,8 @@ def hyperpartition(hypergraph,
     "-o",
     "--output",
     metavar="STR",
-    help="Output genome fasta, '.gz' supported.",
-    default="groups.asm.fasta",
+    help="Output agp file, only valid when fasta file exists",
+    default="groups.agp",
     show_default=True
 )
 @click.option(
@@ -1634,7 +1664,8 @@ def build(fasta, output, output_agp, only_agp):
 @click.option(
     '-a',
     '--agp',
-    metavar='AGP'
+    metavar='AGP',
+    type=click.Path(exists=True)
 )
 @click.option(
     '--factor',
@@ -2115,7 +2146,8 @@ def cluster2tour(cluster):
 
 @utils.command()
 @click.argument(
-    "count_re"
+    "count_re",
+    type=click.Path(exists=True)
 )
 @click.option(
     "-o",
@@ -2155,7 +2187,8 @@ def countRE2cluster(count_re, output, fofn):
 @utils.command()
 @click.argument(
     "coolfile",
-    metavar="INPUT_COOL_PATH"
+    metavar="INPUT_COOL_PATH",
+    type=click.Path(exists=True)
 )
 @click.argument(
     "outcool",

@@ -45,6 +45,9 @@ export PATH=/path/to/CPhasing/bin:$PATH
 3. For Hi-C pipeline
     - [chromap](https://github.com/haowenz/chromap)
 
+## Pipeline of Ultra-long data [Optional]
+C-Phasing enable to use ultra-long to correct chimeric and use ultra-long data to identify the high confidence regions (HCRs) to help assembly.  
+### **[ultra_long tutorial](cphasing/ultra_long/README.md)**
 
 ## Pipeline of Pore-C data
 1. **mapping**  

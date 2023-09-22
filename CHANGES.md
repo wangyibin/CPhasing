@@ -1,4 +1,10 @@
 # Release notes #
+
+## [v0.0.42]
+Date: 2023-09-22
+## Enhancement
+- `ultra_long`, expose ultra_long tutorial to C-Phasing README.md
+
 ## [v0.0.41]
 Date: 2023-08-25
 ## Bug fixed

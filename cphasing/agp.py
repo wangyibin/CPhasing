@@ -239,7 +239,7 @@ def agp2tour(agp, outdir, force=False):
             logger.info(f'Force output results, removed `{outdir}`')
             shutil.rmtree(outdir)
         else:
-            logger.warn(f'The output directory of `{outdir}` is exists.')
+            logger.warn(f'The output directory of `{outdir}` exists.')
     outdir.mkdir(parents=True, exist_ok=True)
 
     for group, cluster in cluster_df:

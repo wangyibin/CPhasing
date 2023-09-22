@@ -853,13 +853,6 @@ def pairs2cool(pairs, chromsize, outcool,
     type=click.Choice(['gene', 'similarity'])#, 'synteny']),
 )
 @click.option(
-    "-c",
-    "--cds",
-    help="the cds file of reference.",
-    metavar="FILE",
-    type=click.Path(exists=True)
-)
-@click.option(
     "-k",
     "kmer_size",
     help="kmer size for similarity calculation.",
@@ -887,6 +880,13 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True
 )
 @click.option(
+    "-c",
+    "--cds",
+    help="the cds file of reference.",
+    metavar="FILE",
+    type=click.Path(exists=True)
+)
+@click.option(
     "-b",
     "--bed",
     help="the four columns bed file of reference, "
@@ -904,6 +904,13 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True,
 )
 @click.option(
+    "-c",
+    "--cds",
+    help="the cds file of reference.",
+    metavar="FILE",
+    type=click.Path(exists=True)
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads. Only use for gmap method.',
@@ -911,13 +918,6 @@ def pairs2cool(pairs, chromsize, outcool,
     default=4,
     metavar='INT',
     show_default=True,
-)
-@click.option(
-    "--skip_gmap_index",
-    help="gmap index already existed and named `DB`, skip.",
-    default=False,
-    is_flag=True,
-    show_default=True
 )
 def alleles(fasta, output, method, 
                 kmer_size, window_size, minimum_similarity,

@@ -1,8 +1,0 @@
-#!/usr/bin/env python
-
-import sys
-from cphasing.cli import cli
-from cphasing.utilities import check_allhic_version
-if __name__ == "__main__":
-    check_allhic_version()
-    sys.exit(cli())

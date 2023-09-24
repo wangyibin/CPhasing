@@ -1,5 +1,13 @@
 # Release notes #
 
+## [v0.0.43]
+Date: 2023-09-24
+## New features
+- `methalign`, init
+## Enhancement
+- rename `ultra_long` to `ontig`
+
+
 ## [v0.0.42]
 Date: 2023-09-22
 ## Enhancement

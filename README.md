@@ -39,15 +39,16 @@ export PATH=/path/to/CPhasing/bin:$PATH
 #### Dependencies
 1. For core function
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
+    - [seqkit](https://bioinf.shenwei.me/seqkit/)
+    - [pigz](https://github.com/madler/pigz)
 2. For Pore-C pipeline
     - [minimap2](https://github.com/lh3/minimap2)
-    - [pigz](https://github.com/madler/pigz)
 3. For Hi-C pipeline
     - [chromap](https://github.com/haowenz/chromap)
 
 ## Pipeline of Ultra-long data [Optional]
 C-Phasing enable to use ultra-long to correct chimeric and use ultra-long data to identify the high confidence regions (HCRs) to help assembly.  
-### **[ultra_long tutorial](cphasing/ultra_long/README.md)**
+### **[ontig tutorial](cphasing/ontig/README.md)**
 
 ## Pipeline of Pore-C data
 1. **mapping**  

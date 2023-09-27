@@ -117,4 +117,4 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
-    workflow(args.depthFile, args.breakpoint, args.fasta, args.win, args.max, args.output)
+    workflow(args.depthFile, args.win, args.max, args.output)

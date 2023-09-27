@@ -46,10 +46,12 @@ def main(args):
             help='aggregate statistic to compute in each bin. [default: %(default)s]',
             choices=['count', 'frequency', 'probability', 'percent', 'density'])
     pOpt.add_argument('--x-min', 
+            dest="x_min",
             default=None,
             type=float,
             help='minimum value of X axis')
     pOpt.add_argument('--x-max',
+            dest="x_max",
             default=None,
             type=float,
             help='maximum value of X axis')
@@ -65,6 +67,9 @@ def main(args):
     args = p.parse_args(args)
 
     df = read_csv(args.data[0])
+    if args.x_min is not None and args.x_max is not None:
+        for group in df.columns:
+            df[group] = df[(df[group] <= args.x_max)]
 
     plt.rcParams['font.family'] = 'Helvetica'
     fig, ax = plt.subplots(figsize=(5.7, 5))
@@ -74,7 +79,7 @@ def main(args):
     if args.x_label:
         ax.set_xlabel(args.x_label.capitalize(), fontsize=20)
     ax.set_ylabel(args.stat.capitalize(), fontsize=20)
-    if args.x_min and args.x_max:
+    if args.x_min is not None and args.x_max is not None:
         plt.xlim(args.x_min, args.x_max)
 
     ax.xaxis.set_major_locator(MaxNLocator(nbins=4))

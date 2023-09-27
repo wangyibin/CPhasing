@@ -1,8 +1,5 @@
-import os
-import sys
-import argparse
-import multiprocessing
-
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
 
 """
 0. fastp split-window qc
@@ -10,6 +7,12 @@ import multiprocessing
 2. store chunk into cache
 3. split fastq with window & write file
 """
+
+import os
+import sys
+import argparse
+
+from joblib import Parallel, delayed
 
 
 def split_fastq(fastq, part, threads):
@@ -38,9 +41,9 @@ def trans_winSize(win):
     if int(win) < 1000:
         return win
     elif int(win)/1000 >= 1 and int(win)/1000 < 1000:
-        return int(win)/1000 + "k"
+        return str(int(win)/1000) + "k"
     else:
-        return int(win)/1000000 + "m"
+        return str(int(win)/1000000) + "m"
 
 def slide_reads_by_window(reads, outpre, win):
     if not os.path.exists(reads):
@@ -63,12 +66,17 @@ def slide_reads_by_window(reads, outpre, win):
                 continue
             if writeMode == True:
                 faName, fa, faString, qual = oneRead
+
                 faLst, qualLst = splitFa(fa, qual, win)
                 #qualLst = splitFa(qual, win)
-                faName = faName.split(' ')
-                if len(faLst[1]) >= 5:
+                faName = faName.split()[0]
+                
+                if len(faLst) >= 5:
                     for faInd in range(len(faLst)):
-                        fout.write("{}_{}\n{}\n{}\n{}\n".format(faName, faInd, faLst[faInd], faString, qualLst[faInd]))
+                        fout.write("{}_{}\n{}\n{}\n{}\n".format(
+                                        faName, str(faInd), 
+                                        faLst[faInd], faString, qualLst[faInd]))
+
                 oneRead = []
                 writeMode = False
 
@@ -78,17 +86,18 @@ def pipe(fastqFile, win, part, threads):
     fastqLst = os.listdir(parDir)
     fastqLst = list(map(lambda x: parDir + '/' + x, fastqLst))
     oupreLst = list(map(lambda x: x.replace(".fastq.gz", ""), fastqLst)) 
-    pool = multiprocessing.Pool(processes=int(threads))
-   # time_print("parsing %s" % id)
+    
+    args = []
     for idx in range(len(fastqLst)):
         fq = fastqLst[idx]
         op = oupreLst[idx]
+        args.append((fq, op, win))
         #slide_reads_by_window(fq, op, win)
         #read_minimizer(fn_prefix, seq, ks, a.shape, sm.name)
-        pool.apply_async(slide_reads_by_window, (fq, op, win,))
-    pool.close()
-    pool.join()
-
+    
+    Parallel(n_jobs=threads)(delayed(
+        slide_reads_by_window)(i, j, k)
+            for i, j, k in args)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for split fastq file into window reads. \

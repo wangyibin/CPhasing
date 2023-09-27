@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-#coding=utf-8
 
+
+import argparse
 import sys
 import os
 import math
 import collections
 from scipy import signal
 import numpy as np
-import argparse
+
 
 """
 workflow:
@@ -221,7 +222,7 @@ def workflow(depthFile, breakpointFile, fasta, win, Max, outPre):
     #print("1")
     if bool(breakpointFile):
         bpDic = read_bp(breakpointFile)
-        pafDic = disable_reads(winDic, pafDic, win)
+        pafDic = disable_reads(bpDic, depthDic, pafDic, win)
     else:
         pass
     #depthDic = cal_depth(winDic, pafDic, win)
@@ -238,11 +239,11 @@ def workflow(depthFile, breakpointFile, fasta, win, Max, outPre):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
-    parser.add_argument('-d', '--depthFile', default=None,
+    parser.add_argument('-d', '--depthFile', default=None, required=True,
                         help='<filepath>  UL-ONT reads/Hifi depth file, 4colum, Chr start end depth.')
-    parser.add_argument('-b', '--breakpoint', default=None,
+    parser.add_argument('-b', '--breakpoint', default=None, required=True,
                         help='<filepath>  break-point of chimeric contigs.')
-    parser.add_argument('-f', '--fasta', default=None,
+    parser.add_argument('-f', '--fasta', default=None, required=True,
                         help='<filepath> fasta file.')
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')

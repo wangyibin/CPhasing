@@ -41,7 +41,7 @@ def read_LIS(LisFile, SAreads, minCount, minMapqCount):
                 alignLst.append((ctg, s, e, String, readsID))
             else:
                 typeLst.append(aliType)
-        if check_Mcount(typeLst, minMapqCount) == True:
+        if check_Mcount(typeLst, minCount, minMapqCount) == True:
             for i in alignLst:
                 sequential_LIS.append(i)
     ## reForm sequential_LIS
@@ -70,12 +70,13 @@ def read_depth(depthFile):
     with open(depthFile, 'r') as fin:
         for line in fin:
             tmpLst = line.rstrip().split('\t')
-            ctg, s, e = tmpLst
+            ctg, s, e, _ = tmpLst
             s, e = map(int, [s,e])
             #depth = float(depth)
             if ctg not in depthDic:
                 depthDic[ctg] =[]
-            depthDic.append((s,e))
+            depthDic[ctg].append((s,e))
+
     return depthDic
 
 def read_SAreads(SAFile):
@@ -126,11 +127,11 @@ def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
-    parser.add_argument('-d', '--depthFile', default=None,
+    parser.add_argument('-d', '--depthFile', required=True,
                         help='<filepath>  UL-ONT reads/Hifi depth file, 4colum, Chr start end depth.')
-    parser.add_argument('-sa', '--spliaAlign', default=None,
+    parser.add_argument('-sa', '--splitAlign', required=True,
                         help='<filepath>  splitAlign file, 4 col: <chr> <start> <end> <count of split-align> <split-aligned reads>.')
-    parser.add_argument('-l', '--lis', default=None,
+    parser.add_argument('-l', '--lis', required=True,
                         help='<filepath> fasta file.')
     parser.add_argument('-m', '--minCount', default=5,
                         help='<int> minimum count of windows in LIS.')
@@ -140,4 +141,4 @@ if __name__ == "__main__":
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # paf, breakpointFile, fasta, win, outPre
-    workflow(args.depthFile, args.spliaAlign, args.fasta, args.win, args.max, args.output)
+    workflow(args.lis, args.splitAlign, args.depthFile,  args.minCount, args.minMapq, args.output)

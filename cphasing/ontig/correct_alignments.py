@@ -1,5 +1,5 @@
 #/usr/bin/env python
-#coding=utf-8
+
 import sys
 import os
 import math
@@ -32,9 +32,13 @@ def minimap_mapping(fasta, reads, threads, outPre):
     if minimapVer < float(2.24):
         print("Warnning: The minimap2 version should be 2.24 or higher.")
         sys.exit()
+
     if ',' in reads:
         readsLst = reads.split(',')
-    minimap2CMD = "~/software/minimap2/minimap2 -t {} --qstrand --cs -cx map-ont \
+    else:
+        readsLst = [reads]
+
+    minimap2CMD = "minimap2 -t {} --qstrand --cs -cx map-ont \
         -p.3 {} {} > {}.paf".format(threads, fasta, ' '.join(readsLst), outPre)
     os.system(minimap2CMD)
     return outPre + ".paf"
@@ -67,6 +71,7 @@ def read_paf(paf, minAS, nhap):
             totalReadsLst = totalReadsLst[:maxAlign+1] if len(totalReadsLst) >= maxAlign else totalReadsLst
             qnDic[qi] = totalReadsLst
         pafDic[qn] = qnDic
+
     return pafDic
 
 
@@ -612,6 +617,8 @@ def checkLIS(lisBak, pafDic):
                 itemInPaf = pafDic[qn][qi][ri]
                 itemInPaf = list(map(str,itemInPaf))
                 curS, curE = itemInPaf[4:6]
+                curS = int(curS)
+                curE = int(curE)
                 if preS < curS and preE < curE and string == '+':
                     tmpLst.append((qi, ri, tp))
                     preS, preE = curS, curE
@@ -655,21 +662,20 @@ def outputLIS(lisBak, pafDic, outpre):
                     alignLisLst = [tmpLIS]
                     alignPafLst = []
                     addFlag = False
-                    for qi, ri ,tp in align:
-                        #print(qi, ri ,tp)
+                    for qi, ri ,tp in align: 
                         if tp == 'M':
                             addFlag = True
-                        itemInPaf = pafDic[qn][qi][ri]
+                        itemInPaf = pafDic[qn.rsplit("_", 1)[0]][qi][ri]
                         itemInPaf = list(map(str,itemInPaf))
                         """
                         [qs,qe,s,tn,ts,te,ql,tl,al1,al2,mapq, AS]
                         qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS
                         """
-                        qn, ql, [qs, qe, s, tn], tl, [ts, te], [al1, al2, mapq, AS] = "{}_{}".format(qn, qi), itemInPaf[6], itemInPaf[:4], itemInPaf[7], itemInPaf[4:6], itemInPaf[8:]
-                        tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
+                        _qn, ql, [qs, qe, s, tn], tl, [ts, te], [al1, al2, mapq, AS] = "{}_{}".format(qn, qi), itemInPaf[6], itemInPaf[:4], itemInPaf[7], itemInPaf[4:6], itemInPaf[8:]
+                        tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(_qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
                         fout2.write(tmpAliPaf)
                         tl, tn, ts, te, AS = itemInPaf[7], itemInPaf[3], itemInPaf[4], itemInPaf[5], itemInPaf[-1]
-                        atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(qn, qi)
+                        atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(_qn, qi)
                         tmpAliLis = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "alignment", ts, te, AS, string, tp, atrriInfo)
                         fout1.write(tmpAliLis)
                         alignLisLst.append(tmpAliLis)
@@ -716,12 +722,15 @@ def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
         else:
             mapqAlignLst.append({})
         bestAlignLst.append(bestASpafDic[qn])
-    AllmergedLIS = Parallel(n_jobs=threads)(delayed(calculate_LMP_pipeline)(c, b, d, int(win), a) for a,b,c,d in zip(qnLst, allAlignLst, bestAlignLst, mapqAlignLst))
+    AllmergedLIS = Parallel(n_jobs=threads)(
+                    delayed(calculate_LMP_pipeline)(c, b, d, int(win), a) 
+                        for a,b,c,d in zip(qnLst, allAlignLst, bestAlignLst, mapqAlignLst))
     for qn, mergedLIS in AllmergedLIS:
         allLISDIc[qn] = mergedLIS
     ## check LIS
     corLISDic = checkLIS(allLISDIc, pafDic)
     ## output
+
     outputLIS(corLISDic, pafDic, outPre)
 
 
@@ -748,5 +757,5 @@ if __name__ == "__main__":
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # fastqFile, win, part, threads
-    workflow(args.fasta, args.fastq, args.cutoff, args.threads, args.output, args.window, args.nhap, args.minAS, args.minMapq)
+    workflow(args.fasta, args.fastq, args.threads, args.output, args.window, args.nhap, args.minAS, args.minMapq)
 

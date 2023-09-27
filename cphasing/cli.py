@@ -95,7 +95,7 @@ def pipeline(fasta, data, method):
     pass
 
 ## Subcommand of UL ONT pipeline
-# from .ontig.cli import ontig 
+from .ontig.cli import ontig 
 
 @cli.command()
 @click.argument(

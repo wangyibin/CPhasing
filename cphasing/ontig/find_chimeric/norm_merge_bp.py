@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#coding=utf-8
 
 import math
 import argparse
@@ -71,6 +70,7 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
     win = int(win)
     cutoff = float(cutoff)
     for ctg in bpDic:
+   
         if ctg not in normBpDic:
             normBpDic[ctg] = {}
         subDepth = depthDic[ctg]
@@ -80,8 +80,8 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
             try: 
                 avaDepth = float(sum(list(regionDepth.values())))/float(len(list(regionDepth.values())))
             except:
-                print(regionDepth)
-                print(ctg, bini)
+                # print(regionDepth)
+                # print(ctg, bini)
                 step = int(win/5)
                 [ts, te] = list(map(int,bini))
                 blst = list(subDepth.keys())
@@ -92,11 +92,12 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
                 endIdx = math.floor(float(te)/float(step)) + 1  # 向下取整
                 stratIdx = stratIdx if stratIdx >= 0 else 0
                 endIdx = endIdx if endIdx <= maxBIn else maxBIn
-                print(stratIdx, endIdx,step, win, len(blst))
-                sys.exit()
+                # print(stratIdx, endIdx,step, win, len(blst))
+                # sys.exit()
             normBpRatio = float(bpCount)/avaDepth
             chimericType = "chimeric" if normBpRatio >= cutoff else "Non-chimeric"
             normBpDic[ctg][bini] = (chimericType, bpCount, avaDepth, normBpRatio)
+
     return normBpDic
 
 
@@ -120,26 +121,28 @@ def outputFile(normBpDic, outPre):
             posLst = list(map(str, chimericDic[ctg]))
             fout1.write("{}\t{}\n".format(ctg, ",".join(posLst)))
 
+    return outPre + ".breakPos.txt"
 
 
 def workflow(mergeBP, depthFile, win, minDepth, cutoff, outPre):
     win = int(win)
     bpDic = read_mergeBP(mergeBP)
     depthDic = read_depth(depthFile)
-    for ctg in depthDic:
-        print(len(list(depthDic[ctg].keys())))
-    
+    # for ctg in depthDic:
+    #     print(len(list(depthDic[ctg].keys())))
+ 
     normBpDic = normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff)
+ 
     #mergeBpDic, bpDic = check_breakpoint(normSaDic, cutoff, edges)
-    outputFile(normBpDic, outPre)
+    return outputFile(normBpDic, outPre)
 
     
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
-    parser.add_argument('-b', '--breakpoint', default=None,
+    parser.add_argument('-b', '--breakpoint', required=True,
                         help='<filepath>  the merged breakpoint file.')
-    parser.add_argument('-d', '--depth', default=None,
+    parser.add_argument('-d', '--depth', required=True,
                         help='<filepath>  depth file.')
     parser.add_argument('-min', '--minDepth', default=3,
                         help='<int>  minimum depth of windows.')

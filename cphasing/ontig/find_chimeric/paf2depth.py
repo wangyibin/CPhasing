@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-#coding=utf-8
+
+import argparse
+import logging
+import os
+import os.path as op
+import sys
 
 import math
-import argparse
 import collections
 
 
@@ -16,7 +20,7 @@ def read_paf(paf):
     return pafDic
 
 def read_fasta(faFile):
-    print("Reading genome...")
+    print("Reading genome...", file=sys.stderr)
     fastaDic = {}
     with open(faFile,'r') as IN:
         fastaName = IN.readline().strip()[1:]
@@ -55,7 +59,7 @@ def bin_reads(pafDic, winDic, win):
     """
     for qn in pafDic:
         qInfo = pafDic[qn]
-        tn, tl, ts, te = qInfo[4:7]
+        tn, tl, ts, te = qInfo[4:8]
         ts, te = int(ts), int(te)
         if tn not in winDic:
             continue
@@ -104,6 +108,7 @@ def output(ouPre, depthDIc):
         for ctg in depthDIc:
             for bini in depthDIc[ctg]:
                 fout.write("{}\t{}\t{}\t{:.3f}\n".format(ctg, bini[0], bini[1], depthDIc[ctg][bini]))
+    return ouPre + ".depth"
 
 def workflow(paf, fastaFile, win, outPre):
     ## 
@@ -112,14 +117,15 @@ def workflow(paf, fastaFile, win, outPre):
     genomeSize = read_fasta(fastaFile)
     binDic, winDic = build_windic(genomeSize, win)
     winDic = bin_reads(pafDic, winDic, win)
-    depthDic = cal_depth(winDic, pafDic)
-    output(outPre, depthDic)
+    depthDic = cal_depth(winDic)
+
+    return output(outPre, depthDic)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
-    parser.add_argument('-p', '--paf', default=None,
+    parser.add_argument('-p', '--paf', required=True,
                         help='<filepath>  the corrected UL-ONT reads/Hifi reads mapping result, must be .paf format.')
-    parser.add_argument('-f', '--fasta', default=None,
+    parser.add_argument('-f', '--fasta', required=True,
                         help='<filepath>  break-point of chimeric contigs.')
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')

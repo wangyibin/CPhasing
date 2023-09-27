@@ -67,9 +67,9 @@ def workflow(fastaFile, bpFile, outPre):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for chimeric contig correction.")
-    parser.add_argument('-f', '--fasta', default=None,
+    parser.add_argument('-f', '--fasta', required=True,
                         help='<filepath>  the raw fasta file.')
-    parser.add_argument('-bp', '--breakpos', default=None,
+    parser.add_argument('-bp', '--breakpos', required=True,
                         help='<filepath>  chimeric position of contigs.')
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')

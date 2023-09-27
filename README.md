@@ -76,7 +76,7 @@ C-Phasing enable to use ultra-long to correct chimeric and use ultra-long data t
     - **Step2** `extract`  
     ```bash
     ## results are `sample.counts_AAGCTT.txt` and `sample.clm`
-    cphasing prepare extract sample.pairs.gz draft.asm.fasta -e HindIII
+    cphasing prepare extract sample.pairs.gz draft.asm.fasta
     ```
 3. **alleles** (Optional for phasing mode)
     > This step is specific to diploid and polyploid phasing. If you only want to scaffolding a haploid, ignore this step.

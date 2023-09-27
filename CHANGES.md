@@ -1,4 +1,7 @@
 # Release notes #
+## [v0.0.44]
+## Enhancement
+- `ontig`, restruct the framework and add `split-reads`, `find-chimeric`, `hcr` three functions.
 
 ## [v0.0.43]
 Date: 2023-09-24

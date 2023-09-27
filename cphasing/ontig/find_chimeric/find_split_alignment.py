@@ -280,17 +280,18 @@ def merge_bp(binDic, outPre, minSA):
                 qnStr = ",".join(qnLst)
                 fout.write("{}\t{}\t{}\t{}\t{}\n".format(ctg, bini[0], bini[1], len(qnLst), qnStr))
 
-
+    return outPre + ".mergedSplitAlign.txt"
 
 def workflow(LISFIle, win, minSA, edge, outPre):
     allLISDIc = read_LISFile(LISFIle, "LIS")
     binDic = check_break_point(allLISDIc, win, outPre, edge)
-    merge_bp(binDic, outPre, minSA)
+    
+    return merge_bp(binDic, outPre, minSA)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for maaping window UL-ONT reads into fasta, and identifying chimeric contig through split alignment.")
-    parser.add_argument('-l', '--lis', default=None,
-                        help='<filepath>  draft contig assembly fasta file.')
+    parser.add_argument('-l', '--lis', required=True,
+                        help='<filepath>  correct LIS file.')
     parser.add_argument('-w', '--window', default=5000,
                         help='<int> window size, default is 5000.')
     parser.add_argument('-m', '--minSA', default=3,

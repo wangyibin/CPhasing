@@ -21,8 +21,8 @@
 ### example
 
 ```bash
-$ python split_reads_v2.py -h
-usage: split_reads_v2.py [-h] [-i FASTQ] [-w WINDOW] [-p NPART] [-t THREADS]
+$ python split_reads.py -h
+usage: split_reads.py [-h] [-i FASTQ] [-w WINDOW] [-p NPART] [-t THREADS]
 
 This is the script for split fastq file into window reads. For accelerating this process, we split fastq into N parts at first, then slice reads with window.
 
@@ -45,7 +45,7 @@ optional arguments:
 
 ## correctPAF
 
-The pipeline including two steps. First, the 5000bp window reads are compared to the draft assembly using minimap2.Because the short window reads are prone to occur alignment errors, we further correct errors based on the longest increasing subsequence (LIS) method.
+The pipeline including two steps. First, the 5000bp window reads are compared to the draft assembly using minimap2. Because the short window reads are prone to occur alignment errors, we further correct errors based on the longest increasing subsequence (LIS) method.
 
 ### example
 
@@ -279,8 +279,8 @@ When propotion of split alignment reads higher than threshold, we think that a c
 ```bash
 ## need parameter: -d -f -w
 ## optional parameter: -w -m -b
-$ python bed2depth_2.py -h
-usage: bed2depth_2.py [-h] [-d DEPTHFILE] [-b BREAKPOINT] [-f FASTA] [-w WIN]
+$ python bed2depth.py -h
+usage: bed2depth.py [-h] [-d DEPTHFILE] [-b BREAKPOINT] [-f FASTA] [-w WIN]
                       [-M MAX] [-o OUTPUT]
 
 This is the script for filter genome region.

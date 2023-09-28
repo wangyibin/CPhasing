@@ -42,12 +42,12 @@ export PATH=/path/to/CPhasing/bin:$PATH
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
 2. For Pore-C pipeline
-    - [minimap2](https://github.com/lh3/minimap2)
+    - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)
 3. For Hi-C pipeline
     - [chromap](https://github.com/haowenz/chromap)
 
 ## Pipeline of Ultra-long data [Optional]
-C-Phasing enable to use ultra-long to correct chimeric and use ultra-long data to identify the high confidence regions (HCRs) to help assembly.  
+C-Phasing enable to use ultra-long to correct chimeric and identify the high confidence regions (HCRs) to help assembly.  
 ### **[ontig tutorial](cphasing/ontig/README.md)**
 
 ## Pipeline of Pore-C data

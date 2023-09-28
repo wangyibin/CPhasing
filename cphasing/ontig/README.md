@@ -1,7 +1,9 @@
 # **ontig**
+**ONTig**: Correct con**tig**s or identify high confidince regions by **ONT** data
 
 ## Examples
 - `split-reads`
+> split fastq into several parts to and split each read by window.
 ```
 cphasing ontig split-reads -i 20220608-UNL303-P6-PAK13867.pass.fastq.gz -t 4
 ```

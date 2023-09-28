@@ -70,7 +70,7 @@ def read_depth(depthFile):
     with open(depthFile, 'r') as fin:
         for line in fin:
             tmpLst = line.rstrip().split('\t')
-            ctg, s, e, _ = tmpLst
+            ctg, s, e = tmpLst
             s, e = map(int, [s,e])
             #depth = float(depth)
             if ctg not in depthDic:
@@ -112,7 +112,7 @@ def overlap_with_depth(sequential_LIS, depth_region):
     return overlapDic
         
 def output(overlapDic, outPre):
-    with open(outPre + "", 'w') as fout:
+    with open(outPre + ".hcr_all.bed", 'w') as fout:
         for ctg in overlapDic:
             for region in overlapDic[ctg]:
                 fout.write("{}\t{}\t{}\n".format(ctg, *region))
@@ -120,7 +120,7 @@ def output(overlapDic, outPre):
 def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
     SAreads = read_SAreads(SA)
     depthDic = read_depth(depthFile)
-    sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
+    sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)   
     overlapDic = overlap_with_depth(sequential_LIS, depthDic)
     output(overlapDic, outPre)
 

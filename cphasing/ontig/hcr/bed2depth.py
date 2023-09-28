@@ -57,7 +57,7 @@ def get_wave_vally(depthDic, outPre):
     ###
     z1 = np.polyfit(xxx, negYYY, 7)
     p1 = np.poly1d(z1) 
-    print(p1)
+    # print(p1)
     yvals=p1(xxx) 
     # calculate peak
     peak_ind = signal.find_peaks(yvals, distance=10)
@@ -83,7 +83,7 @@ def get_wave_vally(depthDic, outPre):
 
 ## return region
 def filter_depth(depthDic, peak_ind):
-    print(peak_ind)
+    # print(peak_ind)
     filteredRegion = {}
     minpeak, maxpeak = min(peak_ind), max(peak_ind)
     for ctg in depthDic:
@@ -95,16 +95,18 @@ def filter_depth(depthDic, peak_ind):
     return filteredRegion
 
 def output(filteredRegion, outPre):
-    with open("{}.high.bed".format(outPre), 'w') as fout:
+    with open("{}.hcr_depth.bed".format(outPre), 'w') as fout:
         for ctg in filteredRegion:
             for bin in filteredRegion[ctg]:
                 fout.write("{}\t{}\t{}\n".format(ctg, *bin))
-    
+    return "{}.hcr_depth.bed".format(outPre)
+
 def workflow(depthFile, win, Max, outPre):
     depthDic = read_depth(depthFile, Max)
     peak_id = get_wave_vally(depthDic, outPre)
     filterRegion = filter_depth(depthDic, peak_id)
-    output(filterRegion, outPre)
+    
+    return output(filterRegion, outPre)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")

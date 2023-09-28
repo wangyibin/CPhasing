@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.45]
+## Enhancement
+- `hcr`, intergated `bed2depth` into `hcr`
+## Bug fixed
+- `bed2depth`, fixed bug
 ## [v0.0.44]
 ## Enhancement
 - `ontig`, restruct the framework and add `split-reads`, `find-chimeric`, `hcr` three functions.

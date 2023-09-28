@@ -300,19 +300,39 @@ def find_chimeric(
     show_default=True,
 )
 @click.option(
+    '-w',
+    '--window',
+    help='window size',
+    default=5000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-M',
+    '--max-depth',
+    'max_depth',
+    metavar='INT',
+    help='maximum depth',
+    type=int,
+    default=100,
+    show_default=True
+)
+@click.option(
     '-o',
     '--output',
     help='output file prefix',
     default='output',
     show_default=True
 )
-def hcr(lis, split_align, depth, min_count, min_score, output):
+def hcr(lis, split_align, depth, min_count, min_score, window, max_depth, output):
     """
     Identify high confidence regions (HCRs).
 
         Identify the high confidence regions of genome to help the subsequence analysis.
 
     """
-    from .hcr import hcr
-    hcr.workflow(lis, split_align, depth, min_count, min_score, output)
+    from .hcr import hcr, bed2depth
+    
+    hcr_from_depth_file = bed2depth.workflow(depth, window, max_depth, output)
+    hcr.workflow(lis, split_align, hcr_from_depth_file, min_count, min_score, output)
 

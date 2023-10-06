@@ -183,13 +183,15 @@ def check_break_point(LisDic, win, outPre, edge):
     for ctg in genomeSize:
         binDic[ctg] = {}
         ctgSize = genomeSize[ctg]
-        if ctgSize <= win:
+        if ctgSize <= win + step:
             continue
         binLst = list(range(0, ctgSize - win, step))
         binLst = [(i, i+win) for i in binLst]
-        
-        if binLst[-1][0] != (ctgSize - win):
-            binLst.append((binLst[-1][0] + step, ctgSize))
+        try:
+            if binLst[-1][0] != (ctgSize - win):
+                binLst.append((binLst[-1][0] + step, ctgSize))
+        except IndexError:
+            print(binLst)
         for bini in binLst:
             binDic[ctg][bini] = {}
     ### locate splitAlign

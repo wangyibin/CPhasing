@@ -45,6 +45,8 @@ def build_windic(genomeSize, win):
         ctgSize = genomeSize[ctg]
         binLst = list(range(0, ctgSize - win, step))
         binLst = [(i, i+win) for i in binLst]
+        if ctgSize <= win:
+            continue
         if binLst[-1][0] != (ctgSize - win):
             binLst.append((binLst[-1][0] + 1000, ctgSize))
         for bin in binLst:

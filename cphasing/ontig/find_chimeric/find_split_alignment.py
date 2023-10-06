@@ -78,7 +78,7 @@ def check_break_point(LisDic, win, outPre, edge):
             for i in range(len(LisDic[qn]) - 1):
                 ftn, fs, fe, fstr, ftl, fqi0, fqi1 = LisDic[qn][i]
                 ctn, cs, ce, cstr, ctl, cqi0, cqi1 = LisDic[qn][i+1]
-                if ftl <= win or ctl <= win:
+                if int(ftl) <= win or int(ctl) <= win:
                     continue
                 if ftn == ctn:
                     continue

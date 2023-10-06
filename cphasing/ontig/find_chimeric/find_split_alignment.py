@@ -78,6 +78,8 @@ def check_break_point(LisDic, win, outPre, edge):
             for i in range(len(LisDic[qn]) - 1):
                 ftn, fs, fe, fstr, ftl, fqi0, fqi1 = LisDic[qn][i]
                 ctn, cs, ce, cstr, ctl, cqi0, cqi1 = LisDic[qn][i+1]
+                if ftl <= win or ctl <= win:
+                    continue
                 if ftn == ctn:
                     continue
                 [fs, fe, ftl, cs, ce, ctl] = list(map(int, [fs, fe, ftl, cs, ce, ctl]))
@@ -181,8 +183,11 @@ def check_break_point(LisDic, win, outPre, edge):
     for ctg in genomeSize:
         binDic[ctg] = {}
         ctgSize = genomeSize[ctg]
+        if ctgSize <= win:
+            continue
         binLst = list(range(0, ctgSize - win, step))
         binLst = [(i, i+win) for i in binLst]
+        
         if binLst[-1][0] != (ctgSize - win):
             binLst.append((binLst[-1][0] + step, ctgSize))
         for bini in binLst:

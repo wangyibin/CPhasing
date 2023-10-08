@@ -1,6 +1,11 @@
 # **ontig**
 **ONTig**: Correct con**tig**s or identify high confidince regions by **ONT** data
 
+|         |                                                                  |
+| ------- | ---------------------------------------------------------------- |
+| Main author | Jiaxin Yu ([Yujiaxin419](http://github.com/Yujiaxin419))     |
+| Co-author   | Yibin Wang ([wangyibin](http://github.com/wangyibin))        |
+
 ## Examples
 - `split-reads`
 > split fastq into several parts to and split each read by window.

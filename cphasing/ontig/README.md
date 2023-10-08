@@ -25,6 +25,19 @@ cphasing ontig find-chimeric -p output.corrected.paf -l outputLIS.gtf -f draft.c
 - `hcr`
 > Identifing high confidence region.
 ```bash
+## result is output.hcr_all.bed
 cphasing ontig hcr -l outputLIS.gtf -sa output.mergedSplitAlign.txt -d output.depth
 ```
+
+## How to use hcr results in phasing steps
+1. use corrected fasta as draft.asm.fasta
+```bash
+cphasing mapper corrected.fasta sample.fastq.gz
+```
+2. use hcr.bed to filter the mapping results 
+```bash
+cphasing alignments porec-intersection sample.porec.gz output.hcr_all.bed sample_hcr.porec.gz
+cphasing-rs porec2pairs sample_hcr.porec.gz corrected.contigsizes -o sample_hcr.pairs.gz 
+```
+And then, use `sample_hcr.porec.gz` and `sample_hcr.pairs.gz` to run subsequence steps.
 

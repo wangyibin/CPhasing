@@ -904,11 +904,11 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True,
 )
 @click.option(
-    "-c",
-    "--cds",
-    help="the cds file of reference.",
-    metavar="FILE",
-    type=click.Path(exists=True)
+    "--skip_gmap_index",
+    help="gmap index already existed and named `DB`, skip.",
+    default=False,
+    is_flag=True,
+    show_default=True
 )
 @click.option(
     '-t',

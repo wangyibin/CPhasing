@@ -1,10 +1,11 @@
 # **ontig**
 **ONTig**: Correct con**tig**s or identify high confidince regions by **ONT** data
 
-|         |                                                                  |
-| ------- | ---------------------------------------------------------------- |
-| Main author | Jiaxin Yu ([Yujiaxin419](http://github.com/Yujiaxin419))     |
-| Co-author   | Yibin Wang ([wangyibin](http://github.com/wangyibin))        |
+|         |                                                                    |
+| ------- | ------------------------------------------------------------------ |
+| Main author | Jiaxin Yu ([Yujiaxin419](http://github.com/Yujiaxin419))       |
+| Co-authors  | Yibin Wang ([wangyibin](http://github.com/wangyibin))          |
+|             | Xingtan Zhang ([tangerzhang](https://github.com/tangerzhang/)) |
 
 ## Examples
 - `split-reads`

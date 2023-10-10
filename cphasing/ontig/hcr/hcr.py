@@ -1,14 +1,21 @@
 #!/usr/bin/env python
-# -*- coding:utf-8 -*-
 
 import argparse
+import logging
+import os
+import os.path as op
+import sys
 
+import pandas as pd
+import pyranges as pr 
 
 """
 1. min length
 2. M count
 3. overlap with depth
 """
+
+logger = logging.getLogger(__name__)
 
 def check_Mcount(typeLst, minCount, minMapqCount):
     mCount = typeLst.count("M")
@@ -70,18 +77,23 @@ def read_LIS(LisFile, SAreads, minCount, minMapqCount):
 
 
 def read_depth(depthFile):
-    depthDic = {}
-    with open(depthFile, 'r') as fin:
-        for line in fin:
-            tmpLst = line.rstrip().split('\t')
-            ctg, s, e = tmpLst
-            s, e = map(int, [s,e])
-            #depth = float(depth)
-            if ctg not in depthDic:
-                depthDic[ctg] =[]
-            depthDic[ctg].append((s,e))
+    # depthDic = {}
+    # with open(depthFile, 'r') as fin:
+    #     for line in fin:
+    #         tmpLst = line.rstrip().split('\t')
+    #         ctg, s, e = tmpLst
+    #         s, e = map(int, [s,e])
+    #         #depth = float(depth)
+    #         if ctg not in depthDic:
+    #             depthDic[ctg] =[]
+    #         depthDic[ctg].append((s,e))
 
-    return depthDic
+    # return depthDic
+    df = pd.read_csv(depthFile, sep='\t', index_col=None, header=None, 
+                        names=['Chromosome', 'Start', 'End'])
+    
+    return df
+
 
 def read_SAreads(SAFile):
     SAreads = {}
@@ -92,6 +104,7 @@ def read_SAreads(SAFile):
                 SAreads[reads] = ""
     return SAreads
 
+## Deprecated
 def overlap_with_depth(sequential_LIS, depth_region):
     overlapDic = {}
     for ctg in sequential_LIS:
@@ -114,20 +127,46 @@ def overlap_with_depth(sequential_LIS, depth_region):
                 i += 1
         overlapDic[ctg] = res
     return overlapDic
-        
+
+## Deprecated
 def output(overlapDic, outPre):
     with open(outPre + ".hcr_all.bed", 'w') as fout:
         for ctg in overlapDic:
             for region in overlapDic[ctg]:
                 fout.write("{}\t{}\t{}\n".format(ctg, *region))
 
+def range_dict2frame(dic):
+    res = []
+    for ctg in dic:
+        for s, e in dic[ctg]:
+            res.append((ctg, s, e))
+    
+    df = pd.DataFrame(res)
+    df.columns = ['Chromosome', 'Start', 'End']
+    return df 
+
 def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
     SAreads = read_SAreads(SA)
-    depthDic = read_depth(depthFile)
+    logger.info(f"Load `{depthFile}`.")
+    depth_df = read_depth(depthFile)
+    depth_gr = pr.PyRanges(depth_df)
+    depth_gr = depth_gr.merge()
+    logger.info(f"Identified `{len(depth_gr)}` normal depth regions.")
     sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
+    logger.info("Identifing continuous regions ...")
     
-    overlapDic = overlap_with_depth(sequential_LIS, depthDic)
-    output(overlapDic, outPre)
+    sequential_gr = pr.PyRanges(range_dict2frame(sequential_LIS))
+    sequential_gr = sequential_gr.merge()
+    logger.info(f"Identified `{len(sequential_gr)}` continous regions.")
+    logger.info("Overlapping ...")
+    overlap_gr = sequential_gr.overlap(depth_gr).merge()
+    
+    ## output
+    output = outPre + ".hcr_all.bed"
+    overlap_gr.df.to_csv(output, sep='\t', 
+                            index=None, header=None)
+    
+    logger.info(f"Successful output `{len(overlap_gr)}` HCRs in `{output}`.")
 
     
 if __name__ == "__main__":

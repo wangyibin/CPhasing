@@ -159,7 +159,7 @@ def correct_alignments(
     '-l', 
     '--lis',
     metavar='PATH',
-    help='LIS file',
+    help='Corrected alignment result with mapping quality greater than thredshold (eg. outputmapq.LIS.gtf).',
     required=True,
 )
 @click.option(
@@ -259,7 +259,7 @@ def find_chimeric(
     '-l',
     '--lis',
     metavar='PATH',
-    help='LIS file',
+    help='Corrected alignment result with mapping quality greater than thredshold (eg. outputmapq.LIS.gtf).',
     required=True
 )
 @click.option(

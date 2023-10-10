@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
 import argparse
 
 
@@ -50,12 +53,13 @@ def read_LIS(LisFile, SAreads, minCount, minMapqCount):
             continue
         if ctg not in outDic:
             outDic[ctg] = []
-        outDic[ctg].append((s,e,String, readsID))
+        outDic[ctg].append([s,e,String, readsID])
     ## merge region
     for ctg in outDic:
         lisLst = outDic[ctg]
         lisLst.sort(key=lambda x:x[0])
         newLst = [lisLst[0][:2]]
+
         for i in range(1,len(lisLst)):
             if lisLst[i][0] <= newLst[-1][1] <= lisLst[i][1]:
                 newLst[-1][-1] = max(lisLst[i][1], newLst[-1][1])
@@ -120,7 +124,8 @@ def output(overlapDic, outPre):
 def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
     SAreads = read_SAreads(SA)
     depthDic = read_depth(depthFile)
-    sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)   
+    sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
+    
     overlapDic = overlap_with_depth(sequential_LIS, depthDic)
     output(overlapDic, outPre)
 

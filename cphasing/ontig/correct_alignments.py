@@ -665,7 +665,7 @@ def outputLIS(lisBak, pafDic, outpre):
                     for qi, ri ,tp in align: 
                         if tp == 'M':
                             addFlag = True
-                        itemInPaf = pafDic[qn.rsplit("_", 1)[0]][qi][ri]
+                        itemInPaf = pafDic[qn][qi][ri]
                         itemInPaf = list(map(str,itemInPaf))
                         """
                         [qs,qe,s,tn,ts,te,ql,tl,al1,al2,mapq, AS]
@@ -675,7 +675,7 @@ def outputLIS(lisBak, pafDic, outpre):
                         tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(_qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
                         fout2.write(tmpAliPaf)
                         tl, tn, ts, te, AS = itemInPaf[7], itemInPaf[3], itemInPaf[4], itemInPaf[5], itemInPaf[-1]
-                        atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(_qn, qi)
+                        atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(qn, qi)
                         tmpAliLis = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "alignment", ts, te, AS, string, tp, atrriInfo)
                         fout1.write(tmpAliLis)
                         alignLisLst.append(tmpAliLis)

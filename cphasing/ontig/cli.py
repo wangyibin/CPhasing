@@ -12,6 +12,9 @@ import sys
 from ..cli import CommandGroup
 from ..cli import cli 
 
+logger = logging.getLogger(__name__)
+
+
 @cli.group(cls=CommandGroup, short_help='Sub-command for the UL ONT pipeline.')
 @click.pass_context
 def ontig(ctx):
@@ -260,7 +263,8 @@ def find_chimeric(
     '--lis',
     metavar='PATH',
     help='Corrected alignment result with mapping quality greater than thredshold (eg. outputmapq.LIS.gtf).',
-    required=True
+    required=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-sa',
@@ -270,13 +274,35 @@ def find_chimeric(
     help='split alignments file, '
         '5 cols: <chr> <start> <end> <count of split-align> <split-aligned reads>',
     required=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-d',
     '--depth',
     metavar='PATH',
     help='Ul-ONT/HiFi reads depth file, 4 cols: <chr> <start> <end> <depth>.',
-    required=True
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-b',
+    '--break-pos',
+    'break_pos',
+    metavar='PATH',
+    help="use break positions to correct HCRs.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-c',
+    '--contig-sizes',
+    'contig_sizes',
+    metavar='PATH',
+    help="contig sizes file for HCRs correct by break positions.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
 )
 @click.option(
     '-mc',
@@ -324,7 +350,8 @@ def find_chimeric(
     default='output',
     show_default=True
 )
-def hcr(lis, split_align, depth, min_count, min_score, window, max_depth, output):
+def hcr(lis, split_align, depth, break_pos, 
+            contig_sizes, min_count, min_score, window, max_depth, output):
     """
     Identify high confidence regions (HCRs).
 
@@ -332,7 +359,14 @@ def hcr(lis, split_align, depth, min_count, min_score, window, max_depth, output
 
     """
     from .hcr import hcr, bed2depth
-    
+
     hcr_from_depth_file = bed2depth.workflow(depth, window, max_depth, output)
-    hcr.workflow(lis, split_align, hcr_from_depth_file, min_count, min_score, output)
+    
+    if break_pos and contig_sizes:
+        hcr.workflow(lis, split_align, hcr_from_depth_file, 
+                        min_count, min_score, output, break_pos, contig_sizes)
+    else:
+        logger.warning("The file of break position and contig sizes should be input at the same time.")
+        hcr.workflow(lis, split_align, hcr_from_depth_file, 
+                        min_count, min_score, output)
 

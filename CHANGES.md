@@ -1,4 +1,10 @@
 # Release notes #
+## [v0.0.46]
+## Enhancement
+- `hcr`, add `break_pos` to correct hcr by break positions
+## Bug fixed
+- `mapper`, fixed min_quality can not be adopt
+
 ## [v0.0.45]
 ## Enhancement
 - `hcr`, intergated `bed2depth` into `hcr`

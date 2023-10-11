@@ -417,7 +417,8 @@ class PoreCMapper:
                     "Failed to execute command, please check log."
     
     def paf2table(self):
-        cmd = ["cphasing-rs", "paf2table", f"{self.outpaf}", "-o", f"{self.outporec}"]
+        cmd = ["cphasing-rs", "paf2table", f"{self.outpaf}", "-q", 
+                    f"{self.min_quality}", "-o", f"{self.outporec}"]
 
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2table.log')
     

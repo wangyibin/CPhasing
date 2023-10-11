@@ -21,13 +21,13 @@ cphasing ontig correct-alignments -f draft.contig.fasta -i split_fastq/20220608-
 - `find-chimeric`
 > find split-alignments and idendify the chimeric contigs
 ```bash
-cphasing ontig find-chimeric -p output.corrected.paf -l outputLIS.gtf -f draft.contig.fasta
+cphasing ontig find-chimeric -p output.corrected.paf -l outputmapq.LIS.gtf -f draft.contig.fasta
 ```
 - `hcr`
 > Identifing high confidence region.
 ```bash
 ## result is output.hcr_all.bed
-cphasing ontig hcr -l outputmapq.LIS.gtf -sa output.mergedSplitAlign.txt -d output.depth
+cphasing ontig hcr -l outputmapq.LIS.gtf -sa output.mergedSplitAlign.txt -d output.depth -b output.breakPos.txt -c draft.contig.contigsizes
 ```
 
 ## How to use hcr results in phasing steps

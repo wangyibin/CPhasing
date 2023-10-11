@@ -6,8 +6,13 @@ import os
 import os.path as op
 import sys
 
+import numpy as np
 import pandas as pd
 import pyranges as pr 
+
+from collections import OrderedDict
+
+from ...utilities import read_chrom_sizes
 
 """
 1. min length
@@ -145,7 +150,57 @@ def range_dict2frame(dic):
     df.columns = ['Chromosome', 'Start', 'End']
     return df 
 
-def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
+def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
+    contig_sizes = read_chrom_sizes(contig_sizes)
+    contig_sizes = contig_sizes.to_dict()['length']
+
+    break_pos_db = OrderedDict()
+    with open(break_pos, 'r') as fp:
+        for line in fp:
+            if line.strip():
+                line_list = line.strip().split()
+                contig, pos = line_list 
+                pos = int(pos)
+                if contig not in break_pos_db:
+                    break_pos_db[contig] = []
+                break_pos_db[contig].append(pos)
+    
+    res = []
+    for contig in break_pos_db:
+        contig_length = contig_sizes[contig]
+        pos_list = break_pos_db[contig]
+
+        for pos1, pos2 in zip(np.r_[0, pos_list], 
+                                np.r_[pos_list, contig_length]):
+            res.append((contig, pos1, pos2))
+
+    hcrs_df = hcrs.df
+    hcrs_gr = pr.PyRanges(hcrs_df.reset_index())
+    df = pd.DataFrame(res)
+    df.columns = ['Chromosome', 'Start', 'End']
+    gr = pr.PyRanges(df)
+    overlapped = hcrs_gr.join(gr).new_position('intersection')
+    overlapped = overlapped.df
+    
+    corrected_hcrs = []
+    drop_idx = []
+    for i, row in overlapped.iterrows():
+        new_contig_id = f"{row.Chromosome}_{row.Start_b}_{row.End_b}"
+        new_start = row.Start - row.Start_b 
+        new_end = row.End - row.Start_b 
+        corrected_hcrs.append((new_contig_id, new_start, new_end))
+        drop_idx.append(row['index'])
+    
+    corrected_hcrs_df = pd.DataFrame(corrected_hcrs, columns=hcrs_df.columns)
+    all_df = pd.concat([hcrs_df.drop(list(set(drop_idx)), axis=0), 
+                        corrected_hcrs_df], axis=0)
+    
+    all_df.to_csv(output, sep='\t', index=None, header=None)
+    
+
+def workflow(LisFile, SA, depthFile, minCount, minMapqCount, 
+                outPre, break_pos=None, contig_sizes=None):
+    
     SAreads = read_SAreads(SA)
     logger.info(f"Load `{depthFile}`.")
     depth_df = read_depth(depthFile)
@@ -163,10 +218,14 @@ def workflow(LisFile, SA, depthFile, minCount, minMapqCount, outPre):
     
     ## output
     output = outPre + ".hcr_all.bed"
-    overlap_gr.df.to_csv(output, sep='\t', 
-                            index=None, header=None)
-    
-    logger.info(f"Successful output `{len(overlap_gr)}` HCRs in `{output}`.")
+    if break_pos and contig_sizes:
+        logger.info("Correcting HCRs by chimeric position ...")
+        correct_hcr_by_break_pos(overlap_gr, break_pos, contig_sizes, output)
+        logger.info(f"Successful output chimeric-corrected `{len(overlap_gr)}` HCRs in `{output}`.")
+    else:
+        overlap_gr.df.to_csv(output, sep='\t', 
+                                index=None, header=None)
+        logger.info(f"Successful output `{len(overlap_gr)}` HCRs in `{output}`.")
 
     
 if __name__ == "__main__":

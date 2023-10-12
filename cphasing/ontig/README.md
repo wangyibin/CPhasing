@@ -27,7 +27,11 @@ cphasing ontig find-chimeric -p output.corrected.paf -l outputmapq.LIS.gtf -f dr
 > Identifing high confidence region.
 ```bash
 ## result is output.hcr_all.bed
-cphasing ontig hcr -l outputmapq.LIS.gtf -sa output.mergedSplitAlign.txt -d output.depth -b output.breakPos.txt -c draft.contig.contigsizes
+cphasing ontig hcr \
+    -l outputmapq.LIS.gtf \
+    -sa output.mergedSplitAlign.txt \
+    -d output.depth -b output.breakPos.txt \
+    -c draft.contig.contigsizes
 ```
 
 ## How to use hcr results in phasing steps

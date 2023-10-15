@@ -48,7 +48,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
 
 ## Pipeline of Ultra-long data [Optional]
 C-Phasing enable to use ultra-long to correct chimeric and identify the high confidence regions (HCRs) to help assembly.  
-### **[ontig tutorial](cphasing/ontig)**
+### **[hitig tutorial](cphasing/hitig)**
 
 ## Pipeline of Pore-C data
 1. **mapping**  

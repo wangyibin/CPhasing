@@ -1,4 +1,4 @@
-name: cphasing4
+name: cphasing
 channels:
   - bioconda
   - conda-forge

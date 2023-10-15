@@ -15,14 +15,19 @@ from ..cli import cli
 logger = logging.getLogger(__name__)
 
 
-@cli.group(cls=CommandGroup, short_help='Sub-command for the UL ONT pipeline.')
+@cli.group(cls=CommandGroup, short_help='Get high-quality contigs by ONT/HiFi data')
 @click.pass_context
-def ontig(ctx):
+def hitig(ctx):
+    """
+    Higher quality of contig can help us to phasing and scaffolding assembly well.
+    So, we can use Ultra-long or HiFi data to correct chimeric or identify high confidence regions (HCRs).
+
+    """
     pass
 
 
 
-@ontig.command()
+@hitig.command()
 @click.option(
     '-i',
     '--fastq',
@@ -69,7 +74,7 @@ def split_reads(fastq, window, npart, threads):
     pipe(fastq, window, npart, threads)
 
 
-@ontig.command()
+@hitig.command()
 @click.option(
     '-f',
     '--fasta',
@@ -149,7 +154,7 @@ def correct_alignments(
     workflow(fasta, fastq, threads, output, window, nhap, min_as, min_mapq)
 
 
-@ontig.command()
+@hitig.command()
 @click.option(
     '-p',
     '--corrected-paf',
@@ -257,7 +262,7 @@ def find_chimeric(
     correct_fasta.workflow(fasta, break_pos_file, output)
 
 
-@ontig.command()
+@hitig.command()
 @click.option(
     '-l',
     '--lis',

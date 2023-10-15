@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.47]
+Date: 2023-10-15
+## Enhancement
+- `higig`, mv `ontig` to `hitig`.
+
 ## [v0.0.46]
 ## Enhancement
 - `hcr`, add `break_pos` to correct hcr by break positions

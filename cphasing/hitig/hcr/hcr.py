@@ -159,11 +159,13 @@ def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
         for line in fp:
             if line.strip():
                 line_list = line.strip().split()
-                contig, pos = line_list 
-                pos = int(pos)
+                contig, positions = line_list 
+                positions = positions.split(",")
+                positions = list(map(int, positions))
                 if contig not in break_pos_db:
                     break_pos_db[contig] = []
-                break_pos_db[contig].append(pos)
+                for pos in positions:
+                    break_pos_db[contig].append(pos)
     
     res = []
     for contig in break_pos_db:

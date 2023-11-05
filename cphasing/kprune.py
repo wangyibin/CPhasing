@@ -19,6 +19,7 @@ import pandas as pd
 
 from collections import defaultdict
 from copy import deepcopy
+from itertools import combinations
 from joblib import Parallel, delayed
 from scipy.sparse import triu
 
@@ -92,8 +93,8 @@ class KPruner:
     def get_allele_group(self):
         tmp_df = self.alleletable.data #.drop_duplicates(1)
         
-        tmp_df = tmp_df.groupby(1, sort=False)[2].apply(lambda x: list(x)[0])
-
+        tmp_df = tmp_df.groupby(1, sort=False)[2].apply(lambda x: list(x))
+        
         return tmp_df.to_dict()
         # return tmp_df.set_index(1).to_dict()[2]
     
@@ -140,14 +141,54 @@ class KPruner:
         matching = g.maximum_bipartite_matching(weights='weight')
         
         if matching.match_of(0) == 2:
-            # if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l',) in contig_edges:
-            #     print(contig_edges, scores, True)
+            if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
+                print(contig_edges, scores, True, file=sys.stderr)
             return True
         else:
-            # if ('utg001312l', 'utg001484l') in contig_edges or ('utg001484l', 'utg001312l') in contig_edges:
-            #     print(matching.match_of(0))
-            #     print(contig_edges, scores, False)
+            if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
+                print(matching.match_of(0), file=sys.stderr)
+                print(contig_edges, scores, False, file=sys.stderr)
             return False
+
+    @staticmethod
+    def is_strong_contact2(allele_pair1, allele_pair2, score_db):
+        
+        contig_edges = []
+        tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
+        tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
+        l1 = len(tmp_allele_pair1)
+        l2 = len(tmp_allele_pair2)
+        edges = []
+        node_clusters = []
+        
+        for i, a in enumerate(tmp_allele_pair1):
+            for j, b in enumerate(tmp_allele_pair2):
+                contig_edges.append((a, b))
+                edges.append((i, l1+j))
+                
+
+      
+        scores = [score_db.get(i, 0) for i in contig_edges]
+        
+        # edges = [(0, 2), (0, 3), (1, 2), (1, 3)]
+  
+        ## igraph quickly (0.000331s)
+        g = ig.Graph.Bipartite([0] * l1 + [1] * l2, edges)
+       
+        g.es['weight'] = scores
+
+        matching = g.maximum_bipartite_matching(weights='weight')
+        
+        if matching.match_of(0) == l1:
+            # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
+            #     print(contig_edges, scores, True, file=sys.stderr)
+            return True
+        else:
+            # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
+            #     print(matching.match_of(0), file=sys.stderr)
+            #     print(contig_edges, scores, False, file=sys.stderr)
+            return False
+    
 
     @staticmethod
     def _remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db):
@@ -157,11 +198,12 @@ class KPruner:
         except KeyError:
             return None
         # print(ctg1, ctg2, allele1, allele2)
-        flag = KPruner.is_strong_contact((ctg1, allele1), (ctg2, allele2), score_db)
+        flag = KPruner.is_strong_contact2((ctg1, allele1), (ctg2, allele2), score_db)
         if not flag:
             return (ctg1, ctg2)
         else:
             return None
+
 
     def remove_weak_with_allelic(self):
         args = []
@@ -189,23 +231,30 @@ class KPruner:
         allelic_res.columns = self.alleletable.AlleleHeader2[2:]
         allelic_res['type'] = 0 
 
-        weak_res = pd.DataFrame(self.weak_prune_list)
-        weak_res.columns = self.alleletable.AlleleHeader2[2:4]
-        weak_res['type'] = 1 
-        weak_res['mz1'] = 0
-        weak_res['mz2'] = 0
-        weak_res['mzShared'] = 0
-        weak_res['similarity'] = 0
+        if len(self.weak_prune_list) > 0:
+            weak_res = pd.DataFrame(self.weak_prune_list)
+            weak_res.columns = self.alleletable.AlleleHeader2[2:4]
+            weak_res['type'] = 1 
+            weak_res['mz1'] = 0
+            weak_res['mz2'] = 0
+            weak_res['mzShared'] = 0
+            weak_res['similarity'] = 0
         
         if symmetric:
             allelic_res2 = allelic_res.rename(columns={'contig1': 'contig2',
                                                         'conrig2': 'conrig1'})
-            weak_res2 = weak_res.rename(columns={'contig1': 'contig2',
-                                                        'conrig2': 'conrig1'})
-            res = pd.concat([allelic_res, allelic_res2, 
-                                weak_res, weak_res2], axis=0)    
+            if len(self.weak_prune_list) > 0:
+                weak_res2 = weak_res.rename(columns={'contig1': 'contig2',
+                                                            'conrig2': 'conrig1'})
+                res = pd.concat([allelic_res, allelic_res2, 
+                                    weak_res, weak_res2], axis=0)  
+            else:
+                res = pd.concat([allelic_res, allelic_res2], axis=0)
         else:
-            res = pd.concat([allelic_res, weak_res], axis=0)
+            if len(self.weak_prune_list) > 0:
+                res = pd.concat([allelic_res, weak_res], axis=0)
+            else:
+                res = allelic_res
         res.to_csv(output, sep='\t', header=None, index=None)
         
       
@@ -255,6 +304,7 @@ class KPruneHyperGraph:
         self.contig2idx = contig2idx 
 
         self.allele_group_db = self.get_allele_group()
+        print(self.allele_group_db)
 
         # self.pixeles = pd.Series.sparse.from_coo(self.A + self.A.T)
         self.contig_pairs = list(zip(triu(A).row, triu(A).col))
@@ -268,14 +318,13 @@ class KPruneHyperGraph:
 
     def get_allele_group(self):
         tmp_df = self.alleletable.data #.drop_duplicates(1)
-        
         tmp_df = tmp_df.groupby(1, sort=False)[2].apply(lambda x: list(x)[0])
         tmp_df = tmp_df[tmp_df.index.isin(self.contig2idx)]
         tmp_df = tmp_df[tmp_df.isin(self.contig2idx)]
         
         tmp_df.index = tmp_df.index.map(self.contig2idx.get)
         tmp_df = tmp_df.map(self.contig2idx.get)
-        
+    
 
         return tmp_df.to_dict()
 

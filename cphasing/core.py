@@ -2772,6 +2772,8 @@ class PoreCTable:
                                                 'start': 'Start', 
                                                 'end': 'End',
                                                 'index': 'Index'}))
+        print(query_gr)
+        print(bed_gr)
         res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
         if res_df.empty:
             logger.warn('Could not found anything.')

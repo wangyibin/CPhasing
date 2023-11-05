@@ -1,4 +1,13 @@
 # Release notes #
+## [v0.0.48]
+Date: 2023-11-05
+## Enhancement
+- `kprune`, advanced it to identity more cross-allelic 
+## New features
+- `evaluate_prune.py`, evaluate the result of `kprune`
+- `methalign/pipe`, init the pipeline of methalign
+
+
 ## [v0.0.47]
 Date: 2023-10-15
 ## Enhancement

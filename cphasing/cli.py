@@ -611,6 +611,7 @@ def pairs_intersection(pairs, bed, output):
     default=1,
     metavar='INT',
     show_default=True,
+    hidden=True,
 )
 def porec_intersection(table, bed, output, threads):
     """
@@ -970,6 +971,7 @@ def alleles(fasta, output, method,
     '-ns',
     '--no-sort',
     'no_sort',
+    help='Do not sort the prune table by similarity.',
     metavar="BOOL",
     is_flag=True,
     default=False,

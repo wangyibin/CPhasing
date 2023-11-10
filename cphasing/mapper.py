@@ -299,7 +299,7 @@ class ChromapMapper:
 
 class PoreCMapper:
     def __init__(self, reference, read, k=15, w=10, min_quality=1, 
-                    additional_arguments=(), outprefix=None,
+                    additional_arguments=("-x", "map-ont"), outprefix=None,
                     threads=4, path='minimap2', log_dir='logs',
                     force=False):
         self.reference = Path(reference)
@@ -360,7 +360,6 @@ class PoreCMapper:
         Create minimap2 index
         """
         cmd = [self._path, "-t", str(self.threads), 
-                "-x", "map-ont",
                 "-k", str(self.k),
                 "-w", str(self.w),
                 "-I", self.batchsize,
@@ -373,7 +372,6 @@ class PoreCMapper:
 
     def mapping(self):
         cmd = [self._path, 
-                '-x', 'map-ont', 
                 '-t', str(self.threads),
                  '-k', str(self.k),
                  '-w', str(self.w),
@@ -383,7 +381,7 @@ class PoreCMapper:
                 str(self.index_path),
                 str(self.read)]
         cmd.extend(list(self.additional_arguments))
-        
+
         cmd2 = ["pigz", "-c", "-p", "4"]
 
         logger.info('Running command:')

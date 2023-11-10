@@ -58,9 +58,10 @@ def hic(ctx):
     '-e',
     '--enzyme',
     metavar='ENZYME',
-    help='Restiction enzyme. i.e. MboI, HindIII.',
+    help='Restiction enzyme. i.e. MboI, HindIII., (Deprecated)',
     default=None,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 @click.option(
     "-k",
@@ -90,6 +91,7 @@ def hic(ctx):
     show_default=True
 )
 @click.option(
+    '-a',
     '--aligner',
     help='Aligner executable.',
     type=click.Choice(['chromap']),#, 'hisat2']),

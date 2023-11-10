@@ -258,8 +258,8 @@ class HyperPartition:
         if len(remove_contigs) == 0:
             return
 
-        logger.info(f"Total {len(remove_contigs)} contigs were removed, "
-                        f"because it's length too short (<{self.min_length}) or your specified.")
+        logger.info(f"Total {len(remove_contigs)} contigs were removed,")
+        logger.info(f"\tbecause it's length too short (<{self.min_length}) or your specified.")
 
         self.HG.remove_rows(remove_contigs)
 
@@ -457,19 +457,23 @@ class HyperPartition:
 
         # sub_vertices = list(np.array(self.vertices)[k])
         # sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
-
-        sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2)))
-        sub_prune_pair_df = sub_prune_pair_df.dropna().reset_index()
-    
-        sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(lambda x: sub_old2new_idx[x])
-        sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(lambda x: sub_old2new_idx[x])
+        if prune_pair_df is not None:
+            sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2)))
+            sub_prune_pair_df = sub_prune_pair_df.dropna().reset_index()
         
-        tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 0]
-        sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
-        tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 1]
-        sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
-        
-        sub_prune_pair_df = sub_prune_pair_df.reset_index()
+            sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(lambda x: sub_old2new_idx[x])
+            sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(lambda x: sub_old2new_idx[x])
+            
+            tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 0]
+            sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+            tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 1]
+            sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
+            
+            sub_prune_pair_df = sub_prune_pair_df.reset_index()
+        else:
+            sub_prune_pair_df = None
+            sub_P_allelic_idx = None
+            sub_P_weak_idx = None
         
         # sub_allelic_factor_df = sub_prune_pair_df[
         #     (sub_prune_pair_df['type'] == 0)][['contig1', 'contig2', 'similarity']]
@@ -516,7 +520,10 @@ class HyperPartition:
         incremental partition for autopolyploid.
         """
         logger.info("Starting first partition ...")
-        prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+        if self.prunetable:
+            prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+        else:
+            prune_pair_df = None
 
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T

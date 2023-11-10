@@ -1,4 +1,17 @@
 # Release notes #
+
+##[v0.0.49]
+Date: 2023-11-10
+## Enhancement 
+- `cphasing-rs`, update it into v0.0.10
+
+## New features
+- `porec2csv`, import porec table into pao csv
+- `PoreCTable.binnify`, binnify the contig by binsize
+- `PoreCTable.divide_contig_by_nparts`, divide contig by the number of parts
+## Bug fixed 
+- `hyperpartition`, fixed bug that phasing mode report error when the prune table not apply
+
 ## [v0.0.48]
 Date: 2023-11-05
 ## Enhancement

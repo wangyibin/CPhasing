@@ -128,7 +128,7 @@ from .hitig.cli import hitig
     "--mm2-params",
     metavar="STR",
     help="additional parameters for minimap2",
-    default="",
+    default="-x map-ont",
     show_default=True
 )
 @click.option(
@@ -179,7 +179,7 @@ def mapper(reference, fastq, kmer_size,
     from .mapper import PoreCMapper
 
     additional_arguments = mm2_params.strip().split()
-
+ 
     pcm = PoreCMapper(reference, fastq,
                         k = kmer_size,
                         w = window_size,
@@ -628,6 +628,65 @@ def porec_intersection(table, bed, output, threads):
     pct.read_table(table)
     pct.intersection(bed, output)
 
+@alignments.command()
+@click.argument(
+    'table',
+    metavar='Pore-C-Table',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="ContigSizes",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--method",
+    type=click.Choice(["binnify", "nparts"]),
+    default="binnify",
+    show_default=True
+)
+@click.option(
+    "-n",
+    "--nparts",
+    type=int,
+    default=5,
+    show_default=True,
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    help="Bin size in bp.",
+    type=int,
+    default=10000,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def porec2csv(table, contigsizes, method, nparts, binsize, output):
+    """
+    Convert pore-c table to csv, which can import to paohvis
+    """
+    from .core import PoreCTable
+    from .utilities import read_chrom_sizes
+
+    contigsizes = read_chrom_sizes(contigsizes)
+
+    pct = PoreCTable()
+    pct.read_table(table)
+    if method == "binnify":
+        pct.binnify(contigsizes, binsize,)
+    else:
+        pct.divide_contig_into_nparts(contigsizes, nparts)
+        
+    pct.to_pao_csv(output)
+
+
+
 @cli.group(cls=CommandGroup, short_help='Prepare for subsequence analysis.')
 @click.pass_context
 def prepare(ctx):
@@ -930,6 +989,7 @@ def alleles(fasta, output, method,
     from .alleles import GmapAllele, PartigAllele
     
     if method == 'gene':
+        assert ploidy is not None, "-p parameter should be provide"
         ga = GmapAllele(fasta, cds, bed, ploidy, 
                         skip_index=skip_gmap_index,
                         threads=threads)
@@ -968,14 +1028,28 @@ def alleles(fasta, output, method,
     show_default=True
 )
 @click.option(
+    "-wl",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True),
+    hidden=True
+)
+@click.option(
     '-ns',
     '--no-sort',
     'no_sort',
     help='Do not sort the prune table by similarity.',
     metavar="BOOL",
     is_flag=True,
-    default=False,
-    show_default=True
+    default=True,
+    show_default=True,
+    hidden=True
 )
 @click.option(
     '-o',
@@ -992,6 +1066,7 @@ def alleles(fasta, output, method,
     show_default=True
 )
 def kprune(alleletable, coolfile, countre, 
+           whitelist,
            no_sort, output, symmetric):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
@@ -1003,9 +1078,11 @@ def kprune(alleletable, coolfile, countre,
     """
     from .kprune import KPruner
     
+    if whitelist:
+        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
     sort_by_similarity = False if no_sort else True
     
-    kp = KPruner(alleletable, coolfile, sort_by_similarity, countre)
+    kp = KPruner(alleletable, coolfile, sort_by_similarity, countre, whitelist)
     kp.run()
     kp.save_prune_list(output, symmetric)
 

@@ -2476,6 +2476,9 @@ class PoreCTable:
         self.data = data.astype(self.META)
 
     def to_pairs(self, chromsize, output):
+        """
+        Deprecated, Please use cphasing-rs porec2pairs.
+        """
         def _to_pairs_per_concatemer(df):
             rows = list(
                 df.sort_values(['chrom', 'pos']).itertuples()
@@ -2772,8 +2775,7 @@ class PoreCTable:
                                                 'start': 'Start', 
                                                 'end': 'End',
                                                 'index': 'Index'}))
-        print(query_gr)
-        print(bed_gr)
+
         res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
         if res_df.empty:
             logger.warn('Could not found anything.')
@@ -2785,6 +2787,109 @@ class PoreCTable:
 
         self.data.loc[res_index].sort_index().to_csv(output, sep='\t', index=False, header=False)
         logger.info(f"Successful output result in `{output}`")
+
+
+    def binnify(self, contigsizes, binsize=10000):
+        """
+        Divide contig into several bins
+
+        Params:
+        --------
+        contigsizes: `pd.DataFrame`,
+                dataframe of contigsizes, and chromosome is the index
+        binsize: `int`, 
+                the size of a bin
+        """
+
+        bins = cooler.util.binnify(contigsizes.iloc[:, 0], binsize)
+        # self.data = (self.data.eval('pos=(start + end )/2')
+        #                 .astype({'pos': 'int'})
+        #                 .eval(f'start=pos - pos % {binsize}')
+        #                 .eval(f'end=start + {binsize}'))
+
+        bins.columns = ['Chromosome', 'Start', 'End']
+        bins_gr = pr.PyRanges(bins)
+
+
+        tmp_data = (self.data.reset_index()
+                                .eval("pos=(start + end)/2")
+                                .astype({'pos': 'int'})[['chrom', 'pos', 'index']])
+        tmp_data = tmp_data.eval('start = pos -1')
+
+        tmp_data.columns = ['Chromosome',  'End', 'Index', 'Start',]
+        tmp_data = tmp_data[['Chromosome', 'Start', 'End', 'Index']]
+        tmp_gr = pr.PyRanges(tmp_data)
+        res_df = tmp_gr.join(bins_gr).df
+        del tmp_data, tmp_gr 
+        gc.collect()
+
+        res_df = res_df[['Chromosome', 'Start_b', 'End_b', 'Index']]
+        res_df.columns = ['chrom', 'start', 'end', 'index']
+        res_df = res_df.set_index('index')
+        self.data['start'] = res_df['start']
+        self.data['end'] = res_df['end']
+
+        self.data = self.data[self.HEADER]
+
+
+    def divide_contig_into_nparts(self, contigsizes, n=5):
+        """
+        Divide contig into n parts
+
+        Params:
+        --------
+        contigsizes: `pd.DataFrame`
+                dataframe of contigsizes, and contig is the index
+
+        n: `int`, 
+            number of parts       
+        """
+        bins = contigsizes.copy()
+        bins['start'] = contigsizes.iloc[:, 0].map(lambda x: np.linspace(0, x, 6).astype('int')[:-1])
+        bins['end'] = contigsizes.iloc[:, 0].map(lambda x: np.linspace(0, x, 6).astype('int')[1:])
+        bins.drop("length", axis=1, inplace=True)
+        bins = bins.explode(['start', 'end'])
+        
+        bins = bins.reset_index()
+        bins.columns = ['Chromosome', 'Start', 'End']
+        bins_gr = pr.PyRanges(bins)
+
+
+        tmp_data = (self.data.reset_index()
+                                .eval("pos=(start + end)/2")
+                                .astype({'pos': 'int'})[['chrom', 'pos', 'index']])
+        tmp_data = tmp_data.eval('start = pos -1')
+
+        tmp_data.columns = ['Chromosome',  'End', 'Index', 'Start',]
+        tmp_data = tmp_data[['Chromosome', 'Start', 'End', 'Index']]
+        tmp_gr = pr.PyRanges(tmp_data)
+        res_df = tmp_gr.join(bins_gr).df
+        del tmp_data, tmp_gr 
+        gc.collect()
+
+        res_df = res_df[['Chromosome', 'Start_b', 'End_b', 'Index']]
+        res_df.columns = ['chrom', 'start', 'end', 'index']
+        res_df = res_df.set_index('index')
+        self.data['start'] = res_df['start']
+        self.data['end'] = res_df['end']
+
+        self.data = self.data[self.HEADER]
+        
+
+    def to_pao_csv(self, output="output.pao.csv"):
+        """
+        Convert pore-c table to csv, which can import into paohviz
+        """
+        tmp_data = self.data[["read_idx", "chrom", "start", "end"]]
+
+        tmp_data['node_name'] = tmp_data.apply(lambda x: f"{x.chrom}:{x.start}-{x.end}", axis=1)
+        tmp_data['time_slot'] = tmp_data['read_idx']
+        tmp_data['edge_name_description'] = tmp_data['read_idx']
+        tmp_data = tmp_data[['read_idx', 'node_name', 'time_slot', 'edge_name_description', 'chrom']]
+        tmp_data.columns = ['edge_id', 'node_name', 'time_slot', 
+                            'edge_name_description', 'group_name']
+        
+        tmp_data.to_csv(output, header=None, index=None)
 
     
     def save(self, output, tmpdir="/tmp"):

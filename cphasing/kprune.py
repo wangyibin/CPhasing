@@ -19,7 +19,7 @@ import pandas as pd
 
 from collections import defaultdict
 from copy import deepcopy
-from itertools import combinations
+from itertools import product
 from joblib import Parallel, delayed
 from scipy.sparse import triu
 
@@ -51,12 +51,24 @@ class KPruner:
     >>> kp.save_prune_list('prune.contig.list')
     
     """
-    def __init__(self, alleletable, coolfile, sort_by_similarity=True, count_re=None, threads=4):
+    def __init__(self, alleletable, coolfile, 
+                sort_by_similarity=True, count_re=None, 
+                whitelist=None,
+                threads=4):
         self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')
         if sort_by_similarity:
             _alleletable = self.alleletable.data.sort_values(['similarity'], ascending=False)
             self.alleletable.data = _alleletable.query('similarity < 1.0')
+
+        if whitelist:
+            whitelist = set(whitelist)
             
+            _alleletable = self.alleletable.data[
+                ~self.alleletable.data[1].isin(whitelist) & 
+                ~self.alleletable.data[2].isin(whitelist)]
+
+            self.alleletable.data = _alleletable
+             
         self.coolfile = coolfile 
         
         self.threads = threads
@@ -92,7 +104,7 @@ class KPruner:
 
     def get_allele_group(self):
         tmp_df = self.alleletable.data #.drop_duplicates(1)
-        
+
         tmp_df = tmp_df.groupby(1, sort=False)[2].apply(lambda x: list(x))
         
         return tmp_df.to_dict()
@@ -141,45 +153,6 @@ class KPruner:
         matching = g.maximum_bipartite_matching(weights='weight')
         
         if matching.match_of(0) == 2:
-            if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
-                print(contig_edges, scores, True, file=sys.stderr)
-            return True
-        else:
-            if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
-                print(matching.match_of(0), file=sys.stderr)
-                print(contig_edges, scores, False, file=sys.stderr)
-            return False
-
-    @staticmethod
-    def is_strong_contact2(allele_pair1, allele_pair2, score_db):
-        
-        contig_edges = []
-        tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
-        tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
-        l1 = len(tmp_allele_pair1)
-        l2 = len(tmp_allele_pair2)
-        edges = []
-        node_clusters = []
-        
-        for i, a in enumerate(tmp_allele_pair1):
-            for j, b in enumerate(tmp_allele_pair2):
-                contig_edges.append((a, b))
-                edges.append((i, l1+j))
-                
-
-      
-        scores = [score_db.get(i, 0) for i in contig_edges]
-        
-        # edges = [(0, 2), (0, 3), (1, 2), (1, 3)]
-  
-        ## igraph quickly (0.000331s)
-        g = ig.Graph.Bipartite([0] * l1 + [1] * l2, edges)
-       
-        g.es['weight'] = scores
-
-        matching = g.maximum_bipartite_matching(weights='weight')
-        
-        if matching.match_of(0) == l1:
             # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
             #     print(contig_edges, scores, True, file=sys.stderr)
             return True
@@ -187,6 +160,30 @@ class KPruner:
             # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
             #     print(matching.match_of(0), file=sys.stderr)
             #     print(contig_edges, scores, False, file=sys.stderr)
+            return False
+
+    @staticmethod
+    def is_strong_contact2(allele_pair1, allele_pair2, score_db):
+        
+        tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
+        tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
+        l1 = len(tmp_allele_pair1)
+        l2 = len(tmp_allele_pair2)
+  
+        contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
+        edges = list(product(range(l1), range(l1, l1 + l2)))
+
+        scores = [score_db.get(i, 0) for i in contig_edges]
+        
+        g = ig.Graph.Bipartite([0] * l1 + [1] * l2, edges)
+       
+        g.es['weight'] = scores
+
+        matching = g.maximum_bipartite_matching(weights='weight')
+        
+        if matching.match_of(0) == l1:
+            return True
+        else:
             return False
     
 

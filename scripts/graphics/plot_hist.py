@@ -66,13 +66,16 @@ def main(args):
     
     args = p.parse_args(args)
 
+    fig, ax = plt.subplots(figsize=(5.7, 5))
+
     df = read_csv(args.data[0])
+
     if args.x_min is not None and args.x_max is not None:
         for group in df.columns:
             df[group] = df[(df[group] <= args.x_max)]
 
     plt.rcParams['font.family'] = 'Helvetica'
-    fig, ax = plt.subplots(figsize=(5.7, 5))
+    
     ax = sns.histplot(df, kde=True, color='r', alpha=0.3, stat=args.stat, #linewidth=0,
                       bins=args.bins)
     

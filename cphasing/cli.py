@@ -38,6 +38,16 @@ class CommandGroup(click.Group):
     def list_commands(self, ctx):
         return list(self.commands)
 
+    def get_command(self, ctx, cmd_name):
+        """
+        Alias command, https://stackoverflow.com/questions/46641928/python-click-multiple-command-names
+        """
+        try:
+            cmd_name = ALIASES[cmd_name].name 
+        except KeyError:
+            pass 
+        return super().get_command(ctx, cmd_name)
+
 @click.version_option(__version__, "-V", "--version")
 @click.group(context_settings={"help_option_names": ["-h", "--help"]},
             cls=CommandGroup)
@@ -1059,6 +1069,15 @@ def alleles(fasta, output, method,
     show_default=True,
 )
 @click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
     '--symmetric',
     help='output the symmetric contig pairs',
     is_flag=True,
@@ -1066,8 +1085,8 @@ def alleles(fasta, output, method,
     show_default=True
 )
 def kprune(alleletable, coolfile, countre, 
-           whitelist,
-           no_sort, output, symmetric):
+           whitelist, no_sort, output, 
+           threads, symmetric):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
@@ -1082,7 +1101,8 @@ def kprune(alleletable, coolfile, countre,
         whitelist = [i.strip() for i in open(whitelist) if i.strip()]
     sort_by_similarity = False if no_sort else True
     
-    kp = KPruner(alleletable, coolfile, sort_by_similarity, countre, whitelist)
+    kp = KPruner(alleletable, coolfile, sort_by_similarity, 
+                    countre, whitelist, threads=threads)
     kp.run()
     kp.save_prune_list(output, symmetric)
 
@@ -1596,6 +1616,7 @@ def hyperpartition(hypergraph,
     hp.to_cluster(output)
 
 
+
 @cli.command()
 @click.argument(
     "clustertable",
@@ -1938,6 +1959,13 @@ def plot(matrix,
                  yticks=yticks,
                  add_lines=False if no_lines else True,
                  threads=threads)
+
+
+ALIASES = {
+    "hg": hypergraph,
+    "hp": hyperpartition,
+    "sf": scaffolding,
+}
 
 ## hic subcommand
 from .hic.cli import hic

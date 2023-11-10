@@ -21,6 +21,7 @@ from collections import defaultdict
 from copy import deepcopy
 from itertools import product
 from joblib import Parallel, delayed
+from multiprocessing import Manager
 from scipy.sparse import triu
 
 from .core import AlleleTable, CountRE
@@ -163,17 +164,17 @@ class KPruner:
             return False
 
     @staticmethod
-    def is_strong_contact2(allele_pair1, allele_pair2, score_db):
+    def is_strong_contact2(l1, l2, edges, scores):#allele_pair1, allele_pair2, score_db):
         
-        tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
-        tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
-        l1 = len(tmp_allele_pair1)
-        l2 = len(tmp_allele_pair2)
+        # tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
+        # tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
+        # l1 = len(tmp_allele_pair1)
+        # l2 = len(tmp_allele_pair2)
   
-        contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
-        edges = list(product(range(l1), range(l1, l1 + l2)))
+        # contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
+        # edges = list(product(range(l1), range(l1, l1 + l2)))
 
-        scores = [score_db.get(i, 0) for i in contig_edges]
+        # scores = [score_db.get(i, 0) for i in contig_edges]
         
         g = ig.Graph.Bipartite([0] * l1 + [1] * l2, edges)
        
@@ -188,14 +189,15 @@ class KPruner:
     
 
     @staticmethod
-    def _remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db):
-        try:
-            allele1 = allele_group_db[ctg1]
-            allele2 = allele_group_db[ctg2]
-        except KeyError:
-            return None
-        # print(ctg1, ctg2, allele1, allele2)
-        flag = KPruner.is_strong_contact2((ctg1, allele1), (ctg2, allele2), score_db)
+    def _remove_weak_with_allelic(ctg1, ctg2, l1, l2, edges, scores):#ctg1, ctg2, allele_group_db, score_db):
+        # try:
+        #     allele1 = allele_group_db[ctg1]
+        #     allele2 = allele_group_db[ctg2]
+        # except KeyError:
+        #     return None
+
+        # flag = KPruner.is_strong_contact2((ctg1, allele1), (ctg2, allele2), score_db)
+        flag = KPruner.is_strong_contact2(l1, l2, edges, scores)
         if not flag:
             return (ctg1, ctg2)
         else:
@@ -208,12 +210,28 @@ class KPruner:
         score_db = self.score_db 
         allele_group_db = self.allele_group_db
         for ctg1, ctg2 in self.contig_pairs:
-            # args.append((ctg1, ctg2, allele_group_db, score_db))
-            res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db))
+            try:
+                allele1 = allele_group_db[ctg1]
+                allele2 = allele_group_db[ctg2]
+            except KeyError:
+                continue
+            
+            tmp_allele_pair1 = [ctg1, *allele1]
+            tmp_allele_pair2 = [ctg2, *allele2]
+            l1 = len(tmp_allele_pair1)
+            l2 = len(tmp_allele_pair2)
+    
+            contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
+            edges = list(product(range(l1), range(l1, l1 + l2)))
 
-        # res = Parallel(n_jobs=self.threads)(
-        #         delayed(KPruner._remove_weak_with_allelic)(i, j, k, l)
-        #             for i, j, k, l in args )
+            scores = [score_db.get(i, 0) for i in contig_edges]
+
+            args.append((ctg1, ctg2, l1, l2, edges, scores))
+            # res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db))
+
+        res = Parallel(n_jobs=self.threads)(
+                delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
+                    for i, j, k, l, m, n in args )
         
         res = list(filter(lambda x: x is not None, res))
         weak_contacts = len(res)
@@ -386,6 +404,8 @@ class KPruneHyperGraph:
         allele_group_db = self.allele_group_db
 
         for ctg1, ctg2 in self.contig_pairs:  
+
+            
             res.append(KPruneHyperGraph._remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db))
 
         res = list(filter(lambda x: x is not None, res))

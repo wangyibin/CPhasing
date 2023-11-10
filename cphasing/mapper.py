@@ -378,7 +378,7 @@ class PoreCMapper:
                 '-c',
                 '--secondary=no',
                 '-I', self.batchsize,
-                str(self.index_path),
+                str(self.reference),
                 str(self.read)]
         cmd.extend(list(self.additional_arguments))
 
@@ -432,10 +432,10 @@ class PoreCMapper:
         
         self.get_contig_sizes()
         
-        if not self.index_path.exists() or self.force:
-            self.index()
-        else:
-            logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
+        # if not self.index_path.exists() or self.force:
+        #     self.index()
+        # else:
+        #     logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
         
         if not op.exists(self.outpaf) or self.force:
             self.mapping()

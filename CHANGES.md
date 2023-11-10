@@ -1,5 +1,10 @@
 # Release notes #
 
+##[v0.0.50]
+Date: 2023-11-10
+## Enhancement
+- `kprune`, add multiprocessing
+
 ##[v0.0.49]
 Date: 2023-11-10
 ## Enhancement 

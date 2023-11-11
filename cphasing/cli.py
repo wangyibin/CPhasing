@@ -1071,7 +1071,8 @@ def alleles(fasta, output, method,
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads.',
+    help=("Number of threads. "
+    "Out of memory when load large number of contigs, can be set to 1 to avoid this problem."),
     type=int,
     default=4,
     metavar='INT',

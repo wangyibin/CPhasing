@@ -74,13 +74,14 @@ class KPruner:
         
         self.threads = threads
 
-        self.allele_group_db = self.get_allele_group()
-
         self.cool = cooler.Cooler(self.coolfile)
+        self.contig2idx = dict(zip(self.cool.chromnames, range(len(self.cool.chromnames))))
+        self.idx2contig = dict(zip(range(len(self.cool.chromnames)), self.cool.chromnames))
         self.pixels1 = self.cool.matrix(balance=False, join=True, 
                                        as_pixels=True)[:][['chrom1', 'chrom2', 'count']]
         
-        self.contig_pairs = self.pixels1[['chrom1', 'chrom2']].values.tolist()
+        
+        self.contig_pairs = self.pixels1[['chrom1', 'chrom2']].applymap(self.contig2idx.get).values.tolist()
         self.contig_pairs = set(map(tuple, self.contig_pairs))
 
         self.count_re = CountRE(count_re, minRE=1) if count_re else None
@@ -93,11 +94,14 @@ class KPruner:
         self.pixels2.columns = ['chrom2', 'chrom1', 'count']
      
         self.pixels = pd.concat([self.pixels1, self.pixels2], axis=0)
+        self.pixels['chrom1'] = self.pixels['chrom1'].map(self.contig2idx.get)
+        self.pixels['chrom2'] = self.pixels['chrom2'].map(self.contig2idx.get)
         self.pixels.set_index(['chrom1', 'chrom2'], inplace=True)
         self.pixels.replace([np.inf, -np.inf], 0, inplace=True)
         del self.pixels1, self.pixels2
         gc.collect()
 
+        self.allele_group_db = self.get_allele_group()
         self.score_db = self.get_score_db()
 
         self.allelic_prune_list = []
@@ -105,7 +109,7 @@ class KPruner:
 
     def get_allele_group(self):
         tmp_df = self.alleletable.data #.drop_duplicates(1)
-
+        tmp_df = tmp_df.applymap(self.contig2idx.get)
         tmp_df = tmp_df.groupby(1, sort=False)[2].apply(lambda x: list(x))
         
         return tmp_df.to_dict()
@@ -127,7 +131,9 @@ class KPruner:
     def remove_allelic(self):
         _allelic = self.alleletable.data[
                         self.alleletable.data[1] < self.alleletable.data[2]
-                        ][[1, 2]].values.tolist()
+                        ][[1, 2]]
+        _allelic = _allelic.applymap(self.contig2idx.get).values.tolist()
+
         _allelic = list(map(tuple, _allelic))
         _allelic = list(set(_allelic).intersection(self.contig_pairs))
         logger.info(f"Removed {len(_allelic)} allelic contacts.")
@@ -136,6 +142,7 @@ class KPruner:
 
         # self.pixels.loc[self.pixels.reindex(_allelic).dropna().index] = 0
         # self.pixels = self.pixels.loc[self.pixels['count'] > 0]
+
         self.pixels = self.pixels.drop(_allelic, axis=0)
         self.contig_pairs = self.contig_pairs - set(_allelic)
     
@@ -209,6 +216,8 @@ class KPruner:
         res = []
         score_db = self.score_db 
         allele_group_db = self.allele_group_db
+        
+       
         for ctg1, ctg2 in self.contig_pairs:
             try:
                 allele1 = allele_group_db[ctg1]
@@ -226,12 +235,15 @@ class KPruner:
 
             scores = [score_db.get(i, 0) for i in contig_edges]
 
-            args.append((ctg1, ctg2, l1, l2, edges, scores))
-            # res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, allele_group_db, score_db))
+            if self.threads > 1:
+                args.append((ctg1, ctg2, l1, l2, edges, scores))
+            else:
+                res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, l1, l2, edges, scores))
 
-        res = Parallel(n_jobs=self.threads)(
-                delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
-                    for i, j, k, l, m, n in args )
+        if self.threads > 1:
+            res = Parallel(n_jobs=self.threads)(
+                    delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
+                        for i, j, k, l, m, n in args )
         
         res = list(filter(lambda x: x is not None, res))
         weak_contacts = len(res)
@@ -239,6 +251,9 @@ class KPruner:
         self.weak_prune_list.extend(res)
     
     def save_prune_list(self, output, symmetric=False):
+        self.allelic_prune_list = list(map(lambda x: tuple(
+                                        map(lambda y: self.idx2contig[y], x)), 
+                                        self.allelic_prune_list))
         allele_data = self.alleletable.data.set_index([1, 2])
         
         allelic_res = allele_data.reindex(self.allelic_prune_list) 
@@ -248,6 +263,7 @@ class KPruner:
 
         if len(self.weak_prune_list) > 0:
             weak_res = pd.DataFrame(self.weak_prune_list)
+            weak_res = weak_res.applymap(self.idx2contig.get)
             weak_res.columns = self.alleletable.AlleleHeader2[2:4]
             weak_res['type'] = 1 
             weak_res['mz1'] = 0

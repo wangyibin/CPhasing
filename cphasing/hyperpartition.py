@@ -87,6 +87,7 @@ class HyperPartition:
                     alleletable=None,
                     prunetable=None,
                     allelic_factor=-1,
+                    cross_allelic_factor=0.3,
                     allelic_similarity=0.8,
                     min_allelic_overlap=0.1,
                     ultra_complex=5.0,
@@ -113,6 +114,7 @@ class HyperPartition:
         self.prunetable = prunetable
         self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
         self.allelic_factor = allelic_factor
+        self.cross_allelic_factor = cross_allelic_factor
     
         self.allelic_similarity = allelic_similarity
         self.min_allelic_overlap = min_allelic_overlap
@@ -379,6 +381,7 @@ class HyperPartition:
                                                 self.P_allelic_idx,
                                                 self.P_weak_idx,
                                                 self.allelic_factor,
+                                                self.cross_allelic_factor,
                                                 self.resolution1, 
                                                 self.min_weight,
                                                 self.threshold, 
@@ -399,15 +402,15 @@ class HyperPartition:
             for num, group in enumerate(self.K):
                 if len(group) > 1 and HyperPartition.is_error(group, self.allelic_idx_set, vertices_idx_sizes):
                     args.append((group, self.k[0], self.prune_pair_df, self.H, vertices_idx_sizes, self.ultra_complex, 
-                                self.min_weight, self.allelic_similarity, self.allelic_factor, self.min_scaffold_length,
+                                self.min_weight, self.allelic_similarity, self.allelic_factor, 
+                                self.cross_allelic_factor, self.min_scaffold_length,
                                 self.threshold, self.max_round, num))
                 else:
                     _results.append(group)
-
             _results2 = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                             delayed(HyperPartition._incremental_partition) 
-                             (i, j, _k, l, m, n, o, p, q, r, s, t, u) 
-                                for i, j, _k, l, m, n, o, p, q, r, s, t, u in args) 
+                             (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
+                                for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args) 
             _, _results2 = zip(*_results2)
             _results2 = list_flatten(_results2)
             _results.extend(_results2)
@@ -435,7 +438,7 @@ class HyperPartition:
     @staticmethod
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, #NW, 
                             resolution, min_weight=1, allelic_similarity=0.8, 
-                            min_allelic_overlap=0.1, allelic_factor=-1,
+                            min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.3,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -492,6 +495,7 @@ class HyperPartition:
                                             sub_P_allelic_idx, 
                                             sub_P_weak_idx,
                                             allelic_factor,
+                                            cross_allelic_factor,
                                             resolution, 
                                             min_weight,
                                             threshold, 
@@ -530,7 +534,8 @@ class HyperPartition:
 
         if not first_cluster:
             A, _, self.K = IRMM(self.H, #self.NW, 
-                        None, None, self.allelic_factor, self.resolution1, 
+                        None, None, self.allelic_factor, 
+                            self.cross_allelic_factor, self.resolution1, 
                             self.min_weight, self.threshold, 
                             self.max_round, threads=self.threads)
 
@@ -564,15 +569,15 @@ class HyperPartition:
         for num, sub_k in enumerate(self.K, 1):
             args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
                         self.resolution2, self.min_weight, self.allelic_similarity, 
-                        self.min_allelic_overlap, self.allelic_factor, 
+                        self.min_allelic_overlap, self.allelic_factor, self.cross_allelic_factor,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w in args)
         
         self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []

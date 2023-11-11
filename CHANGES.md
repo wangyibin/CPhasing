@@ -1,5 +1,14 @@
 # Release notes #
 
+##[v0.0.51]
+Date: 2023-11-11
+## New features
+- `agp`, add `pseudo-agp`, create a pseudo agp from simulation contigs
+
+## Bug fixed
+- `hyperpartition`, add `cross_allelic_factor`
+
+
 ##[v0.0.50]
 Date: 2023-11-10
 ## Enhancement

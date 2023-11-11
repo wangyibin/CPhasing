@@ -101,10 +101,13 @@ def main(args):
                 / sum(list(map(lambda x: contigsizes.get(x), _contigs)))
             R = sum(list(map(lambda x: contigsizes.get(x), main_contigs))) \
                 / sum(list(map(lambda x: contigsizes.get(x), real_db[real_chrom])))
-            print(real_chrom, P, R, file=sys.stdout)
+            
+            F1 = (2 * P * R) / (P + R)
+
+            print(real_chrom, P, R, F1, file=sys.stdout)
             res[real_chrom] = (P, R)
         except KeyError:
-            print(real_chrom, 0, 0, file=sys.stdout)
+            print(real_chrom, 0, 0, 0, file=sys.stdout)
             zero_chrom.append(real_chrom)
             res[real_chrom] = (0, 0)
     

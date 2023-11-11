@@ -290,6 +290,7 @@ def IRMM(H, # NW,
             P_allelic_idx=None,
             P_weak_idx=None,
             allelic_factor=-1,
+            cross_allelic_factor=0.3,
             resolution=1, 
             min_weight=1,
             threshold=0.01, 
@@ -349,7 +350,7 @@ def IRMM(H, # NW,
     D_e_inv = 1/D_e_num
     D_e_inv[D_e_inv == -np.inf] = 0
     D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                            W.shape, dtype=np.float32)
+                            W.shape, dtype=np.float64)
     
     H_T = H.T
 
@@ -398,7 +399,7 @@ def IRMM(H, # NW,
                 A[P_weak_idx[0], P_weak_idx[1]] = 0
             else:
                 A[P_weak_idx[0], P_weak_idx[1]] = \
-                    allelic_factor * A[P_weak_idx[0], P_weak_idx[1]]
+                    cross_allelic_factor * A[P_weak_idx[0], P_weak_idx[1]]
             
         A = A.tocsr()
         

@@ -65,8 +65,8 @@ class KPruner:
             whitelist = set(whitelist)
             
             _alleletable = self.alleletable.data[
-                ~self.alleletable.data[1].isin(whitelist) & 
-                ~self.alleletable.data[2].isin(whitelist)]
+                self.alleletable.data[1].isin(whitelist) & 
+                self.alleletable.data[2].isin(whitelist)]
 
             self.alleletable.data = _alleletable
              

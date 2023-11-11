@@ -1310,7 +1310,17 @@ def hypergraph(contacts,
     metavar="INT",
     help="Factor of allelic weight.",
     default=-1,
-    type=int,
+    type=float,
+    show_default=True
+)
+@click.option(
+    "-caf",
+    "--cross-allelic-factor",
+    "cross_allelic_factor",
+    metavar="INT",
+    help="Factor of cross-allelic weight.",
+    default=0,
+    type=float,
     show_default=True
 )
 @click.option(
@@ -1492,6 +1502,7 @@ def hyperpartition(hypergraph,
                     alleletable,
                     prunetable,
                     allelic_factor,
+                    cross_allelic_factor,
                     allelic_similarity,
                     min_allelic_overlap,
                     incremental,
@@ -1582,6 +1593,7 @@ def hyperpartition(hypergraph,
                             alleletable,
                             prunetable,
                             allelic_factor,
+                            cross_allelic_factor,
                             allelic_similarity,
                             min_allelic_overlap,
                             ultra_complex,
@@ -2420,3 +2432,32 @@ def prune_matrix(coolfile, prunetable, outcool):
     prunepairs = list(map(tuple, prunepairs))
 
     prune_matrix(coolfile, prunepairs, outcool)
+
+@utils.command()
+@click.argument(
+    "real_list",
+    metavar="Real_List",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="ContigSizes",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def pseudo_agp(real_list, contigsizes, output):
+    """
+    create a pseudo agp from simulation data
+
+        Real_list: Path of two columns file, which first is chrom and second is contig
+
+        ContigSizes: Path of contig sizes file.
+    """
+    from .agp import pseudo_agp
+    pseudo_agp(real_list, contigsizes, output)

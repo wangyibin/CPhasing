@@ -15,6 +15,7 @@ from joblib import Parallel, delayed
 from pathlib import Path
 
 from .core import Tour
+from .utilities import get_contig_length
 
 logger = logging.getLogger(__name__)
 
@@ -328,3 +329,26 @@ def statagp(agp, output):
         sep='\n', file=output)
     
     
+def pseudo_agp(real_list, contigsizes, output):
+    """
+    Create a pseudo agp file from a list and contigsizes.
+    """
+    real_list = pd.read_csv(real_list, sep='\t', header=None, index_col=None)
+    contig_sizes = dict(i.strip().split() for i in open(contigsizes) if i.strip())
+
+    idx = 0
+    for chrom, contig_df in real_list.groupby(0):
+        start = 1 
+        end = 1
+        idx += 1 
+        for j, contig in enumerate(contig_df[1].values.tolist()):
+            start = end
+            contig_length = int(contig_sizes[contig])
+            end = start + contig_length - 1
+            print("\t".join(map(str, [chrom, start, end, idx, "W", contig, 1, contig_length, "+"])), file=output)
+            if j < len(contig_df) - 1:
+                start = end
+                end = start + 100
+                print("\t".join(map(str, [chrom, start, end, idx, "U", 100, "contig", "yes", "map",])), file=output)
+
+        

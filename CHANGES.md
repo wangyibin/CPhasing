@@ -1,4 +1,6 @@
 # Release notes #
+## Enhancement
+- `kprune`, load data into tempfile to decrease the memory usage.
 
 ##[v0.0.51]
 Date: 2023-11-11

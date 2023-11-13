@@ -323,7 +323,7 @@ class PoreCMapper:
 
 
         self.prefix = Path(self.read.stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq'}:
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta"}:
             self.prefix = self.prefix.with_suffix('')
        
         self.prefix = Path(str(self.prefix)) if not outprefix else outprefix

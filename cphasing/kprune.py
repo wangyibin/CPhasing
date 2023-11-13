@@ -11,10 +11,12 @@ import gc
 import os
 import os.path as op
 import sys
+import tempfile
 
 import cooler
 import igraph as ig
 import numpy as np
+import msgspec
 import pandas as pd 
 
 from collections import defaultdict
@@ -25,9 +27,22 @@ from multiprocessing import Manager
 from scipy.sparse import triu
 
 from .core import AlleleTable, CountRE
+from .utilities import list_flatten
 
 logger = logging.getLogger(__name__)
 
+
+class ContigPairs(msgspec.Struct):
+    ctg1: str
+    ctg2: str
+    l1: int
+    l2: int
+    edges: list
+    scores: list
+
+    
+class CandidateContacts(msgspec.Struct):
+    data: list 
 
 class KPruner:
     """
@@ -55,6 +70,7 @@ class KPruner:
     def __init__(self, alleletable, coolfile, 
                 sort_by_similarity=True, count_re=None, 
                 whitelist=None,
+                chunksize=100000,
                 threads=4):
         self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2')
         if sort_by_similarity:
@@ -72,6 +88,7 @@ class KPruner:
              
         self.coolfile = coolfile 
         
+        self.chunksize = chunksize
         self.threads = threads
 
         self.cool = cooler.Cooler(self.coolfile)
@@ -210,6 +227,18 @@ class KPruner:
         else:
             return None
 
+    @staticmethod
+    def _remove_weak_with_allelic_chunk(candidate_contact_file):
+        with open(candidate_contact_file, 'rb') as fp:
+            cc = msgspec.msgpack.decode(fp.read(), type=CandidateContacts)
+        
+        res = []
+        for cp in cc.data:
+            data = [cp["ctg1"], cp["ctg2"], cp["l1"], cp["l2"], cp["edges"], cp["scores"]]
+            res.append(KPruner._remove_weak_with_allelic(*data))
+
+        return res 
+        
 
     def remove_weak_with_allelic(self):
         args = []
@@ -217,34 +246,83 @@ class KPruner:
         score_db = self.score_db 
         allele_group_db = self.allele_group_db
         
-       
-        for ctg1, ctg2 in self.contig_pairs:
-            try:
-                allele1 = allele_group_db[ctg1]
-                allele2 = allele_group_db[ctg2]
-            except KeyError:
-                continue
+        line_counts = 0
+        tmp_file_idx = 0
+        tmp_file_list = []
+
+        if len(self.contig_pairs) > self.chunksize:
+            with tempfile.TemporaryDirectory(prefix="kprune_", dir="./") as tmpDir:
+
+                for ctg1, ctg2 in self.contig_pairs:
+                    line_counts += 1
+                    try:
+                        allele1 = allele_group_db[ctg1]
+                        allele2 = allele_group_db[ctg2]
+                    except KeyError:
+                        continue
+                    
+                    tmp_allele_pair1 = [ctg1, *allele1]
+                    tmp_allele_pair2 = [ctg2, *allele2]
+                    l1 = len(tmp_allele_pair1)
+                    l2 = len(tmp_allele_pair2)
             
-            tmp_allele_pair1 = [ctg1, *allele1]
-            tmp_allele_pair2 = [ctg2, *allele2]
-            l1 = len(tmp_allele_pair1)
-            l2 = len(tmp_allele_pair2)
-    
-            contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
-            edges = list(product(range(l1), range(l1, l1 + l2)))
+                    contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
+                    edges = list(product(range(l1), range(l1, l1 + l2)))
 
-            scores = [score_db.get(i, 0) for i in contig_edges]
+                    scores = [score_db.get(i, 0) for i in contig_edges]
 
-            if self.threads > 1:
-                args.append((ctg1, ctg2, l1, l2, edges, scores))
-            else:
-                res.append(KPruner._remove_weak_with_allelic(ctg1, ctg2, l1, l2, edges, scores))
+                    cp = ContigPairs(ctg1=ctg1, ctg2=ctg2,
+                                    l1=l1, l2=l2,
+                                    edges=edges, scores=scores)
+                    args.append(cp)
 
-        if self.threads > 1:
-            res = Parallel(n_jobs=self.threads)(
-                    delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
-                        for i, j, k, l, m, n in args )
+                    if line_counts % self.chunksize == 0:
+                        tmp_file = f"{tmpDir}/{tmp_file_idx}.bin"
+                        with open(tmp_file, 'wb') as out:
+                            out.write(msgspec.msgpack.encode(CandidateContacts(data=args)))
+                        
+                        tmp_file_list.append(tmp_file)
+                        tmp_file_idx += 1
+                        args=[]
+                else:
+                    tmp_file = f"{tmpDir}/{tmp_file_idx}.bin"
+                    with open(tmp_file, 'wb') as out:
+                        out.write(msgspec.msgpack.encode(CandidateContacts(data=args)))
+                    
+                    tmp_file_list.append(tmp_file)
+                    args=[]
+
+
+                res = Parallel(n_jobs=self.threads)(
+                        delayed(KPruner._remove_weak_with_allelic_chunk)(i,)
+                            for i in tmp_file_list)
         
+                res = list_flatten(res)
+        else:
+            for ctg1, ctg2 in self.contig_pairs:
+                line_counts += 1
+                try:
+                    allele1 = allele_group_db[ctg1]
+                    allele2 = allele_group_db[ctg2]
+                except KeyError:
+                    continue
+                
+                tmp_allele_pair1 = [ctg1, *allele1]
+                tmp_allele_pair2 = [ctg2, *allele2]
+                l1 = len(tmp_allele_pair1)
+                l2 = len(tmp_allele_pair2)
+        
+                contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
+                edges = list(product(range(l1), range(l1, l1 + l2)))
+
+                scores = [score_db.get(i, 0) for i in contig_edges]
+
+                args.append([ctg1, ctg2, l1, l2, edges, scores])
+            
+            res = Parallel(n_jobs=self.threads)(
+                delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
+                        for i, j, k, l, m, n in args)
+    
         res = list(filter(lambda x: x is not None, res))
         weak_contacts = len(res)
         logger.info(f"Removed {weak_contacts} weak contacts with allelic.")

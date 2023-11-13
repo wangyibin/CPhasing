@@ -1069,6 +1069,13 @@ def alleles(fasta, output, method,
     show_default=True,
 )
 @click.option(
+    '-cs',
+    '--chunksize',
+    help='chunksize of contacts data',
+    default=100000,
+    show_default=True,
+)
+@click.option(
     '-t',
     '--threads',
     help=("Number of threads. "
@@ -1087,7 +1094,7 @@ def alleles(fasta, output, method,
 )
 def kprune(alleletable, coolfile, countre, 
            whitelist, no_sort, output, 
-           threads, symmetric):
+           chunksize, threads, symmetric):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
@@ -1103,7 +1110,8 @@ def kprune(alleletable, coolfile, countre,
     sort_by_similarity = False if no_sort else True
     
     kp = KPruner(alleletable, coolfile, sort_by_similarity, 
-                    countre, whitelist, threads=threads)
+                    countre, whitelist, chunksize=chunksize,
+                      threads=threads)
     kp.run()
     kp.save_prune_list(output, symmetric)
 

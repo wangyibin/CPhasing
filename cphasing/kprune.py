@@ -33,11 +33,10 @@ logger = logging.getLogger(__name__)
 
 
 class ContigPairs(msgspec.Struct):
-    ctg1: str
-    ctg2: str
+    ctg1: int 
+    ctg2: int
     l1: int
     l2: int
-    edges: list
     scores: list
 
     
@@ -213,13 +212,13 @@ class KPruner:
     
 
     @staticmethod
-    def _remove_weak_with_allelic(ctg1, ctg2, l1, l2, edges, scores):#ctg1, ctg2, allele_group_db, score_db):
+    def _remove_weak_with_allelic(ctg1, ctg2, l1, l2, scores):#ctg1, ctg2, allele_group_db, score_db):
         # try:
         #     allele1 = allele_group_db[ctg1]
         #     allele2 = allele_group_db[ctg2]
         # except KeyError:
         #     return None
-
+        edges = list(product(range(l1), range(l1, l1 + l2)))
         # flag = KPruner.is_strong_contact2((ctg1, allele1), (ctg2, allele2), score_db)
         flag = KPruner.is_strong_contact2(l1, l2, edges, scores)
         if not flag:
@@ -234,7 +233,7 @@ class KPruner:
         
         res = []
         for cp in cc.data:
-            data = [cp["ctg1"], cp["ctg2"], cp["l1"], cp["l2"], cp["edges"], cp["scores"]]
+            data = [cp["ctg1"], cp["ctg2"], cp["l1"], cp["l2"], cp["scores"]]
             res.append(KPruner._remove_weak_with_allelic(*data))
 
         return res 
@@ -251,8 +250,8 @@ class KPruner:
         tmp_file_list = []
 
         if len(self.contig_pairs) > self.chunksize:
-            with tempfile.TemporaryDirectory(prefix="kprune_", dir="./") as tmpDir:
-
+            with tempfile.TemporaryDirectory(prefix="kprune_tmp", dir="./") as tmpDir:
+                logger.info(f"Working on a temporary directory `{tmpDir}`.")
                 for ctg1, ctg2 in self.contig_pairs:
                     line_counts += 1
                     try:
@@ -267,13 +266,9 @@ class KPruner:
                     l2 = len(tmp_allele_pair2)
             
                     contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
-                    edges = list(product(range(l1), range(l1, l1 + l2)))
+                    scores = [score_db.get(i, .0) for i in contig_edges]
 
-                    scores = [score_db.get(i, 0) for i in contig_edges]
-
-                    cp = ContigPairs(ctg1=ctg1, ctg2=ctg2,
-                                    l1=l1, l2=l2,
-                                    edges=edges, scores=scores)
+                    cp = ContigPairs(ctg1=ctg1, ctg2=ctg2, l1=l1, l2=l2, scores=scores)
                     args.append(cp)
 
                     if line_counts % self.chunksize == 0:
@@ -298,6 +293,8 @@ class KPruner:
                             for i in tmp_file_list)
         
                 res = list_flatten(res)
+
+            logger.info(f"Removed temporary directory: `{tmpDir}`.")
         else:
             for ctg1, ctg2 in self.contig_pairs:
                 line_counts += 1
@@ -313,15 +310,15 @@ class KPruner:
                 l2 = len(tmp_allele_pair2)
         
                 contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
-                edges = list(product(range(l1), range(l1, l1 + l2)))
+                
 
                 scores = [score_db.get(i, 0) for i in contig_edges]
 
-                args.append([ctg1, ctg2, l1, l2, edges, scores])
+                args.append([ctg1, ctg2, l1, l2, scores])
             
             res = Parallel(n_jobs=self.threads)(
-                delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m, n)
-                        for i, j, k, l, m, n in args)
+                delayed(KPruner._remove_weak_with_allelic)(i, j, k, l, m)
+                        for i, j, k, l, m in args)
     
         res = list(filter(lambda x: x is not None, res))
         weak_contacts = len(res)

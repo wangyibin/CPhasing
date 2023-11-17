@@ -271,6 +271,75 @@ def correct(
                     outpairs=outpairs)
     c.run()
 
+
+@hic.command()
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="FILE",
+    help="polyploid contig-level fasta.",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="PATH",
+    help="path of output allele table [default: fasta_prefix]",
+    default=None
+)
+@click.option(
+    "-c",
+    "--cds",
+    help="the cds file of reference.",
+    metavar="FILE",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-b",
+    "--bed",
+    help="the four columns bed file of reference, "
+    "(chrom, start, end, gene)",
+    metavar="FILE",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-p",
+    "--ploidy",
+    help="ploidy of genome.",
+    metavar="INT",
+    type=int,
+    default=None,
+    show_default=True,
+)
+@click.option(
+    "--skip_gmap_index",
+    help="gmap index already existed and named `DB`, skip.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. Only use for gmap method.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
+    """
+    Build allele table by gmap
+    """
+    from ..alleles import GmapAllele 
+
+    assert ploidy is not None, "-p parameter should be provide"
+    ga = GmapAllele(fasta, cds, bed, ploidy, 
+                        skip_index=skip_gmap_index,
+                        threads=threads)
+
+    
 @hic.command()
 @click.argument(
     'infile',

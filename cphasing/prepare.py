@@ -13,12 +13,13 @@ import sys
 import pandas as pd
 
 from collections import OrderedDict
-
+from pathlib import Path
 
 from .utilities import (
     digest, 
     get_contig_length,
-    read_fasta
+    read_fasta,
+    run_cmd
 )
 
 logger = logging.getLogger(__name__)
@@ -59,4 +60,25 @@ def count_re_in_genome(fasta, enzyme, output=None):
         res_df.to_csv(output, sep='\t', header=True, index=None)
         logger.info(f"Successful output Count RE file in `{output}`.")
     return res_df
+
+
+def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3, outprefix=None, log_dir="logs"):
+
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+   
+    pairs = Path(pairs)
+    prefix = pairs.with_suffix('')
+    while prefix.suffix in {'.pairs', 'gz', 'pairs'}:
+        prefix = prefix.with_suffix('')
+
+    outprefix = prefix if outprefix is None else outprefix
+
+    ## count re
+    cmd = ["cphasing-rs", "count_re", fasta, "-o", f"{outprefix}.counts_{motif}.txt"]
+    run_cmd(cmd, log=f'{log_dir}/prepare.log')
+
+    ## pairs2clm
+    cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts), "-o", f"{outprefix}.clm" ]
+    run_cmd(cmd, log=f'{log_dir}/prepare.log')
 

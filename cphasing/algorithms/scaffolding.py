@@ -73,11 +73,11 @@ class AllhicOptimize:
     def run_allhic_optimize(allhic_path, count_re, clm):
         cmd = [allhic_path, "optimize", count_re, clm]
         run_cmd(cmd, log=os.devnull, out2err=True)
-
         return count_re.replace(".txt", ".tour")
 
     @staticmethod
-    def _run(allhic_path, count_re, clm):
+    def _run(allhic_path, count_re, clm, workdir):
+        os.chdir(workdir)
         tmp_res = AllhicOptimize.run_allhic_optimize(allhic_path, count_re, clm)
 
         return tmp_res
@@ -87,18 +87,20 @@ class AllhicOptimize:
         with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
             logger.info('Working on temporary directory: {}'.format(tmpDir))
             os.chdir(tmpDir)
+            workdir = os.getcwd()
             args = []
             for group in self.clustertable.data.keys():
                 contigs = self.clustertable.data[group]
                 tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
                 tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
-                args.append((self.allhic_path, tmp_count_re, tmp_clm))
+                args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
             
             del self.clm
             gc.collect()
-
+            
+            
             Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                        self._run)(i, j, k) for i, j, k in args)
+                        self._run)(i, j, k, l) for i, j, k, l in args)
 
             if not self.fasta:
                 os.system(f"cp *tour ../")

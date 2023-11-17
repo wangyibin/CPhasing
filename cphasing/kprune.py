@@ -24,10 +24,11 @@ from copy import deepcopy
 from itertools import product
 from joblib import Parallel, delayed
 from multiprocessing import Manager
+from pathlib import Path
 from scipy.sparse import triu
 
 from .core import AlleleTable, CountRE
-from .utilities import list_flatten
+from .utilities import list_flatten, run_cmd
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,32 @@ class ContigPairs(msgspec.Struct):
 class CandidateContacts(msgspec.Struct):
     data: list 
 
+class KPrunerRust:
+    def __init__(self, alleletable, contacts, count_re,
+                    output="prune.contig.table", 
+                    method="greedy", threads=4, 
+                    log_dir="logs"):
+        self.alleletable = alleletable
+        self.contacts = contacts
+        self.count_re = count_re
+        self.output = output
+        self.method = method 
+        self.threads = 4 
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+    def run(self):
+        cmd = ["cphasing-rs", "kprune", self.alleletable,
+               self.contacts, self.count_re, self.output,
+                "-t", str(self.threads), "-m", self.method]
+        flag = run_cmd(cmd, log=f"{self.log_dir}/kprune.log")
+        assert flag == 0, "Failed to execute command, please check log."
+        logger.info(f"Successful output the allelic and cross-allelic information into `{self.output}`")
+
+        
+
+
+## deprecated
 class KPruner:
     """
     generate a prune list by kmer similarity allele table

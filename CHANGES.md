@@ -1,4 +1,12 @@
 # Release notes #
+
+## [v0.0.53]
+## New features
+- `pipeline`, add a pipeline of C-Phasing
+## Enhancement
+- `prepare`, restruct 
+- `pairs2cool`, move to second command
+## [v0.0.52]
 ## Enhancement
 - `kprune`, load data into tempfile to decrease the memory usage.
 

@@ -50,7 +50,12 @@ export PATH=/path/to/CPhasing/bin:$PATH
 C-Phasing enable to use ultra-long to correct chimeric and identify the high confidence regions (HCRs) to help assembly.  
 ### **[hitig tutorial](cphasing/hitig)**
 
-## Pipeline of Pore-C data
+## One command pipeline of C-Phasing
+```bash
+cphasing pipeline 
+```
+
+## Step by step pipeline of Pore-C data
 1. **mapping**  
     > Mapping pore-c data into contig-level assembly and output the pore-c table and 4DN pairs.
     ```bash
@@ -68,15 +73,9 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     ```
 2. **prepare**
     > Prepare some data for subsequence analysis
-    - **Step1** `pairs2cool`
     ```bash
-    ## results are `sample.10000.cool` and `sample.whole.cool`
-    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
-    ```
-    - **Step2** `extract`  
-    ```bash
-    ## results are `sample.counts_AAGCTT.txt` and `sample.clm`
-    cphasing prepare extract sample.pairs.gz draft.asm.fasta
+    ## results are `sample.counts_AAGCTT.txt`, `sample.clm` and `sample.contacts`
+    cphasing prepare draft.asm.fasta sample.pairs.gz 
     ```
 3. **alleles** (Optional for phasing mode)
     > This step is specific to diploid and polyploid phasing. If you only want to scaffolding a haploid, ignore this step.
@@ -120,8 +119,11 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -f draft.asm.fasta -t 4
     ```
 6. **plot**
-    > Adjust the contig-level contacts matrix into chromosome-level and plot a heatmap.
+    > Adjust the contig-level contacts matrix into chromosome-level and plot a heatmap.  
+
     ```bash
+    ## result is `sample.10000.cool` and `groups.wg.png`
+    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
 

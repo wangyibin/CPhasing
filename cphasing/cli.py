@@ -77,16 +77,73 @@ def cli(verbose, quiet):
     else:
         logger.setLevel(logging.INFO)
 
-@cli.command(hidden=True)
+@cli.command()
 @click.argument(
-    'fasta'
+    'fasta',
+    type=click.Path(exists=True)
 )
 @click.argument(
-    'data'
+    'porec',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'pairs'
 )
 @click.option(
-    '--method',
-    type=click.Choice(['diploid', 'polyploid'])
+    '--mode',
+    metavar=True,
+    help="mode of hyperpartition",
+    type=click.Choice(['basal', 'phasing']),
+    default='basal',
+    show_default=True,
+)
+@click.option(
+    '-s',
+    '--steps',
+    metavar='STR',
+    help="steps",
+    default="1,2,3,4,5,6",
+    show_default=True
+)
+@click.option(
+    '-ss',
+    '--skip-steps',
+    'skip_steps',
+    metavar="STR",
+    help="skip following steps, comma seperate.",
+    default=None,
+    show_default=True
+    
+)
+@click.option(
+    "-k",
+    help="""
+    Number of groups. If set to 0 or None, the partition will be run automatically.
+    If in incremental mode, you can set to k1:k2, 
+    which meaning that generate k1 groups in the first round partition
+    and generate k2 groups in the second round partition. 
+    Also, you can set `-k 8:0` to set the second round partition to automatical mode. [default: 0]
+    """,
+    default=None,
+    show_default=True,
+)
+@click.option(
+    "-r1",
+    "--resolution1",
+    metavar="FLOAT",
+    help="Resolution of the first partition",
+    type=click.FloatRange(0.0, 10.0),
+    default=1.0,
+    show_default=True
+)
+@click.option(
+    "-r2",
+    "--resolution2",
+    metavar="FLOAT",
+    help="Resolution of the second partition",
+    type=click.FloatRange(0.0, 10.0),
+    default=1.0,
+    show_default=True
 )
 @click.option(
     '-t',
@@ -98,11 +155,49 @@ def cli(verbose, quiet):
     show_default=True,
 
 )
-def pipeline(fasta, data, method):
+def pipeline(fasta, porec, pairs, mode, 
+             steps,
+             skip_steps, 
+             k,
+             resolution1,
+             resolution2, 
+             threads):
     """
-    Developing function.
+    A pipeline from a mapping result to phased and scaffolded result 
+        Steps: 0. mapper; 1. alleles; 2. prepare; 3. kprune; 4. hypergraph; 5. hyperpartiton; 6. scaffolding; 7. plot
+    
+        FASTA: Path to draft assembly
+
+        POREC: Path to Pore-C Table. If you want to run 0.mapper, this position should provide the Pore-C data.
+
+        PAIRS: Path to Pairs file. If run 0.mapper, you should provide the `{prefix_of_porec_data}.pairs.gz`
     """
-    pass
+    from .pipeline.pipeline import run 
+
+    if steps:
+        if steps == "all":
+            steps = set([0, 1, 2, 3, 4, 5, 6, 7])
+        else:
+            steps = steps.strip().split(",")
+    else:
+        steps = "all"
+
+
+
+    if skip_steps:
+        skip_steps = set(skip_steps.strip().split(","))
+    else:
+        skip_steps = set()
+    
+    run(fasta, porec, pairs, 
+        mode=mode, 
+        steps=steps,
+        skip_steps=skip_steps,
+        k=k,
+        resolution1=resolution1,
+        resolution2=resolution2,
+        threads=threads)
+    
 
 ## Subcommand of UL ONT pipeline
 from .hitig.cli import hitig 
@@ -696,207 +791,49 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     pct.to_pao_csv(output)
 
 
-
-@cli.group(cls=CommandGroup, short_help='Prepare for subsequence analysis.')
-@click.pass_context
-def prepare(ctx):
-    pass
-
-@prepare.command()
+@cli.command(short_help='Prepare data for subsequence analysis.')
 @click.argument(
     "fasta",
     metavar="INPUT_FASTA_PATH",
     type=click.Path(exists=True)
 )
-@click.option(
-    "-e",
-    "--enzyme",
-    help="""
-    The enzyme used in conformation capture experiments, 
-        such as the HindIII or MboI.
-    """,
-    metavar="RESTRICT_ENZYME",
-    type=str,
-    default="HindIII",
-    show_default=True
-)
-@click.option(
-    "--only-size",
-    help="Only output the size of contigs.",
-    is_flag=True,
-    default=False,
-    show_default=True
-)
-@click.option(
-    "--only-re",
-    help="Only output the RE count of contigs.",
-    is_flag=True,
-    default=False,
-    show_default=True
-)
-def refgenome(fasta, enzyme, only_size, only_re):
-    """
-    cacluate the size and RE on each contigs
-
-        INPUT_FASTA_PATH : Path of fasta file, uncompressed.
-
-    """
-    from .prepare import write_chrom_sizes, count_re_in_genome
-
-    prefix = op.basename(fasta).rsplit(".", 1)[0]
-    output_size = f"{prefix}.contigsizes"
-    output_count_re = f"{prefix}.counts_{enzyme}.txt"
-    if only_size:
-        write_chrom_sizes(fasta, output_size)
-
-    if only_re:
-        count_re_in_genome(fasta, enzyme, output_count_re)
-    
-    if not only_re and not only_size:
-        df = count_re_in_genome(fasta, enzyme, output_count_re)
-        df[["#Contig", "Length"]].to_csv(output_size, sep='\t', 
-                                            header=None, index=None) 
-        logger.info(f"Successful output contigs size file in `{output_size}`.")
-
-@prepare.command()
 @click.argument(
-    'infile',
-    metavar='InFile',
-    type=click.Path(exists=True)
-
-)
-@click.argument(
-    'fastafile',
-    metavar='FastaFile',
+    'pairs',
+    metavar='INPUT_PAIRS_PATH',
     type=click.Path(exists=True)
 )
 @click.option(
-    '-e',
-    '--enzyme',
-    metavar='ENZYME',
-    help='Restriction enzyme name, e.g. MboI, HindIII, Arima.',
-    default='HindIII',
+    '-m',
+    '--motif',
+    help='Motif of restrict enzyme. Only support for single motif',
+    metavar="STR",
+    default="AAGCTT",
     show_default=True,
 )
 @click.option(
-    '--minLinks',
-    'minLinks',
-    help='Minimum number of links for contig pair.',
+    '-mc',
+    '--min-contacts',
+    'min_contacts',
+    help='Minimum contacts between contig pairs',
     metavar='INT',
     default=3,
-    type=int,
-    show_default=True
-)
-def extract(infile, fastafile, enzyme, minLinks):
-    """
-    Extract countRE and pair table from 4DN pairs file.
-
-        InFile : Path of 4DN pairs  file (Accepts compressed files).
-
-        FastaFile : Path of fasta file.
-        
-    """
-    from .utilities import restriction_site
-    cmd = ['allhic', 'extract', infile, fastafile, 
-            '--RE', ",".join(restriction_site(enzyme)), 
-            '--minLinks', str(minLinks)]
-    
-    run_cmd(cmd)
-
-@prepare.command()
-@click.argument(
-    "pairs",
-    metavar="INPUT_PAIRS_PATH"
-)
-@click.argument(
-    "chromsize",
-    metavar="CHROM_SIZE",
-)
-@click.argument(
-    "outcool",
-    metavar="OUT_COOL_PATH"
+    show_default=True,
 )
 @click.option(
-    "-bs",
-    "--binsize",
-    help="Bin size in bp.",
-    type=int,
-    default=10000,
+    '-o',
+    '--outprefix',
+    help='output prefix, if none use the prefix of pairs',
+    default=None,
     show_default=True
 )
-@click.option(
-    '--fofn',
-    help="""
-    If this flag is set then the pairs is a file of
-    filenames corresponding to the 4DN pairs you want to merge.
-    This is workaround for when the command line gets too long.
-    """,
-    is_flag=True,
-    default=False,
-    show_default=True
-)
-def pairs2cool(pairs, chromsize, outcool,
-               binsize, fofn):
-    """
-    Convert pairs file into a specified resolution cool file.
-
-        INPUT_PAIRS_PATH : Path of pairs file, can be compressed.
-
-        CHROM_SIZE : Two columns of chromosomes or contigs size.
-
-        OUT_COOL_PATH : Output path of cool file.
+def prepare(fasta, pairs, min_contacts, motif, outprefix):
     """
 
-    from cooler.cli.cload import pairs as cload_pairs
-    from .utilities import merge_matrix
+    """
+    from .prepare import pipe 
 
-    logger.info(f"Load pairs: `{pairs}`.")
-    logger.info(f"Bin size: {binsize}")
-    
-    if fofn:
-        pairs_files = [i.strip() for i in open(pairs) if i.strip()]
-        pid = os.getpid()
-        if pairs_files[0].endswith(".gz"):
-            os.system(f'zgrep "^#" {pairs_files[0]} > temp.{pid}.header')
-            pairs_files = ' '.join(pairs_files)
-            os.system(f'zcat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
-            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
-            os.remove(f'temp1.{pid}.pairs')
-        else:
-            os.system(f'grep "^#" {pairs_files[0]} > temp.{pid}.header')
-            pairs_files = ' '.join(pairs_files)
-            os.system(f'cat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
-            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
-            os.remove(f'temp1.{pid}.pairs')
-        pairs = f'temp.{pid}.pairs'
-            
-    try:
-        cload_pairs.main(args=[
-                         f"{chromsize}:{binsize}",
-                         pairs, 
-                         outcool, 
-                         "-c1", 2,
-                         "-p1", 3,
-                         "-c2", 4,
-                         "-p2", 5],
-                         prog_name='cload')
-    except SystemExit as e:
-        exc_info = sys.exc_info()
-        exit_code = e.code
-        if exit_code is None:
-            exit_code = 0
-        
-        if exit_code != 0:
-            raise e
-    
-    logger.info(f'Output binning contact matrix into `{outcool}`')
-    if fofn:
-        if op.exists(f'temp.{pid}.pairs'):
-            os.remove(f'temp.{pid}.pairs')
-        if op.exists(f'temp.{pid}.header'):
-            os.remove(f'temp.{pid}.header')
-
-    merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
+    pipe(fasta, pairs, motif, min_contacts, outprefix)
+    pass 
 
 
 @cli.command()
@@ -914,13 +851,6 @@ def pairs2cool(pairs, chromsize, outcool,
     metavar="PATH",
     help="path of output allele table [default: fasta_prefix]",
     default=None
-)
-@click.option(
-    "--method",
-    help="method for allele table constructions.",
-    default='similarity',
-    show_default=True,
-    type=click.Choice(['gene', 'similarity'])#, 'synteny']),
 )
 @click.option(
     "-k",
@@ -949,72 +879,21 @@ def pairs2cool(pairs, chromsize, outcool,
     default=.2,
     show_default=True
 )
-@click.option(
-    "-c",
-    "--cds",
-    help="the cds file of reference.",
-    metavar="FILE",
-    type=click.Path(exists=True)
-)
-@click.option(
-    "-b",
-    "--bed",
-    help="the four columns bed file of reference, "
-    "(chrom, start, end, gene)",
-    metavar="FILE",
-    type=click.Path(exists=True)
-)
-@click.option(
-    "-p",
-    "--ploidy",
-    help="ploidy of genome.",
-    metavar="INT",
-    type=int,
-    default=None,
-    show_default=True,
-)
-@click.option(
-    "--skip_gmap_index",
-    help="gmap index already existed and named `DB`, skip.",
-    default=False,
-    is_flag=True,
-    show_default=True
-)
-@click.option(
-    '-t',
-    '--threads',
-    help='Number of threads. Only use for gmap method.',
-    type=int,
-    default=4,
-    metavar='INT',
-    show_default=True,
-)
-def alleles(fasta, output, method, 
-                kmer_size, window_size, minimum_similarity,
-                cds, bed, ploidy, skip_gmap_index, threads):
+def alleles(fasta, output, 
+                kmer_size, window_size, minimum_similarity):
     """
     Build allele table.
     """
     
-    from .alleles import GmapAllele, PartigAllele
+    from .alleles import PartigAllele
+
+    if not output:
+        prefix = op.basename(fasta).rsplit(".", 1)[0] 
+        output = f"{prefix}.allele.table"
     
-    if method == 'gene':
-        assert ploidy is not None, "-p parameter should be provide"
-        ga = GmapAllele(fasta, cds, bed, ploidy, 
-                        skip_index=skip_gmap_index,
-                        threads=threads)
-        ga.run()
-    elif method == 'similarity':
-        if not output:
-            prefix = op.basename(fasta).rsplit(".", 1)[0] 
-            output = f"{prefix}.allele.table"
-        
-        pa = PartigAllele(fasta, kmer_size, window_size, 
-                                minimum_similarity, output)
-        pa.run()
-    
-    else:
-        logger.warning('Incompletely developing function')
+    pa = PartigAllele(fasta, kmer_size, window_size, 
+                            minimum_similarity, output)
+    pa.run()
 
 
 @cli.command(short_help="Generate the allelic contig and cross-allelic contig pairs.")
@@ -1024,43 +903,48 @@ def alleles(fasta, output, method,
     type=click.Path(exists=True)
 )
 @click.argument(
-    'coolfile',
-    metavar='INPUT_COOL_PATH',
+    'contacts',
+    metavar='INPUT_CONTACTS_PATH',
     type=click.Path(exists=True)
 )
-@click.option(
-    '-c',
-    '--countRE',
-    metavar="CountRE",
-    help="input count RE table to normalize the contacts",
-    type=click.Path(exists=True),
-    default=None,
-    show_default=True
+@click.argument(
+    "countRE",
+    metavar="INPUT_COUNT_RE_PATH",
+    type=click.Path(exists=True)
 )
-@click.option(
-    "-wl",
-    "--whitelist",
-    metavar="PATH",
-    help="""
-    Path to 1-column list file containing
-    contigs to include in hypergraph to partition.  
-    """,
-    default=None,
-    show_default=True,
-    type=click.Path(exists=True),
-    hidden=True
-)
-@click.option(
-    '-ns',
-    '--no-sort',
-    'no_sort',
-    help='Do not sort the prune table by similarity.',
-    metavar="BOOL",
-    is_flag=True,
-    default=True,
-    show_default=True,
-    hidden=True
-)
+# @click.option(
+#     '-c',
+#     '--countRE',
+#     metavar="CountRE",
+#     help="input count RE table to normalize the contacts",
+#     type=click.Path(exists=True),
+#     default=None,
+#     show_default=True
+# )
+# @click.option(
+#     "-wl",
+#     "--whitelist",
+#     metavar="PATH",
+#     help="""
+#     Path to 1-column list file containing
+#     contigs to include in hypergraph to partition.  
+#     """,
+#     default=None,
+#     show_default=True,
+#     type=click.Path(exists=True),
+#     hidden=True
+# )
+# @click.option(
+#     '-ns',
+#     '--no-sort',
+#     'no_sort',
+#     help='Do not sort the prune table by similarity.',
+#     metavar="BOOL",
+#     is_flag=True,
+#     default=True,
+#     show_default=True,
+#     hidden=True
+# )
 @click.option(
     '-o',
     '--output',
@@ -1068,52 +952,60 @@ def alleles(fasta, output, method,
     default='prune.contig.table',
     show_default=True,
 )
+# @click.option(
+#     '-cs',
+#     '--chunksize',
+#     help='chunksize of contacts data',
+#     default=100000,
+#     show_default=True,
+# )
 @click.option(
-    '-cs',
-    '--chunksize',
-    help='chunksize of contacts data',
-    default=100000,
-    show_default=True,
+    '-m',
+    '--method',
+    help='Method of cross-allelic, fast or greedy.',
+    default='greedy',
+    type=click.Choice(["fast", "greedy"]),
+    show_default=True
 )
 @click.option(
     '-t',
     '--threads',
-    help=("Number of threads. "
-    "Out of memory when load large number of contigs, can be set to 1 to avoid this problem."),
+    help="Number of threads. ",
     type=int,
     default=4,
     metavar='INT',
     show_default=True,
 )
-@click.option(
-    '--symmetric',
-    help='output the symmetric contig pairs',
-    is_flag=True,
-    default=False,
-    show_default=True
-)
-def kprune(alleletable, coolfile, countre, 
-           whitelist, no_sort, output, 
-           chunksize, threads, symmetric):
+# @click.option(
+#     '--symmetric',
+#     help='output the symmetric contig pairs',
+#     is_flag=True,
+#     default=False,
+#     show_default=True
+# )
+def kprune(alleletable, contacts, countre, 
+            output, method, threads):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
         AlleleTable : allele table from cphasing allele in allele2 format.
 
-        INPUT_COOL_PATH : path of whole contigs contacts from prepare pair2cools.
+        INPUT_CONTACTS_PATH : path of whole contigs contacts from `prepare`.
         
+        INPUT_COUNT_RE_PATH: path of count restrict enzyme file.
+
     """
-    from .kprune import KPruner
+    from .kprune import KPrunerRust
     
-    if whitelist:
-        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
-    sort_by_similarity = False if no_sort else True
+    # if whitelist:
+    #     whitelist = [i.strip() for i in open(whitelist) if i.strip()]
+    # sort_by_similarity = False if no_sort else True
     
-    kp = KPruner(alleletable, coolfile, sort_by_similarity, 
-                    countre, whitelist, chunksize=chunksize,
+    kp = KPrunerRust(alleletable, contacts, 
+                    countre, output, method=method,
                       threads=threads)
     kp.run()
-    kp.save_prune_list(output, symmetric)
+    # kp.save_prune_list(output, symmetric)
 
 
 @cli.command()
@@ -1353,12 +1245,21 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    '--mode',
+    metavar="STR",
+    help="mode of hyperpartition, conflict of `-inc`",
+    type=click.Choice(["basal", "phasing", None]),
+    default=None,
+    show_default=True
+)
+@click.option(
     '-inc',
     '--incremental',
     help='Use incremental partition algorithm',
     is_flag=True,
     default=False,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 # @click.option(
 #     '-uc',
@@ -1383,7 +1284,7 @@ def hypergraph(contacts,
     '--first-cluster',
     'first_cluster',
     metavar="PATH",
-    help='Use the existing first cluster results to second cluster',
+    help='Use the existing first cluster results to second round cluster',
     default=None,
     show_default=True
 )
@@ -1514,6 +1415,7 @@ def hyperpartition(hypergraph,
                     cross_allelic_factor,
                     allelic_similarity,
                     min_allelic_overlap,
+                    mode,
                     incremental,
                     # ultra_complex,
                     merge_cluster,
@@ -1547,6 +1449,13 @@ def hyperpartition(hypergraph,
     from .utilities import read_chrom_sizes 
     
     ultra_complex = None
+    
+    if mode == "basal":
+        incremental = True
+    elif mode == "phasing":
+        incremental = False 
+    else:
+        incremental = incremental
 
     if k is not None:
         if ":" in k and incremental is False:
@@ -1775,6 +1684,102 @@ def build(fasta, output, output_agp, only_agp):
             output_agp=output_agp, only_agp=only_agp)
 
 @cli.command()
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH"
+)
+@click.argument(
+    "chromsize",
+    metavar="CHROM_SIZE",
+)
+@click.argument(
+    "outcool",
+    metavar="OUT_COOL_PATH"
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    help="Bin size in bp.",
+    type=int,
+    default=10000,
+    show_default=True
+)
+@click.option(
+    '--fofn',
+    help="""
+    If this flag is set then the pairs is a file of
+    filenames corresponding to the 4DN pairs you want to merge.
+    This is workaround for when the command line gets too long.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+def pairs2cool(pairs, chromsize, outcool,
+               binsize, fofn):
+    """
+    Convert pairs file into a specified resolution cool file.
+
+        INPUT_PAIRS_PATH : Path of pairs file, can be compressed.
+
+        CHROM_SIZE : Two columns of chromosomes or contigs size.
+
+        OUT_COOL_PATH : Output path of cool file.
+    """
+
+    from cooler.cli.cload import pairs as cload_pairs
+    from .utilities import merge_matrix
+
+    logger.info(f"Load pairs: `{pairs}`.")
+    logger.info(f"Bin size: {binsize}")
+    
+    if fofn:
+        pairs_files = [i.strip() for i in open(pairs) if i.strip()]
+        pid = os.getpid()
+        if pairs_files[0].endswith(".gz"):
+            os.system(f'zgrep "^#" {pairs_files[0]} > temp.{pid}.header')
+            pairs_files = ' '.join(pairs_files)
+            os.system(f'zcat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
+            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
+            os.remove(f'temp1.{pid}.pairs')
+        else:
+            os.system(f'grep "^#" {pairs_files[0]} > temp.{pid}.header')
+            pairs_files = ' '.join(pairs_files)
+            os.system(f'cat {pairs_files} | grep -v "^#" > temp1.{pid}.pairs')
+            os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
+            os.remove(f'temp1.{pid}.pairs')
+        pairs = f'temp.{pid}.pairs'
+            
+    try:
+        cload_pairs.main(args=[
+                         f"{chromsize}:{binsize}",
+                         pairs, 
+                         outcool, 
+                         "-c1", 2,
+                         "-p1", 3,
+                         "-c2", 4,
+                         "-p2", 5],
+                         prog_name='cload')
+    except SystemExit as e:
+        exc_info = sys.exc_info()
+        exit_code = e.code
+        if exit_code is None:
+            exit_code = 0
+        
+        if exit_code != 0:
+            raise e
+    
+    logger.info(f'Output binning contact matrix into `{outcool}`')
+    if fofn:
+        if op.exists(f'temp.{pid}.pairs'):
+            os.remove(f'temp.{pid}.pairs')
+        if op.exists(f'temp.{pid}.header'):
+            os.remove(f'temp.{pid}.header')
+
+    # merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
+
+
+@cli.command()
 @click.option(
     '-m',
     '--matrix',
@@ -1983,6 +1988,7 @@ def plot(matrix,
 
 
 ALIASES = {
+    "pipe": pipeline,
     "hg": hypergraph,
     "hp": hyperpartition,
     "sf": scaffolding,

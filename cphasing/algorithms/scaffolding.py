@@ -49,7 +49,7 @@ class AllhicOptimize:
 
     @staticmethod
     def extract_count_re(group, contigs, count_re):
-        tmp_df = count_re.data.loc[contigs]
+        tmp_df = count_re.data.reindex(contigs)
         tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
 
         return f"{group}.txt"

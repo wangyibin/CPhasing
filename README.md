@@ -52,8 +52,9 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 
 ## One command pipeline of C-Phasing
 ```bash
-cphasing pipeline 
+cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all 
 ```
+
 
 ## Step by step pipeline of Pore-C data
 1. **mapping**  
@@ -106,8 +107,8 @@ cphasing pipeline
     ## for haploid scaffolding 
     cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt
     ## for polyploid or diploid phasing must add prune information and use the incremental partition mode
-    ### k aware, 8:4 indicate that this is a tetraploid with 8 chromosome in each haplotype
-    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -k 8:4 -t 4
+    ### chromsome number aware, 8:4 indicate that this is a tetraploid with 8 chromosome in each haplotype
+    cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -n 8:4 -t 4
     ### auto generate groups
     cphasing hyperpartition sample.hg draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -t 4
     ```

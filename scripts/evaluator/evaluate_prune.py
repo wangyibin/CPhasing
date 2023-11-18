@@ -26,6 +26,8 @@ def main(args):
             help='contig list')
     pReq.add_argument('prunetable',
             help='prune table from kprune')
+    pOpt.add_argument('-c', '--contacts',
+                    default=None, help="contacts file")
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -33,7 +35,15 @@ def main(args):
 
     contigs = args.contigs
     pt = args.prunetable
-    
+    contacts = args.contacts 
+    contacts_dict = {}
+    if contacts:
+        with open(contacts) as fp:
+            for line in fp:
+                line_list = line.strip().split()
+                contig_pair = (line_list[0], line_list[1])
+                contacts_dict[contig_pair] = line_list[2]
+                
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
 
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
@@ -60,7 +70,7 @@ def main(args):
     
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))
-
+    inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
     loss_pairs = inter_pairs - pt_pairs

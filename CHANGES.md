@@ -1,4 +1,7 @@
 # Release notes #
+## [v0.0.54]
+## Bug fixes
+- `pipeline`, fixed bugs
 
 ## [v0.0.53]
 ## New features

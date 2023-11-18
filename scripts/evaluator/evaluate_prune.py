@@ -49,10 +49,14 @@ def main(args):
         for n, m in list(combinations(tmp_list, 2)):
             res.extend(list(set(product(n, m))))
     
-    res2 = [(j, i) for i, j in res]
-    res.extend(res2)
+    res2 = []
+    for i, j in res:
+        if i > j:
+            res2.append((j, i))
+        else:
+            res2.append((i, j))
     
-    inter_pairs = set(res)
+    inter_pairs = set(res2)
     
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))

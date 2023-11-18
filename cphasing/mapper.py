@@ -452,4 +452,4 @@ class PoreCMapper:
         else:
             logger.warning(f"The pairs of {self.outpairs} existing, skipped ...")
 
-        logger.info("Done.")
+        logger.info("Mapping done.")

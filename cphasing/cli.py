@@ -78,23 +78,56 @@ def cli(verbose, quiet):
         logger.setLevel(logging.INFO)
 
 @cli.command()
-@click.argument(
-    'fasta',
-    type=click.Path(exists=True)
+@click.option(
+    '-f',
+    '--fasta',
+    metavar="FASTA",
+    help="Path to draft assembly",
+    type=click.Path(exists=True),
+    required=True
 )
-@click.argument(
-    'porec',
-    type=click.Path(exists=True)
+@click.option(
+    '-pcd',
+    '--porec-data',
+    'porec_data',
+    metavar="PoreC_Data",
+    help="",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
 )
-@click.argument(
-    'pairs'
+@click.option(
+    '-pct',
+    '--porectable',
+    metavar="PoreC-Table",
+    help="PoreC Table file, which generated from `cphasing mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-prs',
+    '--pairs',
+    metavar="Pairs",
+    help="4DN pairs file, which generated from `cphasing mapper`, or `cphasing hic mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-m',
+    '--motif',
+    help='Motif of restrict enzyme. Only support for single motif',
+    metavar="STR",
+    default="AAGCTT",
+    show_default=True,
 )
 @click.option(
     '--mode',
     metavar=True,
     help="mode of hyperpartition",
     type=click.Choice(['basal', 'phasing']),
-    default='basal',
+    default='phasing',
     show_default=True,
 )
 @click.option(
@@ -116,13 +149,13 @@ def cli(verbose, quiet):
     
 )
 @click.option(
-    "-k",
+    "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
-    If in incremental mode, you can set to k1:k2, 
-    which meaning that generate k1 groups in the first round partition
-    and generate k2 groups in the second round partition. 
-    Also, you can set `-k 8:0` to set the second round partition to automatical mode. [default: 0]
+    If in incremental mode, you can set to n1:n2, 
+    which meaning that generate n1 groups in the first round partition
+    and generate n2 groups in the second round partition. 
+    Also, you can set `-n 8:0` to set the second round partition to automatical mode. [default: 0]
     """,
     default=None,
     show_default=True,
@@ -146,6 +179,16 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    '--factor',
+    '-k',
+    help='Factor of plot matrix. '
+            'If you input 10k matrix and want to plot heatmap at 500k, '
+            'factor should be set with 50.',
+    type=int,
+    default=50,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -155,13 +198,19 @@ def cli(verbose, quiet):
     show_default=True,
 
 )
-def pipeline(fasta, porec, pairs, mode, 
-             steps,
-             skip_steps, 
-             k,
-             resolution1,
-             resolution2, 
-             threads):
+def pipeline(fasta, 
+            porec_data, 
+            porectable, 
+            pairs, 
+            motif,
+            mode, 
+            steps,
+            skip_steps, 
+            n,
+            resolution1,
+            resolution2, 
+            factor,
+            threads):
     """
     A pipeline from a mapping result to phased and scaffolded result 
         Steps: 0. mapper; 1. alleles; 2. prepare; 3. kprune; 4. hypergraph; 5. hyperpartiton; 6. scaffolding; 7. plot
@@ -173,14 +222,19 @@ def pipeline(fasta, porec, pairs, mode,
         PAIRS: Path to Pairs file. If run 0.mapper, you should provide the `{prefix_of_porec_data}.pairs.gz`
     """
     from .pipeline.pipeline import run 
+    
+    assert any([(porec_data is not None), (porectable is not None), (pairs is not None)]), \
+        "PoreC data or PoreC table or Pairs must specified"
+
 
     if steps:
         if steps == "all":
-            steps = set([0, 1, 2, 3, 4, 5, 6, 7])
+            steps = set(["0", "1", "2", "3", "4", "5", "6", "7"])
+
         else:
             steps = steps.strip().split(",")
     else:
-        steps = "all"
+        steps = set([0, 1, 2, 3, 4, 5, 6, 7])
 
 
 
@@ -189,13 +243,16 @@ def pipeline(fasta, porec, pairs, mode,
     else:
         skip_steps = set()
     
-    run(fasta, porec, pairs, 
+    run(fasta, porec_data,
+         porectable, pairs, 
+         motif=motif,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
-        k=k,
+        n=n,
         resolution1=resolution1,
         resolution2=resolution2,
+        factor=factor,
         threads=threads)
     
 
@@ -1171,13 +1228,13 @@ def hypergraph(contacts,
     hidden=True,
 )
 @click.option(
-    "-k",
+    "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
-    If in incremental mode, you can set to k1:k2, 
-    which meaning that generate k1 groups in the first round partition
-    and generate k2 groups in the second round partition. 
-    Also, you can set `-k 8:0` to set the second round partition to automatical mode. [default: 0]
+    If in incremental mode, you can set to n1:n2, 
+    which meaning that generate n1 groups in the first round partition
+    and generate n2 groups in the second round partition. 
+    Also, you can set `-n 8:0` to set the second round partition to automatical mode. [default: 0]
     """,
     default=None,
     show_default=True,
@@ -1408,7 +1465,7 @@ def hyperpartition(hypergraph,
                     output,
                     ultra_long,
                     ul_weight,
-                    k,
+                    n,
                     alleletable,
                     prunetable,
                     allelic_factor,
@@ -1451,23 +1508,23 @@ def hyperpartition(hypergraph,
     ultra_complex = None
     
     if mode == "basal":
-        incremental = True
+        incremental = False
     elif mode == "phasing":
-        incremental = False 
+        incremental = True 
     else:
         incremental = incremental
 
-    if k is not None:
-        if ":" in k and incremental is False:
+    if n is not None:
+        if ":" in n and incremental is False:
             logger.warn("Second round partition will not be run, or `-inc` parameters must be added")
 
-    k = k.split(":") if k else [None, None]
+    n = n.split(":") if n else [None, None]
 
-    for i, v in enumerate(k):
+    for i, v in enumerate(n):
         if v:
-            k[i] = int(v)
+            n[i] = int(v)
         else:
-            k[i] = 0
+            n[i] = 0
 
     contigsizes = read_chrom_sizes(contigsizes)
 
@@ -1481,7 +1538,7 @@ def hyperpartition(hypergraph,
         blacklist = [i.strip() for i in open(blacklist) if i.strip()]
 
     if merge_cluster:
-        assert k[0] != 0, "parameter `k` must add to run merge cluster"
+        assert n[0] != 0, "parameter `k` must add to run merge cluster"
         logger.info("Only run the algorithm of clusters merging.")
         _merge_cluster = ClusterTable(merge_cluster)
         if whitelist:
@@ -1507,7 +1564,7 @@ def hyperpartition(hypergraph,
                             contigsizes,
                             ultra_long,
                             ul_weight,
-                            k,
+                            n,
                             alleletable,
                             prunetable,
                             allelic_factor,
@@ -1536,12 +1593,12 @@ def hyperpartition(hypergraph,
         else:
             first_cluster = None 
         
-        hp.incremental_partition(k, first_cluster)
+        hp.incremental_partition(n, first_cluster)
     else:
         if merge_cluster:
             hp.merge_cluster(_merge_cluster)
         else:
-            hp.single_partition(int(k[0]))
+            hp.single_partition(int(n[0]))
     
     hp.to_cluster(output)
 

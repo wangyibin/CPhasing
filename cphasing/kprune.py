@@ -54,7 +54,7 @@ class KPrunerRust:
         self.count_re = count_re
         self.output = output
         self.method = method 
-        self.threads = 4 
+        self.threads = threads
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 

@@ -18,15 +18,17 @@ logger = logging.getLogger(__name__)
 
 
 def run(fasta,
-        porec,
+        porec_data,
+        porec_table,
         pairs, 
         motif="AAGCTT",
         mode="phasing",
         steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
         skip_steps=set(),
-        k="",
+        n="",
         resolution1=1,
         resolution2=1,
+        factor=50,
         threads=4):
     from ..cli import (mapper,
                        alleles, 
@@ -41,15 +43,40 @@ def run(fasta,
 
 
     fasta_prefix = fasta.rsplit(".", 1)[0]
-    porec_prefix = porec.replace(".gz", "").rsplit(".", 1)[0]
-    pairs_prefix = pairs.replace(".gz", "").rsplit(".", 1)[0]
+    if porec_data:
+        porec_prefix = porec_data.replace(".gz", "").rsplit(".", 1)[0]
+        pairs_prefix = porec_data.replace(".gz", "").rsplit(".", 1)[0]
+        pairs = f"{pairs_prefix}.pairs.gz"
+        hg_input = f"{porec_prefix}.porec.gz"
+        hg_flag = ""
+        
+    else:
+        if "0" in steps:
+            steps = steps - set("0")
+            if "0" not in skip_steps:
+                logger.warning("Mapping step will not be run, because the porec data is not specified")
+        if porec_table:
+            porec_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
+            pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
+            hg_input = porec_table
+            hg_flag = ""
+            if not pairs:
+                pairs = f"{porec_prefix}.pairs.gz"
+
+        else:
+            if pairs:
+                pairs_prefix = pairs.replace(".gz", "").rsplit(".", 1)[0]
+                hg_input = pairs 
+                hg_flag = "--pairs"
+            
+
     
     contigsizes = f"{fasta_prefix}.contigsizes"
 
     if "0" not in skip_steps and "0" in steps:
         try:
             mapper.main(args=[fasta, 
-                              porec,
+                              porec_data,
                               "-t",
                               str(threads)],
                             prog_name='alleles')
@@ -115,18 +142,27 @@ def run(fasta,
             if exit_code != 0:
                 raise e
         
-    prune_table = "prune.contig.table"
+    prune_table = "prune.contig.table" if mode == "phasing" else None
 
-    hg = f"{porec_prefix}.hg"
+    hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
 
     if "4" not in skip_steps and "4" in steps:
         try:
-            hypergraph.main(args=[
-                                porec,
+            if hg_flag:
+                hypergraph.main(args=[
+                                hg_input,
                                 contigsizes,
                                 hg,
+                                hg_flag
                             ],
                             prog_name='hypergraph')
+            else:
+                hypergraph.main(args=[
+                                    hg_input,
+                                    contigsizes,
+                                    hg,
+                                ],
+                                prog_name='hypergraph')
         except SystemExit as e:
             exc_info = sys.exc_info()
             exit_code = e.code
@@ -137,9 +173,7 @@ def run(fasta,
                 raise e
     
     output_cluster = "output.clusters.txt"
-    inc = "-inc" if mode == "phasing" else ""
-    pt = f"-pt {prune_table}"
-
+  
     if "5" not in skip_steps and "5" in steps:
         try:
             hyperpartition.main(args=[
@@ -150,8 +184,8 @@ def run(fasta,
                                 mode,
                                 "-pt",
                                 prune_table,
-                                "-k",
-                                k,
+                                "-n",
+                                n,
                                 "-r1",
                                 resolution1,
                                 "-r2",
@@ -224,7 +258,9 @@ def run(fasta,
                             "-m",
                             out_small_cool,
                             "-o",
-                            "groups.wg.png"
+                            "groups.wg.png",
+                            "--factor",
+                            factor
                             ],
                             prog_name='plot')
         except SystemExit as e:

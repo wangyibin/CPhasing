@@ -28,8 +28,8 @@ def minimap_mapping(fasta, reads, threads, outPre):
     """
     checkMinimap2CMD = "minimap2 --version"
     minimapVer = "".join(os.popen(checkMinimap2CMD).readlines())
-    minimapVer = float(minimapVer.split('-')[0])
-    if minimapVer < float(2.24):
+    minimapVer = float(minimapVer.split('-')[0].split('.')[1])
+    if minimapVer < float(24):
         print("Warnning: The minimap2 version should be 2.24 or higher.")
         sys.exit()
 

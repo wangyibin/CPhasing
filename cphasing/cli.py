@@ -194,7 +194,7 @@ def cli(verbose, quiet):
     "min_allelic_overlap",
     metavar="FLOAT",
     help="Minimum overlap ratio bewteen two group when merging different groups",
-    default=0.3,
+    default=0.2,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
@@ -897,7 +897,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     'min_contacts',
     help='Minimum contacts between contig pairs',
     metavar='INT',
-    default=3,
+    default=5,
     show_default=True,
 )
 @click.option(
@@ -1321,7 +1321,7 @@ def hypergraph(contacts,
     "min_allelic_overlap",
     metavar="FLOAT",
     help="Minimum overlap ratio bewteen two group when merging different groups",
-    default=0.3,
+    default=0.2,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )

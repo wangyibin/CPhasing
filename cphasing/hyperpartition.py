@@ -259,7 +259,7 @@ class HyperPartition:
         
         if len(remove_contigs) == 0:
             return
-
+    
         logger.info(f"Total {len(remove_contigs)} contigs were removed,")
         logger.info(f"\tbecause it's length too short (<{self.min_length}) or your specified.")
 

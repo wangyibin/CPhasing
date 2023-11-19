@@ -179,6 +179,26 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-as",
+    "--allelic-similarity",
+    "allelic_similarity",
+    metavar="FLOAT",
+    help="The similarity of allelic",
+    default=0.85,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+@click.option(
+    '-mao',
+    '--min-allelic-overlap',
+    "min_allelic_overlap",
+    metavar="FLOAT",
+    help="Minimum overlap ratio bewteen two group when merging different groups",
+    default=0.3,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+@click.option(
     '--factor',
     '-k',
     help='Factor of plot matrix. '
@@ -209,6 +229,8 @@ def pipeline(fasta,
             n,
             resolution1,
             resolution2, 
+            allelic_similarity,
+            min_allelic_overlap,
             factor,
             threads):
     """
@@ -252,6 +274,8 @@ def pipeline(fasta,
         n=n,
         resolution1=resolution1,
         resolution2=resolution2,
+        allelic_similarity=allelic_similarity,
+        min_allelic_overlap=min_allelic_overlap,
         factor=factor,
         threads=threads)
     
@@ -1297,7 +1321,7 @@ def hypergraph(contacts,
     "min_allelic_overlap",
     metavar="FLOAT",
     help="Minimum overlap ratio bewteen two group when merging different groups",
-    default=0.1,
+    default=0.3,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )

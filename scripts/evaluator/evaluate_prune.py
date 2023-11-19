@@ -49,7 +49,8 @@ def main(args):
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
-    
+
+ 
     res = []
     for i, df in chrom_contigs.groupby('hap'):
         tmp_list = []

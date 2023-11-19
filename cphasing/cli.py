@@ -1400,7 +1400,7 @@ def hypergraph(contacts,
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=3,
+    default=5,
     show_default=True
 )
 @click.option(
@@ -2428,7 +2428,7 @@ def countRE2cluster(count_re, output, fofn):
     '--min-contacts',
     'min_contacts',
     help='Minimum contacts for contig pair',
-    default=3,
+    default=5,
     show_default=True,
     type=int,
 )

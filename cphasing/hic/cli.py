@@ -338,6 +338,8 @@ def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
     ga = GmapAllele(fasta, cds, bed, ploidy, 
                         skip_index=skip_gmap_index,
                         threads=threads)
+    ga.run()
+    
 
     
 @hic.command()

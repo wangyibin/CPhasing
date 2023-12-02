@@ -45,13 +45,14 @@ class CandidateContacts(msgspec.Struct):
     data: list 
 
 class KPrunerRust:
-    def __init__(self, alleletable, contacts, count_re,
+    def __init__(self, alleletable, contacts,
+                    #count_re,
                     output="prune.contig.table", 
                     method="greedy", threads=4, 
                     log_dir="logs"):
         self.alleletable = alleletable
         self.contacts = contacts
-        self.count_re = count_re
+        # self.count_re = count_re
         self.output = output
         self.method = method 
         self.threads = threads
@@ -60,7 +61,7 @@ class KPrunerRust:
 
     def run(self):
         cmd = ["cphasing-rs", "kprune", self.alleletable,
-               self.contacts, self.count_re, self.output,
+               self.contacts, self.output,
                 "-t", str(self.threads), "-m", self.method]
         flag = run_cmd(cmd, log=f"{self.log_dir}/kprune.log")
         assert flag == 0, "Failed to execute command, please check log."

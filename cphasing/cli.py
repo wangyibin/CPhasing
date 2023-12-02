@@ -988,11 +988,11 @@ def alleles(fasta, output,
     metavar='INPUT_CONTACTS_PATH',
     type=click.Path(exists=True)
 )
-@click.argument(
-    "countRE",
-    metavar="INPUT_COUNT_RE_PATH",
-    type=click.Path(exists=True)
-)
+# @click.argument(
+#     "countRE",
+#     metavar="INPUT_COUNT_RE_PATH",
+#     type=click.Path(exists=True)
+# )
 # @click.option(
 #     '-c',
 #     '--countRE',
@@ -1064,7 +1064,7 @@ def alleles(fasta, output,
 #     default=False,
 #     show_default=True
 # )
-def kprune(alleletable, contacts, countre, 
+def kprune(alleletable, contacts, 
             output, method, threads):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
@@ -1072,8 +1072,7 @@ def kprune(alleletable, contacts, countre,
         AlleleTable : allele table from cphasing allele in allele2 format.
 
         INPUT_CONTACTS_PATH : path of whole contigs contacts from `prepare`.
-        
-        INPUT_COUNT_RE_PATH: path of count restrict enzyme file.
+    
 
     """
     from .kprune import KPrunerRust
@@ -1083,7 +1082,7 @@ def kprune(alleletable, contacts, countre,
     # sort_by_similarity = False if no_sort else True
     
     kp = KPrunerRust(alleletable, contacts, 
-                    countre, output, method=method,
+                     output, method=method,
                       threads=threads)
     kp.run()
     # kp.save_prune_list(output, symmetric)

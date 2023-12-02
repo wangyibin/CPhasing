@@ -135,7 +135,6 @@ def run(fasta,
         try:
             kprune.main(args=[allele_table,
                             contacts,
-                            count_re,
                             "-t",
                             str(threads)],
                             prog_name='kprune')

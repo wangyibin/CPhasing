@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.56]
+## Enhancement 
+- `cphasing-rs`, update `pairs-intersect` and `porec-intersect`
+- `kprune`, remove `count_re` argument
+
 ## [v0.0.55]
 ## New features
 - `hcr_from_contacts`, add new function of hcr

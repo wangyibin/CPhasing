@@ -1,7 +1,13 @@
 # Release notes #
+## [v0.0.55]
+## New features
+- `hcr_from_contacts`, add new function of hcr
+- `plot_lines`, plot lines of evalutation
+
 ## [v0.0.54]
 ## Bug fixes
 - `pipeline`, fixed bugs
+
 
 ## [v0.0.53]
 ## New features

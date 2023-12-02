@@ -231,6 +231,7 @@ class ChromapMapper:
                     path='chromap', log_dir='logs'):
         self.reference = Path(reference)
         self.index_path = Path(f'{self.reference.stem}.index')
+        self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
         self.read1 = Path(read1)
         self.read2 = Path(read2)
         self.threads = threads
@@ -255,6 +256,11 @@ class ChromapMapper:
         self.prefix = Path(str(self.prefix).replace('_R1', ''))
 
         self.output_pairs = Path(f'{self.prefix}.pairs')
+
+    def get_contig_sizes(self):
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
+                "-o", str(self.contigsizes)]
+        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
 
     def index(self):
         """
@@ -288,6 +294,7 @@ class ChromapMapper:
         assert flag == 0, "Failed to execute command, please check log."
 
     def run(self):
+        self.get_contig_sizes()
         if not self.index_path.exists():
             self.index()
         else:

@@ -77,7 +77,7 @@ def main(args):
     loss_pairs = inter_pairs - pt_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
-    for pair in loss_pairs:
+    for pair in incorrect_pairs:
         print("\t".join(pair), file=sys.stdout)
     print(f"Precision: {precision:.4}", file=sys.stderr)
     print(f"Recall: {recall:.4}", file=sys.stderr)

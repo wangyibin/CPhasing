@@ -23,6 +23,7 @@ def run(fasta,
         pairs, 
         motif="AAGCTT",
         mode="phasing",
+        hic=False,
         steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
         skip_steps=set(),
         n="",
@@ -32,7 +33,7 @@ def run(fasta,
         min_allelic_overlap=0.3,
         factor=50,
         threads=4):
-    from ..cli import (mapper,
+    from ..cli import (mapper as porec_mapper,
                        alleles, 
                        prepare,
                        kprune,
@@ -42,6 +43,7 @@ def run(fasta,
                        pairs2cool,
                        plot
     )
+    from ..hic.cli import mapper as hic_mapper
 
 
     fasta_prefix = fasta.rsplit(".", 1)[0]
@@ -76,20 +78,22 @@ def run(fasta,
     contigsizes = f"{fasta_prefix}.contigsizes"
 
     if "0" not in skip_steps and "0" in steps:
-        try:
-            mapper.main(args=[fasta, 
-                              porec_data,
-                              "-t",
-                              str(threads)],
-                            prog_name='alleles')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
-            
-            if exit_code != 0:
-                raise e
+        if not hic:
+            try:
+                porec_mapper.main(args=[fasta, 
+                                porec_data,
+                                "-t",
+                                str(threads)],
+                                prog_name='alleles')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+    
 
     if "1" not in skip_steps and "1" in steps:
         try:

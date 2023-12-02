@@ -1789,10 +1789,16 @@ class Pairs:
 
         return output
     
-    def intersection(self, bed, output):
+    def intersection(self, bed, output, invert=False):
         """
         select pairs according to several regions
         """
+        if output.rsplit(".", 1)[-1] == ".gz":
+            output = output.rsplit(".", 1)[0]
+            gzip_flag = True 
+        else:
+            gzip_flag = False
+
         if isinstance(bed, str):
             logger.info(f'Load source infomation of `{bed}`.')
             bed_df = pd.read_csv(bed, sep='\s+', 
@@ -1823,7 +1829,10 @@ class Pairs:
     
         query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
         query_gr = pr.PyRanges(query_df)
-        res_df1 = query_gr.join(bed_gr, nb_cpu=self.threads).df
+        if not invert:
+            res_df1 = query_gr.join(bed_gr, nb_cpu=self.threads).df
+        else: 
+            res_df1 = query_gr.intersect(bed_gr, invert=False).df
 
         res_index1 = res_df1['Index']
 
@@ -1840,8 +1849,11 @@ class Pairs:
 
         query_df.columns = ['Chromosome', 'Start', 'End', 'Index']
         query_gr = pr.PyRanges(query_df)
-        res_df2 = query_gr.join(bed_gr, nb_cpu=self.threads).df
-
+        
+        if not invert:
+            res_df2 = query_gr.join(bed_gr, nb_cpu=self.threads).df
+        else:
+            res_df2 = query_gr.intersect(bed_gr, invert=True).df
         res_index2 = res_df2['Index']
         
         del query_df, query_gr, res_df2 
@@ -1856,10 +1868,16 @@ class Pairs:
 
         command = f"cat temp.{output}.header temp.{output}.body > {output}"
         check_call(command, shell=True)
-        logger.info(f"Successful output result in `{output}`")
+        
         os.remove(f"temp.{output}.header")
         os.remove(f"temp.{output}.body")
 
+        if gzip_flag:
+            command = f"pigz -p 4 {output}"
+            check_call(command, shell=True)
+            logger.info(f"Successful output result in `{output}.gz`")
+        else:
+            logger.info(f"Successful output result in `{output}`")
 
     def to_mnd(self, output, threads=4):
         from dask.distributed import Client

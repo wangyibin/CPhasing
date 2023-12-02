@@ -2309,7 +2309,7 @@ def cluster2count(cluster, count_re):
  
     ct.to_countRE(count_re)
 
-@utils.command(short_help='Convert cluster to pesudo assembly file.')
+@utils.command(short_help='Convert cluster to pseudo assembly file.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -2329,7 +2329,7 @@ def cluster2count(cluster, count_re):
 )
 def cluster2assembly(cluster, fasta, output):
     """
-    Convert cluster to a pesudo assembly file.
+    Convert cluster to a pseudo assembly file.
 
     ClusterTable : Path to cluster table.
 
@@ -2341,7 +2341,7 @@ def cluster2assembly(cluster, fasta, output):
  
     ct.to_assembly(fasta, output)
 
-@utils.command(short_help='Convert cluster to pesudo tour files.')
+@utils.command(short_help='Convert cluster to pseudo tour files.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -2349,7 +2349,7 @@ def cluster2assembly(cluster, fasta, output):
 )
 def cluster2tour(cluster):
     """
-    Convert cluster to several pesudo tour files.
+    Convert cluster to several pseudo tour files.
 
     ClusterTable : Path to cluster table.
     

@@ -24,16 +24,18 @@ def run(fasta,
         motif="AAGCTT",
         mode="phasing",
         hic=False,
-        steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
+        steps=set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
         skip_steps=set(),
         n="",
         resolution1=1,
         resolution2=1,
+        first_cluster=None,
         allelic_similarity=0.85,
         min_allelic_overlap=0.3,
         factor=50,
         threads=4):
     from ..cli import (mapper as porec_mapper,
+                       hcr,
                        alleles, 
                        prepare,
                        kprune,
@@ -76,6 +78,11 @@ def run(fasta,
 
     
     contigsizes = f"{fasta_prefix}.contigsizes"
+    if not Path(contigsizes).exists():
+        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+        flag = run_cmd(cmd, log=os.devnull)
+        assert flag == 0, "Failed to execute command, please check log."
+
 
     if "0" not in skip_steps and "0" in steps:
         if not hic:
@@ -94,8 +101,75 @@ def run(fasta,
                 if exit_code != 0:
                     raise e
     
-
     if "1" not in skip_steps and "1" in steps:
+        if porec_table:
+            hg_input = f"{porec_prefix}_hcr.porec.gz"
+            prepare_input = f"{porec_prefix}_hcr.pairs.gz"
+            try:
+                hcr.main(
+                    args=["-pct",
+                            porec_table,
+                            "-cs",
+                            contigsizes,
+                    ],
+                    prog_name="hcr"
+                )
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+        
+        else:
+            hg_input = f"{pairs_prefix}_hcr.pairs.gz"
+            prepare_input = f"{pairs_prefix}_hcr.pairs.gz"
+            try:
+                hcr.main(
+                    args=["-prs",
+                            pairs,
+                            "-cs",
+                            contigsizes,
+                    ],
+                    prog_name="hcr"
+                )
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+    else:
+        prepare_input = pairs
+
+
+    if "2" not in skip_steps and "2" in steps:
+        try:
+            prepare.main(args=[fasta,
+                            prepare_input, 
+                            "-m",
+                            motif],
+                            prog_name='prepare')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+    
+    prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
+    count_re = f"{prepare_prefix}.counts_{motif}.txt"
+    contacts = f"{prepare_prefix}.contacts"
+    clm = f"{prepare_prefix}.clm"
+
+
+    if "3" not in skip_steps and "3" in steps:
         try:
             alleles.main(args=["-f",
                                 fasta],
@@ -111,27 +185,7 @@ def run(fasta,
         
     allele_table = f"{fasta_prefix}.allele.table"
 
-    if "2" not in skip_steps and "2" in steps:
-        try:
-            prepare.main(args=[fasta,
-                            pairs, 
-                            "-m",
-                            motif],
-                            prog_name='prepare')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
-            
-            if exit_code != 0:
-                raise e
-    
-    count_re = f"{pairs_prefix}.counts_{motif}.txt"
-    contacts = f"{pairs_prefix}.contacts"
-    clm = f"{pairs_prefix}.clm"
-
-    if "3" not in skip_steps and "3" in steps:
+    if "4" not in skip_steps and "4" in steps:
         try:
             kprune.main(args=[allele_table,
                             contacts,
@@ -151,7 +205,7 @@ def run(fasta,
 
     hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
 
-    if "4" not in skip_steps and "4" in steps:
+    if "5" not in skip_steps and "5" in steps:
         try:
             if hg_flag:
                 hypergraph.main(args=[
@@ -179,7 +233,7 @@ def run(fasta,
     
     output_cluster = "output.clusters.txt"
   
-    if "5" not in skip_steps and "5" in steps:
+    if "6" not in skip_steps and "6" in steps:
         try:
             hyperpartition.main(args=[
                                 hg,
@@ -195,6 +249,8 @@ def run(fasta,
                                 resolution1,
                                 "-r2",
                                 resolution2,
+                                "-fc",
+                                first_cluster,
                                 "-as",
                                 allelic_similarity,
                                 "-mao",
@@ -214,7 +270,7 @@ def run(fasta,
     
     
     out_agp = "groups.agp"
-    if "6" not in skip_steps and "6" in steps:
+    if "7" not in skip_steps and "7" in steps:
         try:
             scaffolding.main(args=[
                                 output_cluster,
@@ -240,7 +296,7 @@ def run(fasta,
     out_small_cool = f"{pairs_prefix}.10000.cool"
 
 
-    if "7" not in skip_steps and "7" in steps:
+    if "8" not in skip_steps and "8" in steps:
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:

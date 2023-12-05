@@ -135,7 +135,7 @@ def cli(verbose, quiet):
     '--steps',
     metavar='STR',
     help="steps",
-    default="1,2,3,4,5,6",
+    default="1,2,3,4,5,6,7",
     show_default=True
 )
 @click.option(
@@ -176,6 +176,15 @@ def cli(verbose, quiet):
     help="Resolution of the second partition",
     type=click.FloatRange(0.0, 10.0),
     default=1.0,
+    show_default=True
+)
+@click.option(
+    '-fc',
+    '--first-cluster',
+    'first_cluster',
+    metavar="PATH",
+    help='Use the existing first cluster results to second round cluster',
+    default=None,
     show_default=True
 )
 @click.option(
@@ -229,13 +238,23 @@ def pipeline(fasta,
             n,
             resolution1,
             resolution2, 
+            first_cluster,
             allelic_similarity,
             min_allelic_overlap,
             factor,
             threads):
     """
-    A pipeline from a mapping result to phased and scaffolded result 
-        Steps: 0. mapper; 1. alleles; 2. prepare; 3. kprune; 4. hypergraph; 5. hyperpartiton; 6. scaffolding; 7. plot
+    A pipeline from a mapping result to phased and scaffolded result\n
+    Steps:\n 
+        0. mapper; 
+        1. hcr; 
+        2. prepare; 
+        3. alleles; 
+        4. kprune; 
+        5. hypergraph; 
+        6. hyperpartiton; 
+        7. scaffolding; 
+        8. plot
     
         FASTA: Path to draft assembly
 
@@ -251,12 +270,12 @@ def pipeline(fasta,
 
     if steps:
         if steps == "all":
-            steps = set(["0", "1", "2", "3", "4", "5", "6", "7"])
+            steps = set(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
 
         else:
             steps = steps.strip().split(",")
     else:
-        steps = set([0, 1, 2, 3, 4, 5, 6, 7])
+        steps = set([0, 1, 2, 3, 4, 5, 6, 7, 8])
 
 
 
@@ -274,6 +293,7 @@ def pipeline(fasta,
         n=n,
         resolution1=resolution1,
         resolution2=resolution2,
+        first_cluster=first_cluster,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
         factor=factor,
@@ -377,7 +397,7 @@ def mapper(reference, fastq, kmer_size,
     pcm.run()
 
 
-@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
+@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.', hidden=True)
 @click.pass_context
 def alignments(ctx):
     pass
@@ -681,7 +701,7 @@ def pairs_chrom2contig(pairs, contig_bed, output):
 
     """
     from .core import Pairs
-
+    
     contig_df = pd.read_csv(contig_bed, 
                             sep='\t', 
                             header=None,
@@ -870,6 +890,130 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         pct.divide_contig_into_nparts(contigsizes, nparts)
         
     pct.to_pao_csv(output)
+
+@cli.command(short_help='Only retain the HCRs of Pore-c/Hi-C data')
+@click.option(
+    '-pct',
+    '--porectable',
+    metavar="PoreC-Table",
+    help="PoreC Table file, which generated from `cphasing mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-prs',
+    '--pairs',
+    metavar="Pairs",
+    help="4DN pairs file, which generated from `cphasing mapper`, or `cphasing hic mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    "-cs",
+    "--contigsize",
+    help="Two columns file of contig name and length.",
+    metavar="CONTIG_SIZE",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    help="Bin size in bp.",
+    type=int,
+    default=10000,
+    show_default=True
+)
+@click.option(
+    "-p",
+    "--percent",
+    help="Percentile of high confidence regions.",
+    type=click.IntRange(0, 100),
+    default=95,
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="STR",
+    help="Output high confidence contacts, '.gz' supported.",
+    default=None,
+    show_default=True
+)
+def hcr(porectable, pairs, contigsize, binsize, percent, output):
+    """
+    Only retain high confidence regions to subsequence analysis.
+        High confidence regions are identified from contacts.
+
+    """
+    from .hitig.hcr.hcr_by_contacts import hcr_by_contacts
+
+    assert porectable or pairs, "The Pore-C table or 4DN pairs file should be provided at least one."
+
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    if porectable:
+        prefix = Path(porectable).with_suffix("")
+        while prefix.suffix in {'.gz', 'gz', 'porec'}:
+            prefix = prefix.with_suffix('')
+        
+        pairs = f"{prefix}.pairs.gz"
+        if not Path(pairs).exists():
+            cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
+               "-o", pairs]
+        
+            flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+            assert flag == 0, "Failed to execute command, please check log."
+        else:
+            logger.warn(f"Use exists 4DN pairs file of `{pairs}`.")
+    else:
+        prefix = Path(pairs).with_suffix("")
+        while prefix.suffix in {'.gz', 'gz', '.pairs'}:
+            prefix = prefix.with_suffix('')
+
+    out_small_cool = f"{prefix}.{binsize}.cool"
+    if not Path(out_small_cool).exists():
+        try: 
+            pairs2cool.main(args=[
+                                pairs,
+                                contigsize,
+                                out_small_cool
+                            ],
+                            prog_name='pairs2cool')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+    else:
+        logger.warn(f"Use exists cool file of `{out_small_cool}`.")
+    
+    hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , percent)
+
+    if porectable:
+        cmd = ["cphasing-rs", "porec-intersect", porectable, f"{prefix}.{binsize}.hcr.bed",
+               "-o", f"{prefix}_hcr.porec.gz"]
+        flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
+        assert flag == 0, "Failed to execute command, please check log."
+        logger.info(f'Successful out high confidence high-orrder contacts into `{f"{prefix}_hcr.porec.gz"}`')
+        cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
+               "-o", f"{prefix}_hcr.pairs.gz" ]
+        
+        flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
+        assert flag == 0, "Failed to execute command, please check log."
+        logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
+
+    else:
+        cmd = ["cphasing-rs", "pairs-intersect", pairs, f"{prefix}.{binsize}.hcr.bed",
+               "-o", f"{prefix}_hcr.pairs.gz"]
+        flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
+        assert flag == 0, "Failed to execute command, please check log."
+        logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
 
 @cli.command(short_help='Prepare data for subsequence analysis.')
@@ -1766,11 +1910,13 @@ def build(fasta, output, output_agp, only_agp):
 @cli.command()
 @click.argument(
     "pairs",
-    metavar="INPUT_PAIRS_PATH"
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
 )
 @click.argument(
     "chromsize",
     metavar="CHROM_SIZE",
+    type=click.Path(exists=True)
 )
 @click.argument(
     "outcool",

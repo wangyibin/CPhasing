@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.57]
+## Enhancement
+- `pipeline`, add `hcr`
+- `hcr`, optimzed
+
 ## [v0.0.56]
 ## Enhancement 
 - `cphasing-rs`, update `pairs-intersect` and `porec-intersect`

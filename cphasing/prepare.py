@@ -62,7 +62,8 @@ def count_re_in_genome(fasta, enzyme, output=None):
     return res_df
 
 
-def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3, outprefix=None, log_dir="logs"):
+def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3, 
+            threads=4, outprefix=None, log_dir="logs"):
 
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -79,6 +80,7 @@ def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3, outprefix=None, log_dir="
     run_cmd(cmd, log=f'{log_dir}/prepare.log')
 
     ## pairs2clm
-    cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts), "-o", f"{outprefix}.clm" ]
+    cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
+            "-t", str(threads), "-o", f"{outprefix}.clm" ]
     run_cmd(cmd, log=f'{log_dir}/prepare.log')
 

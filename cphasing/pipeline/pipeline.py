@@ -32,6 +32,7 @@ def run(fasta,
         first_cluster=None,
         allelic_similarity=0.85,
         min_allelic_overlap=0.3,
+        whitelist=None,
         factor=50,
         threads=4):
     from ..cli import (mapper as porec_mapper,
@@ -46,7 +47,10 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
+    from ..cli import alignments 
 
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
 
     fasta_prefix = fasta.rsplit(".", 1)[0]
     if porec_data:
@@ -146,6 +150,12 @@ def run(fasta,
     else:
         prepare_input = pairs
 
+    if not Path(prepare_input).exists():
+        cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
+                    "-o", pairs]
+        
+        flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+        assert flag == 0, "Failed to execute command, please check log."
 
     if "2" not in skip_steps and "2" in steps:
         try:
@@ -255,6 +265,8 @@ def run(fasta,
                                 allelic_similarity,
                                 "-mao",
                                 min_allelic_overlap,
+                                "-wl",
+                                whitelist,
                                 "-t",
                                 threads
                             ],

@@ -29,8 +29,11 @@ def hic(ctx):
 
 @hic.command()
 @click.option(
+    '-f',
+    '--fasta',
     '-r',
     '--reference',
+    'reference',
     help='Path of reference fasta file.',
     metavar='FILE',
     #type=click.Path(exists=True),

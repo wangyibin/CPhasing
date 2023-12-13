@@ -8,7 +8,7 @@ import time
 
 def GetOpts():
     group = argparse.ArgumentParser()
-    group.add_argument('--min', help='minimum length of contig, default: 15k, you can use both number or string end with k,m', default="15k")
+    group.add_argument('--min', help='minimum length of contig, default: 15k, you can use both number or string end with k,m', default="10k")
     group.add_argument('--max', help='minimum length of contig, default: 5m, you can use both number or string end with k,m', default="5m")
     group.add_argument('-n', '--n50', help='size of N50, default: 500k, you can use both number or string end with k,m', default="500k")
     group.add_argument('-i', '--input', help='origin fasta file of genome', required=True)

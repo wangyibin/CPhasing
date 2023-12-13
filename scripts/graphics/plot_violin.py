@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-plot line plot 
+plot violin plot 
 """
 
 import argparse
@@ -20,34 +20,39 @@ import numpy as np
 import pandas as pd 
 
 
-def plot(data, title, x, y, hue, output):
+from matplotlib.ticker import MaxNLocator
+
+
+def plot(data, title, output):
     colors = {"C-Phasing": "#b02418",
               "HapHiC": "#cb6e7f",
               "ALLHiC": "#253761",
               "ALLHiC_pregroup": "#8896ae"}
-    maker = {"C-Phasing": "s",
-              "HapHiC": "^",
-              "ALLHiC": "o",
-              "ALLHiC_pregroup": "D"}
-    makers = ["s", "^", "o", "D"]
-    fig, ax = plt.subplots(figsize=(5.5,5))
+
+    softwares = ["C-Phasing", "HapHiC", "ALLHiC", "ALLHiC_pregroup"]
+    tmp_res = []
+    for software in softwares:
+        tmp_res.append(data[data["Software"] == software])
+    data = pd.concat(tmp_res, axis=0)
+    fig, ax = plt.subplots(figsize=(9,5))
     plt.rcParams['font.family'] = 'Arial'
-    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors, makers=makers)
-    ax.set_xlabel(x, fontsize=24)
-    ax.set_ylabel(y, fontsize=24)
-    plt.xticks(fontsize=18, rotation=45)
-    if np.max(data[y]) > 1000:
-        plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        formatter = plt.gca().get_yaxis().get_major_formatter()
-        plt.gca().yaxis.set_major_formatter(formatter)
-        plt.gca().yaxis.get_offset_text().set_fontsize(14)
+    ax = sns.violinplot(data=data, x="N50", y="F1_score", hue="Software",
+                        palette=colors, order=["50 kb", "100 kb", "500 kb", "1 mb", "2 mb"])
+
+    x_positions = [0.5, 1.5, 2.5, 3.5] 
+    for x_position in x_positions:
+        ax.plot([x_position, x_position], [-0.2, 1.2], linestyle='dashed', color='black')
+    ax.set_xlabel("N50", fontsize=24)
+    ax.set_ylabel("F1 score", fontsize=24)
+    plt.xticks(fontsize=18)
+
     plt.yticks(fontsize=18)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+
     plt.title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
     plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
-    # plt.legend().remove()
     plt.savefig(output, dpi=600, bbox_inches='tight')
     plt.savefig(output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
-
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
@@ -64,16 +69,13 @@ def main(args):
     args = p.parse_args(args)
 
     df = pd.read_csv(args.tsv, sep='\t', header=0, index_col=None)
-   
-    for ploid, tmp_df in df.groupby('Ploidy'):
-        for column in tmp_df.columns:
-            if column == "Software" or column == "Ploidy" or \
-                column == "N50":
-                continue
-            output_middle = column.replace(" ", "_").replace("(", "").replace(")", "")
-            plot(tmp_df[["Software", "N50", column]], ploid, "N50", column, "Software", f"{ploid}.{output_middle}.png")
 
-        
+    for ploid, tmp_df in df.groupby('Ploidy'):
+        output = f"{ploid}.png"
+        plot(tmp_df[["Software", "N50", "F1_score"]], ploid, output)
+
+    
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+

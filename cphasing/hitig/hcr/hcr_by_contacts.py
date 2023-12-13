@@ -23,6 +23,7 @@ def hcr_by_contacts(cool_file, output, percent=95, ):
     percent = int(percent)
     cool = cooler.Cooler(cool_file)
     bins = cool.bins()[:]
+    contigsizes = cool.chromsizes
     matrix = cool.matrix(balance=False, sparse=True)[:]
     sum_values = np.array(matrix.sum(axis=1).T[0])
     sum_values_nonzero = sum_values[sum_values > 0]
@@ -33,8 +34,10 @@ def hcr_by_contacts(cool_file, output, percent=95, ):
     res = np.where(sum_values < max_value)
     
     hcr_regions = bins.loc[res[1]]
+    total_length = contigsizes.sum()
     num_hcr_regions = len(hcr_regions)
-    logger.info(f"Identified {num_hcr_regions} high-confidence regions")
+    hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
+    logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
     
     hcr_regions.columns = ['Chromosome', 'Start', 'End']
     hcr_regions_pr = pr.PyRanges(hcr_regions)

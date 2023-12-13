@@ -57,7 +57,7 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all
 
 
 ## Step by step pipeline of Pore-C data
-1. **mapping**  
+0. **mapping**  
     > Mapping pore-c data into contig-level assembly and output the pore-c table and 4DN pairs.
     ```bash
     ## results are `sample.porec.gz` and `sample.pairs.gz`
@@ -71,6 +71,12 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all
     ```bash
     zgrep "^#" sample-1.pairs.gz > header
     cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz 
+    ```
+1. **hcr**
+    > Only retain high confidence regions (HCRs) to subsequencing analysis
+    ```bash
+    ## results are `sample.hcr.bed`, `sample.hcr.porec.gz` and `sample.hcr.pairs.gz`
+    cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
     ```
 2. **prepare**
     > Prepare some data for subsequence analysis
@@ -88,7 +94,7 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all
     - **Step2** `kprune`
     ```bash
     ## result is `prune.contig.table`
-    cphasing kprune draft.asm.allele.table sample.whole.cool -c sample.counts_AAGCTT.txt
+    cphasing kprune draft.asm.allele.table sample.contacts
     ```
 4. **partition**  
     - **Step1** `hypergraph`
@@ -124,7 +130,7 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all
 
     ```bash
     ## result is `sample.10000.cool` and `groups.wg.png`
-    cphasing prepare pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
+    cphasing pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
 

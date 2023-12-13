@@ -203,9 +203,21 @@ def cli(verbose, quiet):
     "min_allelic_overlap",
     metavar="FLOAT",
     help="Minimum overlap ratio bewteen two group when merging different groups",
-    default=0.2,
+    default=0.3,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
+)
+@click.option(
+    "-wl",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '--factor',
@@ -241,6 +253,7 @@ def pipeline(fasta,
             first_cluster,
             allelic_similarity,
             min_allelic_overlap,
+            whitelist,
             factor,
             threads):
     """
@@ -397,7 +410,7 @@ def mapper(reference, fastq, kmer_size,
     pcm.run()
 
 
-@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.', hidden=True)
+@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
 @click.pass_context
 def alignments(ctx):
     pass
@@ -595,7 +608,7 @@ def summary(pore_c_table, read_number, threads, use_dask):
     contact_df.to_csv(f"{prefix}.concatemer.summary", sep='\t', 
                             header=True, index=True)
     
-@alignments.command()
+@alignments.command(hidden=True)
 @click.argument(
     'pore_c_table',
     type=click.Path(exists=True),
@@ -673,7 +686,7 @@ def pore_c_chrom2contig(
     res_df.to_parquet(output)
     logger.info(f'Done, output new Pore-C record in `{output}`')
 
-@alignments.command()
+@alignments.command(hidden=True)
 @click.argument(
     "pairs",
     metavar="Pairs",
@@ -751,6 +764,7 @@ def pairs_chrom2contig(pairs, contig_bed, output):
     default=4,
     metavar='INT',
     show_default=True,
+    hidden=True
 )
 def pairs2mnd(pairs, output, threads):
     """
@@ -760,9 +774,12 @@ def pairs2mnd(pairs, output, threads):
 
         Output : Path of output mnd file.
     """
-    from .core import Pairs 
-    p = Pairs(pairs)
-    p.to_mnd(output, threads) 
+    # from .core import Pairs 
+    # p = Pairs(pairs)
+    # p.to_mnd(output, threads) 
+    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output]
+    flag = run_cmd(cmd, log=os.devnull)
+    assert flag == 0, "Failed to execute command, please check log."
 
 
 @alignments.command()
@@ -780,7 +797,7 @@ def pairs2mnd(pairs, output, threads):
     'output',
     metavar='Output'
 )
-def pairs_intersection(pairs, bed, output):
+def pairs_intersect(pairs, bed, output):
     """
     According a bed file to intersection a pairs file.
 
@@ -790,9 +807,14 @@ def pairs_intersection(pairs, bed, output):
     
     Output : Path of output.
     """
-    from .core import Pairs
-    p = Pairs(pairs)
-    p.intersection(bed, output)
+    # from .core import Pairs
+    # p = Pairs(pairs)
+    # p.intersection(bed, output)
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, "-o", output]
+    flag = run_cmd(cmd, log=f"logs/pairs-intersect.log")
+    assert flag == 0, "Failed to execute command, please check log."
 
 @alignments.command()
 @click.argument(
@@ -809,17 +831,17 @@ def pairs_intersection(pairs, bed, output):
     'output',
     metavar='Output'
 )
-@click.option(
-    '-t',
-    '--threads',
-    help='Number of threads.',
-    type=int,
-    default=1,
-    metavar='INT',
-    show_default=True,
-    hidden=True,
-)
-def porec_intersection(table, bed, output, threads):
+# @click.option(
+#     '-t',
+#     '--threads',
+#     help='Number of threads.',
+#     type=int,
+#     default=1,
+#     metavar='INT',
+#     show_default=True,
+#     hidden=True,
+# )
+def porec_intersect(table, bed, output, threads):
     """
     According several regions to select contact 
 
@@ -829,10 +851,15 @@ def porec_intersection(table, bed, output, threads):
 
     Output : Path to output pore-c table.
     """
-    from .core import PoreCTable
-    pct = PoreCTable(threads)
-    pct.read_table(table)
-    pct.intersection(bed, output)
+    # from .core import PoreCTable
+    # pct = PoreCTable(threads)
+    # pct.read_table(table)
+    # pct.intersection(bed, output)
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    cmd = ["cphasing-rs", "porec-intersect", table, "-o", output]
+    flag = run_cmd(cmd, log=f"logs/porec-intersect.log")
+    assert flag == 0, "Failed to execute command, please check log."
 
 @alignments.command()
 @click.argument(
@@ -891,7 +918,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         
     pct.to_pao_csv(output)
 
-@cli.command(short_help='Only retain the HCRs of Pore-c/Hi-C data')
+@cli.command(short_help='Only retain the HCRs of Pore-C/Hi-C data')
 @click.option(
     '-pct',
     '--porectable',
@@ -935,6 +962,17 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True,
 )
 @click.option(
+    '--fofn',
+    help="""
+    If this flag is set then the SRC_ASSIGN_TABLES is a file of
+    filenames corresponding to the contact tables you want to merge.
+    This is workaround for when the command line gets too long.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     "-o",
     "--output",
     metavar="STR",
@@ -942,7 +980,8 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     default=None,
     show_default=True
 )
-def hcr(porectable, pairs, contigsize, binsize, percent, output):
+def hcr(porectable, pairs, contigsize, binsize, percent, 
+        fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -955,23 +994,40 @@ def hcr(porectable, pairs, contigsize, binsize, percent, output):
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     if porectable:
-        prefix = Path(porectable).with_suffix("")
-        while prefix.suffix in {'.gz', 'gz', 'porec'}:
-            prefix = prefix.with_suffix('')
-        
-        pairs = f"{prefix}.pairs.gz"
-        if not Path(pairs).exists():
-            cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
-               "-o", pairs]
-        
-            flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
-            assert flag == 0, "Failed to execute command, please check log."
+        if fofn:
+            pore_c_tables = [i.strip() for i in open(porectable) if i.strip()]
         else:
-            logger.warn(f"Use exists 4DN pairs file of `{pairs}`.")
+            pore_c_tables = [porectable]
+
+        if not pairs:
+            pairs_files = []
+            for pore_c_table in pore_c_tables:
+                prefix = Path(pore_c_table).with_suffix("")
+                while prefix.suffix in {'.gz', 'gz', 'porec', ".porec"}:
+                    prefix = prefix.with_suffix('')
+                
+                pairs = f"{prefix}.pairs.gz"
+                pairs_files.append(pairs)
+                if not Path(pairs).exists():
+                    cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
+                    "-o", pairs]
+                
+                    flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+                    assert flag == 0, "Failed to execute command, please check log."
+                else:
+                    logger.warn(f"Use exists 4DN pairs file of `{pairs}`.")
+        
     else:
-        prefix = Path(pairs).with_suffix("")
-        while prefix.suffix in {'.gz', 'gz', '.pairs'}:
-            prefix = prefix.with_suffix('')
+        if fofn:
+            pairs_files = [i.strip() for i in open(pairs) if i.strip()]
+        else:
+            pairs_files = [pairs]
+        
+        for pairs in pairs_files:
+            prefix = Path(pairs).with_suffix("")
+            while prefix.suffix in {'.gz', 'gz', '.pairs'}:
+                prefix = prefix.with_suffix('')
+
 
     out_small_cool = f"{prefix}.{binsize}.cool"
     if not Path(out_small_cool).exists():
@@ -990,6 +1046,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent, output):
             
             if exit_code != 0:
                 raise e
+        
     else:
         logger.warn(f"Use exists cool file of `{out_small_cool}`.")
     
@@ -1000,7 +1057,8 @@ def hcr(porectable, pairs, contigsize, binsize, percent, output):
                "-o", f"{prefix}_hcr.porec.gz"]
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
-        logger.info(f'Successful out high confidence high-orrder contacts into `{f"{prefix}_hcr.porec.gz"}`')
+        logger.info(f'Successful out high confidence high-orrder '
+                    f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
                "-o", f"{prefix}_hcr.pairs.gz" ]
         
@@ -1045,19 +1103,28 @@ def hcr(porectable, pairs, contigsize, binsize, percent, output):
     show_default=True,
 )
 @click.option(
+    '-t',
+    '--threads',
+    help="Number of threads. ",
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
     '-o',
     '--outprefix',
     help='output prefix, if none use the prefix of pairs',
     default=None,
     show_default=True
 )
-def prepare(fasta, pairs, min_contacts, motif, outprefix):
+def prepare(fasta, pairs, min_contacts, motif, threads, outprefix):
     """
 
     """
     from .prepare import pipe 
 
-    pipe(fasta, pairs, motif, min_contacts, outprefix)
+    pipe(fasta, pairs, motif, min_contacts, threads, outprefix)
     pass 
 
 
@@ -1464,7 +1531,7 @@ def hypergraph(contacts,
     "min_allelic_overlap",
     metavar="FLOAT",
     help="Minimum overlap ratio bewteen two group when merging different groups",
-    default=0.2,
+    default=0.3,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
@@ -1975,7 +2042,7 @@ def pairs2cool(pairs, chromsize, outcool,
             os.system(f'cat temp.{pid}.header  temp1.{pid}.pairs > temp.{pid}.pairs')
             os.remove(f'temp1.{pid}.pairs')
         pairs = f'temp.{pid}.pairs'
-            
+
     try:
         cload_pairs.main(args=[
                          f"{chromsize}:{binsize}",
@@ -2189,9 +2256,13 @@ def plot(matrix,
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
     if op.exists(chromosomes):
+        logger.info(f"Load chromosomes list from the file `{chromosomes}`.")
         chromosomes = [i.strip() for i in open(chromosomes) if i.strip()]
+        
     else:
+        
         chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
+        
 
     if no_ticks:
         xticks = False 
@@ -2214,7 +2285,9 @@ def plot(matrix,
 
 
 ALIASES = {
+
     "pipe": pipeline,
+    "align": alignments,
     "hg": hypergraph,
     "hp": hyperpartition,
     "sf": scaffolding,

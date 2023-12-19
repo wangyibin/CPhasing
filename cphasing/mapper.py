@@ -305,7 +305,8 @@ class ChromapMapper:
 
 
 class PoreCMapper:
-    def __init__(self, reference, read, k=15, w=10, min_quality=1, 
+    def __init__(self, reference, read, pattern="GATC", 
+                    k=15, w=10, min_quality=1, realign=False,
                     additional_arguments=("-x", "map-ont"), outprefix=None,
                     threads=4, path='minimap2', log_dir='logs',
                     force=False):
@@ -313,8 +314,9 @@ class PoreCMapper:
         self.index_path = Path(f'{self.reference.stem}.index')
         self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
         self.read = Path(read)
+        self.pattern = pattern
         self.additional_arguments = additional_arguments
-
+        self.realign = realign
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -349,8 +351,14 @@ class PoreCMapper:
         self.force = force
   
         self.outpaf = f'{self.prefix}.paf.gz'
-        self.outporec = f'{self.prefix}.porec.gz'
-        self.outpairs = f'{self.prefix}.pairs.gz'
+        self.realign_outpaf = f'{self.prefix}.realign.paf.gz'
+        if realign:
+            self.outporec = f'{self.prefix}.realign.porec.gz'
+            self.outpairs = f'{self.prefix}.realign.pairs.gz'
+        else:
+            self.outporec = f'{self.prefix}.porec.gz'
+            self.outpairs = f'{self.prefix}.pairs.gz'
+        
 
     def get_genome_size(self):
         from .utilities import get_genome_size
@@ -361,6 +369,11 @@ class PoreCMapper:
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
                 "-o", str(self.contigsizes)]
         run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+
+    def get_digest_bed(self):
+        cmd = ["cphasing-rs", "digest", str(self.reference), "-p", str(self.pattern), 
+                    "-o", f"{str(self.prefix)}.slope.{self.pattern}.bed" ]
+        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.digest.log")
 
     def index(self):
         """
@@ -378,12 +391,13 @@ class PoreCMapper:
 
 
     def mapping(self):
+        secondary = "yes" if self.realign else "no"
         cmd = [self._path, 
                 '-t', str(self.threads),
                  '-k', str(self.k),
                  '-w', str(self.w),
                 '-c',
-                '--secondary=no',
+                f'--secondary={secondary}',
                 '-I', self.batchsize,
                 str(self.reference),
                 str(self.read)]
@@ -420,13 +434,24 @@ class PoreCMapper:
             else:
                 assert pipelines != [], \
                     "Failed to execute command, please check log."
+
     
+    def run_realign(self):
+        cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]
+        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.realign.log')
+
     def paf2table(self):
-        cmd = ["cphasing-rs", "paf2table", f"{self.outpaf}", "-q", 
-                    f"{self.min_quality}", "-o", f"{self.outporec}"]
+        paf = self.realign_outpaf if self.realign else self.outpaf
+        if self.pattern:
+            cmd = ["cphasing-rs", "paf2table", f"{paf}", "-b",
+                   f"{self.prefix}.slope.{self.pattern}.bed", "-q", 
+                    f"{self.min_quality}", "-o", f"{self.outporec}",
+                ]
+        else:
+            cmd = ["cphasing-rs", "paf2table", f"{paf}", "-q", 
+                        f"{self.min_quality}", "-o", f"{self.outporec}"]
 
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2table.log')
-    
 
     def porec2pairs(self):
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
@@ -444,10 +469,17 @@ class PoreCMapper:
         # else:
         #     logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
         
+        if self.pattern:
+            self.get_digest_bed()
+
         if not op.exists(self.outpaf) or self.force:
             self.mapping()
         else:
             logger.warning(f"The paf of `{self.outpaf} existing, skipped ...")
+
+        if self.realign:
+            if not op.exists(self.realign_outpaf) or self.force:
+                self.run_realign()
 
         if not op.exists(self.outporec) or self.force:
             self.paf2table()

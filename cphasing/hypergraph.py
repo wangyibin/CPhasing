@@ -210,15 +210,19 @@ class HyperExtractor:
                                                 'filter_reason'],
                                     engine=PQ_ENGINE)
             else: 
-                df = pd.read_csv(infile, 
-                                 sep='\t',
-                                 header=None,
-                                 index_col=None,
-                                    usecols=['read_idx', 'chrom',
-                                            'start', 'end', 
-                                            'filter_reason'],
-                                    names=self.HEADER)
-            
+                try:
+                    df = pd.read_csv(infile, 
+                                    sep='\t',
+                                    header=None,
+                                    index_col=None,
+                                        usecols=['read_idx', 'chrom',
+                                                'start', 'end', 
+                                                'filter_reason'],
+                                        names=self.HEADER)
+                except pd.errors.ParserError:
+                    logger.error("The input contacts are not the pore-c table format"
+                                "do you want to parse Pairs file? please add parameters of `--pairs`")
+                    sys.exit(-1)
             df = df.query("filter_reason == 'pass'")
             df_list = [df]
         

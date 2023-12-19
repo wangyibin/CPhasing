@@ -1,4 +1,9 @@
 # Release notes #
+
+## [v0.0.58]
+## Enhancement
+- `mapper`, add restriction site filter and realign
+
 ## [v0.0.57]
 ## Enhancement
 - `pipeline`, add `hcr`

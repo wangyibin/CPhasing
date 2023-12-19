@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd 
 
+import numpy as np 
+
 from collections import OrderedDict
 from math import sqrt
 from joblib import Parallel, delayed
@@ -63,15 +65,15 @@ def main(args):
         
             return trans / sqrt(cis1 * cis2)
 
-        data = Parallel(n_jobs=10)(
+        data = Parallel(n_jobs=40)(
             delayed(func)(i) for i in cmd_args
         )
 
-        res[prefix] = data
+        res[prefix] = list(filter(lambda x: ~np.isinf(x),  data))
 
     
     res_df = pd.DataFrame(res)
-
+    
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(5.5, 5))
     boxprops = dict(color='black', linewidth=1.5)

@@ -124,7 +124,7 @@ def cli(verbose, quiet):
 )
 @click.option(
     '--mode',
-    metavar=True,
+    metavar="STR",
     help="mode of hyperpartition",
     type=click.Choice(['basal', 'phasing']),
     default='phasing',
@@ -326,6 +326,14 @@ from .hitig.cli import hitig
     type=click.Path(exists=True)
 )
 @click.option(
+    "-p",
+    "--pattern",
+    metavar="STR",
+    default="GATC",
+    help="Restrict site pattern, use comma to separate multiple patterns",
+    show_default=True,
+)
+@click.option(
     "-k",
     "kmer_size",
     help="kmer size for mapping.",
@@ -360,6 +368,13 @@ from .hitig.cli import hitig
     show_default=True
 )
 @click.option(
+    '--realign',
+    help="realign to rescue multiple alignments, only support for contig-level",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '-f',
     '--force',
     help='Force run all the command, ignore existing results.'
@@ -384,9 +399,9 @@ from .hitig.cli import hitig
     metavar='INT',
     show_default=True,
 )
-def mapper(reference, fastq, kmer_size, 
+def mapper(reference, fastq, pattern, kmer_size, 
             window_size, mm2_params, mapq, force, 
-            outprefix, threads):
+            realign, outprefix, threads):
     """
     mapper for pore-c reads.
 
@@ -400,9 +415,11 @@ def mapper(reference, fastq, kmer_size,
     additional_arguments = mm2_params.strip().split()
  
     pcm = PoreCMapper(reference, fastq,
+                        pattern=pattern,
                         k = kmer_size,
                         w = window_size,
                         force=force,
+                        realign=realign,
                         min_quality=mapq,
                         additional_arguments=additional_arguments,
                         outprefix=outprefix,
@@ -1188,7 +1205,7 @@ def alleles(fasta, output,
     pa.run()
 
 
-@cli.command(short_help="Generate the allelic contig and cross-allelic contig pairs.")
+@cli.command(short_help="Generate the allelic contig and cross-allelic contig table.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -1345,9 +1362,12 @@ def kprune(alleletable, contacts,
     show_default=True
 )
 @click.option(
+    '-prs',
     '--pairs',
+    '--hic',
     help="""
-    construct common graph from pairs file.
+    construct common graph from 4DN pairs file. 
+    Phasing by Hi-C data, should add this parameter.
     """,
     is_flag=True,
     default=False,

@@ -51,7 +51,10 @@ def run(fasta,
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
-
+    
+    if mode == 'basal':
+        skip_steps.add("3")
+        skip_steps.add("4")
     fasta_prefix = fasta.rsplit(".", 1)[0]
     if porec_data:
         porec_prefix = porec_data.replace(".gz", "").rsplit(".", 1)[0]
@@ -59,6 +62,7 @@ def run(fasta,
         pairs = f"{pairs_prefix}.pairs.gz"
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
+        porec_table = hg_input
         
     else:
         if "0" in steps:

@@ -372,7 +372,7 @@ class PoreCMapper:
 
     def get_digest_bed(self):
         cmd = ["cphasing-rs", "digest", str(self.reference), "-p", str(self.pattern), 
-                    "-o", f"{str(self.prefix)}.slope.{self.pattern}.bed" ]
+                    "-o", f"{self.reference.stem}.slope.{self.pattern}.bed" ]
         run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.digest.log")
 
     def index(self):

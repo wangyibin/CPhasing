@@ -470,7 +470,11 @@ class PoreCMapper:
         #     logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
         
         if self.pattern:
-            self.get_digest_bed()
+            if not op.exists(f"{self.prefix}.slope.{self.pattern}.bed") or self.force:
+                self.get_digest_bed()
+            else:
+                logger.warning(f"The digest bed of `{self.prefix}.slope.{self.pattern}.bed "
+                               "existing, skipped ...")
 
         if not op.exists(self.outpaf) or self.force:
             self.mapping()
@@ -480,6 +484,8 @@ class PoreCMapper:
         if self.realign:
             if not op.exists(self.realign_outpaf) or self.force:
                 self.run_realign()
+            else:
+                logger.warning(f"The realign paf of `{self.realign_outpaf} existing, skipped ...")
 
         if not op.exists(self.outporec) or self.force:
             self.paf2table()

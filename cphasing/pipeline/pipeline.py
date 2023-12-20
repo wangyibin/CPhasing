@@ -169,7 +169,7 @@ def run(fasta,
         try:
             prepare.main(args=[fasta,
                             prepare_input, 
-                            "-m",
+                            "-p",
                             pattern],
                             prog_name='prepare')
         except SystemExit as e:

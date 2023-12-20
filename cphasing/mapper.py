@@ -444,7 +444,7 @@ class PoreCMapper:
         paf = self.realign_outpaf if self.realign else self.outpaf
         if self.pattern:
             cmd = ["cphasing-rs", "paf2table", f"{paf}", "-b",
-                   f"{self.prefix}.slope.{self.pattern}.bed", "-q", 
+                   f"{self.reference.stem}.slope.{self.pattern}.bed", "-q", 
                     f"{self.min_quality}", "-o", f"{self.outporec}",
                 ]
         else:

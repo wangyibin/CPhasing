@@ -51,7 +51,7 @@ def run(fasta,
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+    steps = set(steps)
     if mode == 'basal':
         skip_steps.add("3")
         skip_steps.add("4")
@@ -63,6 +63,10 @@ def run(fasta,
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
         porec_table = hg_input
+        
+        if not Path(pairs).exists() and not Path(porec_table).exists():
+            logger.warning("Will run mapping step")
+            steps.add("0")
         
     else:
         if "0" in steps:
@@ -82,8 +86,6 @@ def run(fasta,
                 pairs_prefix = pairs.replace(".gz", "").rsplit(".", 1)[0]
                 hg_input = pairs 
                 hg_flag = "--pairs"
-            
-
 
     if "0" not in skip_steps and "0" in steps:
         if not hic:

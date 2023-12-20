@@ -93,6 +93,7 @@ def main(args):
     
     res = OrderedDict()
     zero_chrom = []
+    PR_output = open(f"{prefix}.PR", 'w')
     for real_chrom in real_db:
         try:
             group, _contigs, _contigs_chrom, _contigs_chrom_count = group_assign[real_chrom]
@@ -104,10 +105,10 @@ def main(args):
             
             F1 = (2 * P * R) / (P + R)
 
-            print(real_chrom, P, R, F1, file=sys.stdout)
+            print(real_chrom, P, R, F1, file=PR_output)
             res[real_chrom] = (P, R)
         except KeyError:
-            print(real_chrom, 0, 0, 0, file=sys.stdout)
+            print(real_chrom, 0, 0, 0, file=PR_output)
             zero_chrom.append(real_chrom)
             res[real_chrom] = (0, 0)
     

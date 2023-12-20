@@ -62,7 +62,7 @@ def count_re_in_genome(fasta, enzyme, output=None):
     return res_df
 
 
-def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3, 
+def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3, 
             threads=4, outprefix=None, log_dir="logs"):
 
     log_dir = Path(log_dir)
@@ -72,11 +72,12 @@ def pipe(fasta, pairs, motif="AAGCTT", min_contacts=3,
     prefix = pairs.with_suffix('')
     while prefix.suffix in {'.pairs', 'gz', 'pairs'}:
         prefix = prefix.with_suffix('')
-
+    prefix = Path(prefix).name
     outprefix = prefix if outprefix is None else outprefix
 
     ## count re
-    cmd = ["cphasing-rs", "count_re", fasta, "-o", f"{outprefix}.counts_{motif}.txt"]
+    cmd = ["cphasing-rs", "count_re", fasta, "-o", 
+            f"{outprefix}.counts_{pattern}.txt", "-p", pattern]
     run_cmd(cmd, log=f'{log_dir}/prepare.log')
 
     ## pairs2clm

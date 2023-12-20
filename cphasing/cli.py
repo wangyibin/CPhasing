@@ -1116,9 +1116,9 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     type=click.Path(exists=True)
 )
 @click.option(
-    '-m',
-    '--motif',
-    help='Motif of restrict enzyme. Only support for single motif',
+    '-p',
+    '--pattern',
+    help='Pattern of restrict enzyme. Commam separate for multiple pattern',
     metavar="STR",
     default="AAGCTT",
     show_default=True,
@@ -1148,13 +1148,13 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     default=None,
     show_default=True
 )
-def prepare(fasta, pairs, min_contacts, motif, threads, outprefix):
+def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     """
 
     """
     from .prepare import pipe 
 
-    pipe(fasta, pairs, motif, min_contacts, threads, outprefix)
+    pipe(fasta, pairs, pattern, min_contacts, threads, outprefix)
     pass 
 
 

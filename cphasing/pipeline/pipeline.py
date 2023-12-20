@@ -21,7 +21,7 @@ def run(fasta,
         porec_data,
         porec_table,
         pairs, 
-        motif="AAGCTT",
+        pattern="AAGCTT",
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
@@ -84,19 +84,14 @@ def run(fasta,
                 hg_flag = "--pairs"
             
 
-    
-    contigsizes = f"{fasta_prefix}.contigsizes"
-    if not Path(contigsizes).exists():
-        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
-        flag = run_cmd(cmd, log=os.devnull)
-        assert flag == 0, "Failed to execute command, please check log."
-
 
     if "0" not in skip_steps and "0" in steps:
         if not hic:
             try:
                 porec_mapper.main(args=[fasta, 
                                 porec_data,
+                                "-p",
+                                pattern,
                                 "-t",
                                 str(threads)],
                                 prog_name='alleles')
@@ -109,6 +104,13 @@ def run(fasta,
                 if exit_code != 0:
                     raise e
     
+    contigsizes = f"{fasta_prefix}.contigsizes"
+    if not Path(contigsizes).exists():
+        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+        flag = run_cmd(cmd, log=os.devnull)
+        assert flag == 0, "Failed to execute command, please check log."
+
+
     if "1" not in skip_steps and "1" in steps:
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
@@ -166,7 +168,7 @@ def run(fasta,
             prepare.main(args=[fasta,
                             prepare_input, 
                             "-m",
-                            motif],
+                            pattern],
                             prog_name='prepare')
         except SystemExit as e:
             exc_info = sys.exc_info()
@@ -178,7 +180,7 @@ def run(fasta,
                 raise e
     
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
-    count_re = f"{prepare_prefix}.counts_{motif}.txt"
+    count_re = f"{prepare_prefix}.counts_{pattern}.txt"
     contacts = f"{prepare_prefix}.contacts"
     clm = f"{prepare_prefix}.clm"
 

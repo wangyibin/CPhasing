@@ -115,9 +115,9 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
-    '-m',
-    '--motif',
-    help='Motif of restrict enzyme. Only support for single motif',
+    '-p',
+    '--pattern',
+    help='Pattern of restrict enzyme. Commam separate for multiple pattern',
     metavar="STR",
     default="AAGCTT",
     show_default=True,
@@ -146,7 +146,6 @@ def cli(verbose, quiet):
     help="skip following steps, comma seperate.",
     default=None,
     show_default=True
-    
 )
 @click.option(
     "-n",
@@ -243,7 +242,7 @@ def pipeline(fasta,
             porec_data, 
             porectable, 
             pairs, 
-            motif,
+            pattern,
             mode, 
             steps,
             skip_steps, 
@@ -258,22 +257,35 @@ def pipeline(fasta,
             threads):
     """
     A pipeline from a mapping result to phased and scaffolded result\n
-    Steps:\n 
-        0. mapper; 
-        1. hcr; 
-        2. prepare; 
-        3. alleles; 
-        4. kprune; 
-        5. hypergraph; 
-        6. hyperpartiton; 
-        7. scaffolding; 
-        8. plot
-    
-        FASTA: Path to draft assembly
+    Steps:\n
+        0. mapper;\t\t\t\t\t\t\t\t\t
+        1. hcr;\t\t\t\t\t\t\t\t\t
+        2. prepare;\t\t\t\t\t\t\t\t\t
+        3. alleles;\t\t\t\t\t\t\t\t\t 
+        4. kprune;\t\t\t\t\t\t\t\t\t
+        5. hypergraph;\t\t\t\t\t\t\t\t\t
+        6. hyperpartiton;\t\t\t\t\t\t\t\t\t
+        7. scaffolding;\t\t\t\t\t\t\t\t\t
+        8. plot;\t\t\t\t\t\t\t\t\t
 
-        POREC: Path to Pore-C Table. If you want to run 0.mapper, this position should provide the Pore-C data.
+    Usage:\n
+        Input pore-c data\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"
+        Input pore-c table\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10
+        Input pairs\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -prs sample.pairs.gz -t 10 
 
-        PAIRS: Path to Pairs file. If run 0.mapper, you should provide the `{prefix_of_porec_data}.pairs.gz`
+        Skip step:\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -ss 1 
+        Only run a step:\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -s 1
+
+        Basal mode:\t\t\t\t\t\t\t\t\t
+        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 --mode basal
+
+
+        
     """
     from .pipeline.pipeline import run 
     
@@ -299,7 +311,7 @@ def pipeline(fasta,
     
     run(fasta, porec_data,
          porectable, pairs, 
-         motif=motif,
+         pattern=pattern,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
@@ -307,6 +319,7 @@ def pipeline(fasta,
         resolution1=resolution1,
         resolution2=resolution2,
         first_cluster=first_cluster,
+        whitelist=whitelist,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
         factor=factor,
@@ -329,7 +342,7 @@ from .hitig.cli import hitig
     "-p",
     "--pattern",
     metavar="STR",
-    default="GATC",
+    default="AAGCTT",
     help="Restrict site pattern, use comma to separate multiple patterns",
     show_default=True,
 )

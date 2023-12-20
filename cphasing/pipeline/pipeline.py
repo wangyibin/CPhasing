@@ -57,8 +57,8 @@ def run(fasta,
         skip_steps.add("4")
     fasta_prefix = fasta.rsplit(".", 1)[0]
     if porec_data:
-        porec_prefix = porec_data.replace(".gz", "").rsplit(".", 1)[0]
-        pairs_prefix = porec_data.replace(".gz", "").rsplit(".", 1)[0]
+        porec_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
+        pairs_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
         pairs = f"{pairs_prefix}.pairs.gz"
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""

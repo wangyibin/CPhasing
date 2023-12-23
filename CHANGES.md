@@ -1,8 +1,12 @@
 # Release notes #
 
 ## [v0.0.58]
+
 ## Enhancement
 - `mapper`, add restriction site filter and realign
+- `hyperpartition`, new mode by phasing
+- `hyperpartition`, support import pore-c table or pairs
+- `HyperEdges`, add contigsizes, mapq
 
 ## [v0.0.57]
 ## Enhancement

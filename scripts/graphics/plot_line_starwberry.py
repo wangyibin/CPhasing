@@ -42,7 +42,7 @@ def plot(data, title, x, y, hue, output):
         plt.gca().yaxis.set_major_formatter(formatter)
         plt.gca().yaxis.get_offset_text().set_fontsize(14)
     plt.yticks(fontsize=18)
-    plt.title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
+    # plt.title(f"{title}", fontsize=24, fontweight='bold')
     # plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
     plt.legend().remove()
     plt.savefig(output, dpi=600, bbox_inches='tight')
@@ -64,14 +64,16 @@ def main(args):
     args = p.parse_args(args)
 
     df = pd.read_csv(args.tsv, sep='\t', header=0, index_col=None)
-   
-    for ploid, tmp_df in df.groupby('Ploidy'):
+
+    for sample, tmp_df in df.groupby('Sample'):
         for column in tmp_df.columns:
-            if column == "Software" or column == "Ploidy" or \
-                column == "N50":
+            if column == "Software" or column == "Sample" or \
+                column == "N50" or column == "Chromosome numbers":
                 continue
+
             output_middle = column.replace(" ", "_").replace("(", "").replace(")", "")
-            plot(tmp_df[["Software", "N50", column]], ploid, "N50", column, "Software", f"{ploid}.{output_middle}.png")
+            sample = sample.replace(" ", "_")
+            plot(tmp_df[["Software", "N50", column]], sample, "N50", column, "Software", f"{sample}.{output_middle}.png")
 
         
 

@@ -72,12 +72,13 @@ def main(args):
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))
     inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+    
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
     loss_pairs = inter_pairs - pt_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
-    for pair in loss_pairs:
+    for pair in incorrect_pairs:
         print("\t".join(pair), file=sys.stdout)
     print(f"Precision: {precision:.4}", file=sys.stderr)
     print(f"Recall: {recall:.4}", file=sys.stderr)

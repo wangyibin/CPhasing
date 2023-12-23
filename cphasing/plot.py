@@ -681,11 +681,13 @@ def plot_heatmap(matrix, output,
 
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
         
+        tick_fontsize = 15 / np.log10(len(chromnames))
 
         ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
                             xticks=xticks, yticks=yticks,
-                            cmap=cmap, add_lines=add_lines)
+                            cmap=cmap, add_lines=add_lines,
+                            tick_fontsize=tick_fontsize)
     
     else: 
         plot_per_chromosome_heatmap(cool, chromosomes, chrom_per_row=chrom_per_row,
@@ -802,6 +804,7 @@ def plot_heatmap_core(matrix,
                         norm=None,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
+                        tick_fontsize=16,
                         cmap="redp1_r",
                         add_lines=False):
     import colormaps as cmaps
@@ -836,12 +839,12 @@ def plot_heatmap_core(matrix,
     ax.tick_params(width=0)
     if xticks and chromnames:
         ax.set_xticks(mid_tick_pos)
-        ax.set_xticklabels(chromnames, fontsize=16)
+        ax.set_xticklabels(chromnames, fontsize=tick_fontsize)
     else:
         ax.set_xticks([])
     if yticks and chromnames:
         ax.set_yticks(mid_tick_pos)
-        ax.set_yticklabels(chromnames, fontsize=16)
+        ax.set_yticklabels(chromnames, fontsize=tick_fontsize)
     else:
         ax.set_yticks([])
 

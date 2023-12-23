@@ -21,11 +21,14 @@ import pandas as pd
 
 from collections import defaultdict
 from copy import deepcopy
+from deprecated.sphinx import deprecated
 from itertools import product
 from joblib import Parallel, delayed
 from multiprocessing import Manager
 from pathlib import Path
 from scipy.sparse import triu
+
+
 
 from .core import AlleleTable, CountRE
 from .utilities import list_flatten, run_cmd
@@ -43,6 +46,7 @@ class ContigPairs(msgspec.Struct):
     
 class CandidateContacts(msgspec.Struct):
     data: list 
+
 
 class KPrunerRust:
     def __init__(self, alleletable, contacts,
@@ -70,7 +74,7 @@ class KPrunerRust:
         
 
 
-## deprecated
+@deprecated(version="v0.0.56")
 class KPruner:
     """
     generate a prune list by kmer similarity allele table
@@ -205,35 +209,6 @@ class KPruner:
         matching = g.maximum_bipartite_matching(weights='weight')
         
         if matching.match_of(0) == 2:
-            # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
-            #     print(contig_edges, scores, True, file=sys.stderr)
-            return True
-        else:
-            # if ('4A.ctg6', '4B.ctg14') in contig_edges or ('4B.ctg14', '4A.ctg6',) in contig_edges:
-            #     print(matching.match_of(0), file=sys.stderr)
-            #     print(contig_edges, scores, False, file=sys.stderr)
-            return False
-
-    @staticmethod
-    def is_strong_contact2(l1, l2, edges, scores):#allele_pair1, allele_pair2, score_db):
-        
-        # tmp_allele_pair1 = [allele_pair1[0], *allele_pair1[1]]
-        # tmp_allele_pair2 = [allele_pair2[0], *allele_pair2[1]]
-        # l1 = len(tmp_allele_pair1)
-        # l2 = len(tmp_allele_pair2)
-  
-        # contig_edges = list(product(tmp_allele_pair1, tmp_allele_pair2))
-        # edges = list(product(range(l1), range(l1, l1 + l2)))
-
-        # scores = [score_db.get(i, 0) for i in contig_edges]
-        
-        g = ig.Graph.Bipartite([0] * l1 + [1] * l2, edges)
-       
-        g.es['weight'] = scores
-
-        matching = g.maximum_bipartite_matching(weights='weight')
-        
-        if matching.match_of(0) == l1:
             return True
         else:
             return False
@@ -395,8 +370,6 @@ class KPruner:
     def run(self):
         self.remove_allelic()
         self.remove_weak_with_allelic()
-    
-    
 
 class KPruneHyperGraph: 
     """
@@ -562,4 +535,3 @@ class KPruneHyperGraph:
     def run(self):
         self.remove_allelic()
         self.remove_weak_with_allelic()
-

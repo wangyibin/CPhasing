@@ -35,6 +35,9 @@ class HyperEdges(msgspec.Struct):
     idx: dict 
     row: list
     col: list
+    contigsizes: dict 
+    mapq: list
+    
 
 class HyperGraph:
     """
@@ -45,8 +48,9 @@ class HyperGraph:
     edges: HyperEdges
         HyperEdges
     """
-    def __init__(self, edges):
+    def __init__(self, edges, min_quality=1):
         self.edges = edges 
+        self.min_quality = min_quality
         self.get_data()
        
 
@@ -54,11 +58,24 @@ class HyperGraph:
         """
         initial assign row and edges
         """
-        self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
-        self.row = np.array(self.edges.row)
-        self.col = np.array(self.edges.col)
-        self.shape = (len(self.nodes), max(self.col) + 1)
+        if self.min_quality > 1 and self.edges.mapq:
+            
+            self.mapq = np.array(self.edges.mapq)
+            retain_idx = np.where(self.mapq > self.min_quality)
+            self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+            self.row = np.array(self.edges.row)[retain_idx]
+            self.col = np.array(self.edges.col)[retain_idx]
+            self.idx = np.sort(np.array(pd.unique(self.row)))
+            self.remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
+            self.remove_contigs = self.nodes[~self.remove_idx]
+            logger.info(f"Removed `{len(retain_idx)}` edges that mapq < {self.min_quality}.")
+            
+        else:
+            self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+            self.row = np.array(self.edges.row)
+            self.col = np.array(self.edges.col)
         
+        self.shape = (len(self.nodes), max(self.col) + 1)
         self.removed_count = 0
 
     def remove_rows(self, contigs):
@@ -388,6 +405,7 @@ def IRMM(H, # NW,
         # A = A * P 
         A = A.tolil()
         if P_allelic_idx:
+     
             if allelic_factor == 0: 
                 A[P_allelic_idx[0], P_allelic_idx[1]] = 0
             else:

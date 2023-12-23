@@ -40,6 +40,7 @@ class HisatMapper(object):
                     min_quality=10, 
                     threads=4, 
                     additional_arguments=(),
+                    # additional_arguments=("-B" "5" "-O" "2" "-E" "1"),
                     hisat2_path='hisat2', 
                     log_dir='logs'):
 
@@ -455,7 +456,7 @@ class PoreCMapper:
 
     def porec2pairs(self):
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
-               str(self.contigsizes),
+               str(self.contigsizes), "-q", "2",
                 "-o", f"{self.outpairs}"]
         
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')

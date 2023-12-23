@@ -24,7 +24,7 @@ def run(fasta,
         pattern="AAGCTT",
         mode="phasing",
         hic=False,
-        steps=set([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
         skip_steps=set(),
         n="",
         resolution1=1,
@@ -63,6 +63,7 @@ def run(fasta,
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
         porec_table = hg_input
+        input_param = "--porec"
         
         if not Path(pairs).exists() and not Path(porec_table).exists():
             logger.warning("Will run mapping step")
@@ -78,6 +79,7 @@ def run(fasta,
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
             hg_input = porec_table
             hg_flag = ""
+            input_param = "--porec"
             if not pairs:
                 pairs = f"{porec_prefix}.pairs.gz"
 
@@ -86,14 +88,15 @@ def run(fasta,
                 pairs_prefix = pairs.replace(".gz", "").rsplit(".", 1)[0]
                 hg_input = pairs 
                 hg_flag = "--pairs"
+                input_param = hg_flag
 
     if "0" not in skip_steps and "0" in steps:
         if not hic:
             try:
                 porec_mapper.main(args=[fasta, 
                                 porec_data,
-                                "-p",
-                                pattern,
+                                # "-p",
+                                # pattern,
                                 "-t",
                                 str(threads)],
                                 prog_name='alleles')
@@ -160,7 +163,7 @@ def run(fasta,
 
     if not Path(prepare_input).exists():
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                    "-o", pairs]
+                    "-o", pairs, "-q", "2"]
         
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -221,42 +224,43 @@ def run(fasta,
         
     prune_table = "prune.contig.table" if mode == "phasing" else None
 
-    hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
+    # hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
 
-    if "5" not in skip_steps and "5" in steps:
-        try:
-            if hg_flag:
-                hypergraph.main(args=[
-                                hg_input,
-                                contigsizes,
-                                hg,
-                                hg_flag
-                            ],
-                            prog_name='hypergraph')
-            else:
-                hypergraph.main(args=[
-                                    hg_input,
-                                    contigsizes,
-                                    hg,
-                                ],
-                                prog_name='hypergraph')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
+    # if "5" not in skip_steps and "5" in steps:
+    #     try:
+    #         if hg_flag:
+    #             hypergraph.main(args=[
+    #                             hg_input,
+    #                             contigsizes,
+    #                             hg,
+    #                             hg_flag
+    #                         ],
+    #                         prog_name='hypergraph')
+    #         else:
+    #             hypergraph.main(args=[
+    #                                 hg_input,
+    #                                 contigsizes,
+    #                                 hg,
+    #                             ],
+    #                             prog_name='hypergraph')
+    #     except SystemExit as e:
+    #         exc_info = sys.exc_info()
+    #         exit_code = e.code
+    #         if exit_code is None:
+    #             exit_code = 0
             
-            if exit_code != 0:
-                raise e
+    #         if exit_code != 0:
+    #             raise e
     
     output_cluster = "output.clusters.txt"
   
-    if "6" not in skip_steps and "6" in steps:
+    if "5" not in skip_steps and "5" in steps:
         try:
             hyperpartition.main(args=[
-                                hg,
+                                hg_input,
                                 contigsizes,
                                 output_cluster,
+                                input_param,
                                 "--mode",
                                 mode,
                                 "-pt",
@@ -290,7 +294,7 @@ def run(fasta,
     
     
     out_agp = "groups.agp"
-    if "7" not in skip_steps and "7" in steps:
+    if "6" not in skip_steps and "6" in steps:
         try:
             scaffolding.main(args=[
                                 output_cluster,
@@ -316,7 +320,7 @@ def run(fasta,
     out_small_cool = f"{pairs_prefix}.10000.cool"
 
 
-    if "8" not in skip_steps and "8" in steps:
+    if "7" not in skip_steps and "7" in steps:
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:

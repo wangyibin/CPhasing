@@ -95,7 +95,8 @@ def main(args):
     medianprops=dict(color='black', linewidth=2.5)
     whiskerprops = dict(linestyle='--')
 
-    # pvalue = wi_test(results[0], results[1])
+    pvalue = wi_test(results[0], results[1])
+    
     # a = ax.boxplot(results[0], showfliers=False, patch_artist=True, notch=True, widths=0.4,
     #            boxprops=boxprops_r, medianprops=medianprops, whiskerprops=whiskerprops)
 
@@ -132,8 +133,8 @@ def main(args):
     ax = sns.violinplot(data=results, ax=ax, palette=colors, alpha=1)
     # ax.set_xticks([0, 1])
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)
-    ax.set_xticks([0, 1, 2])
-    ax.set_xticklabels(["Before\n realign", "After\n realign", "After\n realign2"], fontsize=20)
+    # ax.set_xticks([0, 1, 2])
+    # ax.set_xticklabels(["Before\n realign", "After\n realign", "After\n realign2"], fontsize=20)
 
     # ax.set_xticks([0, 1, 2, 3, 4])
     # ax.set_xticklabels([2, 4, 6, 8, 12], fontsize=20)
@@ -141,7 +142,15 @@ def main(args):
     # ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     # ax.set_xticklabels(["k15 w5", "k15_w10", "k17_w7", "k27_w14", "k15 w5", "k15_w10", "k17_w7", "k27_w14", "Hi-C $\it{Dpn}$II", "Hi-C Arima"], 
                     #    fontsize=8, rotation=45, ha="right")
+    # ax.set_xticks([0, 1, 2, 3])
     # ax.set_xticklabels(["Pore-C\n$\it{Hind}$III", "Pore-C\n$\it{Dpn}$II", "Hi-C\n$\it{Dpn}$II", "Hi-C\nArima"], fontsize=20)
+
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["Pore-C", "Hi-C", ], fontsize=20)
+    max_y = max(max(results)) * 1.3
+    plt.ylim(0, max_y)
+    plt.text(0.5, max_y * 0.95,f'Wilcox test p-value < {pvalue:.1e}', ha='center', fontsize=12)
+    
 
     # ax.set_xticks([0, 1, 2, 3])
     # ax.set_xticklabels(["Pore-C\n$\it{Hind}$III", "Pore-C\n$\it{Dpn}$II", "Hi-C\n$\it{Dpn}$II", "Hi-C\nArima"], fontsize=20)

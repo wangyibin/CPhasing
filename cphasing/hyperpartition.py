@@ -141,7 +141,8 @@ class HyperPartition:
         
         self.K = []
         ## remove edges
-        del self.edges, edges 
+    
+        del edges 
         gc.collect()
 
         self.filter_hypergraph()
@@ -524,6 +525,7 @@ class HyperPartition:
         incremental partition for autopolyploid.
         """
         logger.info("Starting first partition ...")
+        
         if self.prunetable:
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
         else:
@@ -564,6 +566,22 @@ class HyperPartition:
 
         logger.info("Starting second hyperpartition ...")
 
+        if self.HG.edges.mapq:
+            idx_to_vertices = self.idx_to_vertices
+
+            tmp_K = list(map(lambda y: list(
+                            map(lambda x: idx_to_vertices[x], y)), 
+                            self.K))
+            self.HG = HyperGraph(self.edges, min_quality=2)
+            self.filter_hypergraph()
+            self.H, self.vertices = self.get_hypergraph()
+            vertices_idx_sizes = self.vertices_idx_sizes
+            vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+            vertices_idx = self.vertices_idx
+            tmp_K = list(map(lambda x: list(filter(lambda y: y not in self.HG.remove_contigs, x)), tmp_K))
+            tmp_K = list(map(lambda x: list(filter(lambda y: y in vertices_idx, x )), tmp_K))
+            self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
+            
         # prune_pair_df = prune_pair_df.reset_index()
         args = []
         for num, sub_k in enumerate(self.K, 1):
@@ -729,7 +747,7 @@ class HyperPartition:
             res = set(combinations(group, 2)).intersection(allelic_idx_set)
             res_flatten = set(list_flatten(res))
 
-            print(len(res_flatten))
+     
             _, new_K = HyperPartition._incremental_partition(res_flatten, 
                                                           self.prune_pair_df, 
                                                           self.H, self.contigsizes,

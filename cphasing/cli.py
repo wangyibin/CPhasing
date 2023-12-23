@@ -126,7 +126,7 @@ def cli(verbose, quiet):
     '--mode',
     metavar="STR",
     help="mode of hyperpartition",
-    type=click.Choice(['basal', 'phasing']),
+    type=click.Choice(['basal', 'phasing', 'basal_withprune']),
     default='phasing',
     show_default=True,
 )
@@ -135,7 +135,7 @@ def cli(verbose, quiet):
     '--steps',
     metavar='STR',
     help="steps",
-    default="1,2,3,4,5,6,7",
+    default="1,2,3,4,5,6",
     show_default=True
 )
 @click.option(
@@ -263,10 +263,9 @@ def pipeline(fasta,
         2. prepare;\t\t\t\t\t\t\t\t\t
         3. alleles;\t\t\t\t\t\t\t\t\t 
         4. kprune;\t\t\t\t\t\t\t\t\t
-        5. hypergraph;\t\t\t\t\t\t\t\t\t
-        6. hyperpartiton;\t\t\t\t\t\t\t\t\t
-        7. scaffolding;\t\t\t\t\t\t\t\t\t
-        8. plot;\t\t\t\t\t\t\t\t\t
+        5. hyperpartiton;\t\t\t\t\t\t\t\t\t
+        6. scaffolding;\t\t\t\t\t\t\t\t\t
+        7. plot;\t\t\t\t\t\t\t\t\t
 
     Usage:\n
         Input pore-c data\t\t\t\t\t\t\t\t\t
@@ -295,12 +294,12 @@ def pipeline(fasta,
 
     if steps:
         if steps == "all":
-            steps = set(["0", "1", "2", "3", "4", "5", "6", "7", "8"])
+            steps = set(["0", "1", "2", "3", "4", "5", "6", "7"])
 
         else:
             steps = steps.strip().split(",")
     else:
-        steps = set([0, 1, 2, 3, 4, 5, 6, 7, 8])
+        steps = set(map(str, [0, 1, 2, 3, 4, 5, 6, 7]))
 
 
 
@@ -342,8 +341,8 @@ from .hitig.cli import hitig
     "-p",
     "--pattern",
     metavar="STR",
-    default="AAGCTT",
-    help="Restrict site pattern, use comma to separate multiple patterns",
+    default="",
+    help="Restrict site pattern, use comma to separate multiple patterns.",
     show_default=True,
 )
 @click.option(
@@ -1090,7 +1089,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
         logger.info(f'Successful out high confidence high-orrder '
                     f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-               "-o", f"{prefix}_hcr.pairs.gz" ]
+               "-o", f"{prefix}_hcr.pairs.gz", "-q", "2"]
         
         flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -1375,6 +1374,15 @@ def kprune(alleletable, contacts,
     show_default=True
 )
 @click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
     '-prs',
     '--pairs',
     '--hic',
@@ -1412,6 +1420,7 @@ def hypergraph(contacts,
             min_order, 
             max_order, 
             min_alignments, 
+            min_quality,
             pairs, 
             fofn,
             threads):
@@ -1431,7 +1440,8 @@ def hypergraph(contacts,
     from .hypergraph import HyperExtractor, Extractor
     from .utilities import read_chrom_sizes
 
-    contigs = read_chrom_sizes(contigsize).index.values.tolist()
+    contigsizes = read_chrom_sizes(contigsize)
+    contigs = contigsizes.index.values.tolist()
     contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
     if not pairs:
         if fofn:
@@ -1439,8 +1449,8 @@ def hypergraph(contacts,
         else:
             pore_c_tables = contacts
 
-        he = HyperExtractor(pore_c_tables, contig_idx, min_order, 
-                            max_order, min_alignments, threads)
+        he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
+                            min_order, max_order, min_alignments, min_quality, threads)
         he.save(output)
     
     else:
@@ -1450,7 +1460,7 @@ def hypergraph(contacts,
         else:
             pairs_files = contacts
 
-        e = Extractor(pairs_files, contig_idx, threads)
+        e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], threads)
         e.save(output)
 
 
@@ -1468,6 +1478,29 @@ def hypergraph(contacts,
 @click.argument(
     "output",
     metavar="Output",
+)
+@click.option(
+    '-prs',
+    '--pairs',
+    '--hic',
+    help="""
+    construct common graph from 4DN pairs file. 
+    Phasing by Hi-C data, should add this parameter.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '-pct',
+    '--porec',
+    help="""
+    construct hypergraph from porec table. 
+    Input porec table, should add this parameter.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
 )
 @click.option(
     "-ul",
@@ -1572,7 +1605,7 @@ def hypergraph(contacts,
     '--mode',
     metavar="STR",
     help="mode of hyperpartition, conflict of `-inc`",
-    type=click.Choice(["basal", "phasing", None]),
+    type=click.Choice(["basal", "phasing", "basal_withprune", None]),
     default=None,
     show_default=True
 )
@@ -1730,6 +1763,8 @@ def hypergraph(contacts,
 def hyperpartition(hypergraph, 
                     contigsizes, 
                     output,
+                    pairs,
+                    porec,
                     ultra_long,
                     ul_weight,
                     n,
@@ -1768,16 +1803,21 @@ def hyperpartition(hypergraph,
 
     """
     import msgspec 
+    from .hypergraph import HyperExtractor, Extractor
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges
     from .utilities import read_chrom_sizes 
     
+    assert not all([porec, pairs]), "confilct parameters, only support one type data"
+
     ultra_complex = None
     
     if mode == "basal":
         incremental = False
     elif mode == "phasing":
         incremental = True 
+    elif mode == "basal_withprune":
+        incremental = False
     else:
         incremental = incremental
 
@@ -1794,10 +1834,39 @@ def hyperpartition(hypergraph,
             n[i] = 0
 
     contigsizes = read_chrom_sizes(contigsizes)
+    prefix = Path(hypergraph).stem
+    if porec:
+        contigs = contigsizes.index.values.tolist()
+        contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+        if not Path(f"{prefix}.hg").exists():
+            logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
+            
+            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'])
+            he.save(f"{prefix}.hg")
+            hypergraph = he.edges
+        else:
+            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.hg`")
+            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
+        
+        
 
-    hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
-    logger.info(f"Load raw hypergraph.")
-
+    elif pairs:
+        contigs = contigsizes.index.values.tolist()
+        contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+        if not Path(f"{prefix}.hg").exists():
+            logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
+            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'])
+            he.save(f"{prefix}.hg")
+            hypergraph = he.edges
+        else:
+            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.hg`")
+            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
+        
+        
+    else:
+        logger.info(f"Load raw hypergraph from `{hypergraph}")
+        hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+        
 
     if whitelist:
         whitelist = [i.strip() for i in open(whitelist) if i.strip()]
@@ -1817,6 +1886,7 @@ def hyperpartition(hypergraph,
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
     
+
     if alleletable:
         if prunetable:
             logger.warn("The allele table will not be used, becauese prunetable parameter added.")
@@ -2274,7 +2344,7 @@ def plot(matrix,
     if agp is None:
         only_plot = True 
         logger.warning( "Only plot the matrix. "
-                "If you want to adjust matrix, please provide agp file. ")
+                "If you want to adjust matrix to chromosome-level, please provide agp file. ")
 
     if not only_plot:
         if not no_adjust:

@@ -32,17 +32,21 @@ class Extractor:
         list of pairs file
     contig_idx: dict
         dictionary of contig idx
+    contigsizes: dict
+        dictionary of contig sizes
     threads: int
         number of threads
     
     Examples:
     --------
-    >>> extractor = Extractor(pairs_pathes)
+    >>> extractor = Extractor(pairs_pathes, contig_idx, contigsizes)
  
     """
-    def __init__(self, pairs_pathes, contig_idx, threads=4):
+    def __init__(self, pairs_pathes, contig_idx, contigsizes, threads=4):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
+        self.contigsizes = contigsizes
+
         self.threads = threads 
         self.edges = self.generate_edges()
 
@@ -112,10 +116,17 @@ class Extractor:
                               res[['chrom2', 'index']].rename(
                                         columns={'chrom2': 'row', 'index': 'col'})], 
                               axis=1)
-
+        
+        number_of_contigs = len(self.contig_idx)
+        length = res['row'].shape[0] * res['row'].shape[1]
+        logger.info(f"Result of {length} raw "
+                    f"hyperedges of {number_of_contigs} contigs. "
+                    "Note: it's not the final statistics for hypergraph.")
         return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.flatten().tolist(), 
-                            col=res['col'].values.flatten().tolist())
+                            col=res['col'].values.flatten().tolist(),
+                            contigsizes=self.contigsizes,
+                            mapq=[])
 
     def save(self, output):
         with open(output, 'wb') as out:
@@ -136,16 +147,17 @@ def process_pore_c_table(df, contig_idx, threads=1,
     df = (df.assign(alignment_length=lambda x: x.end - x.start)
             .query(f"alignment_length >= {min_alignments}")
             .set_index('read_idx'))
-    df = df[['chrom_idx']]
+    df = df[['chrom_idx', 'mapping_quality']]
     df_grouped = df.groupby('read_idx')['chrom_idx']
     df_grouped_nunique = df_grouped.nunique()
     df = df.loc[(df_grouped_nunique >= min_order) 
                     & (df_grouped_nunique <= max_order)]
-
-    df = df[['chrom_idx']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
+    
+    df = df[['chrom_idx', 'mapping_quality']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
   
     df['read_idx'] = df['read_idx'].astype('category')
     df['read_idx'] = df['read_idx'].cat.codes
+
     
     return df
 
@@ -174,17 +186,21 @@ class HyperExtractor:
               "filter_reason"]
     def __init__(self, pore_c_table_pathes, 
                             contig_idx,
+                            contigsizes,
                             min_order=2, 
                             max_order=50, 
                             min_alignments=30,
+                            min_quality=1,
                             threads=4,
                             is_parquet=False):
         
         self.pore_c_table_pathes = listify(pore_c_table_pathes)
         self.contig_idx = contig_idx
+        self.contigsizes = contigsizes
         self.min_order = min_order
         self.max_order = max_order
         self.min_alignments = min_alignments
+        self.min_quality = min_quality
         self.threads = threads
         self.is_parquet = is_parquet
 
@@ -207,7 +223,9 @@ class HyperExtractor:
                 df = pd.read_parquet(infile, 
                                         columns=['read_idx', 'chrom',
                                                 'start', 'end', 
-                                                'filter_reason'],
+                                                'mapping_quality',
+                                                'filter_reason',
+                                                ],
                                     engine=PQ_ENGINE)
             else: 
                 try:
@@ -217,6 +235,7 @@ class HyperExtractor:
                                     index_col=None,
                                         usecols=['read_idx', 'chrom',
                                                 'start', 'end', 
+                                                'mapping_quality',
                                                 'filter_reason'],
                                         names=self.HEADER)
                 except pd.errors.ParserError:
@@ -224,6 +243,8 @@ class HyperExtractor:
                                 "do you want to parse Pairs file? please add parameters of `--pairs`")
                     sys.exit(-1)
             df = df.query("filter_reason == 'pass'")
+            if self.min_quality > 1:
+                df = df.query(f"mapping_quality >= {self.min_quality}")
             df_list = [df]
         
 
@@ -239,9 +260,11 @@ class HyperExtractor:
                 df_list = list(map(lambda x: pd.read_parquet(
                                 x, columns=['read_idx', 'chrom', 
                                             'start', 'end', 
+                                            'mapping_quality',
                                             'filter_reason'], 
                                     engine='pyarrow',),
                                     infiles))
+                
                 df_list = Parallel(n_jobs=self.threads)(delayed(
                                     lambda x: x.query("filter_reason == 'pass'")
                                                 .drop("filter_reason", axis=1)
@@ -253,6 +276,7 @@ class HyperExtractor:
                                 x, names=self.HEADER, 
                                     usecols=['read_idx', 'chrom', 
                                             'start', 'end', 
+                                            'mapping_quality',
                                             'filter_reason'], 
                                     sep='\t',
                                     index_col=None,
@@ -260,10 +284,18 @@ class HyperExtractor:
                                     ),
                                     #filters=[('pass_filter', '=', True)]),
                                     infiles))
-                df_list = Parallel(n_jobs=self.threads)(delayed(
-                                    lambda x: x.query("filter_reason == 'pass'")
-                                                .drop("filter_reason", axis=1)
-                                                )(i) for i in df_list)
+                
+                if self.min_quality > 1:
+                    df_list = Parallel(n_jobs=self.threads)(delayed(
+                                        lambda x: x.query(f"filter_reason == 'pass' & min_quality >= {self.min_quality}")
+                                                    .drop("filter_reason", axis=1)
+                                                    )(i) for i in df_list)
+                    df = df.query(f"mapping_quality >= {self.min_quality}")
+                else:
+                    df_list = Parallel(n_jobs=self.threads)(delayed(
+                                        lambda x: x.query("filter_reason == 'pass'")
+                                                    .drop("filter_reason", axis=1)
+                                                    )(i) for i in df_list)
             
 
         return df_list
@@ -287,8 +319,9 @@ class HyperExtractor:
         """
         logger.info("Processing Pore-C table ...")
         logger.info(f"Only retained Pore-C concatemer that: \n"
-                        f"\talignment length >= {self.min_alignments}\n"
-                        f"\t{self.min_order} <= contig order <= {self.max_order}")
+                        f"\talignment length >= {self.min_alignments} and \n"
+                        f"\t{self.min_order} <= contig order <= {self.max_order} and  \n"
+                        f"\tmapping_quality >= {self.min_quality}")
 
         threads_2 = self.threads // len(self.pore_c_tables) + 1
         threads_1 = int(self.threads / threads_2)
@@ -305,16 +338,21 @@ class HyperExtractor:
                                 for i, j, k, l, m, n, o in args)
         
         idx = 0
+        mapping_quality_res = []
         for i, df in enumerate(res):
+            mapping_quality_res.append(df['mapping_quality'])
             df['read_idx'] = df['read_idx'] + idx 
             res[i] = df
             idx += len(df)
-           
+        
         res_df = pd.concat(res)
+        mapping_quality_res = pd.concat(mapping_quality_res)
         
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),
-                       col=res_df['read_idx'].values.flatten().tolist())
+                       col=res_df['read_idx'].values.flatten().tolist(),
+                       mapq=mapping_quality_res.values.flatten().tolist(),
+                       contigsizes=self.contigsizes)
         
         number_of_contigs = len(self.contig_idx)
         number_of_hyperedges = res_df['read_idx'].max()

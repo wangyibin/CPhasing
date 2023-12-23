@@ -21,7 +21,7 @@ import pandas as pd
 
 from collections import defaultdict
 from copy import deepcopy
-from deprecated.sphinx import deprecated
+# from deprecated.sphinx import deprecated
 from itertools import product
 from joblib import Parallel, delayed
 from multiprocessing import Manager
@@ -74,7 +74,7 @@ class KPrunerRust:
         
 
 
-@deprecated(version="v0.0.56")
+# @deprecated(version="v0.0.56")
 class KPruner:
     """
     generate a prune list by kmer similarity allele table

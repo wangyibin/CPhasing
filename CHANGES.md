@@ -1,5 +1,11 @@
 # Release notes #
 
+
+## [v0.0.59]
+## Enhancement
+- `hyperpartition`, add automatic search resolution
+- `kprune`, update the fomulate of normalization
+
 ## [v0.0.58]
 
 ## Enhancement

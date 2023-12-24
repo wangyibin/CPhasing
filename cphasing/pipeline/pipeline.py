@@ -22,7 +22,7 @@ def run(fasta,
         porec_table,
         pairs, 
         pattern="AAGCTT",
-        hcr=False,
+        hcr_flag=False,
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
@@ -117,7 +117,7 @@ def run(fasta,
         assert flag == 0, "Failed to execute command, please check log."
 
 
-    if hcr:
+    if hcr_flag:
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}_hcr.pairs.gz"

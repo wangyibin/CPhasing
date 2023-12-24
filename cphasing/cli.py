@@ -123,6 +123,14 @@ def cli(verbose, quiet):
     show_default=True,
 )
 @click.option(
+    "-hcr",
+    "--hcr",
+    is_flag=True,
+    default=False,
+    help="Only retain high confidence regions to subsequence analysis.",
+    show_default=True
+)
+@click.option(
     '--mode',
     metavar="STR",
     help="mode of hyperpartition",
@@ -159,12 +167,13 @@ def cli(verbose, quiet):
     default=None,
     show_default=True,
 )
+
 @click.option(
     "-r1",
     "--resolution1",
     metavar="FLOAT",
     help="Resolution of the first partition",
-    type=click.FloatRange(0.0, 10.0),
+    type=click.FloatRange(-1.0, 10.0),
     default=1.0,
     show_default=True
 )
@@ -173,7 +182,7 @@ def cli(verbose, quiet):
     "--resolution2",
     metavar="FLOAT",
     help="Resolution of the second partition",
-    type=click.FloatRange(0.0, 10.0),
+    type=click.FloatRange(-1.0, 10.0),
     default=1.0,
     show_default=True
 )
@@ -243,6 +252,7 @@ def pipeline(fasta,
             porectable, 
             pairs, 
             pattern,
+            hcr,
             mode, 
             steps,
             skip_steps, 
@@ -259,13 +269,12 @@ def pipeline(fasta,
     A pipeline from a mapping result to phased and scaffolded result\n
     Steps:\n
         0. mapper;\t\t\t\t\t\t\t\t\t
-        1. hcr;\t\t\t\t\t\t\t\t\t
+        1. alleles;\t\t\t\t\t\t\t\t\t 
         2. prepare;\t\t\t\t\t\t\t\t\t
-        3. alleles;\t\t\t\t\t\t\t\t\t 
-        4. kprune;\t\t\t\t\t\t\t\t\t
-        5. hyperpartiton;\t\t\t\t\t\t\t\t\t
-        6. scaffolding;\t\t\t\t\t\t\t\t\t
-        7. plot;\t\t\t\t\t\t\t\t\t
+        3. kprune;\t\t\t\t\t\t\t\t\t
+        4. hyperpartiton;\t\t\t\t\t\t\t\t\t
+        5. scaffolding;\t\t\t\t\t\t\t\t\t
+        6. plot;\t\t\t\t\t\t\t\t\t
 
     Usage:\n
         Input pore-c data\t\t\t\t\t\t\t\t\t
@@ -294,12 +303,12 @@ def pipeline(fasta,
 
     if steps:
         if steps == "all":
-            steps = set(["0", "1", "2", "3", "4", "5", "6", "7"])
+            steps = set(["0", "1", "2", "3", "4", "5", "6"])
 
         else:
             steps = steps.strip().split(",")
     else:
-        steps = set(map(str, [0, 1, 2, 3, 4, 5, 6, 7]))
+        steps = set(map(str, [0, 1, 2, 3, 4, 5, 6]))
 
 
 
@@ -311,6 +320,7 @@ def pipeline(fasta,
     run(fasta, porec_data,
          porectable, pairs, 
          pattern=pattern,
+         hcr=hcr,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
@@ -1694,7 +1704,7 @@ def hypergraph(contacts,
     "--resolution1",
     metavar="FLOAT",
     help="Resolution of the first partition",
-    type=click.FloatRange(0.0, 10.0),
+    type=click.FloatRange(-1.0, 10.0),
     default=1.0,
     show_default=True
 )
@@ -1703,7 +1713,7 @@ def hypergraph(contacts,
     "--resolution2",
     metavar="FLOAT",
     help="Resolution of the second partition",
-    type=click.FloatRange(0.0, 10.0),
+    type=click.FloatRange(-1.0, 10.0),
     default=1.0,
     show_default=True
 )

@@ -68,7 +68,7 @@ class HyperGraph:
             self.idx = np.sort(np.array(pd.unique(self.row)))
             self.remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
             self.remove_contigs = self.nodes[~self.remove_idx]
-            logger.info(f"Removed `{len(retain_idx)}` edges that mapq < {self.min_quality}.")
+            logger.info(f"Removed `{retain_idx[0].shape[0]}` hyperedges that mapq < {self.min_quality}.")
             
         else:
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))

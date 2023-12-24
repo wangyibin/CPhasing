@@ -22,6 +22,7 @@ def run(fasta,
         porec_table,
         pairs, 
         pattern="AAGCTT",
+        hcr=False,
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
@@ -53,8 +54,8 @@ def run(fasta,
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
     if mode == 'basal':
+        skip_steps.add("1")
         skip_steps.add("3")
-        skip_steps.add("4")
     fasta_prefix = fasta.rsplit(".", 1)[0]
     if porec_data:
         porec_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
@@ -116,48 +117,58 @@ def run(fasta,
         assert flag == 0, "Failed to execute command, please check log."
 
 
-    if "1" not in skip_steps and "1" in steps:
+    if hcr:
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}_hcr.pairs.gz"
-            try:
-                hcr.main(
-                    args=["-pct",
-                            porec_table,
-                            "-cs",
-                            contigsizes,
-                    ],
-                    prog_name="hcr"
-                )
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
+            if not Path(hg_input).exists() or not Path(hg_input).exists():
                 
-                if exit_code != 0:
-                    raise e
+                try:
+                    hcr.main(
+                        args=["-pct",
+                                porec_table,
+                                "-cs",
+                                contigsizes,
+                        ],
+                        prog_name="hcr"
+                    )
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+            else:
+                logger.warn(f"Use exists hcr porec table of `{hg_input}`")
         
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"
             prepare_input = f"{pairs_prefix}_hcr.pairs.gz"
-            try:
-                hcr.main(
-                    args=["-prs",
-                            pairs,
-                            "-cs",
-                            contigsizes,
-                    ],
-                    prog_name="hcr"
-                )
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
+            if not Path(hg_input).exists() or not Path(hg_input).exists():
                 
-                if exit_code != 0:
-                    raise e
+                try:
+                    hcr.main(
+                        args=["-prs",
+                                pairs,
+                                "-cs",
+                                contigsizes,
+                        ],
+                        prog_name="hcr"
+                    )
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+            else:
+                logger.warn(f"Use exists hcr porec table of `{hg_input}`")
+        
+            
     else:
         prepare_input = pairs
 
@@ -167,6 +178,22 @@ def run(fasta,
         
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
+
+    if "1" not in skip_steps and "1" in steps:
+        try:
+            alleles.main(args=["-f",
+                                fasta],
+                            prog_name='alleles')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+        
+    allele_table = f"{fasta_prefix}.allele.table"
 
     if "2" not in skip_steps and "2" in steps:
         try:
@@ -190,23 +217,9 @@ def run(fasta,
     clm = f"{prepare_prefix}.clm"
 
 
-    if "3" not in skip_steps and "3" in steps:
-        try:
-            alleles.main(args=["-f",
-                                fasta],
-                            prog_name='alleles')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
-            
-            if exit_code != 0:
-                raise e
-        
-    allele_table = f"{fasta_prefix}.allele.table"
+    
 
-    if "4" not in skip_steps and "4" in steps:
+    if "3" not in skip_steps and "3" in steps:
         try:
             kprune.main(args=[allele_table,
                             contacts,
@@ -254,7 +267,7 @@ def run(fasta,
     
     output_cluster = "output.clusters.txt"
   
-    if "5" not in skip_steps and "5" in steps:
+    if "4" not in skip_steps and "4" in steps:
         try:
             hyperpartition.main(args=[
                                 hg_input,
@@ -294,7 +307,7 @@ def run(fasta,
     
     
     out_agp = "groups.agp"
-    if "6" not in skip_steps and "6" in steps:
+    if "5" not in skip_steps and "5" in steps:
         try:
             scaffolding.main(args=[
                                 output_cluster,
@@ -320,7 +333,7 @@ def run(fasta,
     out_small_cool = f"{pairs_prefix}.10000.cool"
 
 
-    if "7" not in skip_steps and "7" in steps:
+    if "6" not in skip_steps and "6" in steps:
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:

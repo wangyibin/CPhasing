@@ -492,18 +492,41 @@ class HyperPartition:
 
         # sub_allelic_factor = csr_matrix(_sub_allelic_factor)
 
-        A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
-                                            sub_P_allelic_idx, 
-                                            sub_P_weak_idx,
-                                            allelic_factor,
-                                            cross_allelic_factor,
-                                            resolution, 
-                                            min_weight,
-                                            threshold, 
-                                            max_round, 
-                                            threads=1, 
-                                            outprefix=num)
-
+        if resolution < 0.0 and k != 0:
+            tmp_resolution = 1.0
+            result_K_length = 0
+            
+            while result_K_length < k:
+                
+                logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
+                A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
+                                                    sub_P_allelic_idx, 
+                                                    sub_P_weak_idx,
+                                                    allelic_factor,
+                                                    cross_allelic_factor,
+                                                    tmp_resolution,
+                                                    min_weight,
+                                                    threshold, 
+                                                    max_round, 
+                                                    threads=1, 
+                                                    outprefix=num)
+                tmp_resolution += 0.5  
+                result_K_length = len(new_K)
+             
+        else:
+            A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
+                                                    sub_P_allelic_idx, 
+                                                    sub_P_weak_idx,
+                                                    allelic_factor,
+                                                    cross_allelic_factor,
+                                                    resolution,
+                                                    min_weight,
+                                                    threshold, 
+                                                    max_round, 
+                                                    threads=1, 
+                                                    outprefix=num)
+        
+           
         ## remove the scaffold that is too short
         new_K = list(filter(
                         lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \

@@ -28,6 +28,8 @@ def main(args):
             help='full pkl in 01.cluster from HapHiC')
     pReq.add_argument('contigs', 
             help='contig list')
+    pOpt.add_argument('-c', '--contacts',
+                    default=None, help="contacts file")
     pOpt.add_argument('-o', '--output', type=argparse.FileType('w'),
             default=sys.stdout, help='output file [default: stdout]')
     pOpt.add_argument('-h', '--help', action='help',
@@ -36,7 +38,15 @@ def main(args):
     args = p.parse_args(args)
 
     contigs = args.contigs
-
+    contacts = args.contacts 
+    contacts_dict = {}
+    if contacts:
+        with open(contacts) as fp:
+            for line in fp:
+                line_list = line.strip().split()
+                contig_pair = (line_list[0], line_list[1])
+                contacts_dict[contig_pair] = line_list[2]
+                
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
@@ -59,7 +69,8 @@ def main(args):
             res2.append((i, j))
     
     inter_pairs = set(res2)
-
+    if contacts:
+        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
     data = pickle.load(open(args.full_pkl, 'rb'))
     pt_pairs = set(list(data.keys()))
 

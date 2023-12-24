@@ -61,20 +61,25 @@ class HyperGraph:
         if self.min_quality > 1 and self.edges.mapq:
             
             self.mapq = np.array(self.edges.mapq)
-            retain_idx = np.where(self.mapq > self.min_quality)
+           
+            retain_idx = np.where(self.mapq >= self.min_quality)
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
-            self.row = np.array(self.edges.row)[retain_idx]
+            self.row = np.array(self.edges.row)
+            total_edge_counts = self.row.shape[0]
+            self.row = self.row[retain_idx]
             self.col = np.array(self.edges.col)[retain_idx]
             self.idx = np.sort(np.array(pd.unique(self.row)))
-            self.remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
-            self.remove_contigs = self.nodes[~self.remove_idx]
-            logger.info(f"Removed `{retain_idx[0].shape[0]}` hyperedges that mapq < {self.min_quality}.")
+            remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
             
+            self.remove_contigs = self.nodes[~remove_idx]
+            logger.info(f"Removed `{total_edge_counts - retain_idx[0].shape[0]}` hyperedges that mapq < {self.min_quality}.")
+        
+           
         else:
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
             self.row = np.array(self.edges.row)
             self.col = np.array(self.edges.col)
-        
+            self.remove_contigs = np.array([])
         self.shape = (len(self.nodes), max(self.col) + 1)
         self.removed_count = 0
 

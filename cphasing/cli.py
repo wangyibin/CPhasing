@@ -1138,7 +1138,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     'min_contacts',
     help='Minimum contacts between contig pairs',
     metavar='INT',
-    default=5,
+    default=1,
     show_default=True,
 )
 @click.option(
@@ -1821,7 +1821,7 @@ def hyperpartition(hypergraph,
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
 
     ultra_complex = None
-    
+
     if mode == "basal":
         incremental = False
     elif mode == "phasing":

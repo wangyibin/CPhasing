@@ -137,7 +137,7 @@ class HyperPartition:
 
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
-        self.HG = HyperGraph(self.edges)
+        self.HG = HyperGraph(self.edges, min_quality=1)
         
         self.K = []
         ## remove edges
@@ -378,16 +378,39 @@ class HyperPartition:
         >>> cluster_assignments, K = single_partition(H, P_allelic_idx, P_weak_idx,
         """
         logger.info("Start hyperpartition ...")
-        A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
-                                                self.P_allelic_idx,
-                                                self.P_weak_idx,
-                                                self.allelic_factor,
-                                                self.cross_allelic_factor,
-                                                self.resolution1, 
-                                                self.min_weight,
-                                                self.threshold, 
-                                                self.max_round,
-                                                threads=self.threads)
+        if self.resolution1 == -1:
+            result_K_length = 0
+            tmp_resolution = 0.8
+            
+            while result_K_length < k:
+                logger.info(f"Automatic search results ... {tmp_resolution:.1f}")
+                A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
+                                                        self.P_allelic_idx,
+                                                        self.P_weak_idx,
+                                                        self.allelic_factor,
+                                                        self.cross_allelic_factor,
+                                                        tmp_resolution, 
+                                                        self.min_weight,
+                                                        self.threshold, 
+                                                        self.max_round,
+                                                        threads=self.threads)
+                self.filter_cluster(verbose=0)
+                result_K_length = len(self.K)
+                tmp_resolution += 0.2
+
+                
+        else:
+            A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
+                                                        self.P_allelic_idx,
+                                                        self.P_weak_idx,
+                                                        self.allelic_factor,
+                                                        self.cross_allelic_factor,
+                                                        self.resolution1, 
+                                                        self.min_weight,
+                                                        self.threshold, 
+                                                        self.max_round,
+                                                        threads=self.threads)
+
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
         self.K = list(map(list, self.K))
@@ -419,6 +442,7 @@ class HyperPartition:
             self.K = _results 
 
         if k:
+                 
             logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
                                             self.prune_pair_df, self.allelic_similarity,
@@ -493,12 +517,12 @@ class HyperPartition:
         # sub_allelic_factor = csr_matrix(_sub_allelic_factor)
 
         if resolution < 0.0 and k != 0:
-            tmp_resolution = 1.0
+            tmp_resolution = 1
             result_K_length = 0
-            
+            auto_round = 1
             while result_K_length < k:
                 
-                logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
+                # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
                 A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
@@ -510,8 +534,14 @@ class HyperPartition:
                                                     max_round, 
                                                     threads=1, 
                                                     outprefix=num)
-                tmp_resolution += 0.5  
+                new_K = list(filter(
+                                lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \
+                                    >= min_scaffold_length, new_K)
+                )
+                new_K = list(map(list, new_K))
+                tmp_resolution += 0.2  
                 result_K_length = len(new_K)
+                auto_round += 1
              
         else:
             A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
@@ -558,11 +588,28 @@ class HyperPartition:
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
 
         if not first_cluster:
-            A, _, self.K = IRMM(self.H, #self.NW, 
-                        None, None, self.allelic_factor, 
-                            self.cross_allelic_factor, self.resolution1, 
-                            self.min_weight, self.threshold, 
-                            self.max_round, threads=self.threads)
+            
+            if self.resolution1 < 1 :
+                result_K_length = 0
+                tmp_resolution = 0.8
+                while result_K_length < k[0] and k[0] != 0:
+                    logger.info(f"Automatic search results ... {tmp_resolution:.1f}")
+                    A, _, self.K = IRMM(self.H, #self.NW, 
+                            None, None, self.allelic_factor, 
+                                self.cross_allelic_factor, tmp_resolution, 
+                                self.min_weight, self.threshold, 
+                                self.max_round, threads=self.threads)
+
+                    self.K = list(map(list, self.K))
+                    self.K = self.filter_cluster(verbose=0)
+                    result_K_length = len(self.K)
+                    tmp_resolution += 0.2
+            else:
+                A, _, self.K = IRMM(self.H, #self.NW, 
+                            None, None, self.allelic_factor, 
+                                self.cross_allelic_factor, self.resolution1, 
+                                self.min_weight, self.threshold, 
+                                self.max_round, threads=self.threads)
 
             self.K = list(map(list, self.K))
             self.K = self.filter_cluster()
@@ -826,8 +873,9 @@ class HyperPartition:
         
         return contigsizes.loc[k].sum().values[0]
     
-    def filter_cluster(self):
-        logger.info(f"Removed scaffolding less than {self.min_scaffold_length} in length.")
+    def filter_cluster(self, verbose=1):
+        if verbose == 1:
+            logger.info(f"Removed scaffolding less than {self.min_scaffold_length} in length.")
 
         try: 
             self.inc_chr_idx 
@@ -853,7 +901,7 @@ class HyperPartition:
                         x, self.contigsizes, self.idx_to_vertices) \
                             >= self.min_scaffold_length, 
                         self.K))
-        
+     
         return _K 
         
     def to_cluster(self, output):

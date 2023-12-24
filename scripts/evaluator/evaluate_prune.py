@@ -71,7 +71,8 @@ def main(args):
     
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))
-    inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+    if contacts:
+        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
     
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs

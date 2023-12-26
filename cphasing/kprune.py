@@ -52,20 +52,26 @@ class KPrunerRust:
     def __init__(self, alleletable, contacts,
                     #count_re,
                     output="prune.contig.table", 
-                    method="greedy", threads=4, 
+                    method="greedy", 
+                    first_cluster=None,
+                    norm_method="none",
+                    threads=4, 
                     log_dir="logs"):
         self.alleletable = alleletable
         self.contacts = contacts
         # self.count_re = count_re
         self.output = output
         self.method = method 
+        self.first_cluster = "none" if not first_cluster else first_cluster
+        self.norm_method = norm_method
         self.threads = threads
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
     def run(self):
         cmd = ["cphasing-rs", "kprune", self.alleletable,
-               self.contacts, self.output,
+               self.contacts, self.output, 
+               "-n", self.norm_method, "-f", self.first_cluster,
                 "-t", str(self.threads), "-m", self.method]
         flag = run_cmd(cmd, log=f"{self.log_dir}/kprune.log")
         assert flag == 0, "Failed to execute command, please check log."

@@ -34,7 +34,7 @@ from .core import (
     PruneTable
 )
 from .kprune import KPruneHyperGraph
-from .utilities import list_flatten
+from .utilities import list_flatten, run_cmd
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -86,6 +86,8 @@ class HyperPartition:
                     k=None,
                     alleletable=None,
                     prunetable=None,
+                    contacts=None,
+                    kprune_norm_method="auto",
                     allelic_factor=-1,
                     cross_allelic_factor=0.3,
                     allelic_similarity=0.8,
@@ -112,7 +114,11 @@ class HyperPartition:
         self.k = k
 
         self.prunetable = prunetable
-        self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
+        # self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
+        self.alleletable = alleletable
+        self.contacts = contacts
+        self.kprune_norm_method = kprune_norm_method
+            
         self.allelic_factor = allelic_factor
         self.cross_allelic_factor = cross_allelic_factor
     
@@ -134,7 +140,8 @@ class HyperPartition:
         self.max_round = max_round
         self.threads = threads
         self.chunksize = int(chunksize) if chunksize else None
-
+        self.log_dir = "log"
+        Path(self.log_dir).mkdir(exist_ok=True)
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
         self.HG = HyperGraph(self.edges, min_quality=1)
@@ -151,8 +158,7 @@ class HyperPartition:
         # self.NW = self.get_normalize_weight()
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
-        elif self.alleletable:
-            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs_kprune()
+
         else:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = None, None, None
 
@@ -378,6 +384,11 @@ class HyperPartition:
         >>> cluster_assignments, K = single_partition(H, P_allelic_idx, P_weak_idx,
         """
         logger.info("Start hyperpartition ...")
+        if self.alleletable and not self.prunetable:
+            self.kprune(self.alleletable, contacts=self.contacts)
+
+
+
         if self.resolution1 == -1:
             result_K_length = 0
             tmp_resolution = 0.8
@@ -425,8 +436,9 @@ class HyperPartition:
             _results = []
             for num, group in enumerate(self.K):
                 if len(group) > 1 and HyperPartition.is_error(group, self.allelic_idx_set, vertices_idx_sizes):
-                    args.append((group, self.k[0], self.prune_pair_df, self.H, vertices_idx_sizes, self.ultra_complex, 
-                                self.min_weight, self.allelic_similarity, self.allelic_factor, 
+                    args.append((group, self.k[0], self.prune_pair_df, self.H, 
+                                 vertices_idx_sizes, self.ultra_complex, self.min_weight, 
+                                 self.allelic_similarity, self.allelic_factor, 
                                 self.cross_allelic_factor, self.min_scaffold_length,
                                 self.threshold, self.max_round, num))
                 else:
@@ -447,7 +459,6 @@ class HyperPartition:
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
                                             self.prune_pair_df, self.allelic_similarity,
                                             self.min_allelic_overlap)
-            logger.info("Merging done.")
 
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -572,18 +583,39 @@ class HyperPartition:
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
         return cluster_assignments, new_K
+    
+
+    def kprune(self, alleletable, first_cluster_file=None, contacts=None):
+        if not contacts or not Path(contacts).exists():
+            contacts = "hypergraph.expansion.contacts"
+            HyperGraph.to_contacts(self.H, self.vertices , min_weight=self.min_weight, output=contacts)
+
+        kprune_output_file = "hypergraph.prune.table"
+        if not first_cluster_file:
+            cmd = ["cphasing-rs", "kprune", alleletable, contacts, 
+                   kprune_output_file, "-n", "cis", "-t", str(self.threads)]
+        else:
+            cmd = ["cphasing-rs", "kprune", alleletable, contacts, kprune_output_file,
+                    "-n", "cis", "-t", str(self.threads), "-f", first_cluster_file]
+        
+        logger.info("Generating the prune table.")
+        flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
+        assert flag == 0, "Failed to execute command, please check log."
+
+        self.prunetable = kprune_output_file
+        
+        self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
+
+
 
     def incremental_partition(self, k, first_cluster=None):
         """
         incremental partition for autopolyploid.
         """
-        logger.info("Starting first partition ...")
+        if not first_cluster:
+            logger.info("Starting first partition ...")
         
-        if self.prunetable:
-            prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
-        else:
-            prune_pair_df = None
-
+        
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
 
@@ -619,6 +651,7 @@ class HyperPartition:
 
             self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
             self.to_cluster(f'first.clusters.txt')
+            first_cluster_file = f'first.clusters.txt'
 
             length_contents = pformat(list(map(
                 lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
@@ -627,12 +660,14 @@ class HyperPartition:
 
         else:
             vertices_idx = self.vertices_idx
-            first_cluster = list(map(lambda y: list(filter(lambda x: x in vertices_idx, y)), first_cluster))
-            for sub_group in first_cluster:
+            first_cluster_list = list(first_cluster.data.values())
+            first_cluster_list = list(map(lambda y: list(filter(lambda x: x in vertices_idx, y)), first_cluster_list))
+            for sub_group in first_cluster_list:
                 self.K.append(list(map(lambda x: vertices_idx[x], sub_group)))
-
+            first_cluster_file = first_cluster.filename
                 
-            logger.info(f"Load the first results from exists file.")
+            logger.debug(f"Load the first cluster results from exists file `{first_cluster_file}`.")
+
 
         logger.info("Starting second hyperpartition ...")
 
@@ -651,8 +686,16 @@ class HyperPartition:
             tmp_K = list(map(lambda x: list(filter(lambda y: y not in self.HG.remove_contigs, x)), tmp_K))
             tmp_K = list(map(lambda x: list(filter(lambda y: y in vertices_idx, x )), tmp_K))
             self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
-            
-        # prune_pair_df = prune_pair_df.reset_index()
+
+        if self.prunetable:
+            prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+
+        elif self.alleletable:
+            self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts)
+            prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+        else:
+            prune_pair_df = None
+
         args = []
         for num, sub_k in enumerate(self.K, 1):
             args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
@@ -866,7 +909,7 @@ class HyperPartition:
 
         print(list(map(len, self.K)))
             
-
+    
     @staticmethod
     def get_k_size(k, contigsizes, idx_to_vertices):
         k = list(map(idx_to_vertices.get, k))

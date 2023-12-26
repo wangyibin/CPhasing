@@ -143,7 +143,7 @@ def cli(verbose, quiet):
     '--steps',
     metavar='STR',
     help="steps",
-    default="1,2,3,4,5,6",
+    default="1,2,3,4",
     show_default=True
 )
 @click.option(
@@ -271,10 +271,9 @@ def pipeline(fasta,
         0. mapper;\t\t\t\t\t\t\t\t\t
         1. alleles;\t\t\t\t\t\t\t\t\t 
         2. prepare;\t\t\t\t\t\t\t\t\t
-        3. kprune;\t\t\t\t\t\t\t\t\t
-        4. hyperpartiton;\t\t\t\t\t\t\t\t\t
-        5. scaffolding;\t\t\t\t\t\t\t\t\t
-        6. plot;\t\t\t\t\t\t\t\t\t
+        3. hyperpartiton;\t\t\t\t\t\t\t\t\t
+        4. scaffolding;\t\t\t\t\t\t\t\t\t
+        5. plot;\t\t\t\t\t\t\t\t\t
 
     Usage:\n
         Input pore-c data\t\t\t\t\t\t\t\t\t
@@ -1299,6 +1298,25 @@ def alleles(fasta, output,
     show_default=True
 )
 @click.option(
+    '-fc',
+    '--first-cluster',
+    'first_cluster',
+    metavar="PATH",
+    help='Use the first cluster results to execute kprune',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-n',
+    '--norm-method',
+    'norm_method',
+    metavar="STR",
+    help="Normalization method of contacts for kprune",
+    default="none",
+    show_default=True ,
+    type=click.Choice(["none", "cis", "cis_unique", "auto"])
+)
+@click.option(
     '-t',
     '--threads',
     help="Number of threads. ",
@@ -1315,7 +1333,8 @@ def alleles(fasta, output,
 #     show_default=True
 # )
 def kprune(alleletable, contacts, 
-            output, method, threads):
+            output, method, first_cluster,
+            norm_method, threads):
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
@@ -1333,6 +1352,8 @@ def kprune(alleletable, contacts,
     
     kp = KPrunerRust(alleletable, contacts, 
                      output, method=method,
+                     first_cluster=first_cluster, 
+                     norm_method=norm_method,
                       threads=threads)
     kp.run()
     # kp.save_prune_list(output, symmetric)
@@ -1499,7 +1520,7 @@ def hypergraph(contacts,
     """,
     is_flag=True,
     default=False,
-    show_default=True
+    show_default=True,
 )
 @click.option(
     '-pct',
@@ -1510,7 +1531,17 @@ def hypergraph(contacts,
     """,
     is_flag=True,
     default=False,
-    show_default=True
+    show_default=True,
+)
+@click.option(
+    '-c',
+    '--contacts',
+    help="""
+    contacts file for kprune, generate from prepare
+    """,
+    default=None, 
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     "-ul",
@@ -1628,6 +1659,16 @@ def hypergraph(contacts,
     show_default=True,
     hidden=True
 )
+@click.option(
+    '-knm',
+    '--kprune-norm-method',
+    'kprune_norm_method',
+    metavar="STR",
+    help="Normalization method of contacts for kprune",
+    default="none",
+    show_default=True ,
+    type=click.Choice(["none", "cis", "cis_unique", "auto"])
+)
 # @click.option(
 #     '-uc',
 #     '--ultra-complex',
@@ -1723,7 +1764,7 @@ def hypergraph(contacts,
     "min_weight",
     help="Minimum weight of graph",
     type=float,
-    default=1.0,
+    default=0.1,
     show_default=True
 )
 @click.option(
@@ -1775,6 +1816,7 @@ def hyperpartition(hypergraph,
                     output,
                     pairs,
                     porec,
+                    contacts,
                     ultra_long,
                     ul_weight,
                     n,
@@ -1786,6 +1828,7 @@ def hyperpartition(hypergraph,
                     min_allelic_overlap,
                     mode,
                     incremental,
+                    kprune_norm_method,
                     # ultra_complex,
                     merge_cluster,
                     first_cluster,
@@ -1824,12 +1867,30 @@ def hyperpartition(hypergraph,
 
     if mode == "basal":
         incremental = False
+        if alleletable or prunetable:
+            logger.warn("allelic information will not be used in basal mode")
+            alleletable = None
+            prunetable = None
     elif mode == "phasing":
         incremental = True 
+        assert alleletable or prunetable,\
+            "phasing mode must add `-pt` or `-at` param"
     elif mode == "basal_withprune":
         incremental = False
+        assert alleletable or prunetable, \
+            "basal_withprune modemust add `-pt` or `-at` param"
     else:
         incremental = incremental
+        logger.warn("Mode not be specified, running basal_withprune mode")
+
+    if kprune_norm_method == "auto":
+        if pairs:
+            kprune_norm_method = "cis"
+        elif porec:
+            kprune_norm_method = "none"
+        else:
+            kprune_norm_method = "none"
+        
 
     if n is not None:
         if ":" in n and incremental is False:
@@ -1904,7 +1965,7 @@ def hyperpartition(hypergraph,
     if incremental is False and first_cluster is not None:
         logger.warn("First cluster only support for incremental method, will be not used.")
     
-    if not prunetable and alleletable:
+    if not prunetable and not alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
     hp = HyperPartition(hypergraph, 
@@ -1914,6 +1975,8 @@ def hyperpartition(hypergraph,
                             n,
                             alleletable,
                             prunetable,
+                            contacts,
+                            kprune_norm_method,
                             allelic_factor,
                             cross_allelic_factor,
                             allelic_similarity,
@@ -1936,7 +1999,7 @@ def hyperpartition(hypergraph,
   
     if incremental:
         if first_cluster and op.exists(first_cluster):
-            first_cluster = list(ClusterTable(first_cluster).data.values())
+            first_cluster = ClusterTable(first_cluster)
         else:
             first_cluster = None 
         

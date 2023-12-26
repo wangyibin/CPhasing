@@ -45,7 +45,7 @@ def main(args):
                 contacts_dict[contig_pair] = line_list[2]
                 
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
-
+   
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
@@ -79,7 +79,7 @@ def main(args):
     loss_pairs = inter_pairs - pt_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
-    for pair in incorrect_pairs:
+    for pair in loss_pairs:
         print("\t".join(pair), file=sys.stdout)
     print(f"Precision: {precision:.4}", file=sys.stderr)
     print(f"Recall: {recall:.4}", file=sys.stderr)

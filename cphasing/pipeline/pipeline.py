@@ -25,7 +25,7 @@ def run(fasta,
         hcr_flag=False,
         mode="phasing",
         hic=False,
-        steps=set([0, 1, 2, 3, 4, 5, 6, 7]),
+        steps=set([0, 1, 2, 3, 4, 5]),
         skip_steps=set(),
         n="",
         resolution1=1,
@@ -48,14 +48,14 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
-    from ..cli import alignments 
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
     if mode == 'basal':
         skip_steps.add("1")
-        skip_steps.add("3")
+        allele_table = None
+
     fasta_prefix = fasta.rsplit(".", 1)[0]
     if porec_data:
         porec_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
@@ -193,7 +193,7 @@ def run(fasta,
             if exit_code != 0:
                 raise e
         
-    allele_table = f"{fasta_prefix}.allele.table"
+    allele_table = None if mode == "basal" else f"{fasta_prefix}.allele.table" 
 
     if "2" not in skip_steps and "2" in steps:
         try:
@@ -213,29 +213,29 @@ def run(fasta,
     
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
-    contacts = f"{prepare_prefix}.contacts"
+
     clm = f"{prepare_prefix}.clm"
 
 
     
-
-    if "3" not in skip_steps and "3" in steps:
-        try:
-            kprune.main(args=[allele_table,
-                            contacts,
-                            "-t",
-                            str(threads)],
-                            prog_name='kprune')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
+    # contacts = f"{prepare_prefix}.contacts"
+    # if "3" not in skip_steps and "3" in steps:
+    #     try:
+    #         kprune.main(args=[allele_table,
+    #                         contacts,
+    #                         "-t",
+    #                         str(threads)],
+    #                         prog_name='kprune')
+    #     except SystemExit as e:
+    #         exc_info = sys.exc_info()
+    #         exit_code = e.code
+    #         if exit_code is None:
+    #             exit_code = 0
             
-            if exit_code != 0:
-                raise e
+    #         if exit_code != 0:
+    #             raise e
         
-    prune_table = "prune.contig.table" if mode == "phasing" else None
+    # prune_table = "prune.contig.table" if mode == "phasing" else None
 
     # hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
 
@@ -266,8 +266,8 @@ def run(fasta,
     #             raise e
     
     output_cluster = "output.clusters.txt"
-  
-    if "4" not in skip_steps and "4" in steps:
+    
+    if "3" not in skip_steps and "3" in steps:
         try:
             hyperpartition.main(args=[
                                 hg_input,
@@ -276,8 +276,8 @@ def run(fasta,
                                 input_param,
                                 "--mode",
                                 mode,
-                                "-pt",
-                                prune_table,
+                                "-at",
+                                allele_table,
                                 "-n",
                                 n,
                                 "-r1",
@@ -307,7 +307,7 @@ def run(fasta,
     
     
     out_agp = "groups.agp"
-    if "5" not in skip_steps and "5" in steps:
+    if "4" not in skip_steps and "4" in steps:
         try:
             scaffolding.main(args=[
                                 output_cluster,
@@ -333,7 +333,7 @@ def run(fasta,
     out_small_cool = f"{pairs_prefix}.10000.cool"
 
 
-    if "6" not in skip_steps and "6" in steps:
+    if "5" not in skip_steps and "5" in steps:
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:

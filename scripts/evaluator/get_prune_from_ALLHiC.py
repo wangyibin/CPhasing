@@ -24,8 +24,10 @@ def main(args):
                         conflict_handler='resolve')
     pReq = p.add_argument_group('Required arguments')
     pOpt = p.add_argument_group('Optional arguments')
-    pReq.add_argument('full_pkl', 
-            help='full pkl in 01.cluster from HapHiC')
+    pReq.add_argument('raw', 
+            help='raw pairs.txt from allhic extract')
+    pReq.add_argument('prune',
+            help='pruned pairs.txt from ALLHiC_prune and allhic extract')
     pReq.add_argument('contigs', 
             help='contig list')
     pOpt.add_argument('-c', '--contacts',
@@ -43,8 +45,10 @@ def main(args):
     if contacts:
         with open(contacts) as fp:
             for line in fp:
-                line_list = line.strip().split()                 
+                line_list = line.strip().split()
                 contig_pair = (line_list[0], line_list[1])
+                # if int(line_list[2]) < 3:
+                #     continue
                 contacts_dict[contig_pair] = line_list[2]
                 
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
@@ -71,14 +75,20 @@ def main(args):
     inter_pairs = set(res2)
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
-    data = pickle.load(open(args.full_pkl, 'rb'))
-    pt_pairs = set(list(data.keys()))
+    
+    raw_df = pd.read_csv(args.raw, sep='\t', header=0, index_col=None)
+    raw_pairs = set(map(tuple, raw_df[['Contig1', 'Contig2']].values.tolist()))
+    prune_df = pd.read_csv(args.prune, sep='\t', header=0, index_col=None)
+    prune_pairs = set(map(tuple, prune_df[['Contig1', 'Contig2']].values.tolist()))
+    
+    pt_pairs = raw_pairs - prune_pairs
 
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
 
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
+
     for pair in pt_pairs:
         print("\t".join(pair), file=sys.stdout)
     print(f"Precision: {precision:.4}", file=sys.stderr)

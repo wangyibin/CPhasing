@@ -137,7 +137,7 @@ class HyperGraph:
     def clique_expansion_init(H, P_allelic_idx=None, 
                               P_weak_idx=None, 
                               allelic_factor=-1,
-                              min_value=1.0):
+                              min_weight=1.0):
         """
         clique expansion/reduction
         """
@@ -156,7 +156,7 @@ class HyperGraph:
         
         A = H @ W @ D_e_inv @ H_T
 
-        mask = A >= min_value
+        mask = A >= min_weight
         A.multiply(mask)
 
         if P_allelic_idx or P_weak_idx:
@@ -176,9 +176,22 @@ class HyperGraph:
                 A[P_weak_idx[0], P_weak_idx[1]] = 0
                 
             A = A.tocsr()
+
         return A
 
+    @staticmethod
+    def to_contacts(H, nodes, min_weight=1.0, 
+                    output="hypergraph.expansion.contacts"):
+        A = HyperGraph.clique_expansion_init(H, min_weight=min_weight).tocoo()
+        V = nodes
 
+        df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
+        df = df[df[0] <= df[1]]
+        df = df[df[2] >= min_weight]
+        
+        df.to_csv(output, sep='\t', header=False, index=False)
+                
+        logger.info(f"Export hypergraph into `{output}`")
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -395,8 +408,8 @@ def IRMM(H, # NW,
         del W, D_e_num, D_e_inv, H_T
         gc.collect() 
 
-    if P_allelic_idx and P_weak_idx:
-        P_allelic_df = pd.concat(P_allelic_idx, axis=1)
+    if P_allelic_idx or P_weak_idx:
+        # P_allelic_df = pd.concat(P_allelic_idx, axis=1)
         # P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
         #                 (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
         #                 shape=([A.shape[0], len(P_allelic_df)]))

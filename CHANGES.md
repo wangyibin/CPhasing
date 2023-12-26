@@ -1,5 +1,9 @@
 # Release notes #
 
+## [v0.0.60]
+## Enhancement
+- `hyperpartition`, add prune based on hypergraph
+- `pipeline`, remove single kprune, change it to hypergraph prune
 
 ## [v0.0.59]
 ## Enhancement

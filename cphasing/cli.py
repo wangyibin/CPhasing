@@ -1382,7 +1382,8 @@ def kprune(alleletable, contacts,
     metavar="INT",
     type=int,
     default=2,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 @click.option(
     "-max",
@@ -1392,7 +1393,8 @@ def kprune(alleletable, contacts,
     metavar="INT",
     type=int,
     default=50,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 @click.option(
     "-ma",
@@ -1402,7 +1404,8 @@ def kprune(alleletable, contacts,
     metavar="INT",
     type=int,
     default=30,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 @click.option(
     '-q',

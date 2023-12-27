@@ -100,7 +100,7 @@ def run(fasta,
                                 # pattern,
                                 "-t",
                                 str(threads)],
-                                prog_name='alleles')
+                                prog_name='mapper')
             except SystemExit as e:
                 exc_info = sys.exc_info()
                 exit_code = e.code
@@ -129,6 +129,8 @@ def run(fasta,
                                 porec_table,
                                 "-cs",
                                 contigsizes,
+                                "-p",
+                                90
                         ],
                         prog_name="hcr"
                     )
@@ -182,7 +184,10 @@ def run(fasta,
     if "1" not in skip_steps and "1" in steps:
         try:
             alleles.main(args=["-f",
-                                fasta],
+                                fasta,
+                                "-k", 59,
+                                "-w", 59,
+                                ],
                             prog_name='alleles')
         except SystemExit as e:
             exc_info = sys.exc_info()

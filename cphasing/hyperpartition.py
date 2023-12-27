@@ -140,8 +140,10 @@ class HyperPartition:
         self.max_round = max_round
         self.threads = threads
         self.chunksize = int(chunksize) if chunksize else None
-        self.log_dir = "log"
+        
+        self.log_dir = "logs"
         Path(self.log_dir).mkdir(exist_ok=True)
+
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
         self.HG = HyperGraph(self.edges, min_quality=1)
@@ -242,7 +244,7 @@ class HyperPartition:
             H = self.HG.incidence_matrix(self.min_contacts)
             vertices = self.HG.nodes
 
-        logger.info(f"Generated hypergraph that containing {H.shape[0]} vertices"    
+        logger.info(f"Generated filtered hypergraph that containing {H.shape[0]} vertices"    
                     f" and {H.shape[1]} hyperedges.")
 
         return H, vertices
@@ -394,7 +396,7 @@ class HyperPartition:
             tmp_resolution = 0.8
             
             while result_K_length < k:
-                logger.info(f"Automatic search results ... {tmp_resolution:.1f}")
+                logger.info(f"Automatic search  best resolution ... {tmp_resolution:.1f}")
                 A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
@@ -625,7 +627,7 @@ class HyperPartition:
                 result_K_length = 0
                 tmp_resolution = 0.8
                 while result_K_length < k[0] and k[0] != 0:
-                    logger.info(f"Automatic search results ... {tmp_resolution:.1f}")
+                    logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
                     A, _, self.K = IRMM(self.H, #self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, tmp_resolution, 
@@ -909,7 +911,7 @@ class HyperPartition:
 
         print(list(map(len, self.K)))
             
-    
+
     @staticmethod
     def get_k_size(k, contigsizes, idx_to_vertices):
         k = list(map(idx_to_vertices.get, k))

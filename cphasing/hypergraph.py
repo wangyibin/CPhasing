@@ -144,9 +144,10 @@ def process_pore_c_table(df, contig_idx, threads=1,
 
     # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
     #                     df.chrom.cat.categories))
-    df = (df.assign(alignment_length=lambda x: x.end - x.start)
-            .query(f"alignment_length >= {min_alignments}")
-            .set_index('read_idx'))
+    # df = (df.assign(alignment_length=lambda x: x.end - x.start)
+    #         .query(f"alignment_length >= {min_alignments}")
+    #         .set_index('read_idx'))
+    df = df.set_index('read_idx')
     df = df[['chrom_idx', 'mapping_quality']]
     df_grouped = df.groupby('read_idx')['chrom_idx']
     df_grouped_nunique = df_grouped.nunique()
@@ -222,9 +223,9 @@ class HyperExtractor:
             if self.is_parquet:
                 df = pd.read_parquet(infile, 
                                         columns=['read_idx', 'chrom',
-                                                'start', 'end', 
+                                                # 'start', 'end', 
                                                 'mapping_quality',
-                                                'filter_reason',
+                                                #'filter_reason',
                                                 ],
                                     engine=PQ_ENGINE)
             else: 
@@ -234,15 +235,16 @@ class HyperExtractor:
                                     header=None,
                                     index_col=None,
                                         usecols=['read_idx', 'chrom',
-                                                'start', 'end', 
+                                                # 'start', 'end', 
                                                 'mapping_quality',
-                                                'filter_reason'],
+                                                #'filter_reason'
+                                                ],
                                         names=self.HEADER)
                 except pd.errors.ParserError:
                     logger.error("The input contacts are not the pore-c table format"
                                 "do you want to parse Pairs file? please add parameters of `--pairs`")
                     sys.exit(-1)
-            df = df.query("filter_reason == 'pass'")
+            # df = df.query("filter_reason == 'pass'")
             if self.min_quality > 1:
                 df = df.query(f"mapping_quality >= {self.min_quality}")
             df_list = [df]
@@ -259,25 +261,27 @@ class HyperExtractor:
             if self.is_parquet:
                 df_list = list(map(lambda x: pd.read_parquet(
                                 x, columns=['read_idx', 'chrom', 
-                                            'start', 'end', 
+                                            # 'start', 'end', 
                                             'mapping_quality',
-                                            'filter_reason'], 
+                                            #'filter_reason'
+                                            ], 
                                     engine='pyarrow',),
                                     infiles))
                 
-                df_list = Parallel(n_jobs=self.threads)(delayed(
-                                    lambda x: x.query("filter_reason == 'pass'")
-                                                .drop("filter_reason", axis=1)
-                                                )(i) for i in df_list)
+                # df_list = Parallel(n_jobs=self.threads)(delayed(
+                #                     lambda x: x.query("filter_reason == 'pass'")
+                #                                 .drop("filter_reason", axis=1)
+                #                                 )(i) for i in df_list)
 
                 
             else:
                 df_list = list(map(lambda x: pd.read_csv(
                                 x, names=self.HEADER, 
                                     usecols=['read_idx', 'chrom', 
-                                            'start', 'end', 
+                                            # 'start', 'end', 
                                             'mapping_quality',
-                                            'filter_reason'], 
+                                            #'filter_reason'
+                                            ], 
                                     sep='\t',
                                     index_col=None,
                                     header=None,
@@ -287,15 +291,16 @@ class HyperExtractor:
                 
                 if self.min_quality > 1:
                     df_list = Parallel(n_jobs=self.threads)(delayed(
-                                        lambda x: x.query(f"filter_reason == 'pass' & min_quality >= {self.min_quality}")
-                                                    .drop("filter_reason", axis=1)
+                                        lambda x: x.query(#f"filter_reason == 'pass' &"
+                                                          f"'min_quality >= {self.min_quality}")
+                                                    # .drop("filter_reason", axis=1)
                                                     )(i) for i in df_list)
                     df = df.query(f"mapping_quality >= {self.min_quality}")
-                else:
-                    df_list = Parallel(n_jobs=self.threads)(delayed(
-                                        lambda x: x.query("filter_reason == 'pass'")
-                                                    .drop("filter_reason", axis=1)
-                                                    )(i) for i in df_list)
+                # else:
+                #     df_list = Parallel(n_jobs=self.threads)(delayed(
+                #                         lambda x: x.query("filter_reason == 'pass'")
+                #                                     .drop("filter_reason", axis=1)
+                #                                     )(i) for i in df_list)
             
 
         return df_list
@@ -319,8 +324,8 @@ class HyperExtractor:
         """
         logger.info("Processing Pore-C table ...")
         logger.info(f"Only retained Pore-C concatemer that: \n"
-                        f"\talignment length >= {self.min_alignments} and \n"
-                        f"\t{self.min_order} <= contig order <= {self.max_order} and  \n"
+                        # f"\talignment length >= {self.min_alignments} and \n"
+                        # f"\t{self.min_order} <= contig order <= {self.max_order} and  \n"
                         f"\tmapping_quality >= {self.min_quality}")
 
         threads_2 = self.threads // len(self.pore_c_tables) + 1

@@ -146,18 +146,18 @@ class HyperPartition:
 
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
         self.contigs = self.contigsizes.index.values.tolist()
+        self.K = []
+
+
         self.HG = HyperGraph(self.edges, min_quality=1)
         
-        self.K = []
         ## remove edges
-    
         del edges 
         gc.collect()
 
         self.filter_hypergraph()
-        
         self.H, self.vertices = self.get_hypergraph()
-        # self.NW = self.get_normalize_weight()
+        self.NW = self.get_normalize_weight()
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
 
@@ -329,7 +329,8 @@ class HyperPartition:
 
         a = vertices_length['length'].astype('float32')
         
-        NW = np.log10((a.max() ** 2 ) / np.outer(a, a))
+        # NW = np.log10((a.max() ** 2 ) / np.outer(a, a))
+        NW = 1 / np.outer(a, a)
         NW = np.ones(NW.shape)
         # print(NW)
         return NW
@@ -466,15 +467,17 @@ class HyperPartition:
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                         reverse=True)
         
-        length_contents = pformat(list(map(
-            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
+        group_info = [i for i in range(1, len(self.K) + 1)]
+        length_contents = list(map(
+            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
+        length_contents = pformat(list(zip(group_info, length_contents)))
         logger.info(f"Hyperpartition result {len(self.K)} groups:\n"
                     f"{length_contents}")
         
         return self.K  
 
     @staticmethod
-    def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, #NW, 
+    def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, NW, 
                             resolution, min_weight=1, allelic_similarity=0.8, 
                             min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.3,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
@@ -487,7 +490,7 @@ class HyperPartition:
         del H 
         gc.collect() 
         
-        #sub_NW = NW[list(k)][:, list(k)]
+        sub_NW = NW[list(K)][:, list(K)]
 
         sub_old2new_idx = dict(zip(K, range(len(K))))
         sub_new2old_idx = dict(zip(range(len(K)), K))
@@ -557,7 +560,7 @@ class HyperPartition:
                 auto_round += 1
              
         else:
-            A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
+            A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -587,25 +590,32 @@ class HyperPartition:
         return cluster_assignments, new_K
     
 
-    def kprune(self, alleletable, first_cluster_file=None, contacts=None):
-        if not contacts or not Path(contacts).exists():
-            contacts = "hypergraph.expansion.contacts"
-            HyperGraph.to_contacts(self.H, self.vertices , min_weight=self.min_weight, output=contacts)
+    def kprune(self, alleletable, first_cluster_file=None, contacts=None, is_run=True):
+        if is_run:
+            if not contacts or not Path(contacts).exists():
+                contacts = "hypergraph.expansion.contacts"
+                HyperGraph.to_contacts(self.H, self.vertices , min_weight=self.min_weight, output=contacts)
 
         kprune_output_file = "hypergraph.prune.table"
-        if not first_cluster_file:
-            cmd = ["cphasing-rs", "kprune", alleletable, contacts, 
-                   kprune_output_file, "-n", "cis", "-t", str(self.threads)]
-        else:
-            cmd = ["cphasing-rs", "kprune", alleletable, contacts, kprune_output_file,
-                    "-n", "cis", "-t", str(self.threads), "-f", first_cluster_file]
+        if is_run and Path(kprune_output_file).exists():
+            if not first_cluster_file:
+                cmd = ["cphasing-rs", "kprune", alleletable, contacts, 
+                    kprune_output_file, "-n", self.kprune_norm_method, "-t", str(self.threads)]
+            else:
+                cmd = ["cphasing-rs", "kprune", alleletable, contacts, kprune_output_file,
+                        "-n", self.kprune_norm_method, "-t", str(self.threads), "-f", first_cluster_file]
         
-        logger.info("Generating the prune table.")
-        flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
-        assert flag == 0, "Failed to execute command, please check log."
+            logger.info("Generating the prune table.")
+            flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
+            assert flag == 0, "Failed to execute command, please check log."
 
+            logger.info(f"Prune table stored in `{kprune_output_file}`")
+        else:
+            logger.warn(f"Load exists prune table `{kprune_output_file}`")
+            
         self.prunetable = kprune_output_file
         
+
         self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
 
 
@@ -616,7 +626,6 @@ class HyperPartition:
         """
         if not first_cluster:
             logger.info("Starting first partition ...")
-        
         
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
@@ -655,10 +664,15 @@ class HyperPartition:
             self.to_cluster(f'first.clusters.txt')
             first_cluster_file = f'first.clusters.txt'
 
-            length_contents = pformat(list(map(
-                lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
+            length_contents = list(map(
+                lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
+            
+            first_group_info = [i for i in range(1, len(self.K) + 1)]
+    
+            first_length_contents = pformat(list(zip(first_group_info, length_contents)))
+
             logger.info(f"First hyperpartition resulted {len(self.K)} groups:\n"
-                        f"{length_contents}")
+                        f"{first_length_contents}")
 
         else:
             vertices_idx = self.vertices_idx
@@ -693,14 +707,20 @@ class HyperPartition:
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
 
         elif self.alleletable:
-            self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts)
+            is_run = False if isinstance(first_cluster, ClusterTable) else True
+            self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts, is_run=is_run)
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
         else:
             prune_pair_df = None
 
         args = []
         for num, sub_k in enumerate(self.K, 1):
-            args.append((sub_k, k[1], prune_pair_df, self.H, vertices_idx_sizes,#self.NW, 
+            if isinstance(k[1], dict):
+                sub_group_number = int(k[1][num - 1])
+            else:
+                sub_group_number = int(k[1])
+
+            args.append((sub_k, sub_group_number, prune_pair_df, self.H, vertices_idx_sizes, self.NW, 
                         self.resolution2, self.min_weight, self.allelic_similarity, 
                         self.min_allelic_overlap, self.allelic_factor, self.cross_allelic_factor,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
@@ -709,22 +729,29 @@ class HyperPartition:
             
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x in args)
         
         self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []
         for i, j in enumerate(results):
             for _ in j:
                 self.inc_chr_idx.append(i)
+        
+        second_group_info = []
+        for i, res in enumerate(results, 1):
+            for j, _ in enumerate(res, 1):
+                # second_group_info.append(f"Chr{i:0>2}g{j}")
+                second_group_info.append(f"{i}g{j}")
 
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
-
-        length_contents = pformat(list(map(
-            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
+        length_contents = list(map(
+            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
+        second_length_contents = pformat(list(zip(second_group_info, length_contents)))
         logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
-                    f"{length_contents}")
+                    f"{second_length_contents}")
+        
 
 
     @staticmethod
@@ -834,7 +861,7 @@ class HyperPartition:
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                         reverse=True)
-        
+
         length_contents = pformat(list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K)))
         logger.info(f"Merge cluster result {len(self.K)} groups:\n"

@@ -32,10 +32,20 @@ def plot(data, title, x, y, hue, output):
     makers = ["s", "^", "o", "D"]
     fig, ax = plt.subplots(figsize=(5.5,5))
     plt.rcParams['font.family'] = 'Arial'
-    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors, makers=makers)
-    ax.set_xlabel(x, fontsize=24)
+    if y == "Group numbers":
+        chromosome_number = int(title)*5
+        plt.axhline(y=chromosome_number, color='black', linestyle="--")
+        
+    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, style=hue, palette=colors, makers=True, lot_kws=dict(alpha=0.3))
+    # for c in plt.gca().collections:
+    #     c.set_alpha(0.3)
+    plt.setp(ax.collections, alpha=.5) 
+    plt.setp(ax.lines, alpha=.3)
+    ax.set_xlabel("", fontsize=24)
     ax.set_ylabel(y, fontsize=24)
     plt.xticks(fontsize=18, rotation=45)
+    
+        
     if np.max(data[y]) > 1000:
         plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         formatter = plt.gca().get_yaxis().get_major_formatter()
@@ -68,7 +78,7 @@ def main(args):
     for ploid, tmp_df in df.groupby('Ploidy'):
         for column in tmp_df.columns:
             if column == "Software" or column == "Ploidy" or \
-                column == "N50":
+                column == "N50" or column == "Chromosome numbers":
                 continue
             output_middle = column.replace(" ", "_").replace("(", "").replace(")", "")
             plot(tmp_df[["Software", "N50", column]], ploid, "N50", column, "Software", f"{ploid}.{output_middle}.png")

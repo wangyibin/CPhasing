@@ -321,7 +321,7 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
-def IRMM(H, # NW, 
+def IRMM(H, NW, 
             P_allelic_idx=None,
             P_weak_idx=None,
             allelic_factor=-1,
@@ -389,20 +389,20 @@ def IRMM(H, # NW,
     
     H_T = H.T
 
-  
+    
     A = H @ W @ D_e_inv @ H_T
     
     if min_weight > 0:
         mask = A >= min_weight
         A = A.multiply(mask)
-    ## normalization
-    # A = A.toarray() * NW
-    # row, col = np.nonzero(A)
-    # values = A[row, col]
-    # A = csr_matrix((values, (row, col)), shape=A.shape)
+    # normalization
+    A = A.toarray() * NW
+    row, col = np.nonzero(A)
+    values = A[row, col]
+    A = csr_matrix((values, (row, col)), shape=A.shape)
 
-    # A.setdiag(0)
-    # A.prune()
+    A.setdiag(0)
+    A.prune()
 
     if max_round <= 1:
         del W, D_e_num, D_e_inv, H_T

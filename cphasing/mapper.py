@@ -441,18 +441,18 @@ class PoreCMapper:
         cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.realign.log')
 
-    def paf2table(self):
+    def paf2porec(self):
         paf = self.realign_outpaf if self.realign else self.outpaf
         if self.pattern:
-            cmd = ["cphasing-rs", "paf2table", f"{paf}", "-b",
+            cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-b",
                    f"{self.reference.stem}.slope.{self.pattern}.bed", "-q", 
                     f"{self.min_quality}", "-o", f"{self.outporec}",
                 ]
         else:
-            cmd = ["cphasing-rs", "paf2table", f"{paf}", "-q", 
+            cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-q", 
                         f"{self.min_quality}", "-o", f"{self.outporec}"]
 
-        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2table.log')
+        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')
 
     def porec2pairs(self):
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
@@ -489,7 +489,7 @@ class PoreCMapper:
                 logger.warning(f"The realign paf of `{self.realign_outpaf} existing, skipped ...")
 
         if not op.exists(self.outporec) or self.force:
-            self.paf2table()
+            self.paf2porec()
         else:
             logger.warning(f"The porec table of {self.outporec} existing, skipped ...")
         

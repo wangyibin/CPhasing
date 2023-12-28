@@ -76,21 +76,24 @@ def main(args):
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
     
-    raw_df = pd.read_csv(args.raw, sep='\t', header=0, index_col=None)
-    raw_pairs = set(map(tuple, raw_df[['Contig1', 'Contig2']].values.tolist()))
-    prune_df = pd.read_csv(args.prune, sep='\t', header=0, index_col=None)
-    prune_pairs = set(map(tuple, prune_df[['Contig1', 'Contig2']].values.tolist()))
+    raw_df = pd.read_csv(args.raw, sep='\t', header=None, index_col=None, comment="#")
+    raw_df = raw_df[raw_df[8] == "ok"]
+
+    raw_pairs = set(map(tuple, raw_df[[2, 3]].values.tolist()))
+    prune_df = pd.read_csv(args.prune, sep='\t', header=None, index_col=None, comment="#")
+    prune_df = prune_df[prune_df[8] == "ok"]
+    prune_pairs = set(map(tuple, prune_df[[2, 3]].values.tolist()))
     
     pt_pairs = raw_pairs - prune_pairs
 
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
 
-    precision = len(correct_pairs) / len(pt_pairs)
+    precision = 1- len(incorrect_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
 
-    for pair in pt_pairs:
-        print("\t".join(pair), file=sys.stdout)
+    # for pair in pt_pairs:
+    #     print("\t".join(pair), file=sys.stdout)
     print(f"Precision: {precision:.4}", file=sys.stderr)
     print(f"Recall: {recall:.4}", file=sys.stderr)
 

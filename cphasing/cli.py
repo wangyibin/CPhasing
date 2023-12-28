@@ -302,12 +302,12 @@ def pipeline(fasta,
 
     if steps:
         if steps == "all":
-            steps = set(["0", "1", "2", "3", "4", "5", "6"])
+            steps = set(["0", "1", "2", "3", "4", "5"])
 
         else:
             steps = steps.strip().split(",")
     else:
-        steps = set(map(str, [0, 1, 2, 3, 4, 5, 6]))
+        steps = set(map(str, [0, 1, 2, 3, 4]))
 
 
 
@@ -1578,7 +1578,10 @@ def hypergraph(contacts,
     If in incremental mode, you can set to n1:n2, 
     which meaning that generate n1 groups in the first round partition
     and generate n2 groups in the second round partition. 
-    Also, you can set `-n 8:0` to set the second round partition to automatical mode. [default: 0]
+    Also, you can set `-n 8:0` to set the second round partition to automatical mode.
+     The n2 parameter also can be set a file, which containing two columns, 
+      the firse column repersent the group index from `first.clusters.txt`, and the 
+       second column repersent the n2 groups in each n1 group. [default: 0]
     """,
     default=None,
     show_default=True,
@@ -1893,7 +1896,6 @@ def hyperpartition(hypergraph,
             kprune_norm_method = "none"
         else:
             kprune_norm_method = "none"
-        
 
     if n is not None:
         if ":" in n and incremental is False:
@@ -1903,7 +1905,20 @@ def hyperpartition(hypergraph,
 
     for i, v in enumerate(n):
         if v:
-            n[i] = int(v)
+            if i == 1:
+                try:
+                    n[i] = int(v)
+                except ValueError:
+                    if Path(n[i]).exists():
+                        logger.info(f"Load 2nd group number list f`{n[i]}`")
+                        tmp_df = pd.read_csv(n[i], sep='\t', header=None, index_col=None)
+
+                        n[i] = tmp_df.to_dict()[1]
+
+                    else:
+                        assert ValueError, "n2 must be a int or a exists file"
+            else:
+                n[i] = int(v)
         else:
             n[i] = 0
 
@@ -1921,7 +1936,7 @@ def hyperpartition(hypergraph,
         else:
             logger.warn(f"Load raw hypergraph from exists file of `{prefix}.hg`")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
-        
+
         
 
     elif pairs:

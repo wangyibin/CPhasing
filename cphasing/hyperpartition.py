@@ -597,7 +597,7 @@ class HyperPartition:
                 HyperGraph.to_contacts(self.H, self.vertices , min_weight=self.min_weight, output=contacts)
 
         kprune_output_file = "hypergraph.prune.table"
-        if is_run and Path(kprune_output_file).exists():
+        if is_run and not Path(kprune_output_file).exists():
             if not first_cluster_file:
                 cmd = ["cphasing-rs", "kprune", alleletable, contacts, 
                     kprune_output_file, "-n", self.kprune_norm_method, "-t", str(self.threads)]

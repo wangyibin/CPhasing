@@ -648,7 +648,7 @@ class HyperPartition:
                     result_K_length = len(self.K)
                     tmp_resolution += 0.2
             else:
-                A, _, self.K = IRMM(self.H, #self.NW, 
+                A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, self.resolution1, 
                                 self.min_weight, self.threshold, 

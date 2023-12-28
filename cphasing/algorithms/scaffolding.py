@@ -334,6 +334,7 @@ class SimpleOptimize:
         sub_matrix = matrix.fetch(contig1, contig2)
         if sub_matrix.getnnz() == 0:
             return
+
         sub_matrix = sub_matrix.tocsr()
         l1, l2 = sub_matrix.shape
         d1 = float(int(np.ceil(l1 / 2)))

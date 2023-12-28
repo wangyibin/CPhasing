@@ -398,7 +398,7 @@ class HyperPartition:
             
             while result_K_length < k:
                 logger.info(f"Automatic search  best resolution ... {tmp_resolution:.1f}")
-                A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
+                A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,
@@ -414,7 +414,7 @@ class HyperPartition:
 
                 
         else:
-            A, self.cluster_assignments, self.K = IRMM(self.H, #self.NW, 
+            A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,

@@ -1,4 +1,15 @@
 # Release notes #
+## [v0.0.61]
+Date: 2024-01-19
+## New features
+- `plot_high_order_distribution.py`, plot the contact order distribution of pore-c alignments
+
+## Enhancement
+- `scaffolding`, adopt the HapHiC_sort to scaffolding, and add HaplotypeAlign
+- `partig`, change `d` to `0.1`
+- `AlleleTable`, add `strand` column to the format of `allele2`
+- `Tour`, add `to_dict`, `backup`, `save`
+
 ## [v0.0.60]
 ## Enhancement
 - `hyperpartition`, add prune based on hypergraph

@@ -78,10 +78,14 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3,
     ## count re
     cmd = ["cphasing-rs", "count_re", fasta, "-o", 
             f"{outprefix}.counts_{pattern}.txt", "-p", pattern]
-    run_cmd(cmd, log=f'{log_dir}/prepare.log')
+    run_cmd(cmd, log=f'{log_dir}/prepare.count_re.log')
 
     ## pairs2clm
     cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
             "-t", str(threads), "-o", f"{outprefix}.clm" ]
-    run_cmd(cmd, log=f'{log_dir}/prepare.log')
+    run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
 
+    ## pairs2split_contacts
+    cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts), 
+            "-n", "2", "-o", f"{outprefix}.split.contacts"]
+    run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')

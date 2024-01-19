@@ -506,7 +506,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
                      f'{outprefix}.chrom.cool', dtypes=dtypes)#, metadata=HIC_METADATA)
     logger.info('Successful, collasped the contact into chromosome-level'
-                f' and output into {outprefix}.chrom.cool')
+                f' and output into `{outprefix}.chrom.cool`')
     
 
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))

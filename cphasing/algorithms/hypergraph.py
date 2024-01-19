@@ -50,6 +50,7 @@ class HyperGraph:
     """
     def __init__(self, edges, min_quality=1):
         self.edges = edges 
+        self.contigsizes = self.edges.contigsizes
         self.min_quality = min_quality
         self.get_data()
        
@@ -102,7 +103,7 @@ class HyperGraph:
 
         # self.shape = (len(self.nodes), max(self.col) + 1)
 
-    def incidence_matrix(self, min_contacts=3):
+    def incidence_matrix(self, min_contacts=1):
         """
         The incidence matrix of hypergraph
 
@@ -136,8 +137,9 @@ class HyperGraph:
     @staticmethod
     def clique_expansion_init(H, P_allelic_idx=None, 
                               P_weak_idx=None, 
+                              NW=None,
                               allelic_factor=-1,
-                              min_weight=1.0):
+                              min_weight=0.1):
         """
         clique expansion/reduction
         """
@@ -156,8 +158,17 @@ class HyperGraph:
         
         A = H @ W @ D_e_inv @ H_T
 
+        if NW is not None:
+            A = A.toarray() * NW
+            row, col = np.nonzero(A)
+            values = A[row, col]
+            A = csr_matrix((values, (row, col)), shape=A.shape)
+
         mask = A >= min_weight
         A.multiply(mask)
+
+        
+    
 
         if P_allelic_idx or P_weak_idx:
             # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
@@ -180,9 +191,11 @@ class HyperGraph:
         return A
 
     @staticmethod
-    def to_contacts(H, nodes, min_weight=1.0, 
+    def to_contacts(H, nodes, 
+                    NW=None,
+                    min_weight=1.0, 
                     output="hypergraph.expansion.contacts"):
-        A = HyperGraph.clique_expansion_init(H, min_weight=min_weight).tocoo()
+        A = HyperGraph.clique_expansion_init(H, NW=NW, min_weight=min_weight).tocoo()
         V = nodes
 
         df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
@@ -385,7 +398,7 @@ def IRMM(H, NW,
     D_e_inv = 1/D_e_num
     D_e_inv[D_e_inv == -np.inf] = 0
     D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                            W.shape, dtype=np.float64)
+                            W.shape, dtype=np.float32)
     
     H_T = H.T
 
@@ -396,10 +409,11 @@ def IRMM(H, NW,
         mask = A >= min_weight
         A = A.multiply(mask)
     # normalization
-    A = A.toarray() * NW
-    row, col = np.nonzero(A)
-    values = A[row, col]
-    A = csr_matrix((values, (row, col)), shape=A.shape)
+    if NW is not None:
+        A = A.toarray() * NW
+        row, col = np.nonzero(A)
+        values = A[row, col]
+        A = csr_matrix((values, (row, col)), shape=A.shape)
 
     A.setdiag(0)
     A.prune()

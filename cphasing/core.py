@@ -185,7 +185,11 @@ class AlleleLine:
             self.contigs = line_list[2:]
         elif format == "allele2":
             self.contigs = line_list[2:5]
-            self.score = int(line_list[-1])
+            self.score = int(line_list[7])
+            try:
+                self.strand = int(line_list[8])
+            except IndexError:
+                self.strand = 0
 
         self.n = len(self.contigs)
     
@@ -229,7 +233,8 @@ class AlleleTable:
 
     """
     AlleleHeader2 = ['idx1', 'idx2', 'contig1', 'contig2', 
-                     'mz1', 'mz2', 'mzShared', 'similarity']
+                     'mz1', 'mz2', 'mzShared', 'similarity', 
+                     'strand']
     def __init__(self, infile, sort=True, fmt="allele1"):
         self.filename = infile
         self.sort = sort
@@ -289,7 +294,7 @@ class AlleleTable:
             df = df.drop_duplicates(list(range(1, len(df.columns) + 1)))
         elif self.fmt == "allele2":
             df = df.drop(1, axis=1)
-            df.columns = [1, 2] + self.AlleleHeader2[-4:]
+            df.columns = [1, 2] + self.AlleleHeader2[4:]
 
             df = df.drop_duplicates([1, 2])
             
@@ -1149,7 +1154,7 @@ class Tour:
     def __init__(self, infile):
         self.filename = infile
         self.group = Path(self.filename).stem
-
+        # logger.info(f"Load tour file `{self.filename}`")
         self.line = tail(self.filename, 1)[0].strip()
         self.data = list(map(TourSingle, self.line.split(' ')))
 
@@ -1265,14 +1270,16 @@ class Tour:
         """
         return len(self.contigs)
 
-    def to_tuples(self):
+    def to_tuples(self, strand_value=0) -> tuple:
         """
         Contert tour data to tuples of contig and orient.
 
         Params:
         --------
-        None
-        
+        strand_value: int
+            0: represent output orientation of "+" and "-"
+            1: represent output orientation of "1" and "-1"
+
         Returns:
         --------
         list:
@@ -1284,8 +1291,46 @@ class Tour:
         ['utg001+', 'utg002-']
         >>> tour.to_tuples()
         ('utg001', '+'), ('utg002', '-')
+         >>> tour.to_tuples(strand_value=1)
+        ('utg001', 1), ('utg002', -1)
         """
-        return list(map(lambda x: x.data, self.data))
+        assert strand_value in {0, 1}, "strand_value must be 0 or 1"
+
+        res = list(map(lambda x: x.data, self.data))
+        if strand_value == 0:
+            return res
+        else:
+            res = list(map(lambda x:(x[0], 1) if x[1] == "+" else (x[0], -1), res))
+            return res
+
+    def to_dict(self, strand_value=0) -> OrderedDict:
+        """
+        Convert tour data to dict of contig and orient 
+
+        Params:
+        --------
+        strand_value: int
+            0: represent output orientation of "+" and "-"
+            1: represent output orientation of "1" and "-1"
+        
+        Returns:
+        --------
+        dict: 
+            A dict of contig and orient
+        
+        Examples:
+        --------
+        >>> tour.data
+        >>> tour.to_dict()
+        OrderedDict([('utg001', '+'), ('utg002', '-')])
+        >>> tour.to_dict(strand_value=1)
+        OrderedDict([('utg001', 1), ('utg002', -1)])
+        
+        """
+
+        data = self.to_tuples(strand_value)
+
+        return OrderedDict(data)
 
     @classmethod
     def from_tuples(self, tuples):
@@ -1404,7 +1449,14 @@ class Tour:
         ['utg002+', 'utg001-']
         """
         self.__reversed__()
+    
+    def backup(self, suffix="bak"):
+        os.rename(f"{self.filename}", f"{self.filename}.{suffix}")
 
+    def save(self, output):
+        with open(output, 'w') as out:
+            print(" ".join(list(map(lambda x: str(x), self.data))), file=out)
+    
 class PairHeader:
     """
     Object for 4DN pairs header.

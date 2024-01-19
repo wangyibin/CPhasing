@@ -56,7 +56,10 @@ def run(fasta,
         skip_steps.add("1")
         allele_table = None
 
-    fasta_prefix = fasta.rsplit(".", 1)[0]
+    fasta_prefix = Path(fasta).with_suffix("")
+    while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+        fasta_prefix = fasta_prefix.with_suffix("")
+
     if porec_data:
         porec_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
         pairs_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
@@ -67,7 +70,6 @@ def run(fasta,
         input_param = "--porec"
         
         if not Path(pairs).exists() and not Path(porec_table).exists():
-            logger.warning("Will run mapping step")
             steps.add("0")
         
     else:
@@ -93,6 +95,9 @@ def run(fasta,
 
     if "0" not in skip_steps and "0" in steps:
         if not hic:
+            logger.info("""#----------------------------------#
+#      Running step 0. mapper      #
+#----------------------------------#""")
             try:
                 porec_mapper.main(args=[fasta, 
                                 porec_data,
@@ -112,6 +117,7 @@ def run(fasta,
     
     contigsizes = f"{fasta_prefix}.contigsizes"
     if not Path(contigsizes).exists():
+        
         cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
         flag = run_cmd(cmd, log=os.devnull)
         assert flag == 0, "Failed to execute command, please check log."
@@ -130,7 +136,7 @@ def run(fasta,
                                 "-cs",
                                 contigsizes,
                                 "-p",
-                                90
+                                95
                         ],
                         prog_name="hcr"
                     )
@@ -175,18 +181,20 @@ def run(fasta,
         prepare_input = pairs
 
     if not Path(prepare_input).exists():
+        logger.info("Generating pairs file ...")
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                    "-o", pairs, "-q", "2"]
+                    "-o", pairs, "-q", "1"]
         
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
 
     if "1" not in skip_steps and "1" in steps:
+        logger.info("""#----------------------------------#
+#      Running step 1. alleles     #
+#----------------------------------#""")
         try:
             alleles.main(args=["-f",
                                 fasta,
-                                "-k", 59,
-                                "-w", 59,
                                 ],
                             prog_name='alleles')
         except SystemExit as e:
@@ -201,6 +209,9 @@ def run(fasta,
     allele_table = None if mode == "basal" else f"{fasta_prefix}.allele.table" 
 
     if "2" not in skip_steps and "2" in steps:
+        logger.info("""#----------------------------------#
+#       Running step 2. prepare    #
+#----------------------------------#""")
         try:
             prepare.main(args=[fasta,
                             prepare_input, 
@@ -217,13 +228,13 @@ def run(fasta,
                 raise e
     
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
+
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
 
     clm = f"{prepare_prefix}.clm"
-
-
     
-    # contacts = f"{prepare_prefix}.contacts"
+    contacts = f"{prepare_prefix}.contacts"
+    split_contacts = f"{prepare_prefix}.split.contacts"
     # if "3" not in skip_steps and "3" in steps:
     #     try:
     #         kprune.main(args=[allele_table,
@@ -272,7 +283,15 @@ def run(fasta,
     
     output_cluster = "output.clusters.txt"
     
+    if hg_flag == "--pairs":
+        hyperpartition_contacts = contacts
+    else:
+        hyperpartition_contacts = None
+
     if "3" not in skip_steps and "3" in steps:
+        logger.info("""#----------------------------------#
+#  Running step 3. hyperpartition  #
+#----------------------------------#""")
         try:
             hyperpartition.main(args=[
                                 hg_input,
@@ -283,6 +302,8 @@ def run(fasta,
                                 mode,
                                 "-at",
                                 allele_table,
+                                "-c",
+                                hyperpartition_contacts,
                                 "-n",
                                 n,
                                 "-r1",
@@ -313,11 +334,18 @@ def run(fasta,
     
     out_agp = "groups.agp"
     if "4" not in skip_steps and "4" in steps:
+        logger.info("""#----------------------------------#
+#    Running step 4. scaffolding    #
+#----------------------------------#""")
         try:
             scaffolding.main(args=[
                                 output_cluster,
                                 count_re,
                                 clm,
+                                "-at",
+                                allele_table,
+                                "-sc",
+                                split_contacts,
                                 "-f",
                                 fasta,
                                 "-t",
@@ -339,6 +367,9 @@ def run(fasta,
 
 
     if "5" not in skip_steps and "5" in steps:
+        logger.info("""#----------------------------------#
+#      Running step 5. plot        #
+#----------------------------------#""")
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:

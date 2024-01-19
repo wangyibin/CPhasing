@@ -10,11 +10,14 @@ import re
 
 import numpy as np
 
+from Bio import SeqIO
 from collections import defaultdict, OrderedDict
 from io import StringIO
 from subprocess import Popen
 from pathlib import Path
 from pyfaidx import Fasta
+
+from .utilities import xopen
 
 
 from .utilities import (
@@ -49,7 +52,7 @@ class PartigLine:
 class PartigRecords:
     def __init__(self, infile, symmetric=True):
         self._file = infile
-        logger.info(f'Load file {self._file}.')
+        logger.info(f'Load file `{self._file}`.')
         self.symmetric = symmetric
         self.parse()
 
@@ -82,12 +85,24 @@ class PartigRecords:
             return [(i.seqName1, i.seqName2) for i in self.S 
                                 if i.seqName1 < i.seqName2]
     
+    @property
+    def orientation(self):
+        if self.symmetric:
+            return {(i.seqName1, i.seqName2): i.strand for i in self.S}
+        else:
+            return {(i.seqName1, i.seqName2): i.strand for i in self.S 
+                                            if i.seqName1 < i.seqName2}
+
     def convert(self, fasta):
         """
         convert ID to contig name.
 
         """
-        fasta = Fasta(fasta)
+        if fasta[-3:] == ".gz":
+            handle = xopen(fasta)
+            fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+        else:
+            fasta = Fasta(fasta)
 
         fastadb = dict(zip(self.seqNames, fasta.keys()))
     
@@ -168,12 +183,14 @@ class PartigRecords:
                 print(i, i, record.seqName1, 
                             record.seqName2, sep='\t', file=output)
             elif fmt == "allele2":
+                strand = 1 if record.strand == "+" else -1
                 print(i, i, record.seqName1, 
                             record.seqName2, 
                             record.mzConsidered1,
                             record.mzConsidered2,
                             record.mzShared,
-                            record.kmerSimilarity, sep='\t', file=output)
+                            record.kmerSimilarity, 
+                            strand, sep='\t', file=output)
 
 
 class PartigAllele:
@@ -185,7 +202,10 @@ class PartigAllele:
                     output='Allele.ctg.table',
                     log_dir='logs'):
         self.fasta = fasta
-        self.prefix = op.basename(fasta).rsplit(".", 1)[0] 
+        fasta_prefix = Path(fasta).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+        self.prefix = fasta_prefix
         self.partig_res = f"{self.prefix}.similarity.res"
 
         ## parameters for partig
@@ -232,6 +252,7 @@ class PartigAllele:
                     raise Exception('Failed to execute command:' 
                                         f'\t{" ".join(cmd)}.')
 
+    def get_pr(self):
         self.pr = PartigRecords(self.partig_res)
         self.pr.convert(self.fasta)
 
@@ -242,6 +263,7 @@ class PartigAllele:
 
     def run(self):
         self.partig()
+        self.get_pr()
         self.to_alleletable()
 
     

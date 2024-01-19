@@ -7,10 +7,12 @@ the algorithms of travelling salesman problem
 
 import argparse
 import logging
+import glob
 import os
 import os.path as op
 import sys
 import tempfile
+
 
 import cooler
 import random
@@ -21,25 +23,134 @@ import pandas as pd
 
 from collections import defaultdict
 from joblib import Parallel, delayed
-from itertools import combinations, permutations
+from itertools import combinations, permutations, product
 from pathlib import Path
 from pytools import natsorted
-from scipy.sparse import tril
+from scipy.sparse import tril, coo_matrix
 
 
-from ..core import CountRE, ClusterTable, Clm
+from ..core import (
+                AlleleTable, 
+                CountRE, 
+                ClusterTable, 
+                Clm, 
+                Tour
+                )
 from ..utilities import choose_software_by_platform, run_cmd
 
+
 logger = logging.getLogger(__name__)
+
+class HaplotypeAlign:
+    """
+
+    Align haplotype into parallel line
+
+    Params:
+    --------
+    at: AlleleTable
+        AlleleTable with `allele2` format
+    hap_tour_db: dict
+        haplotype tour dict 
+        {"Chr01": [Tour, Tour, Tour ...],
+            "Chr02": [Tour, Tour, Tour ...]}
+    """
+    def __init__(self, at: str, tour_list: list,
+                 threads: int = 4):
+        at = AlleleTable(at, sort=False, fmt='allele2')
+        self.tour_list = tour_list 
+        self.allele_data = at.data.set_index([1, 2])
+        self.hap_tour_db = self.get_hap_tour_db(self.tour_list) 
+        self.threads = threads 
+
+    def get_hap_tour_db(self, tour_list):
+        db = defaultdict(list)
+        for tour in tour_list:
+            hap, idx = tour.rsplit("g", 1)
+            db[hap].append(Tour(tour))
+        
+        return db 
+
+
+    @staticmethod
+    def align(tour1: Tour, tour2: dict, data: pd.DataFrame):
+        """
+        align two haplotype contigs by allele table data
+
+        Params:
+        ----------
+        tour1: Tour
+
+        tour2: Tour
+
+        data: pd.DataFrame
+            1       2  mzShared  strand
+            ctg1    ctg3  200   1
+            ctg2    ctg4  20    -1
+        
+            
+        """
+        hap1 = tour1.to_dict(1)
+        hap2 = tour2.to_dict(1)
+
+        contig_pairs = {}
+        for contig1 in hap1.keys():
+            for contig2 in hap2.keys():
+                contig_pairs[(contig1, contig2)] = hap1[contig1] * hap2[contig2]
+
+        contig_pairs_df = pd.DataFrame(list(contig_pairs.items()))
+        contig_pairs_df.columns = [0, "value"]
+        contig_pairs_df[[1, 2]] = pd.DataFrame(contig_pairs_df[0].tolist())
+        contig_pairs_df = contig_pairs_df.drop(0, axis=1).set_index([1, 2])
+
+        tmp_df = data.reindex(list(contig_pairs.keys())).dropna()
+        tmp_df['strand'] = tmp_df['strand'].astype(int)
+        tmp_df['mzShared'] = tmp_df['mzShared'].astype(int)
+
+        tmp_df['strand2'] = contig_pairs_df.loc[tmp_df.index]
+        tmp_df = tmp_df.assign(value=lambda x: x['mzShared'] * x['strand'] * x['strand2'])
+        tmp_df = tmp_df.drop(['mzShared', 'strand', 'strand2'], axis=1)
+
+        if tmp_df['value'].sum() < 0:
+            tour2.reverse()
+            tour2.backup("before_reverse")
+            tour2.save(tour2.filename)    
+        
+    
+    def run(self):
+        logger.info("Adjust the tour from different haplotype to parallel")
+        args = []
+        for hap, tours in self.hap_tour_db.items():
+            for i in range(1, len(tours)):
+                args.append((tours[0], tours[i], self.allele_data))
+        
+        Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                self.align)(i, j, k) for i, j, k in args
+        )
+
+    
+
+def test_haplotype_align():
+    at = "../Allele.ctg.table"
+    tour_list = glob.glob("*.tour")
+    hap_align = HaplotypeAlign(at, tour_list)
+    hap_align.run()
+    
+    
+
+
+    
 
 class AllhicOptimize:
 
     def __init__(self, clustertable, count_re, clm, 
+                    allele_table=None,
                     fasta=None, output="groups.agp", 
                     tmp_dir='scaffolding_tmp', threads=4):
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
         self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
         self.output = output
         self.tmp_dir = tmp_dir 
@@ -99,8 +210,13 @@ class AllhicOptimize:
             gc.collect()
             
             
-            Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                        self._run)(i, j, k, l) for i, j, k, l in args)
+            tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                            self._run)(i, j, k, l) for i, j, k, l in args)
+
+            if self.allele_table:
+                hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+                hap_align.run()
+
 
             if not self.fasta:
                 os.system(f"cp *tour ../")
@@ -125,6 +241,138 @@ class AllhicOptimize:
         logger.info("Done")
 
 
+class HapHiCSort:
+    from .HapHiC_sort import parse_arguments, run
+
+    def __init__(self, clustertable,
+                    count_re, clm, 
+                    split_contacts, 
+                    skip_allhic=False,
+                    allele_table=None,
+                    fasta=None, output="groups.agp", 
+                    tmp_dir='scaffolding_tmp', threads=4):
+        
+        self.clustertable = ClusterTable(clustertable)
+        self.count_re = CountRE(count_re, minRE=1)
+        self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.split_contacts = Path(split_contacts).absolute()
+        self.skip_allhic = skip_allhic
+        self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
+        self.fasta = Path(fasta).absolute() if fasta else None
+        self.output = output
+        self.tmp_dir = tmp_dir 
+        self.threads = threads 
+
+        self.allhic_path = choose_software_by_platform("allhic")
+
+    @staticmethod
+    def extract_count_re(group, contigs, count_re):
+        tmp_df = count_re.data.reindex(contigs)
+        tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
+
+        return f"{group}.txt"
+
+    @staticmethod
+    def extract_clm(group, contigs, clm):
+        
+        contig_pairs = list(permutations(contigs, 2))
+        contig_with_orientation_pairs = []
+        for pair in contig_pairs:
+            for strand1, strand2 in [('+', '+'), ('+', '-'),
+                                    ('-', '+'), ('-', '-')]:
+                contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
+        
+        tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+        tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+
+        return f"{group}.clm"
+
+    @staticmethod
+    def run_haphic_optimize(fasta, split_contacts, tmp_dir, skip_allhic, threads=4):
+        script_realpath = os.path.dirname(os.path.realpath(__file__))
+        haphic_sort = f"{script_realpath}/HapHiC_sort.py"
+        
+        txt = glob.glob(f"{tmp_dir}/*.txt")
+        if skip_allhic:
+            cmd = ["python", 
+                    haphic_sort, 
+                    "--skip_allhic",
+                    "--processes",
+                    str(threads),
+                    str(fasta),
+                    str(split_contacts), 
+                    tmp_dir]
+        else:
+            cmd = ["python", 
+                haphic_sort, 
+                "--processes",
+                str(threads),
+                str(fasta),
+                str(split_contacts), 
+                tmp_dir]
+
+        
+        cmd.extend(txt)
+        
+        run_cmd(cmd, log=os.devnull, out2err=True)
+      
+    @staticmethod
+    def _run(fasta, split_contacts, workdir, skip_allhic=True, threads=4):
+        HapHiCSort.run_haphic_optimize(fasta, split_contacts, workdir, skip_allhic, threads)
+        
+    
+    def run(self):
+        from ..cli import build
+        with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
+            logger.info('Working on temporary directory: {}'.format(tmpDir))
+            os.chdir(tmpDir)
+            workdir = os.getcwd()
+ 
+
+            args = []
+            for group in self.clustertable.data.keys():
+                contigs = self.clustertable.data[group]
+                tmp_clm = HapHiCSort.extract_clm(group, contigs, self.clm)
+                tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
+                args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
+            
+            del self.clm
+            gc.collect()
+            
+            HapHiCSort._run(self.fasta, self.split_contacts, "./", 
+                                skip_allhic=self.skip_allhic, threads=self.threads)
+            
+            tour_res = glob.glob("./*.tour")
+            if self.allele_table:
+                hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+                hap_align.run()
+
+
+            os.chdir(workdir)
+            if not self.fasta:
+                os.system(f"cp *tour ../")
+            else:
+                try:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
+                               prog_name='build')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+                    
+                os.system(f"cp {self.output} ../")
+            
+            logger.info("Removed temporary directory.")
+             
+            os.chdir("../")
+
+        logger.info("Done")
+
+##Deprecated
 class OldOptimize0:
     
     def __init__(self, contigs, clm, threads=10):
@@ -460,7 +708,7 @@ class SimpleOptimize:
     def minimum_spanning_tree(self):
         pass
 
-
+##Deprecated
 class SimpleOptimize2:
     """
 
@@ -790,7 +1038,7 @@ class SimpleOptimize2:
         pass
 
 
-    
+##Deprecated
 class SAOptimizer:
     """
     Simulated Annealing
@@ -864,7 +1112,229 @@ class SAOptimizer:
         return current_path, current_cost
 
 
+class HyperOptimize:
+    def __init__(self, HG, split_num=2, mutapb=0.2, npop=100, ngen=5000):
+        self.H = HG.incidence_matrix().T
+        # print(self.H.shape)
+        # print(self.H.sum(axis=0)[self.H.sum(axis=0) == 3].T.shape)
+        # l = list(set(list(map(tuple, self.H.T.tolil().rows))))
+        # rows, cols, vals = [], [], []
+        # for row_idx, row in enumerate(l):
+        #     rows.extend([row_idx] * len(row))
+        #     cols.extend(row)
+        #     vals.extend([1] * len(row))
+        # self.H = coo_matrix((vals, (rows, cols))).tocsr()
+        
 
+        self.split_num = split_num 
+        self.nodes = HG.nodes 
+        self.contigs = pd.DataFrame(self.nodes)[0].str.rsplit("_").map(
+                                        lambda x: x[0]).astype("category")
+        self.contigsizes = HG.edges.contigsizes
+
+        self.contig_idx = self.contigs.cat.codes
+
+        self.mutapb = mutapb
+        self.npop = npop 
+        self.ngen = ngen
+        self.order = self.init_order()
+
+    def init_order(self):
+        order = np.arange(len(self.nodes))
+
+        return order
+
+    def shuffle(self):
+        split_num = self.split_num
+        length = len(self.order)
+        reshaped_order = np.reshape(self.order, (length//split_num, split_num))
+    
+        np.random.shuffle(reshaped_order)
+
+        return reshaped_order.reshape(length)
+
+    def init_population(self):
+        population = [self.shuffle() for i in range(self.npop)]
+        
+        return population
+    
+    def fitness(self, order):
+        a = self.H[:, order].tolil().rows
+        a = list(map(lambda x: tuple(x), a))
+        a = set(a)
+        a = list(map(lambda x: np.array(x, dtype=np.float32), a))
+        value = sum(list(map(lambda x: 1/(
+                            np.prod(x[1:] - x[:-1])), a)))
+
+        return value 
+    
+    @staticmethod
+    def splice(order, split_num):
+        length = len(order)
+        pos = random.randint(0, length) 
+        pos = pos - pos % split_num
+        
+        a, b = list(range(pos)), list(range(pos, length))
+        
+        return order[b + a]
+
+    @staticmethod
+    def permute(order, split_num):
+        length = len(order)
+        reshaped_order = np.reshape(order, (length//split_num, split_num))
+        p, q = random.randint(0, length//split_num - 1), random.randint(0, length//split_num - 1)
+    
+        if p == q:
+            return order 
+
+        reshaped_order[[p, q]] = reshaped_order[[q, p]]
+
+        return reshaped_order.reshape(length)
+
+    @staticmethod
+    def insertion(order, split_num):
+        length = len(order)
+
+        reshaped_order = np.reshape(order, (length//split_num, split_num))
+        p, q = random.randint(0, length//split_num - 1), random.randint(0, length//split_num - 1 )
+    
+        if p == q:
+            return order 
+
+        if random.random() < 0.5:
+            temp = reshaped_order[q].copy()
+            reshaped_order[q] = reshaped_order[p]
+            
+            reshaped_order = np.vstack((np.delete(reshaped_order, p, axis=0), temp))
+        else:
+            temp = reshaped_order[p].copy()
+            reshaped_order[p] = reshaped_order[q]
+
+            reshaped_order = np.vstack((np.delete(reshaped_order, q, axis=0), temp))
+
+        return reshaped_order.reshape(length)
+
+    @staticmethod
+    def inversion(order, split_num):
+        length = len(order)
+        
+        p, q = random.randint(0, length), random.randint(0, length)
+
+        reshaped_order = np.reshape(order, (length//split_num, split_num))
+        p, q = random.randint(0, length//split_num - 1), random.randint(0, length//5 - 1)
+    
+        if p == q:
+            return order 
+        
+        if p > q:
+            p, q = q, p
+
+        reshaped_order = np.vstack((reshaped_order[:p], 
+                                    reshaped_order[p: q][::-1], 
+                                    reshaped_order[q:]))
+
+        return reshaped_order.reshape(length)
+
+    def mutate(self, order):
+        split_num = self.split_num
+        random_num = random.random()
+
+        if random_num < 0.2:
+            new_order = self.permute(order, split_num)
+        elif random_num < 0.4:
+            new_order = self.splice(order, split_num)
+        elif random_num < 0.7:
+            new_order = self.insertion(order, split_num)
+        else:
+            new_order = self.inversion(order, split_num)
+        
+        return new_order 
+
+    def crossover(self, order1, order2):
+        split_num = self.split_num
+        length = len(order1)
+        
+        order1 = np.reshape(order1, (length // split_num, split_num))
+        order2 = np.reshape(order2, (length // split_num, split_num))
+        
+        offspring = np.ones(shape=(length // split_num, split_num))
+        offspring = -offspring 
+        random_num_1 = random.randint(0, length - 1)
+        random_num_2 = random.randint(random_num_1, length)
+
+        offspring[random_num_1: random_num_2] = order2[random_num_1: random_num_2]
+
+        return offspring.reshape(length).astype(int)
+                
+
+    def select():
+        pass 
+
+    def evaluate(self):
+        population = self.init_population()
+
+        total_population = 0
+        generation = 0
+        stable_round = 0
+
+        while True:
+            generation += 1
+            total_population += len(population)
+
+            if generation != 1:
+                scores = [self.fitness(order) for order in population]
+                index = list(range(len(scores)))
+                scores = dict(zip(index, scores))
+                best = max(scores.items(), key=lambda x: x[1])
+                print(best)
+                selected = []
+                while len(selected) < self.npop:
+                    tmp = max([(i, scores[i]) for i in random.sample(index, 3)], 
+                                key=lambda x: x[1])
+                    selected.append(tmp[0])
+
+                selected = [population[i] for i in selected]
+                
+                population = selected
+
+            new_population = []
+            for i in range(0, len(population) - 1, 2):
+                try:
+                    order1 = population[i]
+                    order2 = population[i+1]
+                    if random.random() < self.mutapb:
+                        new_population.append(self.mutate(order1))
+                        new_population.append(self.mutate(order2))
+                    else:
+                        new_population.append(order1)
+                        new_population.append(order2)
+                        # new_population.append(self.crossover(order1, order2))
+                        # new_population.append(self.crossover(order1, order2))
+                except:
+                    new_population.append(population[-1])
+           
+            population = new_population
+            
+            if generation > self.ngen:
+                break
+            
+            if generation > 2:
+                if best[1] - previous_best[1] < 0.01:
+                    stable_round += 1
+                else:
+                    stable_round = 0
+            if generation > 2:        
+                print(best)
+                print(population[best[0]])
+            if stable_round >= 10:
+                print(stable_round)
+                print(best)
+                print(population[best[0]])
+                break
+
+            if generation > 1:
+                previous_best = best 
+              
 
 def test(args):
     p = argparse.ArgumentParser(prog=__file__,

@@ -6,10 +6,12 @@ import sys
 import os
 import os.path as op
 
+import numpy as np
 import pandas as pd
 
 from collections import defaultdict
 from pathlib import Path
+from pytools import natsorted
 from shutil import which
 
 from . import __version__
@@ -159,10 +161,13 @@ def cli(verbose, quiet):
     "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
-    If in incremental mode, you can set to n1:n2, 
+    If in phasing mode, you can set to n1:n2, 
     which meaning that generate n1 groups in the first round partition
     and generate n2 groups in the second round partition. 
-    Also, you can set `-n 8:0` to set the second round partition to automatical mode. [default: 0]
+    Also, you can set `-n 8:0` to set the second round partition to automatical mode.
+     The n2 parameter also can be set a file, which containing two columns, 
+      the firse column repersent the group index from `first.clusters.txt`, and the 
+       second column repersent the n2 groups in each n1 group. [default: 0]
     """,
     default=None,
     show_default=True,
@@ -266,7 +271,7 @@ def pipeline(fasta,
             factor,
             threads):
     """
-    A pipeline from a mapping result to phased and scaffolded result\n
+    A pipeline of polyploid phaseing and scaffolding\n
     Steps:\n
         0. mapper;\t\t\t\t\t\t\t\t\t
         1. alleles;\t\t\t\t\t\t\t\t\t 
@@ -275,7 +280,7 @@ def pipeline(fasta,
         4. scaffolding;\t\t\t\t\t\t\t\t\t
         5. plot;\t\t\t\t\t\t\t\t\t
 
-    Usage:\n
+    Usages:\n
         Input pore-c data\t\t\t\t\t\t\t\t\t
         $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"
         Input pore-c table\t\t\t\t\t\t\t\t\t
@@ -566,7 +571,7 @@ def paf2pairs(paf, chromsize, output,
     metavar='INT',
     show_default=True,
 )
-def paf2table(paf, output, 
+def paf2porec(paf, output, 
                 min_quality, min_identity, min_length, 
                 chunksize, threads):
     """
@@ -956,7 +961,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         
     pct.to_pao_csv(output)
 
-@cli.command(short_help='Only retain the HCRs of Pore-C/Hi-C data')
+@cli.command(short_help='Only retain the HCRs from Pore-C/Hi-C data')
 @click.option(
     '-pct',
     '--porectable',
@@ -1098,7 +1103,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
         logger.info(f'Successful out high confidence high-orrder '
                     f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-               "-o", f"{prefix}_hcr.pairs.gz", "-q", "2"]
+               "-o", f"{prefix}_hcr.pairs.gz", "-q", "1"]
         
         flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -1218,8 +1223,11 @@ def alleles(fasta, output,
     from .alleles import PartigAllele
 
     if not output:
-        prefix = op.basename(fasta).rsplit(".", 1)[0] 
-        output = f"{prefix}.allele.table"
+        fasta_prefix = Path(fasta).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+    
+        output = f"{fasta_prefix}.allele.table"
     
     pa = PartigAllele(fasta, kmer_size, window_size, 
                             minimum_similarity, output)
@@ -1440,6 +1448,30 @@ def kprune(alleletable, contacts,
     show_default=True
 )
 @click.option(
+    '-s',
+    '--split',
+    metavar="INT",
+    help="""
+    Split the contig into specify number bins.
+    """,
+    type=int,
+    default=None,
+    show_default=True,
+    hidden=True
+)
+@click.option(
+    "-wl",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads. Only when multiple files are input.',
@@ -1457,6 +1489,8 @@ def hypergraph(contacts,
             min_quality,
             pairs, 
             fofn,
+            split,
+            whitelist,
             threads):
     """
     Construct hypergraph from contacts.
@@ -1471,21 +1505,37 @@ def hypergraph(contacts,
         OUTPUT : Path of output hypergraph.
 
     """
-    from .hypergraph import HyperExtractor, Extractor
+    from .hypergraph import (
+        HyperExtractor, 
+        HyperExtractorSplit,
+        Extractor
+        )
     from .utilities import read_chrom_sizes
 
     contigsizes = read_chrom_sizes(contigsize)
-    contigs = contigsizes.index.values.tolist()
+    contigs = natsorted(contigsizes.index.values.tolist())
+
+    if whitelist:
+        whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
+        contigs = list(filter(lambda x: x in whitelist, contigs))
+
+    
     contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+
     if not pairs:
         if fofn:
             pore_c_tables = [i.strip() for i in open(contacts) if i.strip()]
         else:
             pore_c_tables = contacts
 
-        he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
-                            min_order, max_order, min_alignments, min_quality, threads)
-        he.save(output)
+        if not split:
+            he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
+                                min_order, max_order, min_alignments, min_quality, threads)
+            he.save(output)
+        else:
+            he = HyperExtractorSplit(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
+                                     split, min_quality, threads)
+            he.save(output)
     
     else:
         if fofn:
@@ -1575,7 +1625,7 @@ def hypergraph(contacts,
     "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
-    If in incremental mode, you can set to n1:n2, 
+    If in phasing mode, you can set to n1:n2, 
     which meaning that generate n1 groups in the first round partition
     and generate n2 groups in the second round partition. 
     Also, you can set `-n 8:0` to set the second round partition to automatical mode.
@@ -1607,6 +1657,14 @@ def hypergraph(contacts,
     default=None,
     show_default=True,
     type=click.Path(exists=True)
+)
+@click.option(
+    "-norm",
+    "--normalize",
+    help="Normalize expanded edges by contig length",
+    is_flag=True,
+    show_default=True,
+    default=False,
 )
 @click.option(
     "-af",
@@ -1671,7 +1729,7 @@ def hypergraph(contacts,
     'kprune_norm_method',
     metavar="STR",
     help="Normalization method of contacts for kprune",
-    default="none",
+    default="auto",
     show_default=True ,
     type=click.Choice(["none", "cis", "cis_unique", "auto"])
 )
@@ -1733,7 +1791,7 @@ def hypergraph(contacts,
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=5,
+    default=1,
     show_default=True
 )
 @click.option(
@@ -1828,6 +1886,7 @@ def hyperpartition(hypergraph,
                     n,
                     alleletable,
                     prunetable,
+                    normalize,
                     allelic_factor,
                     cross_allelic_factor,
                     allelic_similarity,
@@ -1896,7 +1955,7 @@ def hyperpartition(hypergraph,
             kprune_norm_method = "none"
         else:
             kprune_norm_method = "none"
-
+    
     if n is not None:
         if ":" in n and incremental is False:
             logger.warn("Second round partition will not be run, or `-inc` parameters must be added")
@@ -1993,6 +2052,7 @@ def hyperpartition(hypergraph,
                             n,
                             alleletable,
                             prunetable,
+                            normalize,
                             contacts,
                             kprune_norm_method,
                             allelic_factor,
@@ -2049,6 +2109,24 @@ def hyperpartition(hypergraph,
     type=click.Path(exists=True),
 )
 @click.option(
+    "-sc",
+    "--split-contacts",
+    "split_contacts",
+    metavar="SPLIT_CONTACTS",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    "-at",
+    "--allele-table",
+    "allele_table",
+    metavar="AlleleTable",
+    help="Input allele table from `cphasing alleles` to adjust the haplotype to parallel",
+    default=None,
+    type=click.Path(exists=True)
+)
+@click.option(
     "-f",
     "--fasta",
     metavar="Fasta",
@@ -2056,6 +2134,15 @@ def hyperpartition(hypergraph,
     "If None, tour files will be generated.",
     default=None,
     type=click.Path(exists=True)
+)
+@click.option(
+    "-m",
+    "--method",
+    metavar="STR",
+    help="Method of scaffolding",
+    default="haphic",
+    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
+    show_default=True
 )
 @click.option(
     "-o",
@@ -2083,7 +2170,11 @@ def hyperpartition(hypergraph,
 #     'output',
 #     metavar="OUTPUT_SCORE_PATH",
 # )
-def scaffolding(clustertable, count_re, clm, fasta, output, threads):
+def scaffolding(clustertable, count_re, clm, 
+                split_contacts, 
+                allele_table,
+                fasta, method,
+                output, threads):
     """
     Ordering and orientation the contigs.
 
@@ -2095,36 +2186,45 @@ def scaffolding(clustertable, count_re, clm, fasta, output, threads):
 
     """
 
-    from .algorithms.scaffolding import AllhicOptimize
-
-    ao = AllhicOptimize(clustertable, count_re, clm, fasta=fasta, output=output, threads=threads)
-    ao.run()
-
+    from .algorithms.scaffolding import AllhicOptimize, HapHiCSort
     
-    # import cooler 
-    # from .core import CountRE
-    # from .algorithms.optimize import SimpleOptimize2
+    if method == "allhic":
+        ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table,
+                                fasta=fasta, output=output, threads=threads)
+        ao.run()
+    elif method == "haphic":
+        assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
+        assert fasta is not None, "fasta must specified by `-f` parameters"
+        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
+                                allele_table=allele_table,
+                                fasta=fasta, output=output, threads=threads)
+        hs.run()
+
+    else:
+        assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
+        assert fasta is not None, "fasta must specified by `-f` parameters"
+        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, skip_allhic=True,
+                        allele_table=allele_table, fasta=fasta, output=output, threads=threads)
+        hs.run()
+
+@cli.command(hidden=True)
+@click.argument(
+    "hypergraph",
+    metavar="HyperGraph",
+    type=click.Path(exists=True)
+)
+def hyperoptimize(hypergraph):
+    import msgspec
+    from cphasing.algorithms.hypergraph import HyperEdges, HyperGraph
+    from cphasing.algorithms.scaffolding import HyperOptimize
+    he = msgspec.msgpack.decode(open(hypergraph,  'rb').read(), type=HyperEdges)
+    HG = HyperGraph(he)
+    ho = HyperOptimize(HG, 2)
+    order = np.arange(len(HG.nodes))
+    order2 = ho.shuffle()
+    print(ho.fitness(order))
     
-    # cr = CountRE(group, minRE=1)
-    # contigs = cr.contigs 
-    # cool = cooler.Cooler(coolfile)
-    # so2 = SimpleOptimize2(contigs, cool, method="so")
-
-    # so2.G, so2.graph_df = so2.graph()
-    # score_df, _ = so2.filter(mode="score")
-    # print(score_df)
-    # so2.graph_df = so2.graph_df.set_index(['source', 'target'])
-    # print(so2.graph_df)
-
-    
-    # so2.ordering = so2.nn_tsp(so2.contigs, so2.score_df)
-    # so2.contigs = sorted(contigs, key=lambda x: so2.ordering.index(x))
-    # so2.contig_idx = dict(zip(so2.contigs, range(len(so2.contigs))))
-    # so2.idx_to_contig = dict(zip(range(len(so2.contigs)), so2.contigs))
-    # so2.ordering = so2.order()
-    # so2.orientation()
-    # so2.save_score(output)
-
+    ho.evaluate()
 
 
 @cli.command()
@@ -2478,12 +2578,15 @@ def plot(matrix,
                  threads=threads)
 
 
-ALIASES = {
 
+
+
+ALIASES = {
     "pipe": pipeline,
     "align": alignments,
     "hg": hypergraph,
     "hp": hyperpartition,
+    "ho": hyperoptimize,
     "sf": scaffolding,
 }
 
@@ -2606,6 +2709,13 @@ def agp2cluster(agpfile, output):
 
 )
 def agp2fasta(agpfile, fasta, output, threads):
+    """
+    Convert agp to fasta
+
+        AGP: Path of AGP file
+
+        FASTA: Path of draft assembly
+    """
     from .agp import agp2fasta
     agp2fasta(agpfile, fasta, output)
 
@@ -2840,7 +2950,7 @@ def countRE2cluster(count_re, output, fofn):
     '--min-contacts',
     'min_contacts',
     help='Minimum contacts for contig pair',
-    default=5,
+    default=1,
     show_default=True,
     type=int,
 )

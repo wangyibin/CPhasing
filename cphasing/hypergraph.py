@@ -12,9 +12,11 @@ import os
 import os.path as op
 import sys
 
+
 from joblib import Parallel, delayed
 from pathlib import Path
 from pandarallel import pandarallel 
+from pytools import natsorted
 
 from .algorithms.hypergraph import HyperEdges
 from .utilities import listify, list_flatten 
@@ -373,3 +375,140 @@ class HyperExtractor:
 
         logger.info(f"Successful output hypergraph into `{output}`")
 
+
+class HyperExtractorSplit:
+    HEADER = ["read_idx", "read_length", 
+              "read_start", "read_end",  
+              "strand", "chrom", "start",
+              "end", "mapping_quality", "identity", 
+              "filter_reason"]
+    def __init__(self, pore_c_table_pathes, contig_idx, contigsizes, 
+                 split=5,
+                 min_quality=1,
+                 threads=4, 
+                is_parquet=False, ):
+        self.pore_c_table_pathes = listify(pore_c_table_pathes)
+        self.contig_idx = contig_idx
+        self.contigsizes = contigsizes 
+        self.min_quality = min_quality
+        self.threads = threads 
+        self.is_parquet = is_parquet
+
+        self.split = split
+        self.split_contig_idx = {}
+        idx = 0
+        for contig in self.contig_idx:
+            for i in range(split):
+                self.split_contig_idx[f"{contig}_{i}"] = idx
+                idx += 1 
+
+        self.pore_c_tables = self.import_pore_c_table()
+        self.edges = self.generate_edges()
+
+    @staticmethod
+    def process_pore_c_table(df, contig_idx, contig_sizes, 
+                             split_contig_idx,
+                             split=5, threads=4, 
+                             ):
+        pandarallel.initialize(nb_workers=threads, verbose=0)
+        df = df.set_index('chrom')
+        df = df.loc[list(contig_idx.keys())]
+        df = df.reset_index().set_index('read_idx')
+        df['contigsize'] = df['chrom'].parallel_map(contig_sizes.get)
+
+        df['pos'] = ((df['start'] + df['end']) // 2) // (df['contigsize'] // split)
+        df['pos'] = df['pos'].astype(str)
+        
+        df['chrom'] = df['chrom'].str.cat(df['pos'], sep="_")
+        df['chrom_idx'] = df['chrom'].parallel_map(split_contig_idx.get)
+        df = df[['chrom_idx', 'mapping_quality', 'chrom']]
+        df_grouped = df.groupby('read_idx')['chrom_idx']
+        df_grouped_nunique = df_grouped.nunique()
+        # df = df.loc[(df_grouped_nunique >= min_order) 
+        #             & (df_grouped_nunique <= max_order)]
+    
+        df = df[['chrom_idx', 'mapping_quality', 'chrom']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
+        df['read_idx'] = df['read_idx'].astype('category')
+        df['read_idx'] = df['read_idx'].cat.codes
+
+        return df         
+
+
+    def import_pore_c_table(self):
+        if len(self.pore_c_table_pathes) == 1:
+            if Path(self.pore_c_table_pathes[0]).is_symlink():
+                infile = os.readlink(self.pore_c_table_pathes[0])
+            else:
+                infile = self.pore_c_table_pathes[0]
+        
+            if self.is_parquet:
+                df = pd.read_parquet(infile, 
+                                        columns=['read_idx', 'chrom',
+                                                'start', 'end', 
+                                                'mapping_quality',
+                                                #'filter_reason',
+                                                ],
+                                    engine=PQ_ENGINE) 
+            else:
+                df = pd.read_csv(infile, 
+                                sep='\t',
+                                header=None,
+                                index_col=None,
+                                    usecols=['read_idx', 'chrom',
+                                            'start', 'end', 
+                                            'mapping_quality',
+                                            #'filter_reason'
+                                            ],
+                                    names=self.HEADER)
+                
+                if self.min_quality > 1:
+                    df = df.query(f"mapping_quality >= {self.min_quality}")
+                df_list = [df]
+
+        
+
+        return df_list
+    
+    def generate_edges(self):
+        logger.info("Processing Pore-C table ...")
+    
+        threads_2 = self.threads // len(self.pore_c_tables) + 1
+        threads_1 = int(self.threads / threads_2)
+        if threads_1 == 0:
+            threads_1 = 1
+        args = []
+        for i, pore_c_table in enumerate(self.pore_c_tables):
+            args.append((pore_c_table, self.contig_idx, self.contigsizes, self.split_contig_idx,
+                         self.split, threads_2))
+        
+        res = Parallel(n_jobs=threads_1)(
+            delayed(HyperExtractorSplit.process_pore_c_table)(i, j, k, l, m, n)
+                for i, j, k, l, m, n in args
+        )
+
+        idx = 0
+        mapping_quality_res = []
+        for i, df in enumerate(res):
+            mapping_quality_res.append(df['mapping_quality'])
+            df['read_idx'] = df['read_idx'] + idx 
+            res[i] = df
+            idx += len(df)
+        
+        res_df = pd.concat(res)
+        mapping_quality_res = pd.concat(mapping_quality_res)
+
+
+        edges = HyperEdges(idx=self.split_contig_idx, 
+                       row=res_df['chrom_idx'].values.flatten().tolist(),
+                       col=res_df['read_idx'].values.flatten().tolist(),
+                       mapq=mapping_quality_res.values.flatten().tolist(),
+                       contigsizes=self.contigsizes)
+        
+
+        return edges 
+
+    def save(self, output):
+        with open(output, 'wb') as out:
+            out.write(msgspec.msgpack.encode(self.edges))
+
+        logger.info(f"Successful output hypergraph into `{output}`")        

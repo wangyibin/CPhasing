@@ -33,10 +33,17 @@ def main(args):
               "end", "mapping_quality", 
               "identity", "filter_reason"]
     df = pd.read_csv(args.porec, sep='\t', comment='#', header=None, index_col=None, names=HEADER)
-    unique_df = df.groupby('read_idx')['chrom'].unique().map(len) < 2
-    df = df.set_index('read_idx')
-    df = df.loc[unique_df]
-    print(unique_df, df)
+    count_df = df.groupby(['read_idx', 'chrom'])['chrom'].count()
+    count_df = count_df.rename("count")
+    count_df = count_df.reset_index()
+    max_idx = count_df.groupby(['read_idx'])['count'].idxmax().reset_index()['count']
+    idx_df = count_df.loc[max_idx][['read_idx', 'chrom']]
+    
+    df = df.set_index(['read_idx', 'chrom'])
+    df = df.loc[idx_df.values.tolist()]
+    # unique_df = df.groupby('read_idx')['chrom'].unique().map(len) < 2
+    # df = df.set_index('read_idx')
+    # df = df.loc[unique_df]
     df = df.reset_index()
     df = df[HEADER]
     df.to_csv('remove_iner.porec.gz', sep='\t', index=None, header=None)

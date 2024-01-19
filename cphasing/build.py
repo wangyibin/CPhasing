@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-
+from Bio import SeqIO
 from pathlib import Path
 from pyfaidx import Fasta
 from pytools import natsorted
@@ -23,8 +23,11 @@ GAP = 'N'*100
 
 def Build(fasta, output='groups.asm.fasta', 
             output_agp='groups.agp', only_agp=False):
-    
-    fasta = Fasta(fasta)
+    if fasta[-3:] == ".gz":
+        handle = xopen(fasta)
+        fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+    else:
+        fasta = Fasta(fasta)
     p = Path('./')
 
     tour_list = list(p.glob('*.tour'))

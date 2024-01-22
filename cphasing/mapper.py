@@ -456,7 +456,7 @@ class PoreCMapper:
 
     def porec2pairs(self):
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
-               str(self.contigsizes), "-q", "2",
+               str(self.contigsizes), "-q", f"{self.min_quality}",
                 "-o", f"{self.outpairs}"]
         
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')

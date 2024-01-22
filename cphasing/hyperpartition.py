@@ -344,7 +344,7 @@ class HyperPartition:
         
         # NW = np.log10((a.max() ** 2 ) / np.outer(a, a))
         NW = 1 / np.outer(a, a)
-        NW = np.ones(NW.shape)
+        # NW = np.ones(NW.shape)
         # print(NW)
         return NW
 

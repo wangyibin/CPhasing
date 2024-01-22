@@ -118,7 +118,7 @@ class HaplotypeAlign:
         
     
     def run(self):
-        logger.info("Adjust the tour from different haplotype to parallel")
+        logger.info("Adjust the tours to parallel among different haplotypes.")
         args = []
         for hap, tours in self.hap_tour_db.items():
             for i in range(1, len(tours)):

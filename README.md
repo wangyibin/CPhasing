@@ -59,13 +59,23 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s all 
 ```
+- Start from a Hi-C 4DN pairs file
+```bash
+cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10
+```
 - Skip some steps
 ```bash
 ## skip 1.alleles and 2.prepare steps 
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 1,2
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 ```
 
-## Step by step pipeline of Pore-C data
+- Only run specified steps
+```bash
+## run 3.hyperpartition 
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
+```
+
+## Step by step pipeline of Pore-C data  
 0. **mapping**  
     > Mapping pore-c data into contig-level assembly and output the pore-c table and 4DN pairs.
     ```bash
@@ -81,13 +91,14 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 1,2
     zgrep "^#" sample-1.pairs.gz > header
     cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz 
     ```
-0.1. **hcr**
+0.1. **hcr** (Optional)
+
     > Only retain high confidence regions (HCRs) to subsequencing analysis
     ```bash
     ## results are `sample.hcr.bed`, `sample.hcr.porec.gz` and `sample.hcr.pairs.gz`
     cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
     ```
-1. **alleles** (Optional for phasing mode)
+1. **alleles** (Optional for phasing mode)  
     > This step is specific to diploid and polyploid phasing. If you only want to scaffolding a haploid, ignore this step.
     - **Step1** `alleles`
     ```bash
@@ -116,7 +127,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 1,2
     Notes: If you are not satisfied with the number of groups, you can adjust the resolution parameters (`-r1` or `-r2`)  to make difference groups. `-r1` controls the first cluster while `-r2` controls the second cluster in phasing mode. Increasing the resolution can generate more groups while decreasing it will get fewer groups.  
     If you want to group some contigs, you can input a contig list with the `-wl` parameter.
 
-4. **scaffolding**
+4. **scaffolding**  
     ```bash
     ## result is `groups.agp`
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -sc sample.split.contacts -f draft.asm.fasta -t 4
@@ -124,7 +135,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 1,2
     ## for polyploid can specified allele table to adjust the orientation of different haplotypes
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -at draft.asm.allele.table -sc sample.split.contacts -f draft.asm.fasta 
     ```
-5. **plot**
+5. **plot**  
     > Adjust the contig-level contacts matrix into chromosome-level and plot a heatmap.  
 
     ```bash
@@ -132,3 +143,13 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 1,2
     cphasing pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
     ```
+
+
+### Curation on Juicebox
+```bash
+cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
+cphasing utils agp2assembly groups.agp > groups.assembly
+bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
+```
+
+

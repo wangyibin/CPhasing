@@ -73,7 +73,7 @@ def main(args):
     group_assign = OrderedDict()
     for group in ct.groups:
         _contigs = ct.data[group]
-        _contigs_chrom = list(map(lambda x: x.split(".")[0], _contigs))
+        _contigs_chrom = list(map(lambda x: x.split("_")[0], _contigs))
         _contigs_chrom_count = Counter(_contigs_chrom)
         _contigs_size = sum(contigsizes[i] for i in _contigs)
         main_chrom = max(_contigs_chrom_count, key=lambda x: _contigs_chrom_count.get(x))

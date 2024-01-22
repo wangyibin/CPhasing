@@ -1791,7 +1791,7 @@ def hypergraph(contacts,
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=1,
+    default=5,
     show_default=True
 )
 @click.option(
@@ -2013,7 +2013,10 @@ def hyperpartition(hypergraph,
         
     else:
         logger.info(f"Load raw hypergraph from `{hypergraph}")
-        hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+        try:
+            hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+        except msgspec.ValidationError:
+            raise msgspec.ValidationError(f"`{hypergraph}` is not the hypergraph. Please input correct hypergraph format")
         
 
     if whitelist:

@@ -67,6 +67,10 @@ class CommandGroup(click.Group):
     show_default=True
 )
 def cli(verbose, quiet):
+    """
+    Phasing and scaffolding polyploid genomes based on Pore-C, Ultra-long, or Hi-C data.
+
+    """
     if quiet:
         logger.setLevel(logging.CRITICAL)
     elif verbose > 0:

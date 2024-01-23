@@ -470,11 +470,11 @@ class HyperPartition:
             self.K = _results 
 
         if k:
-                 
-            logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
-            self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
-                                            self.prune_pair_df, self.allelic_similarity,
-                                            self.min_allelic_overlap)
+            if len(self.K) > k:  
+                logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
+                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
+                                                self.prune_pair_df, self.allelic_similarity,
+                                                self.min_allelic_overlap)
 
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -554,7 +554,7 @@ class HyperPartition:
             while result_K_length < k:
                 
                 # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
-                A, cluster_assignments, new_K = IRMM(sub_H, #sub_NW, 
+                A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -652,7 +652,7 @@ class HyperPartition:
                 tmp_resolution = 0.8
                 while result_K_length < k[0] and k[0] != 0:
                     logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
-                    A, _, self.K = IRMM(self.H, #self.NW, 
+                    A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, tmp_resolution, 
                                 self.min_weight, self.threshold, 

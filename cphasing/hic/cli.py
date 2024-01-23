@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 @cli.group(cls=CommandGroup, short_help='Sub-command for the legacy Hi-C pipeline.')
 @click.pass_context
 def hic(ctx):
+    """
+    These functions were developing for ALLHiC2 but deprecated.
+    """
     pass
 
 @hic.command()

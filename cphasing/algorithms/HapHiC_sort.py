@@ -27,6 +27,7 @@ from networkx import Graph, connected_components, shortest_path
 from networkx import tree as nxtree
 from scipy.sparse import coo_matrix
 
+from cphasing.utilities import xopen
 
 logging.basicConfig(
         format='%(asctime)s <%(filename)s> [%(funcName)s] %(message)s',
@@ -43,7 +44,7 @@ def parse_fasta(fasta):
 
     fa_dict = dict()
 
-    with open(fasta) as f:
+    with xopen(fasta) as f:
         for line in f:
 
             if not line.strip():

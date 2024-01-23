@@ -145,7 +145,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
     ```
 
 
-### Curation on Juicebox
+### Curation by Juicebox
 ```bash
 cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
 cphasing utils agp2assembly groups.agp > groups.assembly

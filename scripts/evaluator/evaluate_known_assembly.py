@@ -4,7 +4,7 @@
 """
 evaluate the assembly by comparied with chromosome-level assembly
 
-P = 
+
 """
 
 import argparse

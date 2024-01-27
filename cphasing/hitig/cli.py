@@ -15,7 +15,9 @@ from ..cli import cli
 logger = logging.getLogger(__name__)
 
 
-@cli.group(cls=CommandGroup, short_help='Get high-quality contigs by ONT/HiFi data')
+@cli.group(cls=CommandGroup, 
+           context_settings={"help_option_names": ["-h", "--help", "-help"]},
+           short_help='Get high-quality contigs by ONT/HiFi data')
 @click.pass_context
 def hitig(ctx):
     """
@@ -101,7 +103,7 @@ def split_reads(fastq, window, npart, threads):
     'min_mapq',
     metavar='INT',
     help='minimum mapping quality',
-    default=10,
+    default=30,
     show_default=True,
     type=int
 )
@@ -375,3 +377,10 @@ def hcr(lis, split_align, depth, break_pos,
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
                         min_count, min_score, output)
 
+
+
+ALIASES = {
+    "sr", split_reads,
+    "ca", correct_alignments,
+    "fc", find_chimeric,
+}

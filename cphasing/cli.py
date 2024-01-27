@@ -51,7 +51,7 @@ class CommandGroup(click.Group):
         return super().get_command(ctx, cmd_name)
 
 @click.version_option(__version__, "-V", "--version")
-@click.group(context_settings={"help_option_names": ["-h", "--help"]},
+@click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
             cls=CommandGroup)
 @click.option(
     "-v", 
@@ -137,6 +137,17 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-hcr-percent",
+    "--hcr-percent",
+    "hcr_percent",
+    metavar="INT",
+    help="Percent HCRs for subsequence analysis",
+    default=95,
+    type=click.IntRange(0, 100),
+    show_default=True,
+
+)
+@click.option(
     '--mode',
     metavar="STR",
     help="mode of hyperpartition",
@@ -159,6 +170,43 @@ def cli(verbose, quiet):
     metavar="STR",
     help="skip following steps, comma seperate.",
     default=None,
+    show_default=True
+)
+@click.option(
+    '-alleles-k',
+    '--alleles-kmer-size',
+    'alleles_kmer_size',
+    metavar="INT",
+    help="kmer size for `alleles` similarity calculation.",
+    default=19,
+    show_default=True,
+)
+@click.option(
+    '-alleles-w',
+    '--alleles-window-size',
+    'alleles_window_size',
+    metavar="INT",
+    help="minimizer window size for `alleles` similarity calculation.",
+    default=19,
+    show_default=True,
+)
+@click.option(
+    '-alleles-m',
+    '--alleles-minimum-similarity',
+    'alleles_minimum_similarity',
+    metavar="FLOAT",
+    help="minimum k-mer similarity for `alleles` similarity calculation.",
+    default=0.2,
+    show_default=True,
+)
+@click.option(
+    '-scaf-method',
+    '--scaffolding-method',
+    'scaffolding_method',
+    metavar='STR',
+    help="the method of scaffolding",
+    default="haphic",
+    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
     show_default=True
 )
 @click.option(
@@ -262,9 +310,14 @@ def pipeline(fasta,
             pairs, 
             pattern,
             hcr,
+            hcr_percent,
             mode, 
             steps,
-            skip_steps, 
+            skip_steps,
+            alleles_kmer_size,
+            alleles_window_size,
+            alleles_minimum_similarity,
+            scaffolding_method, 
             n,
             resolution1,
             resolution2, 
@@ -329,9 +382,14 @@ def pipeline(fasta,
          porectable, pairs, 
          pattern=pattern,
          hcr_flag=hcr,
+         hcr_percent=hcr_percent,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
+        alleles_kmer_size=alleles_kmer_size,
+        alleles_window_size=alleles_window_size,
+        alleles_minimum_similarity=alleles_minimum_similarity,
+        scaffolding_method=scaffolding_method,
         n=n,
         resolution1=resolution1,
         resolution2=resolution2,

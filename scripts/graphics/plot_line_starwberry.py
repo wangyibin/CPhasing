@@ -23,6 +23,7 @@ import pandas as pd
 def plot(data, title, x, y, hue, output):
     colors = {"C-Phasing": "#b02418",
               "HapHiC": "#cb6e7f",
+              "HapHiC_remove": "#209093",
               "ALLHiC": "#253761",
               "ALLHiC_pregroup": "#8896ae"}
     maker = {"C-Phasing": "s",
@@ -31,20 +32,37 @@ def plot(data, title, x, y, hue, output):
               "ALLHiC_pregroup": "D"}
     makers = ["s", "^", "o", "D"]
     fig, ax = plt.subplots(figsize=(5.5,5))
+
+    if y == "Wall time (s)":
+        data[y] = np.array(data[y])
+
     plt.rcParams['font.family'] = 'Arial'
-    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors, makers=makers)
+    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors)
+    plt.setp(ax.collections, alpha=.5) 
+    plt.setp(ax.lines, alpha=.3)
     ax.set_xlabel(x, fontsize=24)
     ax.set_ylabel(y, fontsize=24)
     plt.xticks(fontsize=18, rotation=45)
-    if np.max(data[y]) > 1000:
+
+    if y == "Wall time (s)":
+        ax.set_yscale("log")
+
+    if np.max(data[y]) > 1000 and y != "Wall time (s)":
         plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         formatter = plt.gca().get_yaxis().get_major_formatter()
         plt.gca().yaxis.set_major_formatter(formatter)
         plt.gca().yaxis.get_offset_text().set_fontsize(14)
+
+    plt.xlabel("")
     plt.yticks(fontsize=18)
     # plt.title(f"{title}", fontsize=24, fontweight='bold')
     # plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
     plt.legend().remove()
+
+    if y == "Group numbers":
+        chromosome_number = int(title)*5
+        plt.axhline(y=chromosome_number, color='black', linestyle="--")
+
     plt.savefig(output, dpi=600, bbox_inches='tight')
     plt.savefig(output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
 

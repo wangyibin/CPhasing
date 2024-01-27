@@ -35,7 +35,10 @@ def plot(data, title, x, y, hue, output):
     if y == "Group numbers":
         chromosome_number = int(title)*5
         plt.axhline(y=chromosome_number, color='black', linestyle="--")
-        
+    
+    if y == "Wall time (s)":
+        data[y] = np.array(data[y])
+
     sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, style=hue, palette=colors, makers=True, lot_kws=dict(alpha=0.3))
     # for c in plt.gca().collections:
     #     c.set_alpha(0.3)
@@ -43,15 +46,20 @@ def plot(data, title, x, y, hue, output):
     plt.setp(ax.lines, alpha=.3)
     ax.set_xlabel("", fontsize=24)
     ax.set_ylabel(y, fontsize=24)
+    
+   
+    #     ax.set_ylabel("$log_{10}$(Wall time (s))")
     plt.xticks(fontsize=18, rotation=45)
     
-        
-    if np.max(data[y]) > 1000:
+    
+    if np.max(data[y]) > 1000 and y != "Wall time (s)":
         plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         formatter = plt.gca().get_yaxis().get_major_formatter()
         plt.gca().yaxis.set_major_formatter(formatter)
         plt.gca().yaxis.get_offset_text().set_fontsize(14)
     plt.yticks(fontsize=18)
+    if y == "Wall time (s)":
+        ax.set_yscale("log")
     plt.title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
     # plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
     plt.legend().remove()
@@ -74,7 +82,7 @@ def main(args):
     args = p.parse_args(args)
 
     df = pd.read_csv(args.tsv, sep='\t', header=0, index_col=None)
-   
+    
     for ploid, tmp_df in df.groupby('Ploidy'):
         for column in tmp_df.columns:
             if column == "Software" or column == "Ploidy" or \

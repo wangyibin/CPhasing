@@ -23,10 +23,15 @@ def run(fasta,
         pairs, 
         pattern="AAGCTT",
         hcr_flag=False,
+        hcr_percent=0.95,
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5]),
         skip_steps=set(),
+        alleles_kmer_size=19,
+        alleles_window_size=19,
+        alleles_minimum_similarity=0.2,
+        scaffolding_method="haphic",
         n="",
         resolution1=1,
         resolution2=1,
@@ -136,7 +141,7 @@ def run(fasta,
                                 "-cs",
                                 contigsizes,
                                 "-p",
-                                95
+                                hcr_percent,
                         ],
                         prog_name="hcr"
                     )
@@ -154,7 +159,7 @@ def run(fasta,
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"
             prepare_input = f"{pairs_prefix}_hcr.pairs.gz"
-            if not Path(hg_input).exists() or not Path(hg_input).exists():
+            if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:
                     hcr.main(
@@ -195,6 +200,12 @@ def run(fasta,
         try:
             alleles.main(args=["-f",
                                 fasta,
+                                "-k",
+                                alleles_kmer_size,
+                                "-w",
+                                alleles_window_size,
+                                "-m",
+                                alleles_minimum_similarity,
                                 ],
                             prog_name='alleles')
         except SystemExit as e:
@@ -351,7 +362,9 @@ def run(fasta,
                                 "-t",
                                 threads,
                                 "-o",
-                                out_agp
+                                out_agp,
+                                "-m",
+                                scaffolding_method
                             ],
                             prog_name='scaffolding')
         except SystemExit as e:

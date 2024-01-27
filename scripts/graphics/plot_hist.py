@@ -44,7 +44,7 @@ def main(args):
     pOpt.add_argument('--stat',
             default='density',
             help='aggregate statistic to compute in each bin. [default: %(default)s]',
-            choices=['count', 'frequency', 'probability', 'percent', 'density'])
+            choices=['count', 'frequency', 'probability', 'density'])
     pOpt.add_argument('--x-min', 
             dest="x_min",
             default=None,
@@ -69,7 +69,6 @@ def main(args):
     fig, ax = plt.subplots(figsize=(5.7, 5))
 
     df = read_csv(args.data[0])
-
     if args.x_min is not None and args.x_max is not None:
         for group in df.columns:
             df[group] = df[(df[group] <= args.x_max)]
@@ -85,10 +84,11 @@ def main(args):
     if args.x_min is not None and args.x_max is not None:
         plt.xlim(args.x_min, args.x_max)
 
-    ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
     plt.xticks(fontsize=18)
-    
+
     plt.yticks(fontsize=18)
+    
     # plt.legend(fontsize=16)
     
 

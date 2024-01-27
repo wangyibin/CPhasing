@@ -285,13 +285,13 @@ class ChromapMapper:
                 '-r', str(self.reference), '-1', str(self.read1),
                 '-2', str(self.read2), '-o', str(self.output_pairs)]
 
-        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_mapping.log')
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.mapping.log')
         assert flag == 0, "Failed to execute command, please check log."
         logger.info("Done.")
 
     def compress(self):
         cmd = ['pigz', '-p', str(self.threads), f'{str(self.output_pairs)}']
-        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}_compress.log')
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.compress.log')
         assert flag == 0, "Failed to execute command, please check log."
 
     def run(self):

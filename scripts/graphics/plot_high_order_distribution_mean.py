@@ -68,8 +68,9 @@ def main(args):
         read_order_hist = (pd.cut(df[0], length_bins, labels=length_bin_labels)
                                     )
         df['index'] = read_order_hist
-     
+        
         hist = df.groupby('index').sum().reset_index()
+      
         hist.drop(0, axis=1, inplace=True)
         hist.columns = ['order', 'count']
         total_count = hist['count'].sum()

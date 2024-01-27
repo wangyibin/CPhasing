@@ -745,7 +745,7 @@ if __name__ == "__main__":
                         help='<filepath>  window fastq file.')
     parser.add_argument('-a', '--minAS', default=2000,
                         help='<int> minimun Alignment Score, default is 2000.')
-    parser.add_argument('-m', '--minMapq', default=10,
+    parser.add_argument('-m', '--minMapq', default=30,
                         help='<int> minimun Alignment Score, default is 10.')
     parser.add_argument('-n', '--nhap', default=4,
                         help='<int> maximum supplement aligment records.')

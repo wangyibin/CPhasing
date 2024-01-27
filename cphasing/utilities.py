@@ -702,3 +702,35 @@ def prune_matrix(coolfile, prunepairs, outcool):
     pixels = pixels[pixels['count'] != 0]
   
     cooler.create_cooler(outcool, cool.bins()[:], pixels)
+
+
+def trim_axes(axes, N):
+    """
+    little helper to message the axs list to have correct length...
+
+    Params:
+    --------
+    axes: `list`
+            list of axes
+    N: `int`
+            number of axes to return
+    
+    Returns:
+    --------
+    axes: `list`
+            list of trimed axes
+    
+    Examples:
+    --------
+    >>> fig, axes = plt.subplots(5, 2)
+    >>> axes = trim_axes(axes, 7)
+    array([<matplotlib.axes._subplots.AxesSubplot object at 0x7f5f48365198>,
+       <matplotlib.axes._subplots.AxesSubplot object at 0x7f5f49275438>,
+       <matplotlib.axes._subplots.AxesSubplot object at 0x7f5f4712e320>, ...]
+    """
+
+    axes = axes.flat
+    for ax in axes[N:]:
+        ax.remove()
+    
+    return axes[:N]

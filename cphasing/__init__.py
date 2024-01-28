@@ -25,8 +25,8 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 __author__ = "Yibin Wang"
-__copyright__ = "Copyright (c) 2023, Yibin Wang"
+__copyright__ = "Copyright (c) 2024, Yibin Wang"
 __email__ = "yibinwang96@outlook.com"
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.0.61.r153"
+__version__ = "0.0.61.r154"

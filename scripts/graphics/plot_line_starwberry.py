@@ -38,8 +38,8 @@ def plot(data, title, x, y, hue, output):
 
     plt.rcParams['font.family'] = 'Arial'
     sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors)
-    plt.setp(ax.collections, alpha=.5) 
-    plt.setp(ax.lines, alpha=.3)
+    plt.setp(ax.collections, alpha=.7) 
+    plt.setp(ax.lines, alpha=.7)
     ax.set_xlabel(x, fontsize=24)
     ax.set_ylabel(y, fontsize=24)
     plt.xticks(fontsize=18, rotation=45)

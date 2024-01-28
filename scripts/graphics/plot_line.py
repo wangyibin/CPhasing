@@ -42,8 +42,8 @@ def plot(data, title, x, y, hue, output):
     sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, style=hue, palette=colors, makers=True, lot_kws=dict(alpha=0.3))
     # for c in plt.gca().collections:
     #     c.set_alpha(0.3)
-    plt.setp(ax.collections, alpha=.5) 
-    plt.setp(ax.lines, alpha=.3)
+    plt.setp(ax.collections, alpha=.7) 
+    plt.setp(ax.lines, alpha=.7)
     ax.set_xlabel("", fontsize=24)
     ax.set_ylabel(y, fontsize=24)
     

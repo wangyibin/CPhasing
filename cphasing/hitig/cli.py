@@ -103,7 +103,7 @@ def split_reads(fastq, window, npart, threads):
     'min_mapq',
     metavar='INT',
     help='minimum mapping quality',
-    default=30,
+    default=2,
     show_default=True,
     type=int
 )
@@ -223,7 +223,7 @@ def correct_alignments(
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
     type=float,
-    default=0.5,
+    default=0.9,
     show_default=True
 )
 @click.option(

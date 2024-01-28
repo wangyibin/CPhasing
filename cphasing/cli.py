@@ -2492,7 +2492,7 @@ def pairs2cool(pairs, chromsize, outcool,
     '-o',
     '--output',
     help='Output path of file.',
-    default=None,
+    default="plot.heatmap.png",
     show_default=True
 )
 # @click.option(

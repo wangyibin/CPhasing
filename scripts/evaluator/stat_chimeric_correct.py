@@ -57,7 +57,7 @@ def main(args):
             if not line.strip():
                 continue 
             line_list = line.strip().split()
-            contig, positions = line_list 
+            contig, positions = line_list[:2]
             
             for position in positions.split(","):
                 if contig not in real_chimeric_contigs:

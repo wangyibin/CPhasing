@@ -1,5 +1,6 @@
 #/usr/bin/env python
 
+import logging
 import sys
 import os
 import math
@@ -8,6 +9,9 @@ from joblib import Parallel, delayed
 import argparse
 from copy import deepcopy
 import collections
+
+logger = logging.getLogger(__name__)
+
 
 """
 0. 比对！
@@ -22,7 +26,7 @@ import collections
 5. For Retained LMP, caculate the chimeric alignment
 """
 ### return outPre.paf
-def minimap_mapping(fasta, reads, threads, outPre):
+def minimap_mapping(fasta, reads, window, threads, outPre):
     """
     check minimap2 version
     """
@@ -38,9 +42,25 @@ def minimap_mapping(fasta, reads, threads, outPre):
     else:
         readsLst = [reads]
 
-    minimap2CMD = "minimap2 -t {} --qstrand --cs -cx map-ont \
-        -p.3 {} {} > {}.paf".format(threads, fasta, ' '.join(readsLst), outPre)
+    if readsLst[0][-3:] == ".gz":
+        cat_cmd = "pigz -p 4 -dc"
+    else:
+        cat_cmd = "cat"
+
+    min_length = window * 4
+    if len(readsLst) > 1:
+        minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} \
+                            | minimap2 -t {} --qstrand --cs -cx map-ont \
+                            -p.3 {} - > {}.paf".format(
+                                cat_cmd, ' '.join(readsLst), window, min_length, threads, fasta,  outPre)
+    else:
+        minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} \
+                            | minimap2 -t {} --qstrand --cs -cx map-ont \
+                            -p.3 {} - > {}.paf".format(
+                                readsLst[0], window, min_length, threads, fasta,  outPre)
+        
     os.system(minimap2CMD)
+
     return outPre + ".paf"
 
 ### return pafDic
@@ -103,6 +123,7 @@ def select_mapq(pafDic, minMapq):
                     if qi not in bestASPafDic[qn]:
                         bestASPafDic[qn][qi] = []
                     bestASPafDic[qn][qi].append(ri)
+
     return bestASPafDic, mapqPafDic
 
 
@@ -121,6 +142,7 @@ def reads2ctg(ASreadsDic, mapqPafDic, allreadsDic):
         if tn not in ctg2AnchorDic:
             ctg2AnchorDic[tn] = []
         ctg2AnchorDic[tn].append((qi, ri, addDic[(qi, ri)]))
+
     return ctg2AnchorDic
 
 ### return mergedlLIS : LIS in one reads
@@ -628,6 +650,7 @@ def checkLIS(lisBak, pafDic):
                 else:
                     pass
             corLis[qn].append((tmpLst, string))
+
     return corLis
 
 
@@ -640,53 +663,54 @@ def outputLIS(lisBak, pafDic, outpre):
     """
     mapqLIS = []
     mapqPaf = []
-    with open(outpre + 'LIS.gtf', 'w') as fout1:
-        with open(outpre + ".corrected.paf", 'w') as fout2:
-            for qn in lisBak:
-                for align, string in lisBak[qn]:
-                    fq, fr = align[0][:2]
-                    lq, lr = align[-1][:2]
-                    fInfo = pafDic[qn][fq][fr]
-                    lInfo = pafDic[qn][lq][lr]
-                    if string == '-':
-                        tl, tn, alignS, alignE = lInfo[7], lInfo[3], lInfo[4], fInfo[5]
-                    else:
-                        tl, tn, alignS, alignE = lInfo[7], fInfo[3], fInfo[4], lInfo[5]
+    with open(outpre + '.LIS.gtf', 'w') as fout1, \
+        open(outpre + ".corrected.paf", 'w') as fout2:
+        for qn in lisBak:
+            for align, string in lisBak[qn]:
+                fq, fr = align[0][:2]
+                lq, lr = align[-1][:2]
+                fInfo = pafDic[qn][fq][fr]
+                lInfo = pafDic[qn][lq][lr]
+                if string == '-':
+                    tl, tn, alignS, alignE = lInfo[7], lInfo[3], lInfo[4], fInfo[5]
+                else:
+                    tl, tn, alignS, alignE = lInfo[7], fInfo[3], fInfo[4], lInfo[5]
+                """
+                seq_id	seq_length	type	start	end	Alignment-score	strand	alignment-type	attributes
+                ctg12	400000	LIS/alignment	25132483	25132543	8000	+	P/S/E/M	reads_id "reads1"; window_id "reads1_1"; 
+                """
+                atrriInfoLIS = "reads_id:" + qn
+                tmpLIS = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "LIS", alignS, alignE, ".", string, ".", atrriInfoLIS)
+                fout1.write(tmpLIS)
+                alignLisLst = [tmpLIS]
+                alignPafLst = []
+                addFlag = False
+                for qi, ri ,tp in align: 
+                    if tp == 'M':
+                        addFlag = True
+                    itemInPaf = pafDic[qn][qi][ri]
+                    itemInPaf = list(map(str,itemInPaf))
                     """
-                    seq_id	seq_length	type	start	end	Alignment-score	strand	alignment-type	attributes
-                    ctg12	400000	LIS/alignment	25132483	25132543	8000	+	P/S/E/M	reads_id "reads1"; window_id "reads1_1"; 
+                    [qs,qe,s,tn,ts,te,ql,tl,al1,al2,mapq, AS]
+                    qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS
                     """
-                    atrriInfoLIS = "reads_id:" + qn
-                    tmpLIS = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "LIS", alignS, alignE, ".", string, ".", atrriInfoLIS)
-                    fout1.write(tmpLIS)
-                    alignLisLst = [tmpLIS]
-                    alignPafLst = []
-                    addFlag = False
-                    for qi, ri ,tp in align: 
-                        if tp == 'M':
-                            addFlag = True
-                        itemInPaf = pafDic[qn][qi][ri]
-                        itemInPaf = list(map(str,itemInPaf))
-                        """
-                        [qs,qe,s,tn,ts,te,ql,tl,al1,al2,mapq, AS]
-                        qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS
-                        """
-                        _qn, ql, [qs, qe, s, tn], tl, [ts, te], [al1, al2, mapq, AS] = "{}_{}".format(qn, qi), itemInPaf[6], itemInPaf[:4], itemInPaf[7], itemInPaf[4:6], itemInPaf[8:]
-                        tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(_qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
-                        fout2.write(tmpAliPaf)
-                        tl, tn, ts, te, AS = itemInPaf[7], itemInPaf[3], itemInPaf[4], itemInPaf[5], itemInPaf[-1]
-                        atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(qn, qi)
-                        tmpAliLis = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "alignment", ts, te, AS, string, tp, atrriInfo)
-                        fout1.write(tmpAliLis)
-                        alignLisLst.append(tmpAliLis)
-                        alignPafLst.append(tmpAliPaf)
-                    if addFlag == True:
-                        mapqPaf.extend(alignPafLst)
-                        mapqLIS.extend(alignLisLst)
-    with open(outpre + 'mapq.LIS.gtf', 'w') as fout3:
+                    _qn, ql, [qs, qe, s, tn], tl, [ts, te], [al1, al2, mapq, AS] = "{}_{}".format(qn, qi), itemInPaf[6], itemInPaf[:4], itemInPaf[7], itemInPaf[4:6], itemInPaf[8:]
+                    tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(_qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
+                    fout2.write(tmpAliPaf)
+                    tl, tn, ts, te, AS = itemInPaf[7], itemInPaf[3], itemInPaf[4], itemInPaf[5], itemInPaf[-1]
+                    atrriInfo = "reads_id:{0};window_id:{0}_{1};".format(qn, qi)
+                    tmpAliLis = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(tn, tl, "alignment", ts, te, AS, string, tp, atrriInfo)
+                    fout1.write(tmpAliLis)
+                    alignLisLst.append(tmpAliLis)
+                    alignPafLst.append(tmpAliPaf)
+                if addFlag == True:
+                    mapqPaf.extend(alignPafLst)
+                    mapqLIS.extend(alignLisLst)
+
+    with open(outpre + '.mapq.LIS.gtf', 'w') as fout3:
         #for i in mapqLIS:
         fout3.write("".join(mapqLIS))
-    with open(outpre + 'mapq.corrected.paf', 'w') as fout4:
+    with open(outpre + '.mapq.corrected.paf', 'w') as fout4:
         #for i in mapqLIS:
         fout4.write("".join(mapqPaf))
                         
@@ -701,9 +725,10 @@ def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
     """
     pafFile = outPre + ".paf"
     if os.path.exists(pafFile) == False:
-        pafFile = minimap_mapping(fasta, reads, threads, outPre)
+        pafFile = minimap_mapping(fasta, reads, win, threads, outPre)
     else:
-        pass
+        logger.warn(f"Using existed mapping results: `{pafFile}`")
+
     threads, win = int(threads), int(win)
     #pafFile = minimap_mapping(fasta, reads, threads, outPre)
     pafDic = read_paf(pafFile, minAS, nhap)
@@ -714,6 +739,7 @@ def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
     allAlignLst = []
     bestAlignLst = []
     mapqAlignLst = []
+
     for qn in pafDic:
         qnLst.append(qn)
         allAlignLst.append(pafDic[qn])
@@ -725,6 +751,7 @@ def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
     AllmergedLIS = Parallel(n_jobs=threads)(
                     delayed(calculate_LMP_pipeline)(c, b, d, int(win), a) 
                         for a,b,c,d in zip(qnLst, allAlignLst, bestAlignLst, mapqAlignLst))
+    
     for qn, mergedLIS in AllmergedLIS:
         allLISDIc[qn] = mergedLIS
     ## check LIS

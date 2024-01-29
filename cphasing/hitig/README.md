@@ -1,5 +1,5 @@
 # **hitig**
-**hitig**: Get high quality contigs or regions (High confidence regions) by ONT/HiFi sequencing data
+**hitig**: Get **hi**gh quality con**tig**s or regions (**Hi**gh confidence regions) by ONT/HiFi sequencing data
 
 |         |                                                                          |
 | ------- | -------------------------------------------------------------------------|
@@ -8,27 +8,22 @@
 |             | Xingtan Zhang ([tangerzhang](https://github.com/tangerzhang/))       |
 
 ## Examples
-- `split-reads`
-> split fastq into several parts to and split each read by window.
-```
-cphasing hitig split-reads -i 20220608-UNL303-P6-PAK13867.pass.fastq.gz -t 4
-```
 - `correct-alignments`
 > mapping split reads to draft assembly and correct the alignments 
 ```bash
-cphasing hitig correct-alignments -f draft.contig.fasta -i split_fastq/20220608-UNL303-P6-PAK13867.pass.part_001_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_002_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_003_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_004_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_005_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_006_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_007_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_008_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_009_5.0k.fastq,split_fastq/20220608-UNL303-P6-PAK13867.pass.part_010_5.0k.fastq -t 20
+hitig correct-alignments -f draft.contig.fasta -i sample.fastq.gz -t 20
 ```
 - `find-chimeric`
 > find split-alignments and idendify the chimeric contigs
 ```bash
-cphasing hitig find-chimeric -p output.corrected.paf -l outputmapq.LIS.gtf -f draft.contig.fasta
+hitig find-chimeric -p output.corrected.paf -l output.mapq.LIS.gtf -f draft.contig.fasta
 ```
 - `hcr`
 > Identifing high confidence region.
 ```bash
 ## result is output.hcr_all.bed
-cphasing hitig hcr \
-    -l outputmapq.LIS.gtf \
+hitig hcr \
+    -l output.mapq.LIS.gtf \
     -sa output.mergedSplitAlign.txt \
     -d output.depth -b output.breakPos.txt \
     -c draft.contig.contigsizes

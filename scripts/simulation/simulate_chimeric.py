@@ -29,6 +29,7 @@ from cphasing.core import AlleleTable
 from cphasing.utilities import list_flatten, run_cmd
 
 
+logger = logging.getLogger(__name__)
 
 
 def run_minimap2(fasta, threads=10):
@@ -94,13 +95,14 @@ def main(args):
 
     if not Path("genome.paf").exists():
         run_cmd(args.fasta, args.threads)
-
+    else:
+        logger.warn("Use existed `genome.paf`")
     paf = "genome.paf"
     
     paf = pd.read_csv(paf, usecols=range(11), sep='\t', index_col=None, header=None)
 
     paf[(paf[0] < paf[5]) & (paf[9] >= 2000) & (paf[9] / paf[10] >= 0.90)]
-    all_similar_pairs = paf[[0, 5,]]
+    all_similar_pairs = paf[[0, 5]]
  
     all_similar_pairs.columns = ['contig1', 'contig2']
     all_similar_pairs = all_similar_pairs.values.tolist()
@@ -258,13 +260,13 @@ def main(args):
                                             homo_region_switch_contig_pairs, 
                                             non_homo_region_switch_contig_pairs])
     
-    print(f"Intra chrom: {len(intra_chrom_contig_pairs)}\n"
+    logger.info(f"Intra chrom: {len(intra_chrom_contig_pairs)}\n"
           f"Inter chrom:\n"
           f"├──nonhomo inter chrom: {len(non_homo_inter_contig_pairs)}\n" 
           f"└──homo inter chrom:\n"
           f"   ├──homo region switch: {len(homo_region_switch_contig_pairs) * 2}\n"
           f"   └──nonhomo region switch: {len(non_homo_region_switch_contig_pairs)}",
-          file=sys.stderr)
+    )
     
     type_suffix_list = ["intra_chrom", "inter_nonhomo_chrom", 
                         "inter_homo_switch", "inter_nonhomo_switch"]

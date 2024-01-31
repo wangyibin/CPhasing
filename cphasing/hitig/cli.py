@@ -193,7 +193,7 @@ def correct_alignments(
     'min_sa',
     metavar='INT',
     help='Number of minmum split alignments in a window.',
-    default=10,
+    default=8,
     type=int,
     show_default=True,
 )
@@ -222,7 +222,7 @@ def correct_alignments(
     metavar='FLOAT',
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
-    type=float,
+    type=click.FloatRange(0, 1.0),
     default=0.8,
     show_default=True
 )

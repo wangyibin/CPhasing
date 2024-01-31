@@ -81,6 +81,7 @@ def parse_groups(groups, fa_len_dict):
         if source_chr_len_list:
             source_chr_len_list.sort(key=lambda x: x[1])
             dominant_chr, dominant_chr_len = source_chr_len_list[-1]
+            
         else:
             continue
 
@@ -88,7 +89,7 @@ def parse_groups(groups, fa_len_dict):
             if length > largest_group_dict[source_chr]:
                 largest_group_dict[source_chr] = length
             if source_chr != dominant_chr:
-                if source_chr[0] == dominant_chr[0]:
+                if source_chr.split("_")[1] == dominant_chr.split("_")[1]:
                     inter_homo_err += length
                 else:
                     inter_nonhomo_err += length

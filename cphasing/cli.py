@@ -253,6 +253,17 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    '--exclude-group-to-second',
+    '--exclude-to-second',
+    '--exclude-group-second',
+    'exclude_group_to_second',
+    metavar="STR",
+    help='exclude several groups that do not run in second round cluster, comma seperate. 1-base.'
+    '[default: None]',
+    default=None,
+    show_default=True
+)
+@click.option(
     "-as",
     "--allelic-similarity",
     "allelic_similarity",
@@ -322,6 +333,7 @@ def pipeline(fasta,
             resolution1,
             resolution2, 
             first_cluster,
+            exclude_group_to_second,
             allelic_similarity,
             min_allelic_overlap,
             whitelist,
@@ -394,6 +406,7 @@ def pipeline(fasta,
         resolution1=resolution1,
         resolution2=resolution2,
         first_cluster=first_cluster,
+        exclude_group_to_second=exclude_group_to_second,
         whitelist=whitelist,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
@@ -1704,7 +1717,7 @@ def hypergraph(contacts,
     metavar="PATH",
     help="""
     Path to allele table that is generated from `alleles`. 
-        Skip when prunetable parameter added.
+        Skip when prunetable parameter added. [default: None]
     """,
     default=None,
     show_default=True,
@@ -1715,7 +1728,7 @@ def hypergraph(contacts,
     "-pt",
     "--prunetable",
     metavar="PATH",
-    help="Path to prune table that is generated from `kprune`.",
+    help="Path to prune table that is generated from `kprune`. [defualt: None]",
     default=None,
     show_default=True,
     type=click.Path(exists=True)
@@ -1771,7 +1784,7 @@ def hypergraph(contacts,
 @click.option(
     '--mode',
     metavar="STR",
-    help="mode of hyperpartition, conflict of `-inc`",
+    help="mode of hyperpartition, conflict of `-inc`. [default: None]",
     type=click.Choice(["basal", "phasing", "basal_withprune", None]),
     default=None,
     show_default=True
@@ -1809,7 +1822,8 @@ def hypergraph(contacts,
     "--merge-cluster",
     "merge_cluster",
     metavar="PATH",
-    help="Don't run hyperpartition, only merge this cluster into k group",
+    help="Don't run hyperpartition, only merge this cluster into k group. "
+    "[default: None]",
     default=None,
     show_default=True,
 )
@@ -1818,7 +1832,19 @@ def hypergraph(contacts,
     '--first-cluster',
     'first_cluster',
     metavar="PATH",
-    help='Use the existing first cluster results to second round cluster',
+    help='Use the existing first cluster results to second round cluster. '
+    '[default: None]',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '--exclude-group-to-second',
+    '--exclude-to-second',
+    '--exclude-group-second',
+    'exclude_group_to_second',
+    metavar="STR",
+    help='exclude several groups that do not run in second round cluster, comma seperate. 1-base.'
+    '[default: None]',
     default=None,
     show_default=True
 )
@@ -1829,6 +1855,7 @@ def hypergraph(contacts,
     help="""
     Path to 1-column list file containing
     contigs to include in hypergraph to partition.  
+    [default: None]
     """,
     default=None,
     show_default=True,
@@ -1841,6 +1868,7 @@ def hypergraph(contacts,
     help="""
     Path to 1-column list file containing
     contigs to exclude from hypergraph to partition.  
+    [default: None]
     """,
     default=None,
     show_default=True,
@@ -1959,6 +1987,7 @@ def hyperpartition(hypergraph,
                     # ultra_complex,
                     merge_cluster,
                     first_cluster,
+                    exclude_group_to_second,
                     whitelist,
                     blacklist,
                     min_contacts,
@@ -2099,6 +2128,13 @@ def hyperpartition(hypergraph,
     assert whitelist is None or blacklist is None, \
         "Only support one list of whitelist or blacklist"
     
+    if exclude_group_to_second:
+        exclude_group_to_second = exclude_group_to_second.split(",")
+        try:
+            exclude_group_to_second = list(map(int, exclude_group_to_second))
+        except ValueError:
+            logger.warn("The exclude groups must be several numbers with comma seperated")
+
 
     if alleletable:
         if prunetable:
@@ -2125,6 +2161,7 @@ def hyperpartition(hypergraph,
                             allelic_similarity,
                             min_allelic_overlap,
                             ultra_complex,
+                            exclude_group_to_second,
                             whitelist,
                             blacklist,
                             min_contacts,

@@ -31,7 +31,7 @@ def plot(data, title, x, y, hue, output):
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
     makers = ["s", "^", "o", "D"]
-    fig, ax = plt.subplots(figsize=(5.5,5))
+    fig, ax = plt.subplots(figsize=(4.5,5))
 
     if y == "Wall time (s)":
         data[y] = np.array(data[y])
@@ -41,7 +41,11 @@ def plot(data, title, x, y, hue, output):
     plt.setp(ax.collections, alpha=.7) 
     plt.setp(ax.lines, alpha=.7)
     ax.set_xlabel(x, fontsize=24)
-    ax.set_ylabel(y, fontsize=24)
+    if "INH" in y or "IH" in y:
+        ax.set_ylabel(y, fontsize=20)
+    else:
+        ax.set_ylabel(y, fontsize=24)
+    
     plt.xticks(fontsize=18, rotation=45)
 
     if y == "Wall time (s)":

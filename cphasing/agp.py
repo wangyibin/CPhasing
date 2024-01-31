@@ -123,11 +123,11 @@ def agp2cluster(agp, store=None):
     """
     agp_df, _ = import_agp(agp)
     
-    # remove contig
-    agp_df.reset_index(inplace=True)
+    # remove contigagp_df.reset_index(inplace=True)
     agp_df = agp_df[agp_df['chrom'] != agp_df['id']]
     agp_df['chrom'] = agp_df['chrom'].astype('category')
     cluster_df = agp_df.groupby('chrom')['id'].apply(lambda x: list(x))
+    
     
     if store:
         for i, cluster in cluster_df.iteritems():

@@ -457,6 +457,39 @@ def read_chrom_sizes(chrom_size):
 
     return df 
 
+def calculate_Nx_from_contigsizes(contigsizes: pd.DataFrame, Nx: int) -> pd.DataFrame:
+    """
+    calculate N10-N90 from a contigsizes dataframe
+
+    Params:
+    --------
+    contigsizes: pd.DataFrame
+
+    Nx: int
+        value of Nx
+    
+    Returns:
+    --------
+    int
+    """
+    
+    total_length = contigsizes['length'].sum()
+    
+    length_array = contigsizes['length'].values
+    length_array.sort()
+    length_array = length_array[::-1]
+    
+    N_length = int(total_length * (Nx / 100))
+
+    sum_length = 0
+    for length in length_array:
+        sum_length += length 
+        if sum_length >= N_length:
+            return length
+
+    
+    
+
 def check_platform():
     import platform
     machine = platform.uname().machine

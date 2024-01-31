@@ -94,6 +94,7 @@ class HyperPartition:
                     allelic_similarity=0.8,
                     min_allelic_overlap=0.1,
                     ultra_complex=5.0,
+                    exclude_group_to_second=None,
                     whitelist=None,
                     blacklist=None,
                     min_contacts=3,
@@ -127,7 +128,7 @@ class HyperPartition:
         self.allelic_similarity = allelic_similarity
         self.min_allelic_overlap = min_allelic_overlap
         self.ultra_complex = ultra_complex
-
+        self.exclude_group_to_second = exclude_group_to_second
         self.whitelist = whitelist
         self.blacklist = blacklist
         self.min_contacts = min_contacts
@@ -700,6 +701,10 @@ class HyperPartition:
                 
             logger.debug(f"Load the first cluster results from exists file `{first_cluster_file}`.")
 
+        if self.exclude_group_to_second:
+            for i in self.exclude_group_to_second:
+                if i > len(self.K):
+                    logger.warn(f"Exclude group `{i}` exceed the numbers of first cluster. skipped")
 
         logger.info("Starting second hyperpartition ...")
 
@@ -740,12 +745,16 @@ class HyperPartition:
             prune_pair_df = None
 
         args = []
+        self.exclude_groups = []
         for num, sub_k in enumerate(self.K, 1):
             if isinstance(k[1], dict):
                 sub_group_number = int(k[1][num - 1])
             else:
                 sub_group_number = int(k[1])
-
+            
+            if num in self.exclude_group_to_second:
+                self.exclude_groups.append(sub_k)
+                continue
             args.append((sub_k, sub_group_number, prune_pair_df, 
                          self.H, vertices_idx_sizes, self.NW, 
                         self.resolution2, self.min_weight, 
@@ -772,15 +781,28 @@ class HyperPartition:
                 # second_group_info.append(f"Chr{i:0>2}g{j}")
                 second_group_info.append(f"{i}g{j}")
 
+        if self.exclude_group_to_second:
+            exclude_group_init_idx = len(results) + 1
+
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
+
+        if self.exclude_group_to_second:
+            self.K.extend(self.exclude_groups)
+
         length_contents = list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
-        second_length_contents = pformat(list(zip(second_group_info, length_contents)))
+        second_length_contents = list(zip(second_group_info, length_contents))
+        
+        if self.exclude_group_to_second:
+            for length_content in length_contents[len(second_length_contents):]:
+                second_length_contents.append((str(exclude_group_init_idx), length_content))
+                exclude_group_init_idx += 1
+
+        second_length_contents = pformat(second_length_contents)
         logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
                     f"{second_length_contents}")
-        
-
+    
 
     @staticmethod
     def _merge(A, K, vertices_idx_sizes, k=None, 
@@ -1014,6 +1036,8 @@ class HyperPartition:
         with open(output, 'w') as out:
             try:
                 db = defaultdict(lambda :1)
+                last_chr_idx = 0
+                output_group_number = 0 
                 for i, chr_idx in enumerate(self.inc_chr_idx):
                     group = clusters[i]
                     
@@ -1021,6 +1045,12 @@ class HyperPartition:
                     print(f'Chr{chr_idx + 1:0>2}g{hap_idx}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
                     db[chr_idx] += 1
+                    output_group_number += 1
+                    last_chr_idx = chr_idx + 1
+                else:
+                    for i, group in enumerate(clusters[output_group_number:]):
+                        print(f'Chr{i + 1 + last_chr_idx:0>2}\t{len(group)}\t{" ".join(group)}', 
+                            file=out)
 
             except AttributeError:
                 for i, group in enumerate(clusters, 1):

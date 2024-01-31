@@ -88,7 +88,7 @@ def main(args):
         results.append(res)
 
     plt.rcParams['font.family'] = 'Arial'
-    fig, ax = plt.subplots(figsize=(5.7, 5))
+    fig, ax = plt.subplots(figsize=(4, 5))
     boxprops_r = dict(facecolor='#a83836',color='black', linewidth=1.5)
     boxprops_b = dict(facecolor='#265e8a',color='black', linewidth=1.5)
     boxprops = dict(color='black', linewidth=1.5)
@@ -132,8 +132,10 @@ def main(args):
     # colors = ['#df8384']
     ax = sns.violinplot(data=results, ax=ax, palette=colors, alpha=1)
     ax.set_xticks([0, 1])
-    ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
-
+    # ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
+    ax.set_xticklabels(['Pore-C', 'Hi-C'])
+    max_y = max(max(results)) * 1.5
+    plt.ylim(-0.001, max_y)
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)
     
     # ax.set_xticks([0, 1, 2])
@@ -150,8 +152,8 @@ def main(args):
 
     # ax.set_xticks([0, 1])
     # ax.set_xticklabels(["Pore-C", "Hi-C", ], fontsize=20)
-    max_y = max(max(results)) * 1.3
-    plt.ylim(-0.1, max_y)
+    # max_y = max(max(results)) * 1.3
+    # plt.ylim(-0.1, max_y)
     plt.text(0.5, max_y * 0.95,f'Wilcox test p-value < {pvalue:.1e}', ha='center', fontsize=12)
     
 

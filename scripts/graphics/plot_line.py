@@ -30,7 +30,7 @@ def plot(data, title, x, y, hue, output):
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
     makers = ["s", "^", "o", "D"]
-    fig, ax = plt.subplots(figsize=(5.5,5))
+    fig, ax = plt.subplots(figsize=(4.5,5))
     plt.rcParams['font.family'] = 'Arial'
     if y == "Group numbers":
         chromosome_number = int(title)*5
@@ -42,10 +42,14 @@ def plot(data, title, x, y, hue, output):
     sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, style=hue, palette=colors, makers=True, lot_kws=dict(alpha=0.3))
     # for c in plt.gca().collections:
     #     c.set_alpha(0.3)
-    plt.setp(ax.collections, alpha=.7) 
-    plt.setp(ax.lines, alpha=.7)
+    plt.setp(ax.collections, alpha=.3) 
+    plt.setp(ax.lines, alpha=.5)
     ax.set_xlabel("", fontsize=24)
-    ax.set_ylabel(y, fontsize=24)
+
+    if "INH" in y or "IH" in y:
+        ax.set_ylabel(y, fontsize=20)
+    else:
+        ax.set_ylabel(y, fontsize=24)
     
    
     #     ax.set_ylabel("$log_{10}$(Wall time (s))")
@@ -61,8 +65,8 @@ def plot(data, title, x, y, hue, output):
     if y == "Wall time (s)":
         ax.set_yscale("log")
     plt.title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
-    # plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
-    plt.legend().remove()
+    plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
+    # plt.legend().remove()
     plt.savefig(output, dpi=600, bbox_inches='tight')
     plt.savefig(output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
 

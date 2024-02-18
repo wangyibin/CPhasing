@@ -52,7 +52,11 @@ class CommandGroup(click.Group):
 
 @click.version_option(__version__, "-V", "--version")
 @click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
-            cls=CommandGroup)
+            cls=CommandGroup, epilog=f"""
+            \b
+            Version: {__version__}
+            Please check out the docs at: https://github.com/wangyibin/CPhasing
+            """)
 @click.option(
     "-v", 
     "--verbose", 
@@ -68,8 +72,18 @@ class CommandGroup(click.Group):
 )
 def cli(verbose, quiet):
     """
-    Phasing and scaffolding polyploid genomes based on Pore-C, Ultra-long, or Hi-C data.
+    \b 
+   ____      ____  _               _             
+  / ___|    |  _ \| |__   __ _ ___(_)_ __   __ _ 
+ | |   _____| |_) | '_ \ / _` / __| | '_ \ / _` |
+ | |__|_____|  __/| | | | (_| \__ \ | | | | (_| |
+  \____|    |_|   |_| |_|\__,_|___/_|_| |_|\__, |
+                                           |___/ 
 
+    Phasing and scaffolding polyploid genomes based on Pore-C, Ultra-long, or Hi-C data.
+    \f
+
+    :param click.core.Context ctx: Click context.
     """
     if quiet:
         logger.setLevel(logging.CRITICAL)
@@ -123,7 +137,7 @@ def cli(verbose, quiet):
 @click.option(
     '-p',
     '--pattern',
-    help='Pattern of restrict enzyme. Commam separate for multiple pattern',
+    help='Pattern of restriction enzyme. Comma separated for multiple pattern.',
     metavar="STR",
     default="AAGCTT",
     show_default=True,
@@ -146,6 +160,16 @@ def cli(verbose, quiet):
     type=click.IntRange(0, 100),
     show_default=True,
 
+)
+@click.option(
+    "-hcr-bs",
+    "--hcr-binsize",
+    "hcr_bs",
+    metavar="INT",
+    help="Bin size for HCRs identification",
+    default=10000,
+    type=int,
+    show_default=True,
 )
 @click.option(
     '--mode',
@@ -198,6 +222,15 @@ def cli(verbose, quiet):
     help="minimum k-mer similarity for `alleles` similarity calculation.",
     default=0.2,
     show_default=True,
+)
+@click.option(
+    "-alleles-d",
+    '--alleles-diff-thres',
+    "alleles_diff_thres",
+    help="minimum different threshold between contig pairs.",
+    type=click.FloatRange(0, 1),
+    default=.1,
+    show_default=True
 )
 @click.option(
     '-scaf-method',
@@ -264,6 +297,14 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-norm",
+    "--normalize",
+    help="Normalize expanded edges by contig length",
+    is_flag=True,
+    show_default=True,
+    default=False,
+)
+@click.option(
     "-as",
     "--allelic-similarity",
     "allelic_similarity",
@@ -281,6 +322,52 @@ def cli(verbose, quiet):
     help="Minimum overlap ratio bewteen two group when merging different groups",
     default=0.3,
     type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+@click.option(
+    "-q1",
+    "--min-quality1",
+    "min_quality1",
+    help="Minimum quality of hyperedge in first cluster.",
+    type=click.IntRange(0, 60),
+    default=1,
+    show_default=True, 
+)
+@click.option(
+    "-q2",
+    "--min-quality2",
+    "min_quality2",
+    help="Minimum quality of hyperedge in second cluster.",
+    type=click.IntRange(0, 60),
+    default=2,
+    show_default=True,
+)
+@click.option(
+    "-mc",
+    "--min-contacts",
+    "min_contacts",
+    help="Minimum contacts of contigs",
+    metavar="INT",
+    type=int,
+    default=5,
+    show_default=True
+)
+@click.option(
+    "-Nx",
+    "--Nx",
+    metavar="INT",
+    help="Only retain contigs which length longer than Nx.",
+    type=click.IntRange(0, 100),
+    default=100,
+    show_default=True, 
+)
+@click.option(
+    "-ms",
+    "--min-scaffold-length",
+    "min_scaffold_length",
+    help="The minimum length of the output scaffolding.",
+    type=float,
+    default=5e5,
     show_default=True
 )
 @click.option(
@@ -322,20 +409,28 @@ def pipeline(fasta,
             pattern,
             hcr,
             hcr_percent,
+            hcr_bs,
             mode, 
             steps,
             skip_steps,
             alleles_kmer_size,
             alleles_window_size,
             alleles_minimum_similarity,
+            alleles_diff_thres,
             scaffolding_method, 
             n,
             resolution1,
             resolution2, 
             first_cluster,
             exclude_group_to_second,
+            normalize,
             allelic_similarity,
             min_allelic_overlap,
+            min_quality1,
+            min_quality2,
+            min_contacts,
+            nx,
+            min_scaffold_length,
             whitelist,
             factor,
             threads):
@@ -395,21 +490,28 @@ def pipeline(fasta,
          pattern=pattern,
          hcr_flag=hcr,
          hcr_percent=hcr_percent,
+         hcr_bs=hcr_bs,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
         alleles_kmer_size=alleles_kmer_size,
         alleles_window_size=alleles_window_size,
         alleles_minimum_similarity=alleles_minimum_similarity,
+        alleles_diff_thres=alleles_diff_thres,
         scaffolding_method=scaffolding_method,
         n=n,
         resolution1=resolution1,
         resolution2=resolution2,
         first_cluster=first_cluster,
+        normalize=normalize,
         exclude_group_to_second=exclude_group_to_second,
         whitelist=whitelist,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
+        min_quality1=min_quality1,
+        min_quality2=min_quality2,
+        Nx=nx,
+        min_scaffold_length=min_scaffold_length,
         factor=factor,
         threads=threads)
     
@@ -504,7 +606,7 @@ def mapper(reference, fastq, pattern, kmer_size,
             window_size, mm2_params, mapq, force, 
             realign, outprefix, threads):
     """
-    mapper for pore-c reads.
+    Mapper for pore-c reads.
 
         REFERENCE: Path of reference
 
@@ -1281,16 +1383,44 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     show_default=True
 )
 @click.option(
+    "-c",
+    "max_occurance",
+    help="max occurance of allelic pairs",
+    metavar="INT",
+    type=int,
+    default=100,
+    show_default=True
+)
+@click.option(
+    "-n",
+    "min_cnt",
+    help="minimum chain end",
+    metavar="INT",
+    type=int,
+    default=5,
+    show_default=True
+)
+@click.option(
     "-m",
     "minimum_similarity",
     help="minimum k-mer similarity for similarity calculation.",
     metavar="FLOAT",
-    type=float,
+    type=click.FloatRange(0, 1),
     default=.2,
     show_default=True
 )
+@click.option(
+    "-d",
+    "diff_thres",
+    help="minimum different threshold between contig pairs.",
+    type=click.FloatRange(0, 1),
+    default=.1,
+    show_default=True
+)
 def alleles(fasta, output, 
-                kmer_size, window_size, minimum_similarity):
+                kmer_size, window_size, 
+                max_occurance, min_cnt,
+                minimum_similarity, diff_thres):
     """
     Build allele table.
     """
@@ -1304,8 +1434,9 @@ def alleles(fasta, output,
     
         output = f"{fasta_prefix}.allele.table"
     
-    pa = PartigAllele(fasta, kmer_size, window_size, 
-                            minimum_similarity, output)
+    pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
+                        min_cnt, minimum_similarity, diff_thres,
+                         output)
     pa.run()
 
 
@@ -1922,8 +2053,27 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    "-q1",
+    "--min-quality1",
+    "min_quality1",
+    help="Minimum quality of hyperedge in first cluster.",
+    type=click.IntRange(0, 60),
+    default=1,
+    show_default=True, 
+)
+@click.option(
+    "-q2",
+    "--min-quality2",
+    "min_quality2",
+    help="Minimum quality of hyperedge in second cluster.",
+    type=click.IntRange(0, 60),
+    default=2,
+    show_default=True,
+)
+@click.option(
     "-ms",
-    "--min_scaffold_length",
+    "--min-scaffold-length",
+    "min_scaffold_length",
     help="The minimum length of the output scaffolding.",
     type=float,
     default=5e5,
@@ -1941,7 +2091,7 @@ def hypergraph(contacts,
 @click.option(
     "--max-round",
     "max_round",
-    help="Maximize round of reweight",
+    help="Maximize round of IRMM algorithms",
     metavar="INT",
     type=int,
     default=1,
@@ -1995,6 +2145,8 @@ def hyperpartition(hypergraph,
                     resolution1,
                     resolution2,
                     min_weight,
+                    min_quality1,
+                    min_quality2,
                     min_scaffold_length,
                     threshold, 
                     max_round, 
@@ -2084,7 +2236,7 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.hg")
             hypergraph = he.edges
         else:
-            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.hg`")
+            logger.warn(f"Load raw hypergraph from existed file of `{prefix}.hg`")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
 
         
@@ -2169,6 +2321,8 @@ def hyperpartition(hypergraph,
                             resolution1, 
                             resolution2,
                             min_weight,
+                            min_quality1,
+                            min_quality2,
                             min_scaffold_length,
                             threshold, 
                             max_round, 
@@ -2240,6 +2394,10 @@ def hyperpartition(hypergraph,
 @click.option(
     "-m",
     "--method",
+    "-scaf-method",
+    "--scaf-method",
+    "--scaffolding-method",
+    "method",
     metavar="STR",
     help="Method of scaffolding",
     default="haphic",
@@ -2684,11 +2842,15 @@ def plot(matrix,
 
 
 ALIASES = {
+    "allele": alleles,
     "pipe": pipeline,
     "align": alignments,
+    "alignment": alignments,
     "hg": hypergraph,
     "hp": hyperpartition,
+    "partition": hyperpartition,
     "ho": hyperoptimize,
+    "optimize": scaffolding,
     "sf": scaffolding,
 }
 
@@ -2853,6 +3015,27 @@ def agp2tour(agp, outdir, force):
 
     agp2tour(agp, outdir, force)
 
+@utils.command(short_help='Statistics of contigsizes')
+@click.argument(
+    'contigsizes',
+    metavar="ContigSizes",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def stat_contigsizes(contigsizes, output):
+    from .utilities import stat_contigsizes, read_chrom_sizes
+
+    contigsizes = read_chrom_sizes(contigsizes)
+    df = stat_contigsizes(contigsizes)
+    df.to_csv(output, sep='\t', index=True, header=None)
+
+
 @utils.command(short_help='Statistics of AGP.')
 @click.argument(
     "agp",
@@ -2906,6 +3089,38 @@ def statcluster(cluster, contigsizes, output):
     for group in ct.groups:
         _contigs = ct.data[group]
         print(group, df.loc[_contigs]['length'].sum(), file=output)
+
+@utils.command(short_help='Convert cluster to several count RE files.')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="Contigsizes",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def cluster2agp(cluster, contigsizes, output):
+    """
+    Convert cluster table to a pseudo agp file, 
+        which the order and orientation of contig are pseudo
+
+        Cluster: Path of the cluster table
+
+        Contigsizes: Path of contig sizes 
+
+    """
+    from .core import ClusterTable
+    ct = ClusterTable(cluster)
+    ct.to_agp(contigsizes=contigsizes, output=output)
 
 
 @utils.command(short_help='Convert cluster to several count RE files.')

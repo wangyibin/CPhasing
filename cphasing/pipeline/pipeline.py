@@ -12,7 +12,11 @@ import os.path as op
 import sys
 
 from pathlib import Path
-from ..utilities import run_cmd 
+from ..utilities import (
+    run_cmd, 
+    calculate_Nx_from_contigsizes,
+    read_chrom_sizes
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,7 @@ def run(fasta,
         pattern="AAGCTT",
         hcr_flag=False,
         hcr_percent=0.95,
+        hcr_bs=10000,
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5]),
@@ -31,14 +36,21 @@ def run(fasta,
         alleles_kmer_size=19,
         alleles_window_size=19,
         alleles_minimum_similarity=0.2,
+        alleles_diff_thres=0.1,
         scaffolding_method="haphic",
         n="",
         resolution1=1,
         resolution2=1,
         first_cluster=None,
+        normalize=False,
         exclude_group_to_second=None,
         allelic_similarity=0.85,
         min_allelic_overlap=0.3,
+        min_quality1=1,
+        min_quality2=2,
+        min_contacts=5,
+        Nx=100,
+        min_scaffold_length=5e6,
         whitelist=None,
         factor=50,
         threads=4):
@@ -128,6 +140,22 @@ def run(fasta,
         flag = run_cmd(cmd, log=os.devnull)
         assert flag == 0, "Failed to execute command, please check log."
 
+    if Nx < 100 and Nx > 0:
+        contigsizes_df = read_chrom_sizes(contigsizes)
+        min_length = calculate_Nx_from_contigsizes(contigsizes_df, Nx)
+        retain_contigs = contigsizes_df[contigsizes_df['length'] > min_length]
+        retain_contigs = retain_contigs.index.tolist()
+        
+        if whitelist:
+            whitelist_contigs = set(i.strip().split()[0] for i in open(whitelist) if i.strip())
+            whitelist_contigs = set(retain_contigs).intersection(whitelist_contigs)
+        else:
+            whitelist_contigs = retain_contigs
+
+        whitelist = f"N{Nx}.contigs.list"
+        with open(whitelist, 'w') as out:
+            out.write("\n".join(whitelist_contigs))
+        logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length}(N{Nx})")
 
     if hcr_flag:
         if porec_table:
@@ -143,6 +171,8 @@ def run(fasta,
                                 contigsizes,
                                 "-p",
                                 hcr_percent,
+                                "-bs",
+                                hcr_bs,
                         ],
                         prog_name="hcr"
                     )
@@ -207,6 +237,8 @@ def run(fasta,
                                 alleles_window_size,
                                 "-m",
                                 alleles_minimum_similarity,
+                                "-d",
+                                alleles_diff_thres,
                                 ],
                             prog_name='alleles')
         except SystemExit as e:
@@ -247,54 +279,11 @@ def run(fasta,
     
     contacts = f"{prepare_prefix}.contacts"
     split_contacts = f"{prepare_prefix}.split.contacts"
-    # if "3" not in skip_steps and "3" in steps:
-    #     try:
-    #         kprune.main(args=[allele_table,
-    #                         contacts,
-    #                         "-t",
-    #                         str(threads)],
-    #                         prog_name='kprune')
-    #     except SystemExit as e:
-    #         exc_info = sys.exc_info()
-    #         exit_code = e.code
-    #         if exit_code is None:
-    #             exit_code = 0
-            
-    #         if exit_code != 0:
-    #             raise e
-        
-    # prune_table = "prune.contig.table" if mode == "phasing" else None
-
-    # hg = hg_input.replace(".gz", "").rsplit(".", 1)[0] + ".hg"
-
-    # if "5" not in skip_steps and "5" in steps:
-    #     try:
-    #         if hg_flag:
-    #             hypergraph.main(args=[
-    #                             hg_input,
-    #                             contigsizes,
-    #                             hg,
-    #                             hg_flag
-    #                         ],
-    #                         prog_name='hypergraph')
-    #         else:
-    #             hypergraph.main(args=[
-    #                                 hg_input,
-    #                                 contigsizes,
-    #                                 hg,
-    #                             ],
-    #                             prog_name='hypergraph')
-    #     except SystemExit as e:
-    #         exc_info = sys.exc_info()
-    #         exit_code = e.code
-    #         if exit_code is None:
-    #             exit_code = 0
-            
-    #         if exit_code != 0:
-    #             raise e
     
     output_cluster = "output.clusters.txt"
     
+    hyperpartition_normalize = "-norm" if normalize else ""
+
     if hg_flag == "--pairs":
         hyperpartition_contacts = contacts
     else:
@@ -305,7 +294,49 @@ def run(fasta,
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
         try:
-            hyperpartition.main(args=[
+            if hyperpartition_normalize:
+                hyperpartition.main(args=[
+                                hg_input,
+                                contigsizes,
+                                output_cluster,
+                                input_param,
+                                "--mode",
+                                mode,
+                                "-at",
+                                allele_table,
+                                "-c",
+                                hyperpartition_contacts,
+                                "-n",
+                                n,
+                                "-r1",
+                                resolution1,
+                                "-r2",
+                                resolution2,
+                                "-fc",
+                                first_cluster,
+                                hyperpartition_normalize,
+                                "--exclude-group-to-second",
+                                exclude_group_to_second,
+                                "-as",
+                                allelic_similarity,
+                                "-mao",
+                                min_allelic_overlap,
+                                "-q1",
+                                min_quality1,
+                                "-q2",
+                                min_quality2,
+                                "-mc",
+                                min_contacts,
+                                "-ms",
+                                min_scaffold_length,
+                                "-wl",
+                                whitelist,
+                                "-t",
+                                threads
+                            ],
+                            prog_name='hyperpartition')
+            else:
+                hyperpartition.main(args=[
                                 hg_input,
                                 contigsizes,
                                 output_cluster,
@@ -330,6 +361,14 @@ def run(fasta,
                                 allelic_similarity,
                                 "-mao",
                                 min_allelic_overlap,
+                                "-q1",
+                                min_quality1,
+                                "-q2",
+                                min_quality2,
+                                "-mc",
+                                min_contacts,
+                                "-ms",
+                                min_scaffold_length,
                                 "-wl",
                                 whitelist,
                                 "-t",
@@ -349,7 +388,7 @@ def run(fasta,
     out_agp = "groups.agp"
     if "4" not in skip_steps and "4" in steps:
         logger.info("""#----------------------------------#
-#    Running step 4. scaffolding    #
+#    Running step 4. scaffolding   #
 #----------------------------------#""")
         try:
             scaffolding.main(args=[

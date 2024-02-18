@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 GAP = 'N'*100
 
-def Build(fasta, output='groups.asm.fasta', 
+def Build(fasta_file, output='groups.asm.fasta', 
             output_agp='groups.agp', only_agp=False):
-    if fasta[-3:] == ".gz":
-        handle = xopen(fasta)
+    if fasta_file[-3:] == ".gz":
+        handle = xopen(fasta_file)
         fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
     else:
-        fasta = Fasta(fasta)
+        fasta = Fasta(fasta_file)
     p = Path('./')
 
     tour_list = list(p.glob('*.tour'))
@@ -58,6 +58,9 @@ def Build(fasta, output='groups.asm.fasta',
     
     if not only_agp:
         with xopen(output, 'w') as out:
-            agp2fasta(agp, fasta.filename, out)
+            try:
+                agp2fasta(agp, fasta.filename, out)
+            except AttributeError:
+                agp2fasta(agp, fasta_file, out)
     
     

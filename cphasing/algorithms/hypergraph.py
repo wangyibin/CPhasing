@@ -61,7 +61,7 @@ class HyperGraph:
         """
         if self.min_quality > 1 and self.edges.mapq:
             
-            self.mapq = np.array(self.edges.mapq)
+            self.mapq = np.array(self.edges.mapq, dtype=np.int8)
            
             retain_idx = np.where(self.mapq >= self.min_quality)
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
@@ -77,6 +77,7 @@ class HyperGraph:
         
            
         else:
+            self.mapq = np.array([])
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
             self.row = np.array(self.edges.row)
             self.col = np.array(self.edges.col)
@@ -201,7 +202,7 @@ class HyperGraph:
         df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
         df = df[df[0] <= df[1]]
         df = df[df[2] >= min_weight]
-        
+        df = df[abs(df[2]) != np.inf]
         df.to_csv(output, sep='\t', header=False, index=False)
                 
         logger.info(f"Export hypergraph into `{output}`")

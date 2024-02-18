@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 AGP_NAMES_tig = ['chrom', 'start', 'end', 'number',
                  'type', 'id', 'tig_start', 'tig_end', 'orientation']
 AGP_NAMES_gap = ['chrom', 'start', 'end', 'number',
-                 'type', 'length', 'type', 'linkage', 'evidence']
+                 'type', 'length', 'gap_type', 'linkage', 'evidence']
 def import_agp(agpfile, split=True):
     """
     import agp file and return a dataframe
@@ -30,7 +30,7 @@ def import_agp(agpfile, split=True):
     df = pd.read_csv(agpfile, sep='\t', comment='#',
                      header=None, index_col=None,)
     logger.info('load agp file: `{}`'.format(agpfile))
-    
+
     if split:
         tig_df = df[df[4] == 'W']
         gap_df = df[df[4] == 'U']
@@ -48,7 +48,7 @@ def import_agp(agpfile, split=True):
 
         tig_cat_dtype = pd.CategoricalDtype(categories=tig_df['chrom'].unique(), ordered=True)
         tig_df['chrom'] = tig_df['chrom'].astype(tig_cat_dtype)
-
+       
         gap_cat_dtype = pd.CategoricalDtype(categories=gap_df['chrom'].unique(), ordered=True)
         gap_df['chrom'] = gap_df['chrom'].astype(gap_cat_dtype)
 
@@ -123,7 +123,8 @@ def agp2cluster(agp, store=None):
     """
     agp_df, _ = import_agp(agp)
     
-    # remove contigagp_df.reset_index(inplace=True)
+    # remove contig
+    agp_df.reset_index(inplace=True)
     agp_df = agp_df[agp_df['chrom'] != agp_df['id']]
     agp_df['chrom'] = agp_df['chrom'].astype('category')
     cluster_df = agp_df.groupby('chrom')['id'].apply(lambda x: list(x))

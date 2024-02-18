@@ -33,7 +33,8 @@ from .utilities import (
     list_flatten, 
     tail, 
     xopen, 
-    gz_reader
+    gz_reader,
+    read_chrom_sizes
 )
 
 logger = logging.getLogger(__name__)
@@ -373,8 +374,12 @@ class AlleleTable:
         """
         list of contigs
         """
-        _contigs = self.data[range(1, self.n + 1)].values.flatten()
-        _contigs = _contigs[~pd.isna(_contigs)]
+        if self.fmt == "allele1":
+            _contigs = self.data[range(1, self.n + 1)].values.flatten()
+            _contigs = _contigs[~pd.isna(_contigs)]
+        else:
+            _contigs = self.data[[1, 2]].values.flatten()
+            _contigs = _contigs[~pd.isna(_contigs)]
 
         return list(set(_contigs))
     
@@ -947,6 +952,58 @@ class ClusterTable:
             _idx = list(map(lambda x: int(x)+1, _idx))
             print(" ".join(map(str, _idx)), file=output)
     
+    def to_agp(self, contigsizes, output):
+        """
+        Convert cluster to a pseudo agp 
+        """
+        contigsizes = read_chrom_sizes(contigsizes)
+        contigsizes_db = contigsizes.to_dict()['length']
+        agp_res = []
+        idx = 0
+        added_contigs = set()
+        for group in self.groups:
+            _contigs = self.data[group]
+            chrom_start = 0 
+            chrom_end = 0
+            for i, contig in enumerate(_contigs):
+                contig_length = contigsizes_db[contig]
+                chrom_start = chrom_end
+                chrom_end = chrom_start + contig_length 
+                tmp_res = [group, chrom_start, chrom_end, idx, 
+                           "W", contig, 0, contig_length, "+"]
+                agp_res.append(tmp_res)
+
+                chrom_start = chrom_end + 1 
+                chrom_end = chrom_start + 100 - 1
+                idx += 1
+                if i < len(_contigs):
+                    tmp_res = [group, chrom_start, chrom_end, idx, 
+                            "U", 100, "contig", "yes", "map"]
+                    agp_res.append(tmp_res)
+                    idx += 1 
+
+                added_contigs.add(contig)
+
+        for contig in contigsizes_db:
+            if contig not in added_contigs:
+                contig_length = contigsizes_db[contig]
+                tmp_res = [contig, 0, contig_length, idx, 
+                           "W", contig, 0, contig_length, "+"]
+                
+                agp_res.append(tmp_res)
+                
+                idx += 1
+
+        agp_df = pd.DataFrame(agp_res)
+   
+        agp_df.to_csv(output, sep='\t', index=None, header=None)
+
+
+
+        
+        
+        
+
     def to_tour(self):
         """
         convert cluster table to several pseudo tour files.
@@ -1450,8 +1507,14 @@ class Tour:
         """
         self.__reversed__()
     
+    def rm(self):
+        os.remove(str(self.filename))
+
     def backup(self, suffix="bak"):
-        os.rename(f"{self.filename}", f"{self.filename}.{suffix}")
+        try:
+            shutil.move(f"{self.filename}", f"{self.filename}.{suffix}")
+        except FileNotFoundError:
+            logger.warn(f"No such file of `{self.filename}`, will not backup it.")
 
     def save(self, output):
         with open(output, 'w') as out:

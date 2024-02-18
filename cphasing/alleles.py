@@ -198,7 +198,10 @@ class PartigAllele:
                     fasta,
                     k=19,
                     w=19,
+                    c=100,
+                    n=5,
                     m=0.8,
+                    d=0.2,
                     output='Allele.ctg.table',
                     log_dir='logs'):
         self.fasta = fasta
@@ -211,7 +214,10 @@ class PartigAllele:
         ## parameters for partig
         self.k = k
         self.w = w
+        self.c = c 
+        self.n = n
         self.m = m 
+        self.d = d
 
         self.output = output
         self.log_dir = Path(log_dir)
@@ -227,7 +233,8 @@ class PartigAllele:
         get partig record
         """
         cmd = [self.path, f'-k{self.k}', f'-w{self.w}',
-                f'-m{self.m}', '-c 100', self.fasta]
+                f'-m{self.m}', f'-c{self.c}', f'-n{self.n}',
+                f'-d{self.d}', self.fasta]
         
         logger.info('Calculating the similarity of sequences ...')
         pipelines = []

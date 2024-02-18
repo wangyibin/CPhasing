@@ -9,11 +9,28 @@ import logging
 import sys
 
 
-from ..cli import CommandGroup
+# from ..cli import CommandGroup
 from ..cli import cli 
 
 logger = logging.getLogger(__name__)
 
+
+class CommandGroup(click.Group):
+    """
+    List subcommand in the order there were added.
+    """
+    def list_commands(self, ctx):
+        return list(self.commands)
+
+    def get_command(self, ctx, cmd_name):
+        """
+        Alias command, https://stackoverflow.com/questions/46641928/python-click-multiple-command-names
+        """
+        try:
+            cmd_name = ALIASES[cmd_name].name 
+        except KeyError:
+            pass 
+        return super().get_command(ctx, cmd_name)
 
 @cli.group(cls=CommandGroup, 
            context_settings={"help_option_names": ["-h", "--help", "-help"]},
@@ -380,7 +397,7 @@ def hcr(lis, split_align, depth, break_pos,
 
 
 ALIASES = {
-    "sr", split_reads,
-    "ca", correct_alignments,
-    "fc", find_chimeric,
+    "sr": split_reads,
+    "ca": correct_alignments,
+    "fc": find_chimeric,
 }

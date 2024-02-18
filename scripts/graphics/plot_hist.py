@@ -61,6 +61,7 @@ def main(args):
     pOpt.add_argument('--x-label',
             default=None,
             help='y label text [default: %(default)s]')
+    pOpt.add_argument('--kde', default=True, help="plot kde line [default: %(default)s]")
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -73,9 +74,9 @@ def main(args):
         for group in df.columns:
             df[group] = df[(df[group] <= args.x_max)]
 
-    plt.rcParams['font.family'] = 'Helvetica'
+    plt.rcParams['font.family'] = 'Arial'
     
-    ax = sns.histplot(df, kde=True, color='r', alpha=0.3, stat=args.stat, #linewidth=0,
+    ax = sns.histplot(df, kde=args.kde, color='r', alpha=0.3, stat=args.stat, #linewidth=0,
                       bins=args.bins)
     
     if args.x_label:
@@ -85,7 +86,7 @@ def main(args):
         plt.xlim(args.x_min, args.x_max)
 
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
-    plt.xticks(fontsize=18)
+    plt.xticks(fontsize=18, rotation=45, ha='right')
 
     plt.yticks(fontsize=18)
     

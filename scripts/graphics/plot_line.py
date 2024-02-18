@@ -29,20 +29,20 @@ def plot(data, title, x, y, hue, output):
               "HapHiC": "^",
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
-    makers = ["s", "^", "o", "D"]
-    fig, ax = plt.subplots(figsize=(4.5,5))
+    markers = ["D", "p", "s", 'v']
+    fig, ax = plt.subplots(figsize=(3.8,5))
     plt.rcParams['font.family'] = 'Arial'
-    if y == "Group numbers":
-        chromosome_number = int(title)*5
-        plt.axhline(y=chromosome_number, color='black', linestyle="--")
+   
     
     if y == "Wall time (s)":
         data[y] = np.array(data[y])
 
-    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, style=hue, palette=colors, makers=True, lot_kws=dict(alpha=0.3))
-    # for c in plt.gca().collections:
-    #     c.set_alpha(0.3)
-    plt.setp(ax.collections, alpha=.3) 
+    sns.pointplot(data=data, x="N50", y=y, ax=ax, 
+                  hue=hue, palette=colors, 
+                  makers=markers, markeredgewidth=0)
+    
+
+    plt.setp(ax.collections, alpha=.4) 
     plt.setp(ax.lines, alpha=.5)
     ax.set_xlabel("", fontsize=24)
 
@@ -61,12 +61,18 @@ def plot(data, title, x, y, hue, output):
         formatter = plt.gca().get_yaxis().get_major_formatter()
         plt.gca().yaxis.set_major_formatter(formatter)
         plt.gca().yaxis.get_offset_text().set_fontsize(14)
+
     plt.yticks(fontsize=18)
     if y == "Wall time (s)":
         ax.set_yscale("log")
     plt.title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
     plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
     # plt.legend().remove()
+
+    if y == "Group numbers":
+        chromosome_number = int(title)*5
+        plt.axhline(y=chromosome_number, color='black', linestyle="--")
+
     plt.savefig(output, dpi=600, bbox_inches='tight')
     plt.savefig(output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
 

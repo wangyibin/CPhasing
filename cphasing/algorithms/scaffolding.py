@@ -66,7 +66,10 @@ class HaplotypeAlign:
     def get_hap_tour_db(self, tour_list):
         db = defaultdict(list)
         for tour in tour_list:
-            hap, idx = tour.rsplit("g", 1)
+            try:
+                hap, idx = tour.rsplit("g", 1)
+            except:
+                continue
             db[hap].append(Tour(tour))
         
         return db 
@@ -113,7 +116,8 @@ class HaplotypeAlign:
 
         if tmp_df['value'].sum() < 0:
             tour2.reverse()
-            tour2.backup("before_reverse")
+            tour2.rm()
+            # tour2.backup("before_reverse")
             tour2.save(tour2.filename)    
         
     

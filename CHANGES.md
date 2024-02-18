@@ -1,4 +1,9 @@
 # Release notes #
+## [v0.0.62]
+Date: 2024-02-18
+## New features
+- `cphasing-rs` `kprune`, increase the recall of cross-allelic
+
 ## [v0.0.61]
 Date: 2024-01-19
 ## New features

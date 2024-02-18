@@ -457,7 +457,7 @@ def read_chrom_sizes(chrom_size):
 
     return df 
 
-def calculate_Nx_from_contigsizes(contigsizes: pd.DataFrame, Nx: int) -> pd.DataFrame:
+def calculate_Nx_from_contigsizes(contigsizes: pd.DataFrame, Nx: int) -> int:
     """
     calculate N10-N90 from a contigsizes dataframe
 
@@ -487,7 +487,41 @@ def calculate_Nx_from_contigsizes(contigsizes: pd.DataFrame, Nx: int) -> pd.Data
         if sum_length >= N_length:
             return length
 
+def stat_contigsizes(contigsizes: pd.DataFrame) -> pd.DataFrame:
+    """
+    stat the summary of contigs fasta from a contigsizes
+        include the Nx, min, max, total length.
     
+    Params:
+    ---------
+    contigsizes: `pd.DataFrame`
+
+    Returns:
+    --------
+    pd.DataFrame
+
+    """
+
+    Nx_items = list(range(10, 100, 10))
+    Nx_results = []
+    for Nx_item in Nx_items:
+        Nx_results.append(calculate_Nx_from_contigsizes(contigsizes, Nx_item))
+    
+    min_length, max_length = min(contigsizes['length']), max(contigsizes['length'])
+    total_length = sum(contigsizes['length'])
+
+    Nx_items = [f"N{item}" for item in Nx_items]
+    
+    result_dict = OrderedDict(zip(Nx_items, Nx_results))
+   
+    result_dict['Max'] = max_length
+    result_dict['Min'] = min_length
+    result_dict['Total'] = total_length
+    
+
+    df = pd.DataFrame.from_dict(result_dict, orient='index')
+
+    return df 
     
 
 def check_platform():

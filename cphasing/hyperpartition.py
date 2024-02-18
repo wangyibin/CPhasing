@@ -102,6 +102,8 @@ class HyperPartition:
                     resolution1=1.0,
                     resolution2=1.0,
                     min_weight=1.0,
+                    min_quality1=1,
+                    min_quality2=2,
                     min_scaffold_length=10000,
                     threshold=0.01,
                     max_round=1, 
@@ -137,6 +139,8 @@ class HyperPartition:
         self.resolution1 = resolution1
         self.resolution2 = resolution2
         self.min_weight = min_weight
+        self.min_quality1 = min_quality1
+        self.min_quality2 = min_quality2
         self.min_scaffold_length = int(min_scaffold_length)
 
         self.threshold = threshold
@@ -152,7 +156,7 @@ class HyperPartition:
         self.K = []
 
 
-        self.HG = HyperGraph(self.edges, min_quality=1)
+        self.HG = HyperGraph(self.edges, min_quality=self.min_quality1)
         if not self.HG.edges.mapq:
             pass 
         
@@ -500,9 +504,9 @@ class HyperPartition:
         """
         K = np.array(list(K))
         sub_H, _ = extract_incidence_matrix2(H, K)
-        
         del H 
         gc.collect() 
+
         if NW is not None:
             sub_NW = NW[list(K)][:, list(K)]
         else:
@@ -553,7 +557,8 @@ class HyperPartition:
             result_K_length = 0
             auto_round = 1
             while result_K_length < k:
-                
+                if tmp_resolution > 10.0 or auto_round > 50:
+                    break
                 # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
                 A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
                                                     sub_P_allelic_idx, 
@@ -613,13 +618,15 @@ class HyperPartition:
                 HyperGraph.to_contacts(self.H, self.vertices , NW=self.NW, min_weight=self.min_weight, output=contacts)
        
         kprune_output_file = "hypergraph.prune.table"
-        if is_run and not Path(kprune_output_file).exists():
+        if is_run:
             if not first_cluster_file:
                 cmd = ["cphasing-rs", "kprune", alleletable, contacts, 
-                    kprune_output_file, "-n", self.kprune_norm_method, "-t", str(self.threads)]
+                    kprune_output_file, "-n", self.kprune_norm_method, 
+                     "-t", str(self.threads)]
             else:
                 cmd = ["cphasing-rs", "kprune", alleletable, contacts, kprune_output_file,
-                        "-n", self.kprune_norm_method, "-t", str(self.threads), "-f", first_cluster_file]
+                        "-n", self.kprune_norm_method, "-t", str(self.threads), 
+                        "-f", first_cluster_file]
         
             logger.info("Generating the prune table.")
             flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
@@ -651,7 +658,10 @@ class HyperPartition:
             if self.resolution1 < 1 :
                 result_K_length = 0
                 tmp_resolution = 0.8
+                auto_round = 1
                 while result_K_length < k[0] and k[0] != 0:
+                    if tmp_resolution > 10.0 or auto_round > 50:
+                        break
                     logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
                     A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
@@ -663,6 +673,7 @@ class HyperPartition:
                     self.K = self.filter_cluster(verbose=0)
                     result_K_length = len(self.K)
                     tmp_resolution += 0.2
+                    auto_round += 1
             else:
                 A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
@@ -708,13 +719,13 @@ class HyperPartition:
 
         logger.info("Starting second hyperpartition ...")
 
-        if self.HG.edges.mapq:
+        if self.HG.edges.mapq and (self.min_quality2 > self.min_quality1):
             idx_to_vertices = self.idx_to_vertices
 
             tmp_K = list(map(lambda y: list(
                             map(lambda x: idx_to_vertices[x], y)), 
                             self.K))
-            self.HG = HyperGraph(self.edges, min_quality=2)
+            self.HG = HyperGraph(self.edges, min_quality=self.min_quality2)
             del self.edges
             gc.collect()
             self.filter_hypergraph()
@@ -724,8 +735,8 @@ class HyperPartition:
                 self.NW = self.get_normalize_weight()
             else:
                 self.NW = None
-            vertices_idx_sizes = self.vertices_idx_sizes
-            vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+                
+            vertices_idx_sizes = pd.DataFrame(self.vertices_idx_sizes, index=['length']).T
             vertices_idx = self.vertices_idx
             tmp_K = list(map(lambda x: list(
                             filter(lambda y: y not in self.HG.remove_contigs, x)), tmp_K))
@@ -735,15 +746,17 @@ class HyperPartition:
 
         if self.prunetable:
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
-
+           
         elif self.alleletable:
             # is_run = False if isinstance(first_cluster, ClusterTable) else True
             is_run = True
             self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts, is_run=is_run)
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+
+            
         else:
             prune_pair_df = None
-
+       
         args = []
         self.exclude_groups = []
         for num, sub_k in enumerate(self.K, 1):
@@ -751,19 +764,21 @@ class HyperPartition:
                 sub_group_number = int(k[1][num - 1])
             else:
                 sub_group_number = int(k[1])
-            
-            if num in self.exclude_group_to_second:
-                self.exclude_groups.append(sub_k)
-                continue
+
+            if self.exclude_group_to_second:
+                if num in self.exclude_group_to_second:
+                    self.exclude_groups.append(sub_k)
+                    continue
             args.append((sub_k, sub_group_number, prune_pair_df, 
                          self.H, vertices_idx_sizes, self.NW, 
                         self.resolution2, self.min_weight, 
                         self.allelic_similarity,  self.min_allelic_overlap, 
                         self.allelic_factor, self.cross_allelic_factor,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
+            
             # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
             #             self.resolution2, self.threshold, self.max_round, num))
-            
+        
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
                                 (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x) 
@@ -833,6 +848,7 @@ class HyperPartition:
                 group1 = list(group1)
                 for j in range(i + 1, current_group_number):
                     group2 = list(K[j])
+                    
 
                     group1_length = vertices_idx_sizes.loc[list(group1)].sum().values[0]
                     group2_length = vertices_idx_sizes.loc[list(group2)].sum().values[0]

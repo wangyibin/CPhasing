@@ -22,24 +22,33 @@ import pandas as pd
 
 def plot(data, title, x, y, hue, output):
     colors = {"C-Phasing": "#b02418",
-              "HapHiC": "#cb6e7f",
+              "HapHiC":  "#cb6e7f",
               "HapHiC_remove": "#209093",
               "ALLHiC": "#253761",
               "ALLHiC_pregroup": "#8896ae"}
+
+    # colors = {"C-Phasing": "#b02418",
+    #           "HapHiC": "#edb900",
+    #           "HapHiC_remove": "#209093",
+    #           "ALLHiC": "#253761",
+    #           "ALLHiC_pregroup": "#D9784B"}
+    
+
     maker = {"C-Phasing": "s",
               "HapHiC": "^",
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
-    makers = ["s", "^", "o", "D"]
-    fig, ax = plt.subplots(figsize=(4.5,5))
+    markers = ["D", "^", "p", "s", 'v']
+    fig, ax = plt.subplots(figsize=(3.8,5))
 
     if y == "Wall time (s)":
         data[y] = np.array(data[y])
 
     plt.rcParams['font.family'] = 'Arial'
-    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors)
+    sns.pointplot(data=data, x="N50", y=y, ax=ax, hue=hue, palette=colors, 
+                    markers=markers, markeredgewidth=0)
     plt.setp(ax.collections, alpha=.7) 
-    plt.setp(ax.lines, alpha=.7)
+    plt.setp(ax.lines, alpha=.5)
     ax.set_xlabel(x, fontsize=24)
     if "INH" in y or "IH" in y:
         ax.set_ylabel(y, fontsize=20)

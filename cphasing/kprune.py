@@ -54,6 +54,7 @@ class KPrunerRust:
                     output="prune.contig.table", 
                     method="greedy", 
                     first_cluster=None,
+                    whitelist=None,
                     norm_method="none",
                     threads=4, 
                     log_dir="logs"):
@@ -63,6 +64,7 @@ class KPrunerRust:
         self.output = output
         self.method = method 
         self.first_cluster = "none" if not first_cluster else first_cluster
+        self.whitelist = "none" if not whitelist else whitelist
         self.norm_method = norm_method
         self.threads = threads
         self.log_dir = Path(log_dir)
@@ -72,12 +74,11 @@ class KPrunerRust:
         cmd = ["cphasing-rs", "kprune", self.alleletable,
                self.contacts, self.output, 
                "-n", self.norm_method, "-f", self.first_cluster,
+                "-w", self.whitelist,
                 "-t", str(self.threads), "-m", self.method]
         flag = run_cmd(cmd, log=f"{self.log_dir}/kprune.log")
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f"Successful output the allelic and cross-allelic information into `{self.output}`")
-
-        
 
 
 # @deprecated(version="v0.0.56")

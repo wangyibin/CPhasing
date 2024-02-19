@@ -837,10 +837,12 @@ class HyperPartition:
         flag = 1
       
         while k and len(K) > k:
-            if iter_round > (len(K) - k + 50):
-                break
-            
             current_group_number = len(K)
+            if iter_round > (current_group_number - k + 50):
+                break
+            K = sorted(K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum())
+            
+            
             value_matrix = np.zeros(shape=(current_group_number, current_group_number))
             flag_matrix = np.ones(shape=(current_group_number, current_group_number))
             res = {}
@@ -849,10 +851,8 @@ class HyperPartition:
                 for j in range(i + 1, current_group_number):
                     group2 = list(K[j])
                     
-
                     group1_length = vertices_idx_sizes.loc[list(group1)].sum().values[0]
                     group2_length = vertices_idx_sizes.loc[list(group2)].sum().values[0]
-                    
                     if prune_pair_df is not None:
                         product_contig_pair = set(product(group1, group2))
                         allelic = product_contig_pair & allelic_idx_set
@@ -865,7 +865,7 @@ class HyperPartition:
 
                             if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
                                 flag = 0
-                        
+                    
                     value = A[group1, ][:,group2 ].sum() 
                     value_matrix[i, j] = value
                     flag_matrix[i, j] = flag
@@ -874,10 +874,10 @@ class HyperPartition:
             total_value = value_matrix.sum()
         
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
-         
-            for i in range(len(K)):
+
+            for i in range(current_group_number):
                 i_value = value_matrix[i].sum()
-                for j in range(i+1, len(K)):
+                for j in range(i+1, current_group_number):
                     j_value = value_matrix[j].sum()
                     value =  value_matrix[i, j]
                     flag = flag_matrix[i, j]
@@ -912,6 +912,7 @@ class HyperPartition:
         vertices_idx = self.vertices_idx
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+
         A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
                                           self.NW,
                                           self.allelic_factor, self.min_weight)
@@ -1049,6 +1050,7 @@ class HyperPartition:
         clusters = list(map(lambda y: list(
                         map(lambda x: idx_to_vertices[x], y)), 
                         self.K))
+        
         with open(output, 'w') as out:
             try:
                 db = defaultdict(lambda :1)
@@ -1056,8 +1058,8 @@ class HyperPartition:
                 output_group_number = 0 
                 for i, chr_idx in enumerate(self.inc_chr_idx):
                     group = clusters[i]
-                    
                     hap_idx = db[chr_idx]
+
                     print(f'Chr{chr_idx + 1:0>2}g{hap_idx}\t{len(group)}\t{" ".join(group)}', 
                         file=out)
                     db[chr_idx] += 1

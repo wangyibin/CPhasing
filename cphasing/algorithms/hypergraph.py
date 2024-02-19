@@ -169,8 +169,6 @@ class HyperGraph:
         A.multiply(mask)
 
         
-    
-
         if P_allelic_idx or P_weak_idx:
             # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
             # P[np.diag_indices_from(P)] = 0
@@ -403,7 +401,6 @@ def IRMM(H, NW,
     
     H_T = H.T
 
-    
     A = H @ W @ D_e_inv @ H_T
     
     if min_weight > 0:
@@ -461,9 +458,7 @@ def IRMM(H, NW,
         return [list(range(A.shape[0]))]
 
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-    cluster_results = list(cluster_assignments.as_cover())
-    cluster_results = list(map(set, cluster_results))
-
+    cluster_results = list(map(set, list(cluster_assignments.as_cover())))
   
     cluster_stat = list(map(len, cluster_results))
  

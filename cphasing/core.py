@@ -475,10 +475,15 @@ class PruneTable:
         self.data = self.read_table()
 
     def read_table(self):
-        data = pd.read_csv(self.file, sep='\t', 
+        try:
+            data = pd.read_csv(self.file, sep='\t', 
                             header=None, index_col=None,
                             names=self.Header, 
                             dtype=self.META)
+        except pd.errors.ParserError:
+            logger.error("Incorrect format of prune table.")
+            sys.exit(-1)
+
         return data
     
     def symmetric_table(self):

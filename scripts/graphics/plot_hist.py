@@ -40,7 +40,7 @@ def main(args):
     pOpt.add_argument('--bins',
             default=50,
             type=int,
-            help='number of bins [default: %(default)%]')
+            help='number of bins [default: %(default)s]')
     pOpt.add_argument('--stat',
             default='density',
             help='aggregate statistic to compute in each bin. [default: %(default)s]',

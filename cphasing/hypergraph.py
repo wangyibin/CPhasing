@@ -104,15 +104,13 @@ class Extractor:
                                 usecols=[1, 3], names=['chrom1', 'chrom2']))
                                 (i) for i in p_list)
             
-            args = []
-            for i in res:
-                args.append((i, self.contig_idx, threads_2))
+            args = [ (i, self.contig_idx, threads_2) for i in res ]
+        
 
             res = Parallel(n_jobs=threads_1)(delayed(
                                 Extractor._process_df)(i, j, k) for i, j, k in args)
             
-            res = pd.concat(res, axis=1)
-            res = res.reset_index()
+            res = pd.concat(res, axis=1).reset_index()
             res = pd.concat([res[['chrom1', 'index']].rename(
                                         columns={'chrom1': 'row', 'index': 'col'}),
                               res[['chrom2', 'index']].rename(

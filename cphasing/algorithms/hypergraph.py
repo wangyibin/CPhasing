@@ -60,20 +60,20 @@ class HyperGraph:
         initial assign row and edges
         """
         if self.min_quality > 1 and self.edges.mapq:
-            
             self.mapq = np.array(self.edges.mapq, dtype=np.int8)
-           
-            retain_idx = np.where(self.mapq >= self.min_quality)
+
+            retain_idx = self.mapq >= self.min_quality
             self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
             self.row = np.array(self.edges.row)
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
             self.col = np.array(self.edges.col)[retain_idx]
-            self.idx = np.sort(np.array(pd.unique(self.row)))
-            remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
-            
+            self.idx = np.unique(self.row)
+            remove_idx = np.arange(0, len(self.nodes)) in self.idx
+
             self.remove_contigs = self.nodes[~remove_idx]
-            logger.info(f"Removed `{total_edge_counts - retain_idx[0].shape[0]}` hyperedges that mapq < {self.min_quality}.")
+            logger.info(f"Removed `{total_edge_counts - np.count_nonzero(retain_idx)}` "
+                            f"hyperedges that mapq < {self.min_quality}.")
         
            
         else:
@@ -82,6 +82,7 @@ class HyperGraph:
             self.row = np.array(self.edges.row)
             self.col = np.array(self.edges.col)
             self.remove_contigs = np.array([])
+
         self.shape = (len(self.nodes), max(self.col) + 1)
         self.removed_count = 0
 
@@ -89,13 +90,13 @@ class HyperGraph:
         """
         remove rows by contig list
         """     
-        contigs = list(filter(lambda x: x not in set(self.edges.idx.values()), contigs))
+        contigs = [x for x in contigs if x not in self.edges.idx.values()]
         contig_idx = [self.edges.idx[i] for i in contigs]
-        
-        remove_idx = np.isin(self.row, contig_idx)
-        
+
+        remove_idx = np.in1d(self.row, contig_idx)
+
         self.removed_count += len(contig_idx)
-        
+
         self.row = self.row[~remove_idx]
         self.col = self.col[~remove_idx]
 
@@ -120,15 +121,16 @@ class HyperGraph:
                              shape=self.shape
                              )
 
-
         if min_contacts:
-            non_zero_contig_idx = np.where(matrix.sum(axis=1).T >= min_contacts)[-1]
+            row_sum = matrix.sum(axis=1).T.A1
+            non_zero_contig_idx = row_sum >= min_contacts
             matrix = matrix[non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
             logger.info(f"Total {self.shape[0] - non_zero_contig_idx.shape[0] - self.removed_count} "
                         f"low-singal (contacts < {min_contacts}) contigs were removed")
             
-            non_zero_edges_idx = np.where(matrix.sum(axis=0) >= 2)[-1]
+            col_sum = matrix.sum(axis=0).A1 
+            non_zero_edges_idx = col_sum >= 2
        
             matrix = matrix[:, non_zero_edges_idx]
             self.shape = matrix.shape 
@@ -179,11 +181,10 @@ class HyperGraph:
                 if allelic_factor == 0: 
                     A[P_allelic_idx[0], P_allelic_idx[1]] = 0
                 else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                        allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
+                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
             
             if P_weak_idx:
-                A[P_weak_idx[0], P_weak_idx[1]] = 0
+                A[P_weak_idx[0], P_weak_idx[1]] = 0 
                 
             A = A.tocsr()
 
@@ -201,6 +202,7 @@ class HyperGraph:
         df = df[df[0] <= df[1]]
         df = df[df[2] >= min_weight]
         df = df[abs(df[2]) != np.inf]
+        # df = df.query(f"0 <= 1 & 2 >= {min_weight} & abs(2) != inf")
         df.to_csv(output, sep='\t', header=False, index=False)
                 
         logger.info(f"Export hypergraph into `{output}`")
@@ -298,23 +300,18 @@ def extract_incidence_matrix(mat, idx):
     return mat.T.tocsr(), remove_col_index
 
 def extract_incidence_matrix2(mat, idx):
-    A = coo_matrix(mat, copy=False)
+    # A = coo_matrix(mat, copy=False)
     
-    retain = np.isin(A.row, idx)
-    row = A.row[retain]
-    col = A.col[retain]
-    data = A.data[retain]
+    # retain = np.isin(A.row, idx)
+    # row, col, data = A.row[retain], A.col[retain], A.data[retain]
 
-    A = coo_matrix((data, (row, col)), shape=A.shape).asformat('csr')
-
-    # non_zero_contig_idx = np.where(A.sum(axis=1).T != 0)[-1]
-    # zero_contig_idx = np.where(A.sum(axis=1).T == 0)[-1]
-    
-    A = A[idx]
-
+    # A = coo_matrix((data, (row, col)), shape=A.shape).asformat('csr')
+    # A = A[idx]
+    A = mat[idx]
     if A.shape[0] != 0 and A.shape[1] !=0 : 
-        non_zero_edges_idx = np.where(A.sum(axis=0).T > 1)[0]
-        remove_edges_idx = np.where(A.sum(axis=0).T <= 1)[0]
+        A_sum = A.sum(axis=0).T
+        non_zero_edges_idx = np.where(A_sum > 1)[0]
+        remove_edges_idx = np.where(A_sum <= 1)[0]
         A = A[:, non_zero_edges_idx]
     else:
         remove_edges_idx = np.array([])
@@ -439,15 +436,12 @@ def IRMM(H, NW,
             if allelic_factor == 0: 
                 A[P_allelic_idx[0], P_allelic_idx[1]] = 0
             else:
-                A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                       allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
-        
+                A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
         if P_weak_idx:
-            if allelic_factor == 0:
+            if cross_allelic_factor == 0:
                 A[P_weak_idx[0], P_weak_idx[1]] = 0
             else:
-                A[P_weak_idx[0], P_weak_idx[1]] = \
-                    cross_allelic_factor * A[P_weak_idx[0], P_weak_idx[1]]
+                A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
             
         A = A.tocsr()
         
@@ -512,11 +506,13 @@ def IRMM(H, NW,
                 if allelic_factor == 0: 
                     A[P_allelic_idx[0], P_allelic_idx[1]] = 0
                 else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = \
-                            allelic_factor * A[P_allelic_idx[0], P_allelic_idx[1]]
+                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
             if P_weak_idx:
-                A[P_weak_idx[0], P_weak_idx[1]] = 0
-                
+                if cross_allelic_factor == 0:
+                    A[P_weak_idx[0], P_weak_idx[1]] = 0
+                else:
+                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
+
             A = A.tocsr()
 
         try:
@@ -526,8 +522,7 @@ def IRMM(H, NW,
         
         # ## use igraph 
         cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-        cluster_results = list(cluster_assignments.as_cover())
-        cluster_results = list(map(set, cluster_results))
+        cluster_results = list(map(set, list(cluster_assignments.as_cover())))
 
         ## use networkx 
         # G = G.to_networkx()

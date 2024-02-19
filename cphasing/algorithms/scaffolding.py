@@ -93,13 +93,13 @@ class HaplotypeAlign:
         
             
         """
-        hap1 = tour1.to_dict(1)
-        hap2 = tour2.to_dict(1)
+        hap1, hap2 = tour1.to_dict(1), tour2.to_dict(1)
 
-        contig_pairs = {}
-        for contig1 in hap1.keys():
-            for contig2 in hap2.keys():
-                contig_pairs[(contig1, contig2)] = hap1[contig1] * hap2[contig2]
+        contig_pairs = {(contig1, contig2): hap1[contig1] * hap2[contig2]
+                            for contig1, contig2 in product(hap1.keys(), hap2.keys())}
+        # for contig1 in hap1.keys():
+        #     for contig2 in hap2.keys():
+        #         contig_pairs[(contig1, contig2)] = hap1[contig1] * hap2[contig2]
 
         contig_pairs_df = pd.DataFrame(list(contig_pairs.items()))
         contig_pairs_df.columns = [0, "value"]

@@ -474,12 +474,11 @@ class HyperPartition:
 
             self.K = _results 
 
-        if k:
-            if len(self.K) > k:  
-                logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
-                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
-                                                self.prune_pair_df, self.allelic_similarity,
-                                                self.min_allelic_overlap)
+        if k and len(self.K) > k:  
+            logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
+            self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
+                                            self.prune_pair_df, self.allelic_similarity,
+                                            self.min_allelic_overlap)
 
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -497,7 +496,7 @@ class HyperPartition:
     @staticmethod
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, NW, 
                             resolution, min_weight=1, allelic_similarity=0.8, 
-                            min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.3,
+                            min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -513,20 +512,18 @@ class HyperPartition:
             sub_NW = None
 
         sub_old2new_idx = dict(zip(K, range(len(K))))
-        sub_new2old_idx = dict(zip(range(len(K)), K))
         
-        sub_vertices_idx_sizes = vertices_idx_sizes.loc[K]
+        sub_vertices_idx_sizes = vertices_idx_sizes.reindex(K)
         sub_vertices_new_idx_sizes = sub_vertices_idx_sizes
-        sub_vertices_new_idx_sizes.index = sub_vertices_idx_sizes.index.map(lambda x: sub_old2new_idx[x])
+        sub_vertices_new_idx_sizes.index = sub_vertices_idx_sizes.index.map(sub_old2new_idx.get)
 
         # sub_vertices = list(np.array(self.vertices)[k])
         # sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
         if prune_pair_df is not None:
-            sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2)))
-            sub_prune_pair_df = sub_prune_pair_df.dropna().reset_index()
+            sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
         
-            sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(lambda x: sub_old2new_idx[x])
-            sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(lambda x: sub_old2new_idx[x])
+            sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(sub_old2new_idx.get)
+            sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(sub_old2new_idx.get)
             
             tmp_df = sub_prune_pair_df[sub_prune_pair_df['type'] == 0]
             sub_P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
@@ -556,6 +553,7 @@ class HyperPartition:
             tmp_resolution = 1
             result_K_length = 0
             auto_round = 1
+
             while result_K_length < k:
                 if tmp_resolution > 10.0 or auto_round > 50:
                     break
@@ -595,16 +593,17 @@ class HyperPartition:
         
            
         ## remove the scaffold that is too short
-        new_K = list(filter(
+        new_K = list(map(list, filter(
                         lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \
-                            >= min_scaffold_length, new_K)
-        )
-        new_K = list(map(list, new_K))
-        if k:
+                            >= min_scaffold_length, new_K)))
+      
+        if k and len(new_K) > k:
+            new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
-        
+            
+        sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
@@ -684,7 +683,7 @@ class HyperPartition:
             self.K = list(map(list, self.K))
             self.K = self.filter_cluster()
             
-            if k[0]:
+            if k[0] and len(self.K) > k[0]:
                 self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0])
 
             self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
@@ -840,9 +839,6 @@ class HyperPartition:
             current_group_number = len(K)
             if iter_round > (current_group_number - k + 50):
                 break
-            K = sorted(K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum())
-            
-            
             value_matrix = np.zeros(shape=(current_group_number, current_group_number))
             flag_matrix = np.ones(shape=(current_group_number, current_group_number))
             res = {}

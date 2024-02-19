@@ -1828,6 +1828,14 @@ def hypergraph(contacts,
     hidden=True,
 )
 @click.option(
+    '--mode',
+    metavar="STR",
+    help="mode of hyperpartition, conflict of `-inc`. [default: None]",
+    type=click.Choice(["basal", "phasing", "basal_withprune", None]),
+    default=None,
+    show_default=True
+)
+@click.option(
     "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
@@ -1910,14 +1918,6 @@ def hypergraph(contacts,
     help="Minimum overlap ratio bewteen two group when merging different groups",
     default=0.3,
     type=click.FloatRange(0.0, 1.0),
-    show_default=True
-)
-@click.option(
-    '--mode',
-    metavar="STR",
-    help="mode of hyperpartition, conflict of `-inc`. [default: None]",
-    type=click.Choice(["basal", "phasing", "basal_withprune", None]),
-    default=None,
     show_default=True
 )
 @click.option(
@@ -2123,6 +2123,7 @@ def hyperpartition(hypergraph,
                     contacts,
                     ultra_long,
                     ul_weight,
+                    mode,
                     n,
                     alleletable,
                     prunetable,
@@ -2131,7 +2132,7 @@ def hyperpartition(hypergraph,
                     cross_allelic_factor,
                     allelic_similarity,
                     min_allelic_overlap,
-                    mode,
+                    
                     incremental,
                     kprune_norm_method,
                     # ultra_complex,
@@ -2164,6 +2165,7 @@ def hyperpartition(hypergraph,
 
     """
     import msgspec 
+    import re
     from .hypergraph import HyperExtractor, Extractor
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges
@@ -2203,7 +2205,7 @@ def hyperpartition(hypergraph,
         if ":" in n and incremental is False:
             logger.warn("Second round partition will not be run, or `-inc` parameters must be added")
 
-    n = n.split(":") if n else [None, None]
+    n = re.split(":|x|\|", n) if n else [None, None]
 
     for i, v in enumerate(n):
         if v:

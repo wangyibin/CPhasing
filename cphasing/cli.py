@@ -203,7 +203,7 @@ def cli(verbose, quiet):
     'alleles_kmer_size',
     metavar="INT",
     help="kmer size for `alleles` similarity calculation.",
-    default=51,
+    default=19,
     show_default=True,
 )
 @click.option(
@@ -213,7 +213,7 @@ def cli(verbose, quiet):
     'alleles_window_size',
     metavar="INT",
     help="minimizer window size for `alleles` similarity calculation.",
-    default=51,
+    default=19,
     show_default=True,
 )
 @click.option(
@@ -1373,7 +1373,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     help="kmer size for similarity calculation.",
     metavar="INT",
     type=int,
-    default=51,
+    default=19,
     show_default=True
 )
 @click.option(
@@ -1382,7 +1382,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     help="minimizer window size for similarity calculation.",
     metavar="INT",
     type=int,
-    default=51,
+    default=19,
     show_default=True
 )
 @click.option(

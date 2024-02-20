@@ -622,12 +622,12 @@ def plot_heatmap(matrix, output,
         bins = bins.set_index('chrom')
 
         chromnames = cool.chromnames
-        matrix = cool.matrix(balance=False, sparse=True)[:]
+        matrix = cool.matrix(balance=False, sparse=True)[:].todense()
 
         if chromosomes:
             new_idx = bins.loc[chromosomes]['index']
             
-            matrix = matrix.tocsr()[new_idx, :][:, new_idx]
+            matrix = matrix[new_idx, :][:, new_idx]
             chromnames = chromosomes
             chrom_offset = np.r_[0, 
                                 np.cumsum(new_idx
@@ -636,23 +636,19 @@ def plot_heatmap(matrix, output,
                                             .count()
                                             .values
                                             .flatten())
-                                            ].tolist()
+                                                ].tolist()
         else:
             if remove_short_bin:
-                retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
-                new_idx = bins.loc[retain_chroms]['index']
-                matrix = matrix.tocsr()[new_idx, :][:, new_idx]
-                chromnames = retain_chroms
-                chrom_offset = np.r_[0, 
-                                    np.cumsum(new_idx
-                                                .reset_index()
-                                                .groupby('chrom', sort=False)
-                                                .count()
-                                                .values
-                                                .flatten())
-                                                ].tolist()
-        
-        matrix = matrix.todense()
+                retain_chroms = chromsizes[chromsizes >= binsize].index.values
+                if len(retain_chroms) < len(chromsizes): 
+                    new_idx = bins.loc[retain_chroms]['index']
+                    matrix = matrix[new_idx, :][:, new_idx]
+                    chromnames = retain_chroms.tolist()
+                    grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
+                    chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
+                else:
+                    chrom_offset = chrom_offset.tolist()
+        # matrix = matrix.todense()
 
         if log1p or log:
             mask = matrix == 0
@@ -660,9 +656,10 @@ def plot_heatmap(matrix, output,
             mask_inf = np.isinf(matrix)
 
             try:
-                matrix[mask] = np.nanmin(matrix[mask == False])
-                matrix[mask_nan] = np.nanmin(matrix[mask_nan == False])
-                matrix[mask_inf] = np.nanmin(matrix[mask_inf == False])
+                min_value = np.nanmin(matrix[~(mask | mask_nan | mask_inf)])
+                matrix[mask] = min_value
+                matrix[mask_nan] = min_value
+                matrix[mask_inf] = min_value
             except Exception:
                 pass 
 
@@ -692,7 +689,6 @@ def plot_heatmap(matrix, output,
     else: 
         plot_per_chromosome_heatmap(cool, chromosomes, chrom_per_row=chrom_per_row,
                                         cmap=cmap, threads=threads)
-        pass
 
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
 
@@ -717,12 +713,12 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     bins['chrom'] = bins['chrom'].astype('str')
     bins = bins.set_index('chrom')
 
-    matrix = cool.matrix(balance=False, sparse=True)[:]
+    matrix = cool.matrix(balance=False, sparse=True)[:].todense()
 
     if chromosomes:
         new_idx = bins.loc[chromosomes]['index']
     
-        matrix = matrix.tocsr()[new_idx, :][:, new_idx]
+        matrix = matrix[new_idx, :][:, new_idx]
         chrom_offset = np.r_[0, 
                             np.cumsum(new_idx
                                         .reset_index()
@@ -733,18 +729,12 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
                                         ].tolist()
     else:
         if remove_short_bin:
-            retain_chroms = chromsizes[chromsizes >= binsize].index.values.tolist()
+            retain_chroms = chromsizes[chromsizes >= binsize].index.values
             new_idx = bins.loc[retain_chroms]['index']
-            matrix = matrix.tocsr()[new_idx, :][:, new_idx]
-            chromosomes = retain_chroms
-            chrom_offset = np.r_[0, 
-                                np.cumsum(new_idx
-                                            .reset_index()
-                                            .groupby('chrom', sort=False)
-                                            .count()
-                                            .values
-                                            .flatten())
-                                            ].tolist()
+            matrix = matrix[new_idx, :][:, new_idx]
+            chromosomes = retain_chroms.tolist()
+            grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
+            chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
 
     chromosomes = chromosomes if chromosomes else cool.chromnames
     
@@ -770,9 +760,10 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             mask_inf = np.isinf(chrom_matrix)
 
             try:
-                chrom_matrix[mask] = np.nanmin(chrom_matrix[mask == False])
-                chrom_matrix[mask_nan] = np.nanmin(chrom_matrix[mask_nan == False])
-                chrom_matrix[mask_inf] = np.nanmin(chrom_matrix[mask_inf == False])
+                min_value = np.nanmin(matrix[~(mask | mask_nan | mask_inf)])
+                matrix[mask] = min_value
+                matrix[mask_nan] = min_value
+                matrix[mask_inf] = min_value
             except Exception:
                 pass 
 

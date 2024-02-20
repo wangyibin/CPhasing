@@ -198,33 +198,37 @@ def cli(verbose, quiet):
 )
 @click.option(
     '-alleles-k',
+    '--alleles-k',
     '--alleles-kmer-size',
     'alleles_kmer_size',
     metavar="INT",
     help="kmer size for `alleles` similarity calculation.",
-    default=19,
+    default=51,
     show_default=True,
 )
 @click.option(
     '-alleles-w',
+    '--alleles-w',
     '--alleles-window-size',
     'alleles_window_size',
     metavar="INT",
     help="minimizer window size for `alleles` similarity calculation.",
-    default=19,
+    default=51,
     show_default=True,
 )
 @click.option(
     '-alleles-m',
+    '--alleles-m',
     '--alleles-minimum-similarity',
     'alleles_minimum_similarity',
     metavar="FLOAT",
     help="minimum k-mer similarity for `alleles` similarity calculation.",
-    default=0.2,
+    default=0.5,
     show_default=True,
 )
 @click.option(
     "-alleles-d",
+    '--alleles-d',
     '--alleles-diff-thres',
     "alleles_diff_thres",
     help="minimum different threshold between contig pairs.",
@@ -400,7 +404,6 @@ def cli(verbose, quiet):
     default=4,
     metavar='INT',
     show_default=True,
-
 )
 def pipeline(fasta, 
             porec_data, 
@@ -1370,7 +1373,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     help="kmer size for similarity calculation.",
     metavar="INT",
     type=int,
-    default=19,
+    default=51,
     show_default=True
 )
 @click.option(
@@ -1379,7 +1382,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     help="minimizer window size for similarity calculation.",
     metavar="INT",
     type=int,
-    default=19,
+    default=51,
     show_default=True
 )
 @click.option(
@@ -2367,6 +2370,8 @@ def hyperpartition(hypergraph,
     type=click.Path(exists=True),
 )
 @click.option(
+    "-c",
+    "-s",
     "-sc",
     "--split-contacts",
     "split_contacts",
@@ -2376,6 +2381,7 @@ def hyperpartition(hypergraph,
     show_default=True
 )
 @click.option(
+    "-a",
     "-at",
     "--allele-table",
     "allele_table",
@@ -2854,6 +2860,7 @@ ALIASES = {
     "ho": hyperoptimize,
     "optimize": scaffolding,
     "sf": scaffolding,
+    "scaf": scaffolding
 }
 
 ## hic subcommand

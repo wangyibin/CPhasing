@@ -214,9 +214,8 @@ class HyperPartition:
         """
         through vertices idx to get contig size
         """
-        vertices_idx_sizes = {}
-        for i, j in self.vertices_idx.items():
-            vertices_idx_sizes[j] = self.contig_sizes[i]
+        vertices_idx_sizes = {j: self.contig_sizes[i] 
+                                for i, j in self.vertices_idx.items()}
         
         return vertices_idx_sizes
 
@@ -316,8 +315,8 @@ class HyperPartition:
         
         prunetable = PruneTable(self.prunetable)
         pair_df = prunetable.data
-        pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
-        pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df['contig1'] = pair_df['contig1'].replace(vertices_idx)
+        pair_df['contig2'] = pair_df['contig2'].replace(vertices_idx)
         pair_df = pair_df.dropna(axis=0).astype({'contig1': 'int', 'contig2': 'int', 'type': 'int'})
 
         prunetable.data = pair_df
@@ -330,13 +329,17 @@ class HyperPartition:
         
         # P_idx = [pair_df[0], pair_df[1]]
         # tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= self.allelic_similarity)]
-        tmp_df = pair_df[pair_df['type'] == 0]
-        P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        # tmp_df = pair_df[pair_df['type'] == 0]
+        # P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
 
+        P_allelic_idx = [pair_df.loc[pair_df['type'] == 0, 'contig1'], pair_df.loc[pair_df['type'] == 0, 'contig2']]
+        
         # tmp_df = pair_df[(pair_df['type'] == 1) | \
         #                   ((pair_df['type'] == 0) & (pair_df['similarity'] < self.allelic_similarity))]
-        tmp_df = pair_df[pair_df['type'] == 1]
-        P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        # tmp_df = pair_df[pair_df['type'] == 1]
+        # P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
+
+        P_weak_idx = [pair_df.loc[pair_df['type'] == 1, 'contig1'], pair_df.loc[pair_df['type'] == 1, 'contig2']]
 
         return P_allelic_idx, P_weak_idx, pair_df
 
@@ -752,10 +755,10 @@ class HyperPartition:
             self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts, is_run=is_run)
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
 
-            
         else:
             prune_pair_df = None
        
+        ## Second round cluster
         args = []
         self.exclude_groups = []
         for num, sub_k in enumerate(self.K, 1):
@@ -826,11 +829,17 @@ class HyperPartition:
             return K 
         
         if prune_pair_df is not None:
+            allelic_pair_df = prune_pair_df[prune_pair_df['type'] == 0]
             allelic_idx_set = set(map(tuple, 
                             prune_pair_df[(prune_pair_df['type'] == 0) & 
                                                 (prune_pair_df['similarity'] >= allelic_similarity)]
                             [['contig1', 'contig2']].values)
                             )
+            mz_df = allelic_pair_df[['contig1', 'mz1']]
+            mz_df = mz_df.drop_duplicates(subset=['contig1']).set_index('contig1')
+            allelic_pair_df = allelic_pair_df.set_index(['contig1', 'contig2'])
+            
+
 
         iter_round = 0 
         flag = 1
@@ -847,17 +856,24 @@ class HyperPartition:
                 for j in range(i + 1, current_group_number):
                     group2 = list(K[j])
                     
-                    group1_length = vertices_idx_sizes.loc[list(group1)].sum().values[0]
-                    group2_length = vertices_idx_sizes.loc[list(group2)].sum().values[0]
+                    group1_length = vertices_idx_sizes.reindex(group1).sum().values[0]
+                    group2_length = vertices_idx_sizes.reindex(group2).sum().values[0]
                     if prune_pair_df is not None:
                         product_contig_pair = set(product(group1, group2))
                         allelic = product_contig_pair & allelic_idx_set
                         if allelic:
-                            tmp1, tmp2 = list(map(set, zip(*allelic)))
-                            tmp1_length = vertices_idx_sizes.loc[list(tmp1)].sum().values[0]
-                            tmp2_length = vertices_idx_sizes.loc[list(tmp2)].sum().values[0]
+                            tmp1, tmp2 = list(map(list, map(set, zip(*allelic))))
+                            tmp1_length = vertices_idx_sizes.loc[tmp1].sum().values[0]
+                            tmp2_length = vertices_idx_sizes.loc[tmp2].sum().values[0]
                             overlap1 = tmp1_length / group1_length
                             overlap2 = tmp2_length / group2_length
+
+                            # tmp_mzShared = allelic_pair_df.reindex(product_contig_pair)['mzShared'].sum()
+                            # tmp1_mz = mz_df.reindex(group1)['mz1'].sum()
+                            # tmp2_mz = mz_df.reindex(group2)['mz1'].sum()
+                            # overlap1 = tmp_mzShared / tmp1_mz 
+                            # overlap2 = tmp_mzShared / tmp2_mz
+                            # print(i, j, group1_length, group2_length, overlap1, overlap2)
 
                             if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
                                 flag = 0

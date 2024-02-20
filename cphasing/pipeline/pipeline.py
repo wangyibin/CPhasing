@@ -185,7 +185,7 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
             else:
-                logger.warn(f"Use exists hcr porec table of `{hg_input}`")
+                logger.warn(f"Using existed hcr porec table of `{hg_input}`")
         
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"

@@ -315,8 +315,8 @@ class HyperPartition:
         
         prunetable = PruneTable(self.prunetable)
         pair_df = prunetable.data
-        pair_df['contig1'] = pair_df['contig1'].replace(vertices_idx)
-        pair_df['contig2'] = pair_df['contig2'].replace(vertices_idx)
+        pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
         pair_df = pair_df.dropna(axis=0).astype({'contig1': 'int', 'contig2': 'int', 'type': 'int'})
 
         prunetable.data = pair_df

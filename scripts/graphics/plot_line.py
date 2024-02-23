@@ -29,7 +29,7 @@ def plot(data, title, x, y, hue, output):
               "HapHiC": "^",
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
-    markers = ["D", "p", "s", 'v']
+    markers = ["D", "^", "s", 'v']
     fig, ax = plt.subplots(figsize=(3.8,5))
     plt.rcParams['font.family'] = 'Arial'
    
@@ -39,10 +39,10 @@ def plot(data, title, x, y, hue, output):
 
     sns.pointplot(data=data, x="N50", y=y, ax=ax, 
                   hue=hue, palette=colors, 
-                  makers=markers, markeredgewidth=0)
+                  markers=markers, markeredgewidth=0)
     
 
-    plt.setp(ax.collections, alpha=.4) 
+    plt.setp(ax.collections, alpha=.7) 
     plt.setp(ax.lines, alpha=.5)
     ax.set_xlabel("", fontsize=24)
 

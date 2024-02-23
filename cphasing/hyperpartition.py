@@ -465,12 +465,13 @@ class HyperPartition:
                                  self.allelic_similarity, self.allelic_factor, 
                                 self.cross_allelic_factor, self.min_scaffold_length,
                                 self.threshold, self.max_round, num))
+                    HyperPartition._incremental_partition(*args[-1])
                 else:
                     _results.append(group)
-            _results2 = Parallel(n_jobs=min(self.threads, len(args) + 1))(
-                            delayed(HyperPartition._incremental_partition) 
-                             (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
-                                for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args) 
+            # _results2 = Parallel(n_jobs=min(self.threads, len(args) + 1))(
+            #                 delayed(HyperPartition._incremental_partition) 
+            #                  (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
+            #                     for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args) 
             _, _results2 = zip(*_results2)
             _results2 = list_flatten(_results2)
             _results.extend(_results2)
@@ -597,7 +598,7 @@ class HyperPartition:
            
         ## remove the scaffold that is too short
         new_K = list(map(list, filter(
-                        lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \
+                        lambda x: sub_vertices_new_idx_sizes.loc[list(x)].sum().values[0] \
                             >= min_scaffold_length, new_K)))
       
         if k and len(new_K) > k:

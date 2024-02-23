@@ -68,8 +68,8 @@ class HyperGraph:
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
             self.col = np.array(self.edges.col)[retain_idx]
-            self.idx = np.unique(self.row)
-            remove_idx = np.arange(0, len(self.nodes)) in self.idx
+            self.idx = np.sort(np.array(pd.unique(self.row)))
+            remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
 
             self.remove_contigs = self.nodes[~remove_idx]
             logger.info(f"Removed `{total_edge_counts - np.count_nonzero(retain_idx)}` "
@@ -126,7 +126,7 @@ class HyperGraph:
             non_zero_contig_idx = row_sum >= min_contacts
             matrix = matrix[non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
-            logger.info(f"Total {self.shape[0] - non_zero_contig_idx.shape[0] - self.removed_count} "
+            logger.info(f"Total {self.shape[0] - non_zero_contig_idx.shape[0]} "
                         f"low-singal (contacts < {min_contacts}) contigs were removed")
             
             col_sum = matrix.sum(axis=0).A1 

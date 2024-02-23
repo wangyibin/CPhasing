@@ -69,8 +69,8 @@ def plot(data, title, x, y, hue, output):
     plt.xlabel("")
     plt.yticks(fontsize=18)
     # plt.title(f"{title}", fontsize=24, fontweight='bold')
-    # plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
-    plt.legend().remove()
+    plt.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
+    # plt.legend().remove()
 
     if y == "Group numbers":
         chromosome_number = int(title)*5

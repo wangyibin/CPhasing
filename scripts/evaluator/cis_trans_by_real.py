@@ -16,7 +16,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import pandas as pd
 import numpy as np 
 
 from itertools import combinations
@@ -54,7 +54,8 @@ def main(args):
                     
             help="homolog chroms rellationship",
             required=True)
-    
+    pOpt.add_argument('--wi_test', action="store_true", default=False,
+                      help="plot the wi-test, only support two cool file")
     pOpt.add_argument('-h', '--help', action='help',
         help='show help message and exit.')
     
@@ -86,7 +87,7 @@ def main(args):
                 res.append(data)
 
         results.append(res)
-
+    print(pd.DataFrame(results).T)
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(4, 5))
     boxprops_r = dict(facecolor='#a83836',color='black', linewidth=1.5)
@@ -95,7 +96,8 @@ def main(args):
     medianprops=dict(color='black', linewidth=2.5)
     whiskerprops = dict(linestyle='--')
 
-    pvalue = wi_test(results[0], results[1])
+    if args.wi_test:
+        pvalue = wi_test(results[0], results[1])
     
     # a = ax.boxplot(results[0], showfliers=False, patch_artist=True, notch=True, widths=0.4,
     #            boxprops=boxprops_r, medianprops=medianprops, whiskerprops=whiskerprops)
@@ -133,7 +135,7 @@ def main(args):
     ax = sns.violinplot(data=results, ax=ax, palette=colors, alpha=1)
     ax.set_xticks([0, 1])
     # ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
-    ax.set_xticklabels(['Pore-C', 'Hi-C'])
+    ax.set_xticklabels(['Raw', 'Removed \n$\mathit{trans}$'])
     max_y = max(max(results)) * 1.5
     plt.ylim(-0.001, max_y)
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)
@@ -154,7 +156,8 @@ def main(args):
     # ax.set_xticklabels(["Pore-C", "Hi-C", ], fontsize=20)
     # max_y = max(max(results)) * 1.3
     # plt.ylim(-0.1, max_y)
-    plt.text(0.5, max_y * 0.95,f'Wilcox test p-value < {pvalue:.1e}', ha='center', fontsize=12)
+    if args.wi_test:
+        plt.text(0.5, max_y * 0.95,f'Wilcox test p-value < {pvalue:.1e}', ha='center', fontsize=12)
     
 
     # ax.set_xticks([0, 1, 2, 3])

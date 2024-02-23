@@ -1510,8 +1510,8 @@ def alleles(fasta, output,
     '-m',
     '--method',
     help='Method of cross-allelic, fast or greedy.',
-    default='greedy',
-    type=click.Choice(["fast", "greedy"]),
+    default='precise',
+    type=click.Choice(["fast", "precise", "greedy"]),
     show_default=True
 )
 @click.option(

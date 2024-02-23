@@ -72,11 +72,12 @@ def main(args):
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
     data = pickle.load(open(args.full_pkl, 'rb'))
-    pt_pairs = set(list(data.keys()))
-
+    full_pairs = set(list(data.keys()))
+    all_pairs = set(list(contacts_dict.keys()))
+    
+    pt_pairs = all_pairs - full_pairs
     correct_pairs = inter_pairs & pt_pairs
-    incorrect_pairs = pt_pairs - inter_pairs
-
+    incorrect_pairs = inter_pairs - correct_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
     # for pair in pt_pairs:

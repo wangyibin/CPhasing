@@ -141,6 +141,15 @@ def split_reads(fastq, window, npart, threads):
     type=int
 )
 @click.option(
+    '-m',
+    '--min-windows',
+    'min_windows',
+    help='minimum windows of read',
+    default=20,
+    show_default=True,
+    type=int,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -158,7 +167,8 @@ def split_reads(fastq, window, npart, threads):
 )
 def correct_alignments(
     fasta, fastq, min_as, min_mapq, 
-    nhap, window, threads, output
+    nhap, window, min_windows,
+    threads, output
 ):
     """
     Mapping and correct alignments.
@@ -170,7 +180,7 @@ def correct_alignments(
         the longest increasing subsequence (LIS) method.
     """
     from .correct_alignments import workflow
-    workflow(fasta, fastq, threads, output, window, nhap, min_as, min_mapq)
+    workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq)
 
 
 @hitig.command()
@@ -210,7 +220,7 @@ def correct_alignments(
     'min_sa',
     metavar='INT',
     help='Number of minmum split alignments in a window.',
-    default=8,
+    default=5,
     type=int,
     show_default=True,
 )

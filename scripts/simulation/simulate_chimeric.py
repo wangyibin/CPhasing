@@ -94,7 +94,7 @@ def main(args):
 
 
     if not Path("genome.paf").exists():
-        run_cmd(args.fasta, args.threads)
+        run_minimap2(args.fasta, args.threads)
     else:
         logger.warn("Use existed `genome.paf`")
     paf = "genome.paf"
@@ -109,7 +109,7 @@ def main(args):
     all_similar_pairs = set(map(tuple, all_similar_pairs))
     
 
-    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 20000) & (paf[9] / paf[10] >= 0.95) \
+    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 50000) & (paf[9] / paf[10] >= 0.95) \
                 & ((paf[9] / paf[10]) < 1)]
     paf = paf[(paf[2] < 100) | ((paf[1] - paf[3]) < 100)]
     paf = paf[(paf[7] < 100) | ((paf[6] - paf[8]) < 100)]
@@ -133,7 +133,7 @@ def main(args):
                          1, 2, 3, 
                          4, 6, 7, 
                          8]]
-    print(high_similarity_data, file=sys.stderr)
+    # print(high_similarity_data, file=sys.stderr)
     high_similarity_data.columns = ['contig1', 'contig2',
                              'length1', 'start1', 'end1',
                              'strand', 'length2', 'start2',
@@ -153,7 +153,7 @@ def main(args):
     non_homo_region_switch_contig_count = int(nonhomo_region_switch * homo_inter_contig_count)
 
     
-    print(high_similarity_data, file=sys.stderr)
+    # print(high_similarity_data, file=sys.stderr)
     high_similarity_contig_pairs = set(map(tuple, high_similarity_data[['contig1', 'contig2']].values.tolist()))
     high_similarity_data = high_similarity_data.set_index(['contig1', 'contig2'])
 
@@ -166,7 +166,10 @@ def main(args):
     while len(homo_region_switch_contig_pairs) < homo_region_switch_contig_count//2:
 
         pair = random.choice(list(high_similarity_contig_pairs))
+        contig1, contig2 = pair
 
+        if len(fasta[contig1]) < 25000 or len(fasta[contig2]) < 25000:
+            continue
         if pair in homo_region_switch_contig_pairs:
             continue
         
@@ -196,8 +199,8 @@ def main(args):
             break 
         pair = set(random.sample(contig_list, 2))
         contig1, contig2 = pair
-        
-        if len(fasta[contig1]) < 5000 or len(fasta[contig2]) < 5000:
+
+        if len(fasta[contig1]) < 25000 or len(fasta[contig2]) < 25000:
             continue
 
         if contig1 > contig2:

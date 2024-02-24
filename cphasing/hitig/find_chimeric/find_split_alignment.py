@@ -5,11 +5,13 @@ import os
 import math
 import argparse
 from copy import deepcopy
-import collections
+from collections import defaultdict, OrderedDict
+
+
 
 
 def read_LISFile(LisFile, feature):
-    LisDic = collections.OrderedDict()
+    LisDic = OrderedDict()
     with open(LisFile, 'r') as fin:
         #tmpLine = fin.readline().rstrip().split('\t')
         for line in fin:
@@ -25,6 +27,7 @@ def read_LISFile(LisFile, feature):
                 LisDic[qn][(tn, s, e, string, tl)] = []
             elif lisType == "alignment":
                 qi = int(tmpLine[-1].split(":")[-1][:-1].split('_')[-1])
+             
                 LisDic[qn][(tn, s, e, string, tl)].append(qi)
             else:
                 pass
@@ -179,7 +182,7 @@ def check_break_point(LisDic, win, outPre, edge):
     """
     win = 2*win
     step = int(win/5)
-    binDic = collections.OrderedDict()
+    binDic = OrderedDict()
     for ctg in genomeSize:
         binDic[ctg] = {}
         ctgSize = genomeSize[ctg]

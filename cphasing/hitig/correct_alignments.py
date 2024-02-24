@@ -10,6 +10,7 @@ import argparse
 from copy import deepcopy
 import collections
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 5. For Retained LMP, caculate the chimeric alignment
 """
 ### return outPre.paf
-def minimap_mapping(fasta, reads, window, threads, outPre):
+def minimap_mapping(fasta, reads, window, min_windows, threads, outPre):
     """
     check minimap2 version
     """
@@ -47,7 +48,8 @@ def minimap_mapping(fasta, reads, window, threads, outPre):
     else:
         cat_cmd = "cat"
 
-    min_length = window * 4
+    min_length = window * min_windows
+
     if len(readsLst) > 1:
         minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} \
                             | minimap2 -t {} --qstrand --cs -cx map-ont \
@@ -58,8 +60,11 @@ def minimap_mapping(fasta, reads, window, threads, outPre):
                             | minimap2 -t {} --qstrand --cs -cx map-ont \
                             -p.3 {} - > {}.paf".format(
                                 readsLst[0], window, min_length, threads, fasta,  outPre)
-        
-    os.system(minimap2CMD)
+    
+    logger.info("Running Command:")
+    logger.info(f"\t\t{minimap2CMD}")
+    flag = os.system(minimap2CMD)
+    assert flag == 0, "Failed to run the `minimap2`"
 
     return outPre + ".paf"
 
@@ -68,6 +73,8 @@ def read_paf(paf, minAS, nhap):
     pafDic = {}
     minAS = int(minAS)
     maxAlign = int(nhap)
+    logger.info(f"Loading `{paf}` ...")
+
     with open(paf,'r') as fin:
         for line in fin:
             tmpLst = line.split('\t')
@@ -204,11 +211,7 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
     """
     nums: [(qi, ri)]
     """
-    LIS_list = []
-    while nums:
-        processNum = deepcopy(nums)
-        nums = []
-        """
+    """
         rst : [(pos_in_reads, pos_in_ref)]
         align : [qs,qe,s,tn,ts,te,ql,tl,al1,al2,AS]
         processNum : [(qi, ri)]
@@ -216,15 +219,18 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
         alignment type: 'P' primary
                         'S' secondary aligment
                         'E' extend aligment
-        """
-        rst = [processNum[0]]
+    """
+    LIS_list = []
+    nums_new = [None] * len(nums)
+    while nums:
+        nums_index = 0
+        rst = [nums[0]]
         fqi, fri, ftype = rst[0]
         falign = allreadsDic[fqi][fri]
         fstring = falign[2]
-        #string = processNum[0][2]
-        n = len(processNum)
+        n = len(nums)
         for i in range(1, n):
-            qi, ri, type = processNum[i]
+            qi, ri, type = nums[i]
             align = allreadsDic[qi][ri]
             if align[2] != fstring:
                 continue
@@ -233,13 +239,14 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
             preAlign = allreadsDic[preQi][preRi]
             pos2 = int(preAlign[4])
             posDis = pos1 - pos2
-            # '-'  -(pos1-pos2) > overlapWin
             if fstring == "-" and (posDis + winDis) >= 0 and (posDis + overlapWin) <= 0:
-                rst.append(processNum[i])
+                rst.append(nums[i])
             elif fstring == "+" and (winDis - posDis) >= 0 and (-posDis + overlapWin) <= 0:
-                rst.append(processNum[i])
+                rst.append(nums[i])
             else:
-                nums.append(processNum[i])
+                nums_new[nums_index] = nums[i]
+                nums_index += 1
+        nums = nums_new[:nums_index]
         LIS_list.append((rst, fstring))
     return LIS_list
  
@@ -710,13 +717,15 @@ def outputLIS(lisBak, pafDic, outpre):
     with open(outpre + '.mapq.LIS.gtf', 'w') as fout3:
         #for i in mapqLIS:
         fout3.write("".join(mapqLIS))
+        logger.info(f"Successfull output {fout3.name}")
     with open(outpre + '.mapq.corrected.paf', 'w') as fout4:
         #for i in mapqLIS:
         fout4.write("".join(mapqPaf))
+        logger.info(f"Successful output {fout4.name}")
                         
 
 
-def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
+def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMapq):
     """
     1. get LIS for every single reads
     2. output corrected alignment & LIS path
@@ -725,7 +734,7 @@ def workflow(fasta, reads, threads, outPre, win, nhap, minAS, minMapq):
     """
     pafFile = outPre + ".paf"
     if os.path.exists(pafFile) == False:
-        pafFile = minimap_mapping(fasta, reads, win, threads, outPre)
+        pafFile = minimap_mapping(fasta, reads, win, min_windows, threads, outPre)
     else:
         logger.warn(f"Using existed mapping results: `{pafFile}`")
 

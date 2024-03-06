@@ -40,6 +40,8 @@ def main(args):
             help='raw fasta')
     pOpt.add_argument('--ratio', type=float, default=0.05,
             help="the ratio of collapsed contigs. [default: %(default)s]")
+    pOpt.add_argument('-t', '--threads', type=int, default=8,
+            help='number of program threads [default:%(default)s]')
     pOpt.add_argument('--seed', type=int, default=1212,
             help="random seed of program. [default: %(default)s]")
     pOpt.add_argument('-h', '--help', action='help',
@@ -54,7 +56,7 @@ def main(args):
     contig_counts = len(fasta.keys())
     
     if not Path("genome.paf").exists():
-        run_cmd(args.fasta, args.threads)
+        run_minimap2(args.fasta, args.threads)
 
     paf = "genome.paf"
     
@@ -63,6 +65,7 @@ def main(args):
     paf = paf[(paf[0] < paf[5]) & (paf[9] >= 10000) & (paf[9] / paf[10] >= 0.95)]
     paf = paf[(paf[2] < 100) | ((paf[1] - paf[3]) < 100)]
     paf = paf[(paf[7] < 100) | ((paf[6] - paf[8]) < 100)]
+
 
     def func(row):
         if row[2] < 100:
@@ -83,7 +86,7 @@ def main(args):
                          1, 2, 3, 
                          4, 6, 7, 
                          8]]
-    print(high_similarity_data, file=sys.stderr)
+  
     high_similarity_data.columns = ['contig1', 'contig2',
                              'length1', 'start1', 'end1',
                              'strand', 'length2', 'start2',
@@ -115,6 +118,9 @@ def main(args):
 
         if len(fasta[collapsed_contig]) < 5000:
             continue
+
+        if contig in exists_contig_list or collapsed_contig in exists_contig_list:
+            continue
         
         collapsed_contig_seq = fasta[collapsed_contig]
         contig_seq = fasta[contig]
@@ -126,16 +132,26 @@ def main(args):
         exists_contig_list.add(contig)
 
         tmp_row = high_similarity_data.loc[tuple(collapsed_contig_pair)]
+        if tmp_row.empty:
+            continue
+        
+        try:
+             collapsed_contig_range = (tmp_row['start1'].values[0], tmp_row['end1'].values[0])
 
-        
-        collapsed_contig_range = (tmp_row['start1'], tmp_row['end1'])
-        contig_range = (tmp_row['start2'], tmp_row['end2'])
-        
+        except AttributeError:
+            collapsed_contig_range = (tmp_row['start1'], tmp_row['end1'])
+
+        try:
+            contig_range = (tmp_row['start2'].values[0], tmp_row['end2'].values[0])
+        except AttributeError:
+            contig_range = (tmp_row['start2'], tmp_row['end2'])
+
         if idx == 1:
             contig_range, collapsed_contig_range = collapsed_contig_range, contig_range 
 
+      
         collapsed_contig_seq_frag1 = collapsed_contig_seq[collapsed_contig_range[0]: collapsed_contig_range[1]]
-
+       
         if collapsed_contig_range[0] == 0:
             collapsed_contig_seq_frag2 = collapsed_contig_seq[collapsed_contig_range[1]:]
             collapsed_contig_frag_start = collapsed_contig_range[1]

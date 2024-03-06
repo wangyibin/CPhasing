@@ -27,6 +27,7 @@ def run(fasta,
         pairs, 
         pattern="AAGCTT",
         hcr_flag=False,
+        hcr_bed=None,
         hcr_percent=0.95,
         hcr_bs=10000,
         mode="phasing",
@@ -157,11 +158,12 @@ def run(fasta,
             out.write("\n".join(whitelist_contigs))
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length}(N{Nx})")
 
-    if hcr_flag:
+    if hcr_flag or hcr_bed:
+        
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}_hcr.pairs.gz"
-            if not Path(hg_input).exists() or not Path(hg_input).exists():
+            if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:
                     hcr.main(
@@ -173,6 +175,8 @@ def run(fasta,
                                 hcr_percent,
                                 "-bs",
                                 hcr_bs,
+                                "-b",
+                                hcr_bed
                         ],
                         prog_name="hcr"
                     )
@@ -198,6 +202,8 @@ def run(fasta,
                                 pairs,
                                 "-cs",
                                 contigsizes,
+                                "-b",
+                                hcr_bed,
                         ],
                         prog_name="hcr"
                     )

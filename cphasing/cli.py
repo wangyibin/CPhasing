@@ -147,8 +147,18 @@ def cli(verbose, quiet):
     "--hcr",
     is_flag=True,
     default=False,
-    help="Only retain high confidence regions to subsequence analysis.",
+    help="Only retain high confidence regions to subsequence analysis by contacts.",
     show_default=True
+)
+@click.option(
+    "-hcr-bed",
+    "--hcr-bed",
+    "hcr_bed",
+    metavar="STR",
+    default=None,
+    help="Only retain high confidence regions to subsequence analysis by input bed.",
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     "-hcr-percent",
@@ -237,16 +247,6 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
-    '-scaf-method',
-    '--scaffolding-method',
-    'scaffolding_method',
-    metavar='STR',
-    help="the method of scaffolding",
-    default="haphic",
-    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
-    show_default=True
-)
-@click.option(
     "-n",
     help="""
     Number of groups. If set to 0 or None, the partition will be run automatically.
@@ -261,7 +261,6 @@ def cli(verbose, quiet):
     default=None,
     show_default=True,
 )
-
 @click.option(
     "-r1",
     "--resolution1",
@@ -387,6 +386,16 @@ def cli(verbose, quiet):
     type=click.Path(exists=True)
 )
 @click.option(
+    '-scaf-method',
+    '--scaffolding-method',
+    'scaffolding_method',
+    metavar='STR',
+    help="the method of scaffolding",
+    default="haphic",
+    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
+    show_default=True
+)
+@click.option(
     '--factor',
     '-k',
     help='Factor of plot matrix. '
@@ -411,6 +420,7 @@ def pipeline(fasta,
             pairs, 
             pattern,
             hcr,
+            hcr_bed,
             hcr_percent,
             hcr_bs,
             mode, 
@@ -420,7 +430,6 @@ def pipeline(fasta,
             alleles_window_size,
             alleles_minimum_similarity,
             alleles_diff_thres,
-            scaffolding_method, 
             n,
             resolution1,
             resolution2, 
@@ -435,6 +444,7 @@ def pipeline(fasta,
             nx,
             min_scaffold_length,
             whitelist,
+            scaffolding_method, 
             factor,
             threads):
     """
@@ -492,6 +502,7 @@ def pipeline(fasta,
          porectable, pairs, 
          pattern=pattern,
          hcr_flag=hcr,
+         hcr_bed=hcr_bed,
          hcr_percent=hcr_percent,
          hcr_bs=hcr_bs,
         mode=mode, 
@@ -1185,6 +1196,13 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True,
 )
 @click.option(
+    "-b",
+    "--bed",
+    help="HCRs bed file",
+    default=None,
+    show_default=True
+)
+@click.option(
     '--fofn',
     help="""
     If this flag is set then the SRC_ASSIGN_TABLES is a file of
@@ -1204,7 +1222,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 def hcr(porectable, pairs, contigsize, binsize, percent, 
-        fofn, output):
+        bed, fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -1253,28 +1271,32 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
 
 
     out_small_cool = f"{prefix}.{binsize}.cool"
-    if not Path(out_small_cool).exists():
-        try: 
-            pairs2cool.main(args=[
-                                pairs,
-                                contigsize,
-                                out_small_cool
-                            ],
-                            prog_name='pairs2cool')
-        except SystemExit as e:
-            exc_info = sys.exc_info()
-            exit_code = e.code
-            if exit_code is None:
-                exit_code = 0
+    if not bed:
+        if not Path(out_small_cool).exists():
+            try: 
+                pairs2cool.main(args=[
+                                    pairs,
+                                    contigsize,
+                                    out_small_cool
+                                ],
+                                prog_name='pairs2cool')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
             
-            if exit_code != 0:
-                raise e
+        else:
+            logger.warn(f"Use exists cool file of `{out_small_cool}`.")
         
-    else:
-        logger.warn(f"Use exists cool file of `{out_small_cool}`.")
-    
-    hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , percent)
-
+   
+        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , percent)
+        bed =  f"{prefix}.{binsize}.hcr.bed"
+ 
+        
     if porectable:
         cmd = ["cphasing-rs", "porec-intersect", porectable, f"{prefix}.{binsize}.hcr.bed",
                "-o", f"{prefix}_hcr.porec.gz"]
@@ -1364,7 +1386,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     "-o",
     "--output",
     metavar="PATH",
-    help="path of output allele table [default: fasta_prefix]",
+    help="path of output allele table [default: fasta_prefix.allele.table]",
     default=None
 )
 @click.option(
@@ -1420,10 +1442,19 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     default=.1,
     show_default=True
 )
+@click.option(
+    "--min-length",
+    "min_length",
+    help="minimum the sum of valid kmer length",
+    type=int,
+    default=5000,
+    show_default=True
+)
 def alleles(fasta, output, 
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
-                minimum_similarity, diff_thres):
+                minimum_similarity, diff_thres,
+                min_length):
     """
     Build allele table.
     """
@@ -1439,7 +1470,7 @@ def alleles(fasta, output,
     
     pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
                         min_cnt, minimum_similarity, diff_thres,
-                         output)
+                         filter_value=min_length, output=output)
     pa.run()
 
 
@@ -2194,7 +2225,10 @@ def hyperpartition(hypergraph,
             "basal_withprune modemust add `-pt` or `-at` param"
     else:
         incremental = incremental
-        logger.warn("Mode not be specified, running basal_withprune mode")
+        if incremental is False:
+            logger.warn("Mode not be specified, running basal_withprune mode")
+        else:
+            logger.warn("`-inc` be specified, will run in `phasing` mode")
 
     if kprune_norm_method == "auto":
         if pairs:

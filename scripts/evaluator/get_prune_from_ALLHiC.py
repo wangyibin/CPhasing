@@ -10,11 +10,12 @@ import logging
 import os
 import os.path as op
 import sys
+import gc
 
 import pickle
 import pandas as pd
 
-from itertools import product, combinations
+from itertools import product, combinations, permutations
 
 
 def main(args):
@@ -47,35 +48,47 @@ def main(args):
             for line in fp:
                 line_list = line.strip().split()
                 contig_pair = (line_list[0], line_list[1])
-                # if int(line_list[2]) < 3:
-                #     continue
+                if int(line_list[2]) < 3:
+                    continue
                 contacts_dict[contig_pair] = line_list[2]
                 
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
+    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[-1])
 
-    res = []
+    contig_list = chrom_contigs['contig'].values.tolist()
+    contig_list.sort()
+    total_pairs = set(list(combinations(contig_list, 2)))
+
+    del contig_list 
+    gc.collect()
+    print(len(total_pairs))
+
+    inter_pairs = []
     for i, df in chrom_contigs.groupby('hap'):
         tmp_list = []
         for j, df2 in df.groupby('chrom'):
             tmp_list.append(df2['contig'].tolist())
 
+        tmp_list.sort()  
         for n, m in list(combinations(tmp_list, 2)):
-            res.extend(list(set(product(n, m))))
+            inter_pairs.extend(list(set(product(n, m))))
     
-    res2 = []
-    for i, j in res:
-        if i > j:
-            res2.append((j, i))
-        else:
-            res2.append((i, j))
     
-    inter_pairs = set(res2)
-    if contacts:
-        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+    inter_pairs = set(inter_pairs)
     
+    intra_pairs = []
+    for i, df in chrom_contigs.groupby('chrom'):
+        tmp_list = df['contig'].values.tolist()
+        tmp_list.sort()
+        intra_pairs.extend(list(combinations(tmp_list, 2)))
+
+    intra_pairs = set(intra_pairs)
+
+    nonhomo_inter_pairs = total_pairs - inter_pairs - intra_pairs
+
     raw_df = pd.read_csv(args.raw, sep='\t', header=None, index_col=None, comment="#")
     raw_df = raw_df[raw_df[8] == "ok"]
 
@@ -85,18 +98,22 @@ def main(args):
     prune_pairs = set(map(tuple, prune_df[[2, 3]].values.tolist()))
     
     pt_pairs = raw_pairs - prune_pairs
-
+    if contacts:
+        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+        pt_pairs = pt_pairs.intersection(set(contacts_dict.keys()))
+        pt_pairs = pt_pairs - nonhomo_inter_pairs
+        
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
 
     precision = 1- len(incorrect_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
-
+    f1_score = (2 * precision * recall) / (precision + recall)
     # for pair in pt_pairs:
     #     print("\t".join(pair), file=sys.stdout)
-    print(f"Precision: {precision:.4}", file=sys.stderr)
-    print(f"Recall: {recall:.4}", file=sys.stderr)
-
+    print(f"Precision:{precision:.4}")
+    print(f"Recall:{recall:.4}")
+    print(f"F1 score:{f1_score:.4}")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

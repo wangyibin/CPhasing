@@ -31,48 +31,71 @@ def main(args):
                         conflict_handler='resolve')
     pReq = p.add_argument_group('Required arguments')
     pOpt = p.add_argument_group('Optional arguments')
-    pOpt.add_argument('-c', '--cool', 
+    pOpt.add_argument('-c', '--contacts', 
             nargs="+",
-            help='Path to cool file',
+            help='Path to contacts file',
             required=True)
     pOpt.add_argument('-p', '--contig_pairs',
             help="the pairs of contigs")
+    pOpt.add_argument('-o', '--output', type=str,
+            default="cis_trans_contigs.tsv", help='is_trans_contigs.tsv')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
     args = p.parse_args(args)
 
-    res = OrderedDict()
+    res = []
     
-    for cool_file in args.cool:
-        prefix = cool_file.rsplit(".", 1)[0]
-        cool = cooler.Cooler(cool_file)
-        matrix = cool.matrix(balance=False, sparse=True)
-        contig_paris = [i.strip().split()[:2] for i in open(args.contig_pairs) if i.strip()]
+    for contact_file in args.contacts:
+        prefix = contact_file.rsplit(".", 1)[0]
+        contact_df = pd.read_csv(contact_file, sep='\t', index_col=None, 
+                                    header=None)
+        contact_df.columns = ['contig1', 'contig2', 'count']
+        contact_df = contact_df.set_index(['contig1', 'contig2'])
+        contact_db = contact_df.to_dict()['count']
         
+        contig_paris = [i.strip().split()[:2] for i in open(args.contig_pairs) if i.strip()]
+
         data = []
 
-        cmd_args = []
+        def func(pair):
+            try:
+                cis1 = contact_db[(pair[0], pair[0])]
+                cis2 = contact_db[(pair[1], pair[1])]
+                trans = contact_db[(pair[0], pair[1])]
+            except KeyError:
+                return 0
+            
+            if cis1 == 0 or cis2 == 0:
+                return 0
+            
+            return trans / sqrt(cis1 * cis2)
+
+        data = []
         for pair in contig_paris:
             if pair[0] > pair[1]:
                 continue
-            cmd_args.append(pair)
+            data.append((tuple(pair), func(pair)))
+
         
-        def func(pair):
-            cis1 = matrix.fetch(pair[0]).sum()
-            cis2 = matrix.fetch(pair[1]).sum()
-            trans = matrix.fetch(*pair).sum()
-        
-            return trans / sqrt(cis1 * cis2)
-
-        data = Parallel(n_jobs=40)(
-            delayed(func)(i) for i in cmd_args
-        )
-
-        res[prefix] = list(filter(lambda x: ~np.isinf(x),  data))
-
+      
+        # res[prefix] = list(filter(lambda x: ~np.isinf(x),  data))
+        data = dict(data)
+        data = pd.DataFrame(data.values(), index=pd.MultiIndex.from_tuples(data.keys()))
+ 
+        data.columns = [prefix]
+        data.to_csv(f"{prefix}.trans.tsv", index=True, header=None, sep='\t')
+        res.append(data)
     
-    res_df = pd.DataFrame(res)
+    res_df = pd.concat(res, axis=1)
+    print(res_df)
+    if len(res_df.columns) == 1:
+        res_df = res_df[res_df > 0]
+        res_df = res_df[res_df < .2]
+    else:
+        res_df = res_df[(res_df < .002).all()]
+    res_df.to_csv(args.output, index=True, header=None, sep='\t')
+    
     
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(5.5, 5))

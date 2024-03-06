@@ -24,17 +24,22 @@ from collections import OrderedDict
 from functools import reduce
 from string import ascii_lowercase
 
-def plot(data, title, x, y, hue, output, merge):
-    colors = {"C-Phasing": "#b02418",
-              "HapHiC": "#cb6e7f",
-              "ALLHiC": "#253761",
-              "ALLHiC_pregroup": "#8896ae"}
+def plot(data, title, x, y, hue, output, merge, legend):
+    colors = {"C-Phasing kprune after first cluster": "#b02418",
+              "C-Phasing kprune": "#cb6e7f",
+              "HapHiC remove": "#209093",
+              "ALLHiC prune": "#253761",
+              "ALLHiC prune after pregroup": "#8896ae"}
     maker = {"C-Phasing": "s",
               "HapHiC": "^",
               "ALLHiC": "o",
               "ALLHiC_pregroup": "D"}
-    markers = ["D", "^", "s", 'v']
-    ax = pw.Brick(figsize=(2.8,4))
+  
+    markers = ["D", "^", "p", "s", 'v']
+    if merge:
+        ax = pw.Brick(figsize=(2.8,4))
+    else:
+        fig, ax = plt.subplots(figsize=(2.8, 4))
     plt.rcParams['font.family'] = 'Arial'
    
     
@@ -73,8 +78,10 @@ def plot(data, title, x, y, hue, output, merge):
         ax.set_yscale("log")
 
     ax.set_title(f"Ploidy level = {title}", fontsize=24, fontweight='bold')
-    # ax.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
-    ax.legend().remove()
+    if legend:
+        ax.legend(title="Category", bbox_to_anchor=(1.05, 1), loc='upper left' )
+    else:
+        ax.legend().remove()
 
     if y == "Group numbers":
         chromosome_number = int(title)*5
@@ -99,6 +106,10 @@ def main(args):
                       action='store_true',
                       default=False,
                       help="merge plot into one picture")
+    pOpt.add_argument('--legend',
+                      action='store_true',
+                      default=False,
+                      help="plot legend")
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -114,10 +125,10 @@ def main(args):
                 continue
             output_middle = column.replace(" ", "_").replace("(", "").replace(")", "")
             ax = plot(tmp_df[["Software", "N50", column]], ploid, "N50", 
-                        column, "Software", f"{ploid}.{output_middle}.png", args.merge)
+                        column, "Software", f"{ploid}.{output_middle}.png", args.merge, args.legend)
             
-            if column not in ["Precision", "Recall"]:
-                tmp_axes.append(ax)
+           
+            tmp_axes.append(ax)
         
         axes[ploid] = tmp_axes
 
@@ -154,8 +165,21 @@ def main(args):
         res_axes.append(tmp_ax)
     
     pw.param['margin'] = 0.4
-    res_ax = reduce(lambda x, y: x/y, res_axes)
-   
+    
+    for i in range(0, len(res_axes), 2):
+        j = i + 1
+        try:
+            ax = res_axes[i] | res_axes[j]
+        except:
+            ax = res_axes[i] | res_axes[i-1]
+
+        if i < 2:
+            res_ax = ax 
+        
+        else:
+            res_ax = res_ax / ax
+
+    
     res_ax.savefig("merge.png", dpi=600, bbox_inches='tight')
     res_ax.savefig("merge.pdf", dpi=600, bbox_inches='tight')
 

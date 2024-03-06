@@ -109,7 +109,7 @@ def main(args):
     all_similar_pairs = set(map(tuple, all_similar_pairs))
     
 
-    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 50000) & (paf[9] / paf[10] >= 0.95) \
+    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 20000) & (paf[9] / paf[10] >= 0.95) \
                 & ((paf[9] / paf[10]) < 1)]
     paf = paf[(paf[2] < 100) | ((paf[1] - paf[3]) < 100)]
     paf = paf[(paf[7] < 100) | ((paf[6] - paf[8]) < 100)]
@@ -299,12 +299,21 @@ def main(args):
 
             if idx == 2:
                 tmp_row = high_similarity_data.loc[pair]
-                contig1_range = (tmp_row['start1'], tmp_row['end1'])
-                contig2_range = (tmp_row['start2'], tmp_row['end2'])
-
+                if tmp_row.empty:
+                    continue
+                try:
+                    contig1_range = (tmp_row['start1'].values[0], tmp_row['end1'].values[0])
+                except AttributeError:
+                    contig1_range = (tmp_row['start1'], tmp_row['end1'])
+                    
+                try:
+                    contig2_range = (tmp_row['start2'].values[0], tmp_row['end2'].values[0])
+                except AttributeError:
+                    contig2_range = (tmp_row['start2'], tmp_row['end2'])
+                    
                 contig1_pos = (contig1_range[1] - contig1_range[0])//2
                 contig2_pos = (contig2_range[1] - contig2_range[0])//2
-           
+
                 contig1_seq_frag1 = contig1_seq[contig1_range[0]: contig1_range[1]]
                 contig1_left = contig1_seq_frag1[:contig1_pos]
                 contig1_right = contig1_seq_frag1[contig1_pos:]

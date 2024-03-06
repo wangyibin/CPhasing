@@ -14,7 +14,7 @@ import sys
 import pickle
 import pandas as pd
 
-from itertools import product, combinations
+from itertools import product, combinations, permutations
 
 
 def main(args):
@@ -51,6 +51,10 @@ def main(args):
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
+    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[-1])
+
+    total_pairs = set(map(tuple, permutations(chrom_contigs['contig'].values.tolist(), 2)))
+
 
     res = []
     for i, df in chrom_contigs.groupby('hap'):
@@ -69,22 +73,38 @@ def main(args):
             res2.append((i, j))
     
     inter_pairs = set(res2)
-    if contacts:
-        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+    
+    intra_pairs = set()
+    for i, df in chrom_contigs.groupby('chrom'):
+        for pair in list(permutations(df['contig'].values.tolist(), 2)):
+            intra_pairs.add(pair)
+    
+    nonhomo_inter_pairs = total_pairs - inter_pairs - intra_pairs
+
     data = pickle.load(open(args.full_pkl, 'rb'))
     full_pairs = set(list(data.keys()))
     all_pairs = set(list(contacts_dict.keys()))
     
     pt_pairs = all_pairs - full_pairs
+
+    if contacts:
+        inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
+        pt_pairs = pt_pairs.intersection(set(contacts_dict.keys()))
+        pt_pairs = pt_pairs - nonhomo_inter_pairs
+        
     correct_pairs = inter_pairs & pt_pairs
+
+ 
+
     incorrect_pairs = inter_pairs - correct_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
+    f1_score = (2 * precision * recall) / (precision + recall)
     # for pair in pt_pairs:
     #     print("\t".join(pair), file=sys.stdout)
-    print(f"Precision: {precision:.4}", file=sys.stderr)
-    print(f"Recall: {recall:.4}", file=sys.stderr)
-
+    print(f"Precision:{precision:.4}")
+    print(f"Recall:{recall:.4}")
+    print(f"F1 score:{f1_score:.4}")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

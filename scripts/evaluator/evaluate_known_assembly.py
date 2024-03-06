@@ -53,6 +53,7 @@ def main(args):
             line_list = line.strip().split()[:2]
         
             chrom, contig = line_list
+            
             if chrom not in real_db:
                 real_db[chrom] = []
             real_db[chrom].append(contig)

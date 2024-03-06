@@ -10,10 +10,10 @@ import logging
 import os
 import os.path as op
 import sys
-
+import gc
 import pandas as pd 
 
-from itertools import product, combinations
+from itertools import product, combinations, permutations
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
@@ -49,15 +49,24 @@ def main(args):
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
+    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[-1])
 
- 
+    contig_list = chrom_contigs['contig'].values.tolist()
+    contig_list.sort()
+    total_pairs = set(combinations(contig_list, 2))
+
+    del contig_list 
+    gc.collect()
+
+
     res = []
     for i, df in chrom_contigs.groupby('hap'):
         tmp_list = []
         for j, df2 in df.groupby('chrom'):
             tmp_list.append(df2['contig'].tolist())
-
+            
         for n, m in list(combinations(tmp_list, 2)):
+            
             res.extend(list(set(product(n, m))))
     
     res2 = []
@@ -69,20 +78,33 @@ def main(args):
     
     inter_pairs = set(res2)
     
+    intra_pairs = []
+    for i, df in chrom_contigs.groupby('chrom'):
+        tmp_list = df['contig'].values.tolist()
+        tmp_list.sort()
+        intra_pairs.extend(list(combinations(tmp_list, 2)))
+   
+    intra_pairs = set(intra_pairs)
+    
+    nonhomo_inter_pairs = total_pairs - inter_pairs - intra_pairs
+    
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
-    
+        pt_pairs = pt_pairs.intersection(set(contacts_dict.keys()))
+        pt_pairs = pt_pairs - nonhomo_inter_pairs
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
     loss_pairs = inter_pairs - pt_pairs
     precision = len(correct_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
+    f1_score = (2 * precision * recall) / (precision + recall)
     # for pair in loss_pairs:
     #     print("\t".join(pair), file=sys.stdout)
-    print(f"Precision: {precision:.4}", file=sys.stderr)
-    print(f"Recall: {recall:.4}", file=sys.stderr)
+    print(f"Precision:{precision:.4}")
+    print(f"Recall:{recall:.4}")
+    print(f"F1 score:{f1_score:.4}")
 
 if __name__ == "__main__":
     main(sys.argv[1:])

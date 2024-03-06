@@ -147,7 +147,7 @@ class PartigRecords:
         
         return db
 
-    def to_alleletable(self, fasta, output, fmt="allele2"):
+    def to_alleletable(self, fasta, output, fmt="allele2", k=0, filter_value=5000):
         """
         convert partig table to allele table
 
@@ -184,6 +184,9 @@ class PartigRecords:
                             record.seqName2, sep='\t', file=output)
             elif fmt == "allele2":
                 strand = 1 if record.strand == "+" else -1
+                if k:
+                    if int(record.mzShared) * k * float(record.kmerSimilarity) < filter_value:
+                        continue 
                 print(i, i, record.seqName1, 
                             record.seqName2, 
                             record.mzConsidered1,
@@ -202,6 +205,7 @@ class PartigAllele:
                     n=5,
                     m=0.8,
                     d=0.2,
+                    filter_value=5000,
                     output='Allele.ctg.table',
                     log_dir='logs'):
         self.fasta = fasta
@@ -218,6 +222,7 @@ class PartigAllele:
         self.n = n
         self.m = m 
         self.d = d
+        self.filter_value = filter_value
 
         self.output = output
         self.log_dir = Path(log_dir)
@@ -265,7 +270,7 @@ class PartigAllele:
 
     def to_alleletable(self, fmt="allele2"):
         with open(self.output, 'w') as output:
-            self.pr.to_alleletable(self.fasta, output, fmt)
+            self.pr.to_alleletable(self.fasta, output, fmt, self.k, self.filter_value)
         logger.info(f'Successful output allele table in `{self.output}`.')
 
     def run(self):

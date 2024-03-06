@@ -19,7 +19,7 @@ import pandas as pd
 import pyranges as pr 
 import tempfile
 
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from dask.distributed import Client
 from joblib import Parallel, delayed
 from itertools import combinations
@@ -284,7 +284,7 @@ class AlleleTable:
         
         df = pd.read_csv(self.filename, sep='\t', header=None, 
                             index_col=0, names=self.columns,
-                            usecols=self.columns, comment="#")
+                            usecols=self.columns, comment="#", engine='python')
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
 
@@ -328,17 +328,31 @@ class AlleleTable:
         assert self.fmt == "allele1", "only support for format `allele1`"
         self.data = self.data[self.data.isin(contigs)]
         self.data.index.rename(0, inplace=True)
-
+        
         if self.data.empty:
             logger.warn("After filter AlleleTable is empty")
+
+    @property
+    def contig_pairs(self):
+        if self.fmt == 'allele1':
+            _contig_pairs = set()
+            groups = self.groups
+            for group, items in groups.items():
+                for pair in list(combinations(items, 2)):
+                    _contig_pairs.add(pair)
+        else:
+            _contig_pairs = set(map(tuple, self.data[[1, 2]].values.tolist()))
+
+        return _contig_pairs
 
     @property
     def groups(self):
         assert self.fmt == "allele1", "only support for format `allele1`"
         _groups = OrderedDict()
-        _groupby = self.data.groupby(0)
+        data = self.data.reset_index()
+        _groupby = data.groupby('index')
         for chrom, item in _groupby:
-            tmp = item.values.flatten()
+            tmp = item.values.flatten()[1:]
             _groups[chrom] = tmp[~pd.isna(tmp)]
 
         return _groups
@@ -438,9 +452,45 @@ class AlleleTable:
             share_table = share_table.set_index(['level_0', 'level_1'])
 
         return share_table
-        
+    
+    def allele1_to_allele2(self):
+        assert self.fmt == 'allele1', "only support for format `allele1`"
 
-    def save(self, output):
+        contig_pairs = self.contig_pairs 
+    
+        res = []
+        i = 0
+        for pair in contig_pairs: 
+            i += 1
+            res.append([i, i, pair[0], pair[1], 0, 0, 0, 1.0, 0])
+            i += 2
+            res.append([i, i, pair[1], pair[0], 0, 0, 0, 1.0, 0])
+            
+        res_df = pd.DataFrame(res)
+        self.fmt = 'allele2'
+        self.data = res_df 
+
+    def allele2_to_allele1(self):
+        assert self.fmt == 'allele2', 'only support for format `allele1`' 
+
+        res = defaultdict(set)
+        contig_pairs = self.contig_pairs
+        
+        for contig1, contig2 in contig_pairs:
+            res[contig1].add(contig1)
+            res[contig1].add(contig2)
+
+        data = []
+        for i, item in enumerate(set(map(tuple, map(sorted, res.values())))):
+            data.append([i, i, *item])
+        
+        res_df = pd.DataFrame(data)
+        self.data = res_df
+   
+        self.fmt = 'allele1'
+
+
+    def save(self, output, index=True):
         """
         save allele tabel to output
 
@@ -453,7 +503,12 @@ class AlleleTable:
         --------
         >>> at.save('output.allele.table')
         """
-        self.data.to_csv(output, sep='\t', header=None, index=True)
+        if len(self.data.columns) == 7:
+            data = self.data.reset_index().reset_index() 
+        else:
+            data = self.data
+        
+        data.to_csv(output, sep='\t', header=None, index=index)
     
 class PruneTable:
     Header = ['contig1', 'contig2', 
@@ -533,8 +588,10 @@ class PairTable:
         'ExpectedLinksIfAdjacent',
         'Label']
 
-    def __init__(self, infile, symmetric=True, index_contig=True):
+    def __init__(self, infile, symmetric=True, index_contig=True, remove_self=True):
         self.filename = infile
+        self.remove_self = remove_self
+        
         if not Path(self.filename).exists():
             logger.error(f'No such file of `{self.filename}`.')
             sys.exit()
@@ -551,11 +608,14 @@ class PairTable:
         logger.info('Load pair table: `{}`'.format(self.filename))
         df = pd.read_csv(self.filename, header=0, index_col=None,
                         sep='\t')
+        if self.remove_self:
+            df = df[df['Contig1'] != df['Contig2']]
         df = df.astype(
             {'Contig1': 'category', 'Contig2': 'category',
             '#X': 'int32', 'Y': 'int32', 'RE1': 'int64', 
             'RE2': 'int64', 'Label': 'category'}
         )
+        
 
         return df
     

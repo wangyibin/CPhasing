@@ -9,6 +9,7 @@ import sys
 import math
 import collections
 
+logger = logging.getLogger(__name__)
 
 def read_paf(paf):
     pafDic = {}
@@ -20,7 +21,7 @@ def read_paf(paf):
     return pafDic
 
 def read_fasta(faFile):
-    print("Reading genome...", file=sys.stderr)
+    logger.info("Reading genome...")
     fastaDic = {}
     with open(faFile,'r') as IN:
         fastaName = IN.readline().strip()[1:]

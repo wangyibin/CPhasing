@@ -42,11 +42,174 @@ def hitig(ctx):
     So, we can use Ultra-long or HiFi data to correct chimeric or identify high confidence regions (HCRs).
 
     """
+    logger.setLevel(logging.INFO)
     pass
 
 
 
 @hitig.command()
+@click.option(
+    '-f',
+    '--fasta',
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-i', 
+    '--fastq',
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-a',
+    '--min-as',
+    'min_as',
+    metavar='INT',
+    help='Minimum alignment score (AS)',
+    default=2000,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-q',
+    '--min-mapq',
+    'min_mapq',
+    metavar='INT',
+    help='minimum mapping quality',
+    default=2,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-n',
+    '--nhap',
+    help='maximum number of supplement alignment records',
+    default=4,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-w',
+    '--window',
+    help='window size',
+    default=5000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-m',
+    '--min-windows',
+    'min_windows',
+    help='minimum windows of read',
+    default=10,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-ms',
+    '--min-sa',
+    'min_sa',
+    metavar='INT',
+    help='Number of minmum split alignments in a window.',
+    default=5,
+    type=int,
+    show_default=True,
+)
+@click.option(
+    '-e',
+    '--edge',
+    metavar='INT',
+    help='Minimum length of contigs, which mean too short contigs will be skipped.',
+    default=20000,
+    type=int,
+    show_default=True,
+)
+@click.option(
+    '-d',
+    '--min-depth',
+    'min_depth',
+    metavar='INT',
+    help='minimum depth of windows',
+    type=int,
+    default=3,
+    show_default=True
+)
+@click.option(
+    '-c', 
+    '--cutoff',
+    metavar='FLOAT',
+    help='cutoff of identification chimeric contigs, '
+    'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
+    type=click.FloatRange(0, 1.0),
+    default=0.8,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '-o',
+    '--output',
+    help='output file prefix',
+    default='output',
+    show_default=True
+)
+@click.option(
+    '-s',
+    '--steps',
+    metavar='STR',
+    help="steps",
+    default="1,2",
+    show_default=True
+)
+@click.option(
+    '-ss',
+    '--skip-steps',
+    'skip_steps',
+    metavar="STR",
+    help="skip following steps, comma seperate.",
+    default=None,
+    show_default=True
+)
+def pipeline(fasta, fastq, min_as, min_mapq, 
+    nhap, window, min_windows,
+    min_sa, edge, min_depth,
+    cutoff, threads, output,
+    steps, skip_steps):
+    """
+    Pipeline of chimeric correct by hitig.
+    """
+    from .pipeline import run 
+
+    if steps:
+        if steps == "all":
+            steps = set(["1", "2"])
+        else:
+            steps = steps.strip().split(",")
+    else:
+        steps = set(map(str, [1, 2]))
+    
+    if skip_steps:
+        skip_steps = set(skip_steps.strip().split(","))
+    else:
+        skip_steps = set()
+    
+    run(
+        fasta, fastq, min_as, min_mapq, 
+    nhap, window, min_windows,
+    min_sa, edge, min_depth,
+    cutoff, threads, output,
+    steps, skip_steps
+    )
+
+
+@hitig.command(hidden=True)
 @click.option(
     '-i',
     '--fastq',
@@ -97,12 +260,14 @@ def split_reads(fastq, window, npart, threads):
 @click.option(
     '-f',
     '--fasta',
-    required=True
+    required=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-i', 
     '--fastq',
-    required=True
+    required=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-a',
@@ -145,7 +310,7 @@ def split_reads(fastq, window, npart, threads):
     '--min-windows',
     'min_windows',
     help='minimum windows of read',
-    default=20,
+    default=10,
     show_default=True,
     type=int,
 )

@@ -8,10 +8,17 @@
 |             | Xingtan Zhang ([tangerzhang](https://github.com/tangerzhang/))       |
 
 ## Examples
+### One command 
+
+```bash
+hitig pipeline -f draft.contig.fasta -i sample.fastq.gz -n ploidy-level
+```
+
+### step by step
 - `correct-alignments`
 > mapping split reads to draft assembly and correct the alignments 
 ```bash
-hitig correct-alignments -f draft.contig.fasta -i sample.fastq.gz -t 20
+hitig correct-alignments -f draft.contig.fasta -i sample.fastq.gz -t 20 -n ploidy-level
 ```
 - `find-chimeric`
 > find split-alignments and idendify the chimeric contigs

@@ -766,7 +766,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     ## check LIS
     corLISDic = checkLIS(allLISDIc, pafDic)
     ## output
-
+    
     outputLIS(corLISDic, pafDic, outPre)
 
 

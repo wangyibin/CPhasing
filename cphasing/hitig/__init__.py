@@ -5,8 +5,10 @@ import sys
 from rich.logging import Console, RichHandler
 
 logging.basicConfig(
-    # level=logging.INFO,
+    level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(console=Console(stderr=True))]
 )
+
+__author__ = ("Jiaxin Yu", "Yibin Wang", "Xingtan Zhang")

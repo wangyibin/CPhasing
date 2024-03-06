@@ -216,8 +216,9 @@ class AllhicOptimize:
             
             tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
                             self._run)(i, j, k, l) for i, j, k, l in args)
-
-            if self.allele_table:
+            
+            
+            if self.allele_table and len(tour_res) > 1:
                 hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
                 hap_align.run()
 
@@ -267,6 +268,9 @@ class HapHiCSort:
         self.tmp_dir = tmp_dir 
         self.threads = threads 
 
+        self.log_dir = "logs"
+        Path(self.log_dir).mkdir(exist_ok=True)
+
         self.allhic_path = choose_software_by_platform("allhic")
 
     @staticmethod
@@ -292,7 +296,7 @@ class HapHiCSort:
         return f"{group}.clm"
 
     @staticmethod
-    def run_haphic_optimize(fasta, split_contacts, tmp_dir, skip_allhic, threads=4):
+    def run_haphic_optimize(fasta, split_contacts, tmp_dir, skip_allhic, threads=4, log_dir="logs", ):
         script_realpath = os.path.dirname(os.path.realpath(__file__))
         haphic_sort = f"{script_realpath}/HapHiC_sort.py"
         
@@ -318,11 +322,11 @@ class HapHiCSort:
         
         cmd.extend(txt)
         
-        run_cmd(cmd, log=os.devnull, out2err=True)
+        run_cmd(cmd, log=f"../{log_dir}/HapHiC_sort.log", out2err=True)
       
     @staticmethod
-    def _run(fasta, split_contacts, workdir, skip_allhic=True, threads=4):
-        HapHiCSort.run_haphic_optimize(fasta, split_contacts, workdir, skip_allhic, threads)
+    def _run(fasta, split_contacts, workdir, skip_allhic=True, threads=4, log_dir="logs"):
+        HapHiCSort.run_haphic_optimize(fasta, split_contacts, workdir, skip_allhic, threads, log_dir)
         
     
     def run(self):
@@ -344,9 +348,14 @@ class HapHiCSort:
             gc.collect()
             
             HapHiCSort._run(self.fasta, self.split_contacts, "./", 
-                                skip_allhic=self.skip_allhic, threads=self.threads)
+                                skip_allhic=self.skip_allhic, threads=self.threads,
+                                log_dir=self.log_dir)
             
             tour_res = glob.glob("./*.tour")
+            if len(tour_res) == 0:
+                logger.warn("Failed to run HapHiC sort")
+                sys.exti(-1)
+
             if self.allele_table:
                 hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
                 hap_align.run()

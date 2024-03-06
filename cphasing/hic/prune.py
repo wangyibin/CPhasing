@@ -74,16 +74,19 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
     pt.data = (pairs_df.drop(valid_allelic_pairs, axis=0)
                 .reset_index()[header]
     )
+   
     pt.symmetric_pairs()
+    
     pt.data = pt.data.set_index(['Contig1', 'Contig2'])
+    pairs_contigs = set(pt.Contig1)
 
     if normalize:
         pt.normalize()
-
+    
+    pt_data_dict = {contig: pt.data.loc[contig] for contig in pairs_contigs}
     at.data = at.data.drop_duplicates(at.data.columns)
 
-    pairs_contigs = set(pt.Contig1)
-    
+   
     remove_db = set()
     retain_db = set()
     for _, item in at.data.iterrows():
@@ -99,7 +102,7 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
             if contig not in pairs_contigs:
                 continue
             
-            tmp_df = pt.data.loc[contig]
+            tmp_df = pt_data_dict[contig]
             if tmp_df.empty:
                 item_list.remove(contig)
                 continue
@@ -108,13 +111,12 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
                 res.append(tmp_df['NormalizedLinks'])
             else:
                 res.append(tmp_df['ObservedLinks'])
-
         
         if not res:
             continue
         if len(item_list) == 1:
             continue
-
+        
         res_df = pd.concat(res, axis=1, keys=item_list)
         res_df = res_df[res_df.count(axis=1) > 1]
 
@@ -124,6 +126,7 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
         all_db = (res_df.stack()
                     .index.values
                     .tolist())
+        
         tmp_retain_db = list(res_df.idxmax(axis=1)
                     .reset_index()
                     .itertuples(index=False, name=None))

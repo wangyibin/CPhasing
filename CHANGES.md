@@ -1,4 +1,11 @@
 # Release notes #
+
+## [v0.0.64]
+Date: 2024-03-11
+## Bug fixes
+- `hyperpartition`, fixed the inconsistent of phasing results, when specified alleletable and prunetable
+- `alleles`, filterring by valid kmer length of contigs
+
 ## [v0.0.62]
 Date: 2024-02-18
 ## New features

@@ -8,6 +8,7 @@ import os.path as op
 import sys
 import re
 
+import pandas as pd
 import numpy as np
 
 from Bio import SeqIO
@@ -17,6 +18,7 @@ from subprocess import Popen
 from pathlib import Path
 from pyfaidx import Fasta
 
+from .core import AlleleTable
 from .utilities import xopen
 
 
@@ -205,7 +207,7 @@ class PartigAllele:
                     n=5,
                     m=0.8,
                     d=0.2,
-                    filter_value=5000,
+                    filter_value=1000,
                     output='Allele.ctg.table',
                     log_dir='logs'):
         self.fasta = fasta
@@ -399,3 +401,35 @@ class GmapAllele:
             self.build_index()      
         self.gmap()
         self.to_alleletable()
+
+
+def filter_high_similarity_contigs(alleletable, contacts, min_values, output):
+    at = AlleleTable(alleletable, fmt='allele2', sort=False)
+    tmp_data = at.data[at.data[1] < at.data[2]]
+
+    db = pd.read_csv(contacts, sep='\t', index_col=(0, 1), header=None,
+                     names=['contig1', 'contig2', 'count'], 
+                     dtype={'contig1': 'U', 'contig2': 'U'}).query('contig1 <= contig2').to_dict()['count']
+    
+    def func(row):
+        contig1, contig2 = row[1], row[2]
+        try:
+            cis1 = db[(contig1, contig1)]
+            cis2 = db[(contig2, contig2)]
+            trans = db[(contig1, contig2)]
+        except KeyError:
+            return None
+
+        value = trans / ((cis1 * cis2) ** (1/2))
+
+        return value 
+
+    tmp_res = tmp_data.apply(func, axis=1).dropna() >= min_values
+    res = tmp_data.loc[tmp_res.index[tmp_res]][[1, 2]]
+  
+    res = set(res.values.flatten().tolist())
+
+    print("\n".join(res), file=output)
+
+    
+

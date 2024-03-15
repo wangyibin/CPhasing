@@ -44,7 +44,7 @@ def main(args):
     bins = cool.bins()
     matrix = cool.matrix(balance=False, sparse=True)[:]
     sum_array = np.array(matrix.sum(axis=1)).T[0]
-    sum_array_nonzero = sum_array[sum_array > 50]
+    sum_array_nonzero = sum_array[sum_array > 0]
     percentile_value = np.percentile(sum_array_nonzero, args.percentile)
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(5.5, 5))
@@ -56,6 +56,8 @@ def main(args):
     ax.set_ylabel('Density', fontsize=18)
     plt.xlim(0, np.percentile(sum_array, 99.99))
     plt.savefig(args.output, dpi=600, bbox_inches='tight')
+    plt.savefig(args.output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
+
 
     fig, ax = plt.subplots(figsize=(5.5, 5))
     ax = sns.kdeplot(sum_array_nonzero, ax=ax)
@@ -66,6 +68,7 @@ def main(args):
     ax.set_ylabel('Density', fontsize=18)
     plt.xlim(0, np.percentile(sum_array_nonzero, 99.99))
     plt.savefig(args.output.replace("hist", "kde"), dpi=600, bbox_inches='tight')
+    plt.savefig(args.output.replace("hist", "kde").replace("png", "pdf"), dpi=600, bbox_inches='tight')
 
 if __name__ == "__main__":
     main(sys.argv[1:])

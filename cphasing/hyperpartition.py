@@ -525,7 +525,7 @@ class HyperPartition:
         # sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
         if prune_pair_df is not None:
             sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
-        
+
             sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(sub_old2new_idx.get)
             sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(sub_old2new_idx.get)
             
@@ -535,6 +535,7 @@ class HyperPartition:
             sub_P_weak_idx = [tmp_df['contig1'], tmp_df['contig2']]
             
             sub_prune_pair_df = sub_prune_pair_df.reset_index()
+        
         else:
             sub_prune_pair_df = None
             sub_P_allelic_idx = None
@@ -748,8 +749,9 @@ class HyperPartition:
             self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
 
         if self.prunetable:
+            self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
-           
+
         elif self.alleletable:
             # is_run = False if isinstance(first_cluster, ClusterTable) else True
             is_run = True
@@ -761,7 +763,9 @@ class HyperPartition:
        
         ## Second round cluster
         args = []
+        results = []
         self.exclude_groups = []
+
         for num, sub_k in enumerate(self.K, 1):
             if isinstance(k[1], dict):
                 sub_group_number = int(k[1][num - 1])
@@ -779,8 +783,13 @@ class HyperPartition:
                         self.allelic_factor, self.cross_allelic_factor,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             
-            # results.append(HyperPartition._incremental_partition(k, prune_pair_df, self.H, #self.NW, 
-            #             self.resolution2, self.threshold, self.max_round, num))
+            
+            # results.append(HyperPartition._incremental_partition(sub_k, sub_group_number, prune_pair_df, 
+            #              self.H, vertices_idx_sizes, self.NW, 
+            #             self.resolution2, self.min_weight, 
+            #             self.allelic_similarity,  self.min_allelic_overlap, 
+            #             self.allelic_factor, self.cross_allelic_factor,
+            #             self.min_scaffold_length, self.threshold, self.max_round, num))
         
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)

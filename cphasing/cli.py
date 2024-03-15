@@ -328,6 +328,15 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-mw",
+    "--min-weight",
+    "min_weight",
+    help="Minimum weight of graph",
+    type=float,
+    default=0.1,
+    show_default=True
+)
+@click.option(
     "-q1",
     "--min-quality1",
     "min_quality1",
@@ -438,6 +447,7 @@ def pipeline(fasta,
             normalize,
             allelic_similarity,
             min_allelic_overlap,
+            min_weight,
             min_quality1,
             min_quality2,
             min_contacts,
@@ -522,8 +532,10 @@ def pipeline(fasta,
         whitelist=whitelist,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
+        min_weight=min_weight,
         min_quality1=min_quality1,
         min_quality2=min_quality2,
+        min_contacts=min_contacts,
         Nx=nx,
         min_scaffold_length=min_scaffold_length,
         factor=factor,
@@ -1298,7 +1310,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
  
         
     if porectable:
-        cmd = ["cphasing-rs", "porec-intersect", porectable, f"{prefix}.{binsize}.hcr.bed",
+        cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
                "-o", f"{prefix}_hcr.porec.gz"]
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -1312,7 +1324,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
         logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
     else:
-        cmd = ["cphasing-rs", "pairs-intersect", pairs, f"{prefix}.{binsize}.hcr.bed",
+        cmd = ["cphasing-rs", "pairs-intersect", pairs, bed,
                "-o", f"{prefix}_hcr.pairs.gz"]
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -1839,6 +1851,7 @@ def hypergraph(contacts,
 @click.option(
     "-ul",
     "--ultra-long",
+    "ultra_long",
     metavar="HyperGraph",
     help="""
     Add another linking information which generated from ultra-long reads. 
@@ -1856,8 +1869,8 @@ def hypergraph(contacts,
     help="""
     The weight of ultra-long hypergraph.
     """,
-    default=1.0,
-    type=float,
+    default=1,
+    type=int,
     show_default=True,
     hidden=True,
 )
@@ -2202,7 +2215,7 @@ def hyperpartition(hypergraph,
     import re
     from .hypergraph import HyperExtractor, Extractor
     from .hyperpartition import HyperPartition
-    from .algorithms.hypergraph import HyperEdges
+    from .algorithms.hypergraph import HyperEdges, merge_hyperedges
     from .utilities import read_chrom_sizes 
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
@@ -2264,6 +2277,8 @@ def hyperpartition(hypergraph,
             n[i] = 0
 
     contigsizes = read_chrom_sizes(contigsizes)
+    if contigsizes.empty:
+        logger.error("The contigsizes file is empty. please input correct file")
     prefix = Path(hypergraph).stem
     if porec:
         contigs = contigsizes.index.values.tolist()
@@ -2300,6 +2315,20 @@ def hyperpartition(hypergraph,
         except msgspec.ValidationError:
             raise msgspec.ValidationError(f"`{hypergraph}` is not the hypergraph. Please input correct hypergraph format")
         
+    if ultra_long and ul_weight:
+        logger.info("Load raw hypergraph from ultra-long hypergraph: `{ultra_long}`")
+        try:
+            ultra_long_hypergraph = msgspec.msgpack.decode(open(ultra_long, 'rb').read(), type=HyperEdges)
+        except msgspec.ValidationError:
+            raise msgspec.ValidationError(f"`{ultra_long}` is not the hypergraph. Please input correct hypergraph format")
+        
+        HE_list = [hypergraph]
+        for i in range(ul_weight):
+            HE_list.append(ultra_long_hypergraph)
+   
+        hypergraph = merge_hyperedges(HE_list)
+    
+
 
     if whitelist:
         whitelist = [i.strip() for i in open(whitelist) if i.strip()]
@@ -2339,7 +2368,7 @@ def hyperpartition(hypergraph,
     
     hp = HyperPartition(hypergraph, 
                             contigsizes,
-                            ultra_long,
+                            None,
                             ul_weight,
                             n,
                             alleletable,
@@ -3439,3 +3468,47 @@ def pseudo_agp(real_list, contigsizes, output):
     """
     from .agp import pseudo_agp
     pseudo_agp(real_list, contigsizes, output)
+
+
+@utils.command()
+@click.argument(
+    'alleletable',
+    metavar='AlleleTable',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'contacts',
+    metavar='INPUT_CONTACTS_PATH',
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-m",
+    "--min-values",
+    "min_values",
+    metavar="FLOAT",
+    default=1.0,
+    type=float,
+    show_default=True 
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def filter_high_similarity_contigs(alleletable, 
+                                   contacts,
+                                   min_values,
+                                   output):
+    
+    """
+    filter high similarity by h-trans contacts 
+    """
+    from .alleles import filter_high_similarity_contigs
+
+    filter_high_similarity_contigs(alleletable,
+                                   contacts,
+                                   min_values,
+                                   output)
+    

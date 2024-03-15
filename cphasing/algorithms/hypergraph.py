@@ -37,7 +37,25 @@ class HyperEdges(msgspec.Struct):
     col: list
     contigsizes: dict 
     mapq: list
+
+
+def merge_hyperedges(HE_list: list) -> HyperEdges:
     
+    if len(HE_list) <= 1:
+        return HE_list[0]
+    
+    init_idx = HE_list[0].idx 
+    init_HE = HE_list[0]
+    
+    for HE in HE_list[1:]:
+        assert HE.idx == init_idx, "HyperEdges must build in the same contigsizes"
+        init_HE.row += HE.row 
+        init_HE.col += HE.col 
+        if HE.mapq:
+            init_HE.mapq += HE.mapq
+
+    return init_HE
+
 
 class HyperGraph:
     """
@@ -206,6 +224,7 @@ class HyperGraph:
         df.to_csv(output, sep='\t', header=False, index=False)
                 
         logger.info(f"Export hypergraph into `{output}`")
+
 
 def calc_new_weight(k, c, e_c, m):
     """
@@ -449,7 +468,7 @@ def IRMM(H, NW,
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
     except ValueError:
-        return [list(range(A.shape[0]))]
+        return A, None, []
 
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
     cluster_results = list(map(set, list(cluster_assignments.as_cover())))
@@ -518,7 +537,7 @@ def IRMM(H, NW,
         try:
             G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
         except ValueError:
-            return cluster_assignments
+            return A, None, []
         
         # ## use igraph 
         cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)

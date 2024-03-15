@@ -69,9 +69,13 @@ class HaplotypeAlign:
             try:
                 hap, idx = tour.rsplit("g", 1)
             except:
+                if "single" not in db:
+                    db['single'] = []    
+                db['single'].append(Tour(tour))
                 continue
+
             db[hap].append(Tour(tour))
-        
+
         return db 
 
 

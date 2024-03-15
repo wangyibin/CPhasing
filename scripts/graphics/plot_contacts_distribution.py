@@ -24,6 +24,7 @@ from matplotlib.ticker import MaxNLocator
 
 def plot(data, output="output"):
     fig, ax = plt.subplots(figsize=(5.7, 5))
+    plt.rcParams['font.family'] = 'Arial'
     data = data[data <= np.percentile(data, 98) * 1.5]
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=5))

@@ -71,7 +71,8 @@ def main(args):
                 
     P = len(correct_breaks) / (len(incorrect_breaks) + len(correct_breaks))
     R = len(correct_breaks) / len(real_chimeric_contigs)
-    F1 = (2 * P * R) / (P + R)
+    F1 = (2 * P * R) / (P + R) if (P + R) else 0
+    
     print(f"Precision:{P}\nRecall:{R}\nF1 score:{F1}", file=sys.stdout)
     
 

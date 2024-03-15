@@ -252,7 +252,7 @@ class ChromapMapper:
             raise ValueError(f"pigz: command not found")
 
         self.prefix = Path(self.read1.stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz'}:
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
             self.prefix = self.prefix.with_suffix('')
         self.prefix = Path(str(self.prefix).replace('_R1', ''))
 

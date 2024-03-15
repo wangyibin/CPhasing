@@ -10,6 +10,7 @@ import argparse
 from copy import deepcopy
 import collections
 
+from ..utilities import xopen
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def read_paf(paf, minAS, nhap):
     maxAlign = int(nhap)
     logger.info(f"Loading `{paf}` ...")
 
-    with open(paf,'r') as fin:
+    with xopen(paf,'r') as fin:
         for line in fin:
             tmpLst = line.split('\t')
             qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, NM, ms, AS = tmpLst[:15]
@@ -702,6 +703,9 @@ def outputLIS(lisBak, pafDic, outpre):
                     qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS
                     """
                     _qn, ql, [qs, qe, s, tn], tl, [ts, te], [al1, al2, mapq, AS] = "{}_{}".format(qn, qi), itemInPaf[6], itemInPaf[:4], itemInPaf[7], itemInPaf[4:6], itemInPaf[8:]
+                    
+                    mapq = "2" if mapq == "0" else mapq
+                    # _qn2 = _qn.rsplit("_", 1)[0]
                     tmpAliPaf = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tAS:{}\n".format(_qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, AS)
                     fout2.write(tmpAliPaf)
                     tl, tn, ts, te, AS = itemInPaf[7], itemInPaf[3], itemInPaf[4], itemInPaf[5], itemInPaf[-1]

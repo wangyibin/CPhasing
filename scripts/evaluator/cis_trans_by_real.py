@@ -135,7 +135,8 @@ def main(args):
     ax = sns.violinplot(data=results, ax=ax, palette=colors, alpha=1)
     ax.set_xticks([0, 1])
     # ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
-    ax.set_xticklabels(['Raw', 'Removed \n$\mathit{trans}$'])
+    # ax.set_xticklabels(['Raw', 'Removed \n$\mathit{trans}$'])
+    ax.set_xticklabels(['Raw', 'Removed \ninterchromosome'])
     max_y = max(max(results)) * 1.5
     plt.ylim(-0.001, max_y)
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)

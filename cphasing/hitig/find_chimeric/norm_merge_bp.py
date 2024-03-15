@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import math
 import argparse
 import sys
@@ -11,6 +12,9 @@ workflow:
 (3) calculate depth
 (4) decision an cutoff
 """
+
+
+logger = logging.getLogger(__name__)
 
 """
 read LIS paf
@@ -76,6 +80,9 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
         subDepth = depthDic[ctg]
         for bini in bpDic[ctg]:
             regionDepth = find_region_depth(subDepth, bini, win, minDepth)
+            # if not regionDepth:
+            #     logger.info(f"Skip {ctg}, which not found depth.")
+            #     continue
             bpCount = bpDic[ctg][bini]
             try: 
                 avaDepth = float(sum(list(regionDepth.values())))/float(len(list(regionDepth.values())))

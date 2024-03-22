@@ -605,6 +605,7 @@ def plot_heatmap(matrix, output,
                     chrom_per_row=4,
                     dpi=1200, 
                     cmap="redp1_r",
+                    balanced=False,
                     threads=1):
     import matplotlib.pyplot as plt
 
@@ -612,6 +613,9 @@ def plot_heatmap(matrix, output,
 
     logger.info(f"Load contact matrix `{matrix}`.")
     cool = cooler.Cooler(matrix)
+    if balanced:
+        log1p = False 
+        log = True
 
     if not per_chromosomes:
         chrom_offset = cool._load_dset('indexes/chrom_offset')
@@ -622,7 +626,8 @@ def plot_heatmap(matrix, output,
         bins = bins.set_index('chrom')
 
         chromnames = cool.chromnames
-        matrix = cool.matrix(balance=False, sparse=True)[:].todense()
+       
+        matrix = cool.matrix(balance=balanced, sparse=True)[:].todense()
 
         if chromosomes:
             new_idx = bins.loc[chromosomes]['index']
@@ -688,7 +693,7 @@ def plot_heatmap(matrix, output,
     
     else: 
         plot_per_chromosome_heatmap(cool, chromosomes, chrom_per_row=chrom_per_row,
-                                        cmap=cmap, threads=threads)
+                                        cmap=cmap, balanced=balanced, threads=threads)
 
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
 
@@ -697,7 +702,7 @@ def plot_heatmap(matrix, output,
 
 def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, 
                                     chrom_per_row=4, remove_short_bin=True,
-                                    cmap='redp1_r', threads=1):
+                                    cmap='redp1_r', balanced=False, threads=1):
     """
     modified from hicPlotMatrix plotPerChr
     """

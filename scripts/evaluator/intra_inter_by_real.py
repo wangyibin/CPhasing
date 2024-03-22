@@ -50,8 +50,7 @@ def main(args):
             nargs="+",
             help='Path to cool file',
             required=True)
-    pOpt.add_argument("-hl", "--homo_list",
-                    
+    pOpt.add_argument("-hl", "--homo_list",      
             help="homolog chroms rellationship",
             required=True)
     pOpt.add_argument("--labels", nargs="*", default=None,
@@ -67,8 +66,8 @@ def main(args):
     
     args = p.parse_args(args)
 
-    if args.labels:
-        assert len(args.cool) == len(args.labels), "number of labels must equal to cool files"
+    # if args.labels:
+    #     assert len(args.cool) == len(args.labels), "number of labels must equal to cool files"
 
     results = []
     for i, cool_file in enumerate(args.cool):
@@ -92,12 +91,39 @@ def main(args):
                     continue 
 
                 data = trans / sqrt(cis1 * cis2)
-
+               
                 res.append(data)
 
         results.append(res)
 
+    for i, cool_file in enumerate(args.cool):
+        cool = cooler.Cooler(cool_file)
+        matrix = cool.matrix(balance=False, sparse=True)
+
+        chroms = cool.chromnames
+        chroms.sort()
+        res = []
+
+        for inter in combinations(chroms, 2):
+            if inter in homo:
+                continue 
+            
+            try:
+                cis1 = matrix.fetch(inter[0]).sum()
+                cis2 = matrix.fetch(inter[1]).sum()
+                trans = matrix.fetch(*inter).sum()
+            except:
+                continue 
+
+            data = trans / sqrt(cis1 * cis2)
+
+            res.append(data)
+        results.append(res)
+
+
+
     res_df = pd.DataFrame(results).T
+
     if args.labels:
         res_df.columns = args.labels
     res_df.to_csv(args.output.replace(".png", "") + ".csv", sep='\t', index=True, header=True)
@@ -111,7 +137,7 @@ def main(args):
     whiskerprops = dict(linestyle='--')
 
     if args.wi_test:
-        if len(args.cool) != 2:
+        if len(results) != 2:
             print("wi test only support for two datas", file=sys.stderr)
             sys.exit(-1)
         pvalue = wi_test(results[0], results[1])
@@ -153,7 +179,9 @@ def main(args):
     ax.set_xticks([0, 1])
     # ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
     # ax.set_xticklabels(['Raw', 'Removed \n$\mathit{trans}$'])
-    ax.set_xticklabels(args.labels, rotation=args.rotation)
+    if args.labels:
+        ax.set_xticklabels(args.labels, rotation=args.rotation)
+        
     max_y = max(max(results)) * 1.5
     plt.ylim(-0.001, max_y)
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)

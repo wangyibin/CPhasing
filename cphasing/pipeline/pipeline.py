@@ -27,9 +27,10 @@ def run(fasta,
         pairs, 
         pattern="AAGCTT",
         hcr_flag=False,
-        hcr_bed=None,
         hcr_percent=0.95,
         hcr_bs=10000,
+        hcr_bed=None,
+        hcr_invert=False,
         mode="phasing",
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5]),
@@ -160,27 +161,45 @@ def run(fasta,
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length}(N{Nx})")
 
     if hcr_flag or hcr_bed:
-        
+        hcr_invert_string = "-v" if hcr_invert else ""
+
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}_hcr.pairs.gz"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:
-                    hcr.main(
-                        args=["-pct",
-                                porec_table,
-                                "-cs",
-                                contigsizes,
-                                "-p",
-                                hcr_percent,
-                                "-bs",
-                                hcr_bs,
-                                "-b",
-                                hcr_bed
-                        ],
-                        prog_name="hcr"
-                    )
+                    if hcr_invert_string:
+                        hcr.main(
+                            args=["-pct",
+                                    porec_table,
+                                    "-cs",
+                                    contigsizes,
+                                    "-p",
+                                    hcr_percent,
+                                    "-bs",
+                                    hcr_bs,
+                                    "-b",
+                                    hcr_bed,
+                                    hcr_invert_string
+                            ],
+                            prog_name="hcr"
+                        )
+                    else:
+                        hcr.main(
+                            args=["-pct",
+                                    porec_table,
+                                    "-cs",
+                                    contigsizes,
+                                    "-p",
+                                    hcr_percent,
+                                    "-bs",
+                                    hcr_bs,
+                                    "-b",
+                                    hcr_bed
+                            ],
+                            prog_name="hcr"
+                        )
                 except SystemExit as e:
                     exc_info = sys.exc_info()
                     exit_code = e.code

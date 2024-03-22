@@ -57,6 +57,7 @@ class Extractor:
         pandarallel.initialize(nb_workers=threads, verbose=0)
         df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
         df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
+        df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
 
         return df
 
@@ -141,7 +142,7 @@ def process_pore_c_table(df, contig_idx, threads=1,
    
     pandarallel.initialize(nb_workers=threads, verbose=0)
     df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get).astype('int')
-
+    df = df.dropna(axis=0)
     # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
     #                     df.chrom.cat.categories))
     # df = (df.assign(alignment_length=lambda x: x.end - x.start)

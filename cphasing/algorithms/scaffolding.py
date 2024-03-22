@@ -120,7 +120,7 @@ class HaplotypeAlign:
 
         if tmp_df['value'].sum() < 0:
             tour2.reverse()
-            tour2.rm()
+            # tour2.rm()
             # tour2.backup("before_reverse")
             tour2.save(tour2.filename)    
         
@@ -305,6 +305,7 @@ class HapHiCSort:
         haphic_sort = f"{script_realpath}/HapHiC_sort.py"
         
         txt = glob.glob(f"{tmp_dir}/*.txt")
+        
         if skip_allhic:
             cmd = ["python", 
                     haphic_sort, 
@@ -358,7 +359,7 @@ class HapHiCSort:
             tour_res = glob.glob("./*.tour")
             if len(tour_res) == 0:
                 logger.warn("Failed to run HapHiC sort")
-                sys.exti(-1)
+                sys.exit(-1)
 
             if self.allele_table:
                 hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)

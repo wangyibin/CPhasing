@@ -151,6 +151,26 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-hcr-percent",
+    "--hcr-percent",
+    "hcr_percent",
+    metavar="INT",
+    help="Percent HCRs for subsequence analysis",
+    default=95,
+    type=click.IntRange(0, 100),
+    show_default=True,
+)
+@click.option(
+    "-hcr-bs",
+    "--hcr-binsize",
+    "hcr_bs",
+    metavar="INT",
+    help="Bin size for HCRs identification, only support for hcr by contacts",
+    default=10000,
+    type=int,
+    show_default=True,
+)
+@click.option(
     "-hcr-bed",
     "--hcr-bed",
     "hcr_bed",
@@ -161,24 +181,12 @@ def cli(verbose, quiet):
     type=click.Path(exists=True)
 )
 @click.option(
-    "-hcr-percent",
-    "--hcr-percent",
-    "hcr_percent",
-    metavar="INT",
-    help="Percent HCRs for subsequence analysis",
-    default=95,
-    type=click.IntRange(0, 100),
-    show_default=True,
-
-)
-@click.option(
-    "-hcr-bs",
-    "--hcr-binsize",
-    "hcr_bs",
-    metavar="INT",
-    help="Bin size for HCRs identification",
-    default=10000,
-    type=int,
+    "-hcr-invert",
+    "--hcr-invert",
+    "hcr_invert",
+    is_flag=True,
+    default=False,
+    help="Invert table by hcr bed.",
     show_default=True,
 )
 @click.option(
@@ -428,10 +436,11 @@ def pipeline(fasta,
             porectable, 
             pairs, 
             pattern,
-            hcr,
-            hcr_bed,
+            hcr,   
             hcr_percent,
             hcr_bs,
+            hcr_bed,
+            hcr_invert,
             mode, 
             steps,
             skip_steps,
@@ -509,12 +518,13 @@ def pipeline(fasta,
         skip_steps = set()
     
     run(fasta, porec_data,
-         porectable, pairs, 
-         pattern=pattern,
-         hcr_flag=hcr,
-         hcr_bed=hcr_bed,
-         hcr_percent=hcr_percent,
-         hcr_bs=hcr_bs,
+        porectable, pairs, 
+        pattern=pattern,
+        hcr_flag=hcr,
+        hcr_percent=hcr_percent,
+        hcr_bs=hcr_bs, 
+        hcr_bed=hcr_bed,
+        hcr_invert=hcr_invert,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
@@ -1215,6 +1225,14 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 @click.option(
+    "-v",
+    "--invert",
+    help="Invert table by HCRs bed",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '--fofn',
     help="""
     If this flag is set then the SRC_ASSIGN_TABLES is a file of
@@ -1234,7 +1252,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 def hcr(porectable, pairs, contigsize, binsize, percent, 
-        bed, fofn, output):
+        bed, invert, fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -1312,6 +1330,8 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     if porectable:
         cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
                "-o", f"{prefix}_hcr.porec.gz"]
+        if invert:
+            cmd.append("-v")
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f'Successful out high confidence high-orrder '
@@ -1326,6 +1346,8 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     else:
         cmd = ["cphasing-rs", "pairs-intersect", pairs, bed,
                "-o", f"{prefix}_hcr.pairs.gz"]
+        if invert:
+            cmd.append("-v")
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
@@ -2815,6 +2837,15 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True
 )
 @click.option(
+    '--balanced',
+    help="""
+    Plot balanced values, which need cool have weights columns in bins.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '-nl',
     '--no-lines',
     'no_lines',
@@ -2850,11 +2881,13 @@ def plot(matrix,
             chrom_per_row, 
             dpi, 
             cmap,
+            balanced,
             no_lines,
             no_ticks,):
     """
     Adjust or Plot the contacts matrix after assembling.
     """
+    import cooler
     from .plot import (
         adjust_matrix,
         coarsen_matrix, 
@@ -2896,6 +2929,14 @@ def plot(matrix,
         xticks = True 
         yticks = True
 
+    if balanced:
+        cool = cooler.Cooler(matrix)
+        try:
+            cool.bins()[:]['weight']
+        except KeyError:
+            logger.warn("There is not column of `bins/weight` in cool file, set `balanced=False`")
+            balanced = False
+    
     plot_heatmap(matrix,
                  output,
                  chromosomes=chromosomes,
@@ -2903,6 +2944,7 @@ def plot(matrix,
                  chrom_per_row=chrom_per_row,
                  dpi=dpi,
                  cmap=cmap, 
+                 balanced=balanced,
                  xticks=xticks, 
                  yticks=yticks,
                  add_lines=False if no_lines else True,
@@ -2923,7 +2965,9 @@ ALIASES = {
     "ho": hyperoptimize,
     "optimize": scaffolding,
     "sf": scaffolding,
-    "scaf": scaffolding
+    "scaf": scaffolding, 
+    "scaffold": scaffolding,
+    "scaffolds": scaffolding
 }
 
 ## hic subcommand

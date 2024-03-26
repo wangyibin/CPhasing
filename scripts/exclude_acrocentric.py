@@ -56,13 +56,19 @@ def main(args):
     
 
     ## run minigraph
+    # if which('minigraph') is None:
+    #         raise ValueError(f"minigraph: command not found.")
+    
+    # cmd = ["minigraph", f"-t{args.threads}", "-xasm", "-g10k", "--min-cov-mapq=0", "-j.001", args.chm13, args.contigs, 
+            # "|", "awk", "'{print  $6,$8,$9,$1,$3,$4}'", "OFS='\\t'", ">", "map2chm.bed"]
+    
     if which('minigraph') is None:
             raise ValueError(f"minigraph: command not found.")
     
-    cmd = ["minigraph", f"-t{args.threads}", "-cxasm", args.chm13, args.contigs, 
-            "|", "awk", "'{print  $6,$8,$9,$1,$3,$4}'", "OFS='\\t'", ">", "map2chm.bed"]
-    
-    # os.system(" ".join(cmd))
+    cmd = ["minimap2", "-cxasm5", "--secondary=no", f"-t{args.threads}", args.chm13, args.contigs, 
+             "|", "awk", "'{print  $6,$8,$9,$1,$3,$4}'", "OFS='\\t'", ">", "map2chm.bed"]
+
+    os.system(" ".join(cmd))
     acrocentric_bed = output_acrocentric_regions()
     
     cmd = ["bedtools", "intersect", "-a", "map2chm.bed", "-b", acrocentric_bed, "|", 

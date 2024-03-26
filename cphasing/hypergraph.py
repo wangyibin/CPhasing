@@ -345,10 +345,13 @@ class HyperExtractor:
         
         idx = 0
         mapping_quality_res = []
+        
         for i, df in enumerate(res):
             mapping_quality_res.append(df['mapping_quality'])
-            df['read_idx'] = df['read_idx'] + idx 
-            res[i] = df
+            if idx:
+                df['read_idx'] = df['read_idx'] + idx 
+                res[i] = df
+
             idx += len(df)
         
         res_df = pd.concat(res)
@@ -423,7 +426,7 @@ class HyperExtractorSplit:
         df = df[['chrom_idx', 'mapping_quality', 'chrom']]
         df_grouped = df.groupby('read_idx')['chrom_idx']
         df_grouped_nunique = df_grouped.nunique()
-        # df = df.loc[(df_grouped_nunique >= min_order) 
+        # df = df.loc[(df_grouped_nunique >= min_order)]
         #             & (df_grouped_nunique <= max_order)]
     
         df = df[['chrom_idx', 'mapping_quality', 'chrom']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])

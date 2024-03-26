@@ -2303,6 +2303,7 @@ def hyperpartition(hypergraph,
     prefix = Path(hypergraph).stem
     if porec:
         contigs = contigsizes.index.values.tolist()
+        contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
@@ -2318,6 +2319,7 @@ def hyperpartition(hypergraph,
 
     elif pairs:
         contigs = contigsizes.index.values.tolist()
+        contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")

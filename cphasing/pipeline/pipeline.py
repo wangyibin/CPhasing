@@ -73,7 +73,9 @@ def run(fasta,
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
+    mode = 'basal' if mode == 'haploid' else mode
     if mode == 'basal':
+        
         skip_steps.add("1")
         allele_table = None
 

@@ -122,6 +122,7 @@ class HaplotypeAlign:
             tour2.reverse()
             # tour2.rm()
             # tour2.backup("before_reverse")
+            
             tour2.save(tour2.filename)    
         
     
@@ -135,19 +136,7 @@ class HaplotypeAlign:
         Parallel(n_jobs=min(len(args), self.threads))(delayed(
                 self.align)(i, j, k) for i, j, k in args
         )
-
-    
-
-def test_haplotype_align():
-    at = "../Allele.ctg.table"
-    tour_list = glob.glob("*.tour")
-    hap_align = HaplotypeAlign(at, tour_list)
-    hap_align.run()
-    
-    
-
-
-    
+  
 
 class AllhicOptimize:
 
@@ -361,12 +350,14 @@ class HapHiCSort:
                 logger.warn("Failed to run HapHiC sort")
                 sys.exit(-1)
 
+
+            os.chdir(workdir)
             if self.allele_table:
                 hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
                 hap_align.run()
 
 
-            os.chdir(workdir)
+           
             if not self.fasta:
                 os.system(f"cp *tour ../")
             else:

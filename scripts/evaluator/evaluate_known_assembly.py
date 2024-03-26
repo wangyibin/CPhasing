@@ -62,6 +62,7 @@ def main(args):
 
     contigsizes = dict(i.strip().split()[:2] for i in open(args.contigsizes) if i.strip())
     contigsizes = dict(map(lambda x: (x[0], int(x[1])), contigsizes.items()))
+    contigsizes = defaultdict(int, contigsizes)
     
     chromsizes = defaultdict(lambda: 0)
     for contig in contigsizes:
@@ -76,6 +77,7 @@ def main(args):
         _contigs = ct.data[group]
         _contigs_chrom = list(map(lambda x: x.split(".")[0], _contigs))
         _contigs_chrom_count = Counter(_contigs_chrom)
+        
         _contigs_size = sum(contigsizes[i] for i in _contigs)
         main_chrom = max(_contigs_chrom_count, key=lambda x: _contigs_chrom_count.get(x))
         main_contigs = list(filter(lambda x: main_chrom in x, _contigs))

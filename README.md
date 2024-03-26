@@ -52,8 +52,9 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 
 ## One command pipeline of C-Phasing
 - Start from a pore-c data
+Current only support single fastq file, if you have multi cells, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.
 ```bash
-cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all 
+cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all -n "8:4"
 ```
 - Start from a pore-c table  
 ```bash
@@ -79,17 +80,17 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 0. **mapping**  
     > Mapping pore-c data into contig-level assembly and output the pore-c table and 4DN pairs.
     ```bash
-    ## results are `sample.porec.gz` and `sample.pairs.gz`
+    ## results are `sample.porec.gz` and `sample.pairs.gz`  
     cphasing mapper draft.asm.fasta sample.fastq.gz -t 10
     ```  
-    > Note: At first, only one data can be run until the index is successfully created.  
+    > Note: At first, only one data can be run until the index is successfully created.   
 
-    > For Hi-C data please use `cphasing hic mapper`
+    > For Hi-C data please use `cphasing hic mapper`  
 
     Note: If you mapping multiple pore-c datas, the multiple `pairs.gz` files should be merged by following steps:
     ```bash
-    zgrep "^#" sample-1.pairs.gz > header
-    cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz 
+    zgrep "^#" sample-1.pairs.gz > header  
+    cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz   
     ```
 0.1. **hcr** (Optional)
 

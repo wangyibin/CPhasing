@@ -191,9 +191,8 @@ def cli(verbose, quiet):
 )
 @click.option(
     '--mode',
-    metavar="STR",
-    help="mode of hyperpartition",
-    type=click.Choice(['basal', 'phasing', 'basal_withprune']),
+    help="mode of hyperpartition, the basal equal to phasing",
+    type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),
     default='phasing',
     show_default=True,
 )
@@ -1898,9 +1897,8 @@ def hypergraph(contacts,
 )
 @click.option(
     '--mode',
-    metavar="STR",
-    help="mode of hyperpartition, conflict of `-inc`. [default: None]",
-    type=click.Choice(["basal", "phasing", "basal_withprune", None]),
+    help="mode of hyperpartition, conflict of `-inc`. The basal equal to phasing. [default: None]",
+    type=click.Choice(["basal", "haploid", "phasing", "basal_withprune", None]),
     default=None,
     show_default=True
 )
@@ -2243,6 +2241,7 @@ def hyperpartition(hypergraph,
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
 
     ultra_complex = None
+    # mode = "basal" if mode == "haploid" else mode 
 
     if mode == "basal":
         incremental = False

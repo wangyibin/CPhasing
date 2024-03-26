@@ -416,9 +416,10 @@ class HyperPartition:
         if self.resolution1 == -1:
             result_K_length = 0
             tmp_resolution = 0.8
-            
+            if not k:
+                logger.warn("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
-                logger.info(f"Automatic search  best resolution ... {tmp_resolution:.1f}")
+                logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
                 A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,

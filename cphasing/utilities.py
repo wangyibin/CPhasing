@@ -15,9 +15,11 @@ import cooler
 import numpy as np
 import pandas as pd
 
+from Bio import SeqIO 
 from collections import OrderedDict
 from pathlib import Path, PosixPath
 from pyfaidx import Fasta
+
 
 logger = logging.getLogger(__name__)
 
@@ -402,8 +404,14 @@ def get_genome_size(fasta):
     100000
     """
     
-    fasta = Fasta(fasta)
-    sizes = [record.unpadded_len for record in fasta]
+
+    if str(fasta)[-3:] == ".gz":
+        handle = xopen(fasta)
+        fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+        sizes = [len(record) for record in fasta]
+    else:
+        fasta = Fasta(fasta)
+        sizes = [record.unpadded_len for record in fasta]
     
     return sum(sizes)
 

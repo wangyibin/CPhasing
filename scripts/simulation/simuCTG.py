@@ -117,14 +117,14 @@ def SimGenomeCtg(inFasta, outFasta, n50, minLen, maxLen):
         print("           N50 size:\t%d"%(n50Len))
     
     print("\033[32m%s\033[0m Writing contigs"%(time.strftime('[%H:%M:%S]',time.localtime(time.time()))))
-    with open(outFasta, 'w') as fOut, open('new_genome.posi.bed', 'w') as out:
+    with open(outFasta, 'w') as fOut, open(f'{outFasta.replace(".fasta", "").replace(".fa", "")}.new_genome.posi.bed', 'w') as out:
         for chrn in sorted(fastaDB):
             base = 1
             for region in ctgRegionsDB[chrn]:
                 s = region[0]
                 e = region[1]
                 ctgName = f"{chrn}.ctg{base}"
-                out.write(f"{chrn}\t{s}\t{e}\n")
+                out.write(f"{chrn}\t{s}\t{e}\t{ctgName}\n")
                 fOut.write(">%s\n%s\n"%(ctgName, fastaDB[chrn][s: e]))    
                 base += 1
     

@@ -620,17 +620,17 @@ class HyperPartition:
                             >= min_scaffold_length, new_K)))
       
         if k and len(new_K) > k:
-            # new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
+            new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
 
-        A = HyperGraph.clique_expansion_init(sub_H)
-        vertices_length = sub_vertices_new_idx_sizes['length']
-        new_K = raw_sort(new_K, A, vertices_length, threads=1)
+        # A = HyperGraph.clique_expansion_init(sub_H)
+        # vertices_length = sub_vertices_new_idx_sizes['length']
+        # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
-        # new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
+        new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
         return cluster_assignments, new_K
     

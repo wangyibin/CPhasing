@@ -137,10 +137,12 @@ class HaplotypeAlign:
         for hap, tours in self.hap_tour_db.items():
             for i in range(1, len(tours)):
                 args.append((tours[0], tours[i], self.allele_data))
-        
-        Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                self.align)(i, j, k) for i, j, k in args
-        )
+        try:
+            Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                    self.align)(i, j, k) for i, j, k in args
+            )
+        except ValueError:
+            logger.warning("Failed to run HaplotypeAlign. skipped")
   
 
 class AllhicOptimize:
@@ -359,14 +361,16 @@ class HapHiCSort:
                             skip_allhic=self.skip_allhic, threads=self.threads,
                             log_dir=self.log_dir)
         
+        os.chdir(workdir)
+
         tour_res = glob.glob("./*.tour")
         if len(tour_res) == 0:
             logger.warn("Failed to run HapHiC sort")
             sys.exit(-1)
 
 
-        os.chdir(workdir)
-        if self.allele_table:
+        
+        if self.allele_table and len(tour_res) >= 2:
             hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
             hap_align.run()
 

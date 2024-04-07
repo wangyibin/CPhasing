@@ -19,7 +19,11 @@ import random
 import igraph as ig
 import gc
 import numpy as np
+import networkx as nx 
+import networkx.algorithms.approximation as nx_app 
+import igraph as ig 
 import pandas as pd
+import shutil
 
 from collections import defaultdict
 from joblib import Parallel, delayed
@@ -29,14 +33,15 @@ from pytools import natsorted
 from scipy.sparse import tril, coo_matrix
 
 
-from ..core import (
+from cphasing.algorithms.hypergraph import IRMM
+from cphasing.core import (
                 AlleleTable, 
                 CountRE, 
                 ClusterTable, 
                 Clm, 
                 Tour
                 )
-from ..utilities import choose_software_by_platform, run_cmd
+from cphasing.utilities import choose_software_by_platform, run_cmd
 
 
 logger = logging.getLogger(__name__)
@@ -143,7 +148,9 @@ class AllhicOptimize:
     def __init__(self, clustertable, count_re, clm, 
                     allele_table=None,
                     fasta=None, output="groups.agp", 
-                    tmp_dir='scaffolding_tmp', threads=4):
+                    tmp_dir='scaffolding_tmp', 
+                    keep_temp=False,
+                    threads=4):
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
         self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
@@ -151,6 +158,8 @@ class AllhicOptimize:
         self.fasta = Path(fasta).absolute() if fasta else None
         self.output = output
         self.tmp_dir = tmp_dir 
+        self.delete_temp = False if keep_temp else True 
+  
         self.threads = threads 
 
         self.allhic_path = choose_software_by_platform("allhic")
@@ -192,55 +201,57 @@ class AllhicOptimize:
     
     def run(self):
         from ..cli import build
-        with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
-            logger.info('Working on temporary directory: {}'.format(tmpDir))
-            os.chdir(tmpDir)
-            workdir = os.getcwd()
-            args = []
-            for group in self.clustertable.data.keys():
-                contigs = self.clustertable.data[group]
-                tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
-                tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
-                args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
-            
-            del self.clm
-            gc.collect()
-            
-            
-            tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                            self._run)(i, j, k, l) for i, j, k, l in args)
-            
-            
-            if self.allele_table and len(tour_res) > 1:
-                hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
-                hap_align.run()
+    
+        tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
+        logger.info('Working on temporary directory: {}'.format(tmpDir))
+        os.chdir(tmpDir)
+        workdir = os.getcwd()
+        args = []
+        for group in self.clustertable.data.keys():
+            contigs = self.clustertable.data[group]
+            tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
+            tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
+            args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
+        
+        del self.clm
+        gc.collect()
+        
+        
+        tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
+                        self._run)(i, j, k, l) for i, j, k, l in args)
+        
+        os.chdir(workdir)
+        if self.allele_table and len(tour_res) > 1:
+            hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+            hap_align.run()
 
 
-            if not self.fasta:
-                os.system(f"cp *tour ../")
-            else:
-                try:
-                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
-                except SystemExit as e:
-                    exc_info = sys.exc_info()
-                    exit_code = e.code
-                    if exit_code is None:
-                        exit_code = 0
-                    
-                    if exit_code != 0:
-                        raise e
-                    
-                os.system(f"cp {self.output} ../")
-            
-            logger.info("Removed temporary directory.")
+        if not self.fasta:
+            os.system(f"cp *tour ../")
+        else:
+            try:
+                build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                
+            os.system(f"cp {self.output} ../")
              
-            os.chdir("../")
+        os.chdir("../")
+        if self.delete_temp is True:
+            shutil.rmtree(tmpDir)
+            logger.info("Removed temporary directory.")
 
         logger.info("Done")
 
 
 class HapHiCSort:
-    from .HapHiC_sort import parse_arguments, run
+    from cphasing.algorithms.HapHiC_sort import parse_arguments, run
 
     def __init__(self, clustertable,
                     count_re, clm, 
@@ -248,7 +259,9 @@ class HapHiCSort:
                     skip_allhic=False,
                     allele_table=None,
                     fasta=None, output="groups.agp", 
-                    tmp_dir='scaffolding_tmp', threads=4):
+                    tmp_dir='scaffolding_tmp', 
+                    keep_temp=False,
+                    threads=4):
         
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
@@ -258,6 +271,7 @@ class HapHiCSort:
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
         self.output = output
+        self.delete_temp = False if keep_temp else True
         self.tmp_dir = tmp_dir 
         self.threads = threads 
 
@@ -325,59 +339,63 @@ class HapHiCSort:
     
     def run(self):
         from ..cli import build
-        with tempfile.TemporaryDirectory(prefix=self.tmp_dir, dir='./') as tmpDir:
-            logger.info('Working on temporary directory: {}'.format(tmpDir))
-            os.chdir(tmpDir)
-            workdir = os.getcwd()
- 
-
-            args = []
-            for group in self.clustertable.data.keys():
-                contigs = self.clustertable.data[group]
-                tmp_clm = HapHiCSort.extract_clm(group, contigs, self.clm)
-                tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
-                args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
-            
-            del self.clm
-            gc.collect()
-            
-            HapHiCSort._run(self.fasta, self.split_contacts, "./", 
-                                skip_allhic=self.skip_allhic, threads=self.threads,
-                                log_dir=self.log_dir)
-            
-            tour_res = glob.glob("./*.tour")
-            if len(tour_res) == 0:
-                logger.warn("Failed to run HapHiC sort")
-                sys.exit(-1)
+        tmpDir = tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
+        logger.info('Working on temporary directory: {}'.format(tmpDir))
+        os.chdir(tmpDir)
+        workdir = os.getcwd()
 
 
-            os.chdir(workdir)
-            if self.allele_table:
-                hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
-                hap_align.run()
+        args = []
+        for group in self.clustertable.data.keys():
+            contigs = self.clustertable.data[group]
+            tmp_clm = HapHiCSort.extract_clm(group, contigs, self.clm)
+            tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
+            args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
+        
+        del self.clm
+        gc.collect()
+        
+        HapHiCSort._run(self.fasta, self.split_contacts, "./", 
+                            skip_allhic=self.skip_allhic, threads=self.threads,
+                            log_dir=self.log_dir)
+        
+        tour_res = glob.glob("./*.tour")
+        if len(tour_res) == 0:
+            logger.warn("Failed to run HapHiC sort")
+            sys.exit(-1)
 
 
-           
-            if not self.fasta:
-                os.system(f"cp *tour ../")
-            else:
-                try:
-                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
-                               prog_name='build')
-                except SystemExit as e:
-                    exc_info = sys.exc_info()
-                    exit_code = e.code
-                    if exit_code is None:
-                        exit_code = 0
-                    
-                    if exit_code != 0:
-                        raise e
-                    
-                os.system(f"cp {self.output} ../")
-            
+        os.chdir(workdir)
+        if self.allele_table:
+            hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+            hap_align.run()
+
+
+        
+        if not self.fasta:
+            os.system(f"cp *tour ../")
+        else:
+            try:
+                build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
+                            prog_name='build')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                
+            os.system(f"cp {self.output} ../")
+    
+        os.chdir("../")
+
+               
+        if self.delete_temp:
+
+            shutil.rmtree(tmpDir)
             logger.info("Removed temporary directory.")
-             
-            os.chdir("../")
 
         logger.info("Done")
 
@@ -1367,5 +1385,263 @@ def test(args):
     so =  SimpleOptimize(contigs, cool)
     so.parse()
 
+
+class HyperScaffolding:
+    def __init__(self, HG, contigs, resolution=1.0, min_contacts=1):
+        self.min_contacts = min_contacts
+        self.HG = HG 
+        HG.extract_rows(contigs)
+        self.resolution = resolution
+
+        self.H = self.HG.incidence_matrix(min_contacts=self.min_contacts)
+        self.length_array = np.array([self.HG.contigsizes[x] for x in self.HG.nodes])
+        self.NW = self.get_normalize_weight()
+
+
+    def get_normalize_weight(self):
+        
+        NW = np.outer(self.length_array, self.length_array)
+        
+        return NW 
+    
+    def cluster(self):
+
+        self.A, cluster_assignments, self.K = IRMM(self.H, resolution=self.resolution)
+        self.NA = np.array(self.A / self.NW)
+        print(len(self.K))
+        logger.debug(f"Partition contigs into {len(self.K)} group.")
+ 
+
+    def orientation(self):
+        pathes = []
+        for sub_group in self.K:
+            if len(sub_group) <= 2:
+                pathes.append(list(sub_group))
+                continue
+            sub_group_idx = dict(zip(range(len(sub_group)), list(sub_group)))
+            sub_NA = self.NA[list(sub_group), :][:, list(sub_group)]
+            # sub_NA[np.where(sub_NA < 200)] = 0.0
+            
+            G = ig.Graph.Weighted_Adjacency(1 / sub_NA, mode='undirected', loops=False).to_networkx()
+            # tree = nx.minimum_spanning_tree(G)
+            ring_path = nx_app.christofides(G, weight='weight')
+           
+            print(self.HG.nodes[ring_path])
+            ## break ring path
+            
+            tmp_res = {}
+            for i in range(0, len(ring_path) - 1):
+                j = i + 1
+                i_idx, j_idx = ring_path[i], ring_path[j]
+                tmp_res[(i, j)] = sub_NA[i_idx, j_idx]
+
+            print(tmp_res)
+            break_pos = sorted(tmp_res, key=lambda x: tmp_res[x])
+            print(break_pos)
+            break_pos = break_pos[0]
+            logger.debug(f"Break ring path at {break_pos}.")
+
+            path = []
+            path.extend(ring_path[break_pos[1]:])
+            path.extend(ring_path[:break_pos[1]][1:])
+            new_path = [sub_group_idx[x] for x in path]
+
+            pathes.append(new_path)
+
+        if len(pathes) <= 1:
+            return pathes[0]
+        
+        split_length_array = np.zeros(len(pathes) * 2)
+        split_pathes = []
+        print(pathes)
+        for i in range(len(pathes)):
+            split_pos = 0 
+            length = self.length_array[pathes[i]].sum()
+            cum_length = 0
+            for idx in pathes[i]:
+                cum_length += self.length_array[idx]
+                split_pos += 1 
+                if cum_length > length // 2:
+                    if (cum_length - length // 2) > (self.length_array[idx] - (cum_length - length // 2 )):
+                        split_pos -= 1 
+                        cum_length -= self.length_array[idx]
+                    break 
+                   
+            split_length_array[i*2] = cum_length 
+            split_length_array[i*2 + 1] = length - cum_length 
+            split_pathes.append((pathes[i][: split_pos], pathes[i][split_pos:]))
+
+
+        split_group_A = np.zeros(shape=(len(pathes) * 2, len(pathes) * 2))
+        for i in range(0, len(pathes) - 1):
+            for j in range(i, len(pathes)):
+                if i == j:
+                    continue
+
+                i1, j1, i2, j2 = i * 2, j * 2, i * 2 + 1, j * 2 + 1
+                pathes_2, pathes_1 = split_pathes[i], split_pathes[j]
+                # print(list(map(lambda x: self.HG.nodes[x], pathes_1)), list(map(lambda x: self.HG.nodes[x], pathes_2)))
+                v1 = self.A[pathes_1[0], :][:, pathes_2[0]].sum() 
+                v3 = self.A[pathes_1[0], :][:, pathes_2[1]].sum()
+                v4 = self.A[pathes_1[1], :][:, pathes_2[0]].sum()
+                v2 = self.A[pathes_1[1], :][:, pathes_2[1]].sum()
+                a = np.array([[v1, v3], [v4, v2]])
+                
+                split_group_A[i1, j1] = v1  / (split_length_array[i1] * split_length_array[j1])
+                split_group_A[i2, j2] = v2 / (split_length_array[i2] * split_length_array[j2])
+                split_group_A[i2, j1] = v3  / (split_length_array[i2] * split_length_array[j1])
+                split_group_A[i1, j2] = v4  / (split_length_array[i1] * split_length_array[j2])
+
+        split_group_A += split_group_A.T - np.diag(split_group_A.diagonal())
+
+        G = ig.Graph.Weighted_Adjacency(1 / split_group_A, mode='undirected', loops=False).to_networkx()
+        # tree = nx.minimum_spanning_tree(G)
+        ring_path = nx_app.christofides(G, weight='weight')
+
+    
+        group_A = np.zeros(shape=(len(pathes), len(pathes)))
+        for i in range(len(pathes) - 1):
+            for j in range(i + 1, len(pathes)):
+                if i == j:
+                    continue
+                idx1 = pathes[i]
+                idx2 = pathes[j]
+                length1 = self.length_array[idx1].sum()
+                length2 = self.length_array[idx2].sum()
+                group_A[i, j] = self.NA[idx1, :][:, idx2].sum() / ( length1 * length2)
+
+        group_A += group_A.T - np.diag(group_A.diagonal())
+        print(group_A)
+        G = ig.Graph.Weighted_Adjacency(1 / group_A, mode='undirected', loops=False).to_networkx()
+        ring_path = nx_app.christofides(G, weight='weight')
+        tmp_res = {}
+        for i in range(0, len(ring_path) - 1):
+            j = i + 1
+            i_idx, j_idx = ring_path[i], ring_path[j]
+            tmp_res[(i, j)] = group_A[i_idx, j_idx]
+
+        break_pos = min(tmp_res, key=lambda x: tmp_res[x])
+        logger.debug(f"Break ring path at {break_pos}.")
+
+        path = []
+        path.extend(ring_path[break_pos[1]:])
+        path.extend(ring_path[:break_pos[1]][1:])
+
+        
+        new_path = []
+        for idx1 in range(len(path) - 1):
+           
+            idx2 = idx1 + 1
+            a = np.array([[split_group_A[idx1*2, idx2*2], 
+                           split_group_A[idx1*2 +  1, idx2*2]], 
+                        [split_group_A[idx1*2, idx2*2 + 1], 
+                        split_group_A[idx1*2 + 1, idx2*2 + 1]]])
+            
+            max_idx = a.argmax()
+            
+            if max_idx == 0:
+                if idx1 == 0:
+                    new_path.extend(pathes[idx1][::-1])
+                
+                new_path.extend(pathes[idx2])
+            elif max_idx == 1:
+                if idx1 == 0:
+                    new_path.extend(pathes[idx1])
+                    
+                new_path.extend(pathes[idx2])
+            elif max_idx == 3:
+                if idx1 == 0:
+                    new_path.extend(pathes[idx1])
+                new_path.extend(pathes[idx2][::-1])
+            else:
+                if idx1 == 0:
+                    new_path.extend(pathes[idx1])
+                    
+                new_path.extend(pathes[idx2])
+
+    
+        return new_path
+
+
+    def orient(self):
+        pass 
+
+
+def raw_sort(K, A, length_array, threads=4):
+
+    def func(sub_group, A, length_array):
+        sub_group = list(sub_group)
+        if len(sub_group) <= 2:
+            return sub_group
+        NW = np.outer(length_array[sub_group], length_array[sub_group])
+        
+        sub_group_idx = dict(zip(range(len(sub_group)), list(sub_group)))
+        
+        sub_A = A[sub_group, :][:, sub_group]
+        sub_NA = sub_A / NW 
+        sub_NA[np.where(sub_NA == 0.0)] = 0.00001
+        sub_NA2 = 1 / sub_NA
+        try:
+            G = ig.Graph.Weighted_Adjacency(sub_NA2, mode='undirected', loops=False).to_networkx()
+
+            ring_path = nx_app.christofides(G, weight='weight')
+        except:
+            return sub_group
+        tmp_res = {}
+        for i in range(0, len(ring_path) - 1):
+            j = i + 1
+            i_idx, j_idx = ring_path[i], ring_path[j]
+            tmp_res[(i, j)] = sub_NA[i_idx, j_idx]
+        
+        break_pos = sorted(tmp_res, key=lambda x: tmp_res[x])
+        break_pos = break_pos[0]
+        path = []
+        path.extend(ring_path[break_pos[1]:])
+        path.extend(ring_path[:break_pos[1]][1:])
+        new_path = [sub_group_idx[x] for x in path]
+
+        return new_path
+    
+    args = [(k, A, length_array) for k in K]
+    # res = []
+    # for i, j, k in args:
+    #     res.append(func(i, j, k))
+    res = Parallel(n_jobs=min(threads, len(args)))(delayed(
+        func)(i, j, k) for i, j, k in args 
+    )
+    
+
+    return res 
+
+
+def test_hyperscaffold(args):
+    p = argparse.ArgumentParser(prog=__file__,
+                        description=__doc__,
+                        formatter_class=argparse.RawTextHelpFormatter,
+                        conflict_handler='resolve')
+    pReq = p.add_argument_group('Required arguments')
+    pOpt = p.add_argument_group('Optional arguments')
+    pReq.add_argument('hg')
+    pReq.add_argument('contig_list', 
+            help='contig list')
+    
+    pOpt.add_argument('-h', '--help', action='help',
+            help='show help message and exit.')
+    
+    args = p.parse_args(args)
+
+    import msgspec 
+    from cphasing.algorithms.hypergraph import HyperEdges, HyperGraph
+
+    contigs = [i.strip() for i in open(args.contig_list)]
+    
+    he = msgspec.msgpack.decode(open(args.hg, 'rb').read(), type=HyperEdges)
+    hg = HyperGraph(he)
+
+    hs = HyperScaffolding(hg, contigs)
+    hs.cluster()
+    res = hs.orientation()
+    print(hs.HG.nodes[res])
+
 if __name__ == "__main__":
-    test(sys.argv[1:])
+    test_hyperscaffold(sys.argv[1:])

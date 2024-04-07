@@ -48,23 +48,23 @@ def main(args):
             for line in fp:
                 line_list = line.strip().split()
                 contig_pair = (line_list[0], line_list[1])
-                if int(line_list[2]) < 3:
-                    continue
+                # if int(line_list[2]) < 3:
+                #     continue
                 contacts_dict[contig_pair] = line_list[2]
                 
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
-    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[-1])
-
+    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[0])
+    
     contig_list = chrom_contigs['contig'].values.tolist()
     contig_list.sort()
     total_pairs = set(list(combinations(contig_list, 2)))
 
     del contig_list 
     gc.collect()
-    print(len(total_pairs))
+    # print(len(total_pairs))
 
     inter_pairs = []
     for i, df in chrom_contigs.groupby('hap'):
@@ -98,6 +98,7 @@ def main(args):
     prune_pairs = set(map(tuple, prune_df[[2, 3]].values.tolist()))
     
     pt_pairs = raw_pairs - prune_pairs
+    
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
         pt_pairs = pt_pairs.intersection(set(contacts_dict.keys()))
@@ -106,11 +107,11 @@ def main(args):
     correct_pairs = inter_pairs & pt_pairs
     incorrect_pairs = pt_pairs - inter_pairs
 
-    precision = 1- len(incorrect_pairs) / len(pt_pairs)
+    precision = 1 - len(incorrect_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
     f1_score = (2 * precision * recall) / (precision + recall)
-    # for pair in pt_pairs:
-    #     print("\t".join(pair), file=sys.stdout)
+    for pair in incorrect_pairs:
+        print("\t".join(pair), file=sys.stdout)
     print(f"Precision:{precision:.4}")
     print(f"Recall:{recall:.4}")
     print(f"F1 score:{f1_score:.4}")

@@ -121,7 +121,6 @@ def get_sub_HT_dict(ctgs, HT_link_dict):
 
     suffix = ['_0', '_1']
     suffix_comb = list(product(suffix, repeat=2))
-
     index = 0
     sub_HT_dict = defaultdict(int)
     HT_index_dict = dict()
@@ -449,7 +448,7 @@ def output_tour_file(output_path_list, prefix):
         for path_list in output_path_list:
             for HT in path_list[::2]:
                 ctg, tag = HT.rsplit('_', 1)
-                if tag == 'H':
+                if tag == '0':
                     output_ctg_list.append(ctg+'+')
                 else:
                     output_ctg_list.append(ctg+'-')

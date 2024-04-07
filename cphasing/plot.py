@@ -203,7 +203,7 @@ def findIntersectRegion(a, b, fraction=0.51):
     
     return overlaps
 
-def getContigOnChromBins(chrom_bins, contig_on_chrom_bins):
+def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
 
     _file1 = tempfile.NamedTemporaryFile(delete=False)
     _file2 = tempfile.NamedTemporaryFile(delete=False)
@@ -346,7 +346,7 @@ class sumSmallContig(object):
                     lock.release()
         
             for df in results:
-                yield {k: v.values for k, v in df.iteritems()}
+                yield {k: v.values for k, v in df.items()}
                 
 
 def sum_small_contig(cool_path, contig2chrom, new_bins, output, 
@@ -567,6 +567,32 @@ def coarsen_matrix(cool, k, out, threads):
     logger.info(f'Coarsen new cool into `{out}`.')
 
     return out
+
+
+def balance_matrix(cool, force=False, threads=4):
+    from cooler.cli.balance import balance 
+    
+    try:
+        logger.info(f'Balancing matrix ...')
+        if force:
+            balance.main(args=[cool, 
+                            '-p', threads,
+                             '--force' ], 
+                            prog_name='cooler')
+        else:
+            balance.main(args=[cool, 
+                            '-p', threads, ], 
+                            prog_name='cooler')
+        
+    except SystemExit as e:
+        exc_info = sys.exc_info()
+        exit_code = e.code
+        if exit_code is None:
+            exit_code = 0
+        
+        if exit_code != 0:
+            raise e
+
 
 # def plot_matrix(matrix, output, chroms, 
 #                 per_chromosomes, cmap, dpi):

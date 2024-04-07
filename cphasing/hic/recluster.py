@@ -232,7 +232,7 @@ class reCluster(object):
         ## contig unpartition are move to uncluster
         res['uncluster'] = set()
 
-        for i, item in row.iteritems():
+        for i, item in row.items():
             try:
                 idx = self._contig_groups[item]
                 res_list.append((idx, item))

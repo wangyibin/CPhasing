@@ -29,7 +29,7 @@ def import_agp(agpfile, split=True):
     """
     df = pd.read_csv(agpfile, sep='\t', comment='#',
                      header=None, index_col=None,)
-    logger.info('load agp file: `{}`'.format(agpfile))
+    logger.info('Load agp file: `{}`'.format(agpfile))
 
     if split:
         tig_df = df[df[4] == 'W']
@@ -131,7 +131,7 @@ def agp2cluster(agp, store=None):
     
     
     if store:
-        for i, cluster in cluster_df.iteritems():
+        for i, cluster in cluster_df.items():
             if not cluster:
                 continue
             print("{}\t{}\t{}".format(i, len(cluster), " ".join(cluster)), 

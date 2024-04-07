@@ -13,6 +13,7 @@ import sys
 import gc
 import pandas as pd 
 
+from joblib import Parallel, delayed
 from itertools import product, combinations, permutations
 
 def main(args):
@@ -42,15 +43,18 @@ def main(args):
             for line in fp:
                 line_list = line.strip().split()
                 contig_pair = (line_list[0], line_list[1])
-                contacts_dict[contig_pair] = line_list[2]
+                count = float(line_list[2])
+                # if count >= 1:
+                contacts_dict[contig_pair] = count
                 
+    
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)
    
     chrom_contigs = pd.DataFrame(contigs_df[0].str.split(".").values.tolist(), columns=["chrom", "contig"])
     chrom_contigs['contig'] = contigs_df[0]
     chrom_contigs['hap'] = chrom_contigs['chrom'].str[:-1]
-    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[-1])
-
+    chrom_contigs['hap'] = chrom_contigs['hap'].str.split("_").map(lambda x: x[0])
+    
     contig_list = chrom_contigs['contig'].values.tolist()
     contig_list.sort()
     total_pairs = set(combinations(contig_list, 2))
@@ -59,29 +63,41 @@ def main(args):
     gc.collect()
 
 
-    res = []
+    # res = []
+    # for i, df in chrom_contigs.groupby('hap'):
+    #     tmp_list = []
+    #     for j, df2 in df.groupby('chrom'):
+    #         tmp_list.append(df2['contig'].tolist())
+            
+    #     for n, m in list(combinations(tmp_list, 2)):
+            
+    #         res.extend(list(set(product(n, m))))
+    
+    # res2 = []
+    # for i, j in res:
+    #     if i > j:
+    #         res2.append((j, i))
+    #     else:
+    #         res2.append((i, j))
+    
+    # inter_pairs = set(res2)
+    inter_pairs = []
     for i, df in chrom_contigs.groupby('hap'):
         tmp_list = []
         for j, df2 in df.groupby('chrom'):
             tmp_list.append(df2['contig'].tolist())
-            
+
+        tmp_list.sort() 
+        
         for n, m in list(combinations(tmp_list, 2)):
-            
-            res.extend(list(set(product(n, m))))
+            inter_pairs.extend(list(set(product(n, m))))
     
-    res2 = []
-    for i, j in res:
-        if i > j:
-            res2.append((j, i))
-        else:
-            res2.append((i, j))
-    
-    inter_pairs = set(res2)
+    inter_pairs = set(inter_pairs)
     
     intra_pairs = []
     for i, df in chrom_contigs.groupby('chrom'):
         tmp_list = df['contig'].values.tolist()
-        tmp_list.sort()
+        tmp_list = sorted(tmp_list)
         intra_pairs.extend(list(combinations(tmp_list, 2)))
    
     intra_pairs = set(intra_pairs)
@@ -90,18 +106,22 @@ def main(args):
     
     pt = pd.read_csv(pt, sep='\t', header=None, usecols=(0, 1), index_col=None)
     pt_pairs = set((map(tuple, pt.values.tolist())))
+    
     if contacts:
         inter_pairs = inter_pairs.intersection(set(contacts_dict.keys()))
         pt_pairs = pt_pairs.intersection(set(contacts_dict.keys()))
         pt_pairs = pt_pairs - nonhomo_inter_pairs
+
     correct_pairs = inter_pairs & pt_pairs
+
     incorrect_pairs = pt_pairs - inter_pairs
     loss_pairs = inter_pairs - pt_pairs
-    precision = len(correct_pairs) / len(pt_pairs)
+    precision = 1 - len(incorrect_pairs) / len(pt_pairs)
     recall = len(correct_pairs) / len(inter_pairs)
     f1_score = (2 * precision * recall) / (precision + recall)
-    # for pair in loss_pairs:
-    #     print("\t".join(pair), file=sys.stdout)
+
+    for pair in loss_pairs:
+        print("\t".join(pair), file=sys.stdout)
     print(f"Precision:{precision:.4}")
     print(f"Recall:{recall:.4}")
     print(f"F1 score:{f1_score:.4}")

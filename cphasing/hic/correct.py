@@ -275,6 +275,9 @@ class Corrector:
             if res_df.empty:
                 return (contig, None)
             else:
+                res_df = res_df[(res_df['End'] - res_df['Start']) <= 5000]
+                if res_df.empty:
+                    return (contig, None)
                 return (contig, res_df)
 
     @property
@@ -385,6 +388,7 @@ class Corrector:
         self.chimeric_positions = Parallel(n_jobs=self.threads)(
                                         delayed(self.fine_location)
                                         (i, j) for i, j in args)
+    
         
         del res, args
         gc.collect()

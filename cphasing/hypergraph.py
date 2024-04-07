@@ -135,14 +135,167 @@ class Extractor:
         
         logger.info(f"Successful output graph into `{output}`")
     
+class ExtractorSplit:
+    """
+    extract split edges from pairs file.
+
+    Params:
+    --------
+    pairs_pathes: list
+        list of pairs file
+    contig_idx: dict
+        dictionary of contig idx
+    contigsizes: dict
+        dictionary of contig sizes
+    threads: int
+        number of threads
+    
+    Examples:
+    --------
+    >>> extractor = ExtractorSplit(pairs_pathes, contig_idx, contigsizes)
+ 
+    """
+    def __init__(self, 
+                 pairs_pathes, 
+                 contig_idx, 
+                 contigsizes, 
+                 split=2,
+                 threads=4):
+        self.pairs_pathes = listify(pairs_pathes)
+        self.contig_idx = contig_idx
+        self.contigsizes = contigsizes
+
+        self.threads = threads 
+        
+        self.split = split
+        self.split_contig_idx = {}
+        idx = 0
+        for contig in self.contig_idx:
+            for i in range(split):
+                self.split_contig_idx[f"{contig}_{i}"] = idx
+                idx += 1 
+        
+        self.edges = self.generate_edges()
+
+    @property
+    def split_contigsizes(self):
+        split_contigsizes = {}
+        for contig in self.split_contig_idx:
+            split_contigsizes[contig] = self.contigsizes[contig.rsplit("_", 1)[0]] // self.split
+        
+        return split_contigsizes
+
+    @staticmethod
+    def _process_df(df, contig_sizes, split_contig_idx, split=2, threads=1):
+        pandarallel.initialize(nb_workers=threads, verbose=0)
+        # df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
+        # df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
+        # df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
+
+        df['contigsize'] = df['chrom1'].parallel_map(contig_sizes)
+        df['pos1'] = df['pos1'] // (df['contigsize'] // split)
+        df['contigsize'] = df['chrom2'].parallel_map(contig_sizes)
+        df['pos2'] = df['pos2'] // (df['contigsize'] // split)
+        
+        df['pos1'] = df['pos1'].astype(str) 
+        df['pos2'] = df['pos2'].astype(str) 
+        df.dropna(axis=0, how='any', inplace=True)
+
+        df['chrom1'] = df['chrom1'].str.cat(df['pos1'], sep="_")
+        df['chrom2'] = df['chrom2'].str.cat(df['pos2'], sep="_")
+        df['chrom1'] = df['chrom1'].parallel_map(split_contig_idx.get)
+        df['chrom2'] = df['chrom2'].parallel_map(split_contig_idx.get)
+        
+        return df
+
+    def generate_edges(self):
+        """
+        """
+        logger.info(f"Extract edges from pairs.") 
+
+        if len(self.pairs_pathes) == 1:
+            # if self.pairs_pathes[0][-3:] == ".gz":
+            #     compression = 'gzip'
+            # else:
+            #     compression='infer'
+            p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
+                                header=None, index_col=None,
+                                usecols=[1, 2, 3, 4], 
+                                names=['chrom1', 'pos1', 'chrom2', 'pos2'], 
+                               )
+
+            res = ExtractorSplit._process_df(p, self.contigsizes, 
+                                                self.split_contig_idx, 
+                                                self.split, self.threads)    
+            res = res.reset_index()
+  
+            res = pd.concat([res[['chrom1', 'index']].rename(
+                                        columns={'chrom1': 'row', 'index': 'col'}),
+                              res[['chrom2', 'index']].rename(
+                                        columns={'chrom2': 'row', 'index': 'col'})], 
+                              axis=1)
+
+
+        else: 
+            p_list = self.pairs_pathes
+            # if p_list[0][-3:] == ".gz":
+            #     compression = 'gzip'
+            # else:
+            #     compression='infer'
+            
+            threads_2 = self.threads // len(p_list) + 1
+            threads_1 = int(self.threads / threads_2)
+            if threads_1 == 0:
+                threads_1 = 1
+            
+            res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                lambda x: pd.read_csv(x, sep='\t', comment="#",
+                                header=None, index_col=None, 
+                                # compression=compression,
+                                 usecols=[1, 2, 3, 4], 
+                                names=['chrom1', 'pos1', 'chrom2', 'pos2']))
+                                (i) for i in p_list)
+            
+            args = [ (i, self.contigsizes, self.split_contig_idx, self.split, threads_2) for i in res ]
+        
+
+            res = Parallel(n_jobs=threads_1)(delayed(
+                                Extractor._process_df)(i, j, k) for i, j, k in args)
+            
+            res = pd.concat(res, axis=1).reset_index()
+            res = pd.concat([res[['chrom1', 'index']].rename(
+                                        columns={'chrom1': 'row', 'index': 'col'}),
+                              res[['chrom2', 'index']].rename(
+                                        columns={'chrom2': 'row', 'index': 'col'})], 
+                              axis=1)
+        
+        number_of_contigs = len(self.contig_idx)
+        length = res['row'].shape[0] * res['row'].shape[1]
+        logger.info(f"Result of {length} raw "
+                    f"hyperedges of {number_of_contigs} contigs. "
+                    "Note: it's not the final statistics for hypergraph.")
+        return HyperEdges(idx=self.split_contig_idx, 
+                            row=res['row'].values.flatten().tolist(), 
+                            col=res['col'].values.flatten().tolist(),
+                            contigsizes=self.split_contigsizes,
+                            mapq=[])
+
+    def save(self, output):
+        with open(output, 'wb') as out:
+            out.write(msgspec.msgpack.encode(self.edges))
+        
+        logger.info(f"Successful output graph into `{output}`")
+
 
 def process_pore_c_table(df, contig_idx, threads=1,
                             min_order=2, max_order=50, 
                             min_alignments=50, is_parquet=False):
    
     pandarallel.initialize(nb_workers=threads, verbose=0)
-    df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get).astype('int')
-    df = df.dropna(axis=0)
+    df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get)
+    df.dropna(axis=0, inplace=True)
+    df['chrom_idx'] = df['chrom_idx'].astype('int')
+
     # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
     #                     df.chrom.cat.categories))
     # df = (df.assign(alignment_length=lambda x: x.end - x.start)
@@ -162,6 +315,9 @@ def process_pore_c_table(df, contig_idx, threads=1,
 
     
     return df
+
+
+
 
 
 class HyperExtractor:
@@ -302,7 +458,7 @@ class HyperExtractor:
                 #                         lambda x: x.query("filter_reason == 'pass'")
                 #                                     .drop("filter_reason", axis=1)
                 #                                     )(i) for i in df_list)
-            
+        
 
         return df_list
     
@@ -407,6 +563,14 @@ class HyperExtractorSplit:
         self.pore_c_tables = self.import_pore_c_table()
         self.edges = self.generate_edges()
 
+    @property
+    def split_contigsizes(self):
+        split_contigsizes = {}
+        for contig in self.split_contig_idx:
+            split_contigsizes[contig] = self.contigsizes[contig.rsplit("_", 1)[0]] // self.split
+        
+        return split_contigsizes
+
     @staticmethod
     def process_pore_c_table(df, contig_idx, contig_sizes, 
                              split_contig_idx,
@@ -414,7 +578,7 @@ class HyperExtractorSplit:
                              ):
         pandarallel.initialize(nb_workers=threads, verbose=0)
         df = df.set_index('chrom')
-        df = df.loc[list(contig_idx.keys())]
+        df = df.reindex(list(contig_idx.keys()))
         df = df.reset_index().set_index('read_idx')
         df['contigsize'] = df['chrom'].parallel_map(contig_sizes.get)
 
@@ -424,8 +588,8 @@ class HyperExtractorSplit:
         df['chrom'] = df['chrom'].str.cat(df['pos'], sep="_")
         df['chrom_idx'] = df['chrom'].parallel_map(split_contig_idx.get)
         df = df[['chrom_idx', 'mapping_quality', 'chrom']]
-        df_grouped = df.groupby('read_idx')['chrom_idx']
-        df_grouped_nunique = df_grouped.nunique()
+        # df_grouped = df.groupby('read_idx')['chrom_idx']
+        # df_grouped_nunique = df_grouped.nunique()
         # df = df.loc[(df_grouped_nunique >= min_order)]
         #             & (df_grouped_nunique <= max_order)]
     
@@ -504,7 +668,7 @@ class HyperExtractorSplit:
                        row=res_df['chrom_idx'].values.flatten().tolist(),
                        col=res_df['read_idx'].values.flatten().tolist(),
                        mapq=mapping_quality_res.values.flatten().tolist(),
-                       contigsizes=self.contigsizes)
+                       contigsizes=self.split_contigsizes)
         
 
         return edges 

@@ -60,20 +60,29 @@ class CountRE:
     --------
     >>> cr = CountRE("sample.bwa_mem_GATC.txt")
     """
-    def __init__(self, countRE, minRE=3):
+    def __init__(self, countRE, minRE=3, has_header=True):
         self.filename = countRE
         self._path = Path(self.filename)
         # self.suffix = re.match(r'.*(counts_.*.txt)$', 
         #                         self.filename).groups()[0]
         self.minRE = minRE
+        self.has_header = has_header
 
         self.parse()
 
     def parse(self):
-        self.data = pd.read_csv(self.filename, sep='\t', 
-                                    header=0, index_col=0,
-                                    dtype={'RECounts': int, 
-                                            'Length': int})
+        if self.has_header:
+            self.data = pd.read_csv(self.filename, sep='\t', 
+                                        header=0, index_col=0,
+                                        dtype={'RECounts': int, 
+                                                'Length': int})
+        else:
+            self.data = pd.read_csv(self.filename, sep='\t', 
+                                        header=None, index_col=0,
+                                        names=['#Contigs', 'Length', 'RECounts'],
+                                        dtype={'RECounts': int, 
+                                                'Length': int})
+            
         self.data = self.data[self.data['RECounts'] >= self.minRE]
         
         logger.info(f'Load count RE `{self.filename}` (minRE={self.minRE}).')
@@ -142,6 +151,31 @@ class CountRE:
         552000
         """
         return self.data['Length'].sum()
+
+    @property
+    def length_db(self):
+        """
+        Returns:
+        -------- 
+        dict:
+            dict of length 
+    
+        """
+        return self.data['Length'].to_dict()
+
+    @property 
+    def midpoint_db(self):
+        """
+        Calculate the midpoint and return dictory 
+
+        Returns:
+        --------
+        dict: 
+            dict of midpoint
+        """
+
+        return self.data['Length'].map(lambda x: x//2).to_dict()
+
 
     def get_group_length(self, contigs: list) -> int:
         """
@@ -1028,14 +1062,14 @@ class ClusterTable:
         added_contigs = set()
         for group in self.groups:
             _contigs = self.data[group]
-            chrom_start = 0 
+            chrom_start = 1 
             chrom_end = 0
             for i, contig in enumerate(_contigs):
                 contig_length = contigsizes_db[contig]
-                chrom_start = chrom_end
+                chrom_start = chrom_end if i != 0 else 1
                 chrom_end = chrom_start + contig_length 
                 tmp_res = [group, chrom_start, chrom_end, idx, 
-                           "W", contig, 0, contig_length, "+"]
+                           "W", contig, 1, contig_length, "+"]
                 agp_res.append(tmp_res)
 
                 chrom_start = chrom_end + 1 
@@ -1052,8 +1086,8 @@ class ClusterTable:
         for contig in contigsizes_db:
             if contig not in added_contigs:
                 contig_length = contigsizes_db[contig]
-                tmp_res = [contig, 0, contig_length, idx, 
-                           "W", contig, 0, contig_length, "+"]
+                tmp_res = [contig, 1, contig_length, idx, 
+                           "W", contig, 1, contig_length, "+"]
                 
                 agp_res.append(tmp_res)
                 

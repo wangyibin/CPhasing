@@ -628,6 +628,36 @@ def delete_row_lil(mat, i):
     mat.data = np.delete(mat.data, i)
     mat._shape = (mat._shape[0] - 1, mat._shape[1])
 
+
+def humanized2numeric(size):
+    """
+    convert the humanized to chromosome size
+    >>> humanized2numeric("10k")
+    10000
+    """
+    if not isinstance(size, str):
+        logger.error("Please input correct string")
+        raise ValueError("Value error")
+    
+    size = size.lower()
+    size = size.replace(" ", "")
+
+    try:
+        if size[-1] == "k":
+            res_size = int(size[:-1]) * 1000
+        elif size[-1] == "m":
+            res_size = int(size[:-1]) * 1000000
+        elif size[-1] == "g":
+            res_size = int(size[:-1]) * 1000000000
+        else:
+            res_size = int(size) 
+    
+    except ValueError:
+        logger.error("Please input correct string")
+        raise ValueError("Value error")
+    
+    return res_size
+
 def to_humanized(size):
     """
     Convert the unit of chromosome size to suitable unit.

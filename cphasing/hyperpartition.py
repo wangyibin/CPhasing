@@ -28,6 +28,9 @@ from .algorithms.hypergraph import (
     IRMM,
     extract_incidence_matrix2, 
     )
+from .algorithms.scaffolding import (
+    raw_sort
+)
 from .core import (
     AlleleTable, 
     ClusterTable,
@@ -101,6 +104,8 @@ class HyperPartition:
                     min_length=10000, 
                     resolution1=1.0,
                     resolution2=1.0,
+                    init_resolution1=0.8,
+                    init_resolution2=0.8,
                     min_weight=1.0,
                     min_quality1=1,
                     min_quality2=2,
@@ -138,6 +143,8 @@ class HyperPartition:
 
         self.resolution1 = resolution1
         self.resolution2 = resolution2
+        self.init_resolution1 = init_resolution1
+        self.init_resolution2 = init_resolution2
         self.min_weight = min_weight
         self.min_quality1 = min_quality1
         self.min_quality2 = min_quality2
@@ -375,7 +382,7 @@ class HyperPartition:
         else: 
             return False
 
-    def single_partition(self, k=None):
+    def single_partition(self, k=None, sort_by_length=True, sort_group=True):
         """
         Single partition
 
@@ -415,7 +422,7 @@ class HyperPartition:
 
         if self.resolution1 == -1:
             result_K_length = 0
-            tmp_resolution = 0.8
+            tmp_resolution = self.init_resolution1
             if not k:
                 logger.warn("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
@@ -432,6 +439,7 @@ class HyperPartition:
                                                         threads=self.threads)
                 self.filter_cluster(verbose=0)
                 result_K_length = len(self.K)
+                logger.info(f"Generated `{result_K_length}` at resolution `{tmp_resolution}`.")
                 tmp_resolution += 0.2
 
                 
@@ -485,10 +493,16 @@ class HyperPartition:
                                             self.prune_pair_df, self.allelic_similarity,
                                             self.min_allelic_overlap)
 
-        self.K = sorted(self.K, 
-                        key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
-                        reverse=True)
         
+        if sort_group:
+            vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
+            self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
+
+        if sort_by_length:
+            self.K = sorted(self.K, 
+                            key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
+                            reverse=True)
+            
         group_info = [i for i in range(1, len(self.K) + 1)]
         length_contents = list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
@@ -500,7 +514,7 @@ class HyperPartition:
 
     @staticmethod
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, NW, 
-                            resolution, min_weight=1, allelic_similarity=0.8, 
+                            resolution, init_resolution=0.8, min_weight=1, allelic_similarity=0.8, 
                             min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
@@ -556,7 +570,7 @@ class HyperPartition:
         # sub_allelic_factor = csr_matrix(_sub_allelic_factor)
 
         if resolution < 0.0 and k != 0:
-            tmp_resolution = 1
+            tmp_resolution = init_resolution
             result_K_length = 0
             auto_round = 1
 
@@ -596,22 +610,27 @@ class HyperPartition:
                                                     max_round, 
                                                     threads=1, 
                                                     outprefix=num)
+
         
-           
+    
+        
         ## remove the scaffold that is too short
         new_K = list(map(list, filter(
                         lambda x: sub_vertices_new_idx_sizes.loc[list(x)].sum().values[0] \
                             >= min_scaffold_length, new_K)))
       
         if k and len(new_K) > k:
-            new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
+            # new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
-            
+
+        A = HyperGraph.clique_expansion_init(sub_H)
+        vertices_length = sub_vertices_new_idx_sizes['length']
+        new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
-        new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
+        # new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
         return cluster_assignments, new_K
     
@@ -633,7 +652,7 @@ class HyperPartition:
                         "-n", self.kprune_norm_method, "-t", str(self.threads), 
                         "-f", first_cluster_file]
         
-            logger.info("Generating the prune table.")
+            logger.info("Generating the prune table ...")
             flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
             assert flag == 0, "Failed to execute command, please check log."
 
@@ -660,9 +679,9 @@ class HyperPartition:
 
         if not first_cluster:
             
-            if self.resolution1 < 1 :
+            if self.resolution1 < 0 :
                 result_K_length = 0
-                tmp_resolution = 0.8
+                tmp_resolution = self.init_resolution1
                 auto_round = 1
                 while result_K_length < k[0] and k[0] != 0:
                     if tmp_resolution > 10.0 or auto_round > 50:
@@ -779,7 +798,7 @@ class HyperPartition:
                     continue
             args.append((sub_k, sub_group_number, prune_pair_df, 
                          self.H, vertices_idx_sizes, self.NW, 
-                        self.resolution2, self.min_weight, 
+                        self.resolution2, self.init_resolution2, self.min_weight, 
                         self.allelic_similarity,  self.min_allelic_overlap, 
                         self.allelic_factor, self.cross_allelic_factor,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
@@ -794,8 +813,8 @@ class HyperPartition:
         
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y in args)
         
         self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []

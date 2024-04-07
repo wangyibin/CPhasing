@@ -12,6 +12,7 @@ def GetOpts():
     group.add_argument('--max', help='minimum length of contig, default: 5m, you can use both number or string end with k,m', default="5m")
     group.add_argument('-n', '--n50', help='size of N50, default: 500k, you can use both number or string end with k,m', default="500k")
     group.add_argument('-i', '--input', help='origin fasta file of genome', required=True)
+    group.add_argument('-s', '--seed', default=12345, type=int, help='random seed [default: %(default)s]')
     group.add_argument('-o', '--output', help='filename of simulated data', required=True)
 
     return group.parse_args()
@@ -86,8 +87,8 @@ def GenCtgRegions(fastaLenDB, ctgLenDB):
     return ctgRegionsDB
 
 
-def SimGenomeCtg(inFasta, outFasta, n50, minLen, maxLen):
-    random.seed()
+def SimGenomeCtg(inFasta, outFasta, n50, minLen, maxLen, seed):
+    random.seed(seed)
     print("\033[32m%s\033[0m Reading fasta"%(time.strftime('[%H:%M:%S]',time.localtime(time.time()))))
     fastaDB = ReadFasta(inFasta)
     fastaLenDB = {}
@@ -150,4 +151,5 @@ if __name__ == "__main__":
     maxLen = maxLen.replace('m', '000000')
     maxLen = maxLen.replace('k', '000')
     maxLen = int(maxLen)
-    SimGenomeCtg(inFasta, outFasta, n50, minLen, maxLen)
+    seed = opts.seed
+    SimGenomeCtg(inFasta, outFasta, n50, minLen, maxLen, seed)

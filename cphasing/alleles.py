@@ -13,20 +13,24 @@ import numpy as np
 
 from Bio import SeqIO
 from collections import defaultdict, OrderedDict
+from joblib import Parallel, delayed
+from itertools import combinations, permutations
 from io import StringIO
 from subprocess import Popen
+from shutil import which
 from pathlib import Path
 from pyfaidx import Fasta
 
 from .core import AlleleTable
-from .utilities import xopen
+from .utilities import xopen, list_flatten, read_fasta
 
 
 from .utilities import (
     cmd_exists, 
     choose_software_by_platform,
     run_cmd, 
-    get_genome_size
+    get_genome_size,
+    humanized2numeric
 )
 
 logger = logging.getLogger(__name__)
@@ -402,6 +406,231 @@ class GmapAllele:
         self.gmap()
         self.to_alleletable()
 
+class AlignmentAlleles:
+    PAF_HADER = ["contig1", "length1", "start1", "end1", "strand",
+                 "contig2", "length2", "start2", "end2", "mismatch",
+                 "matches", "mapq", "identity"]
+    PAF_HADER2 = ["contig2", "length2", "start2", "end2", "strand",
+                 "contig1", "length1", "start1", "end1", "mismatch",
+                 "matches", "mapq", "identity"]
+    def __init__(self, fasta, ploidy, k=19, 
+                  s="5k", l="10k", p=98, 
+                 H=10.0, no_raw_table=True,
+                 output=None, log_dir="logs", threads=4):
+        self.file = fasta 
+        self.fasta = fasta 
+        
+        self.ploidy = ploidy 
+        self.k = k
+        self.s = s 
+        self.l = l 
+        self.p = p
+        self.H = H 
+        
+        self.no_raw_table = no_raw_table
+        self.threads = threads
+        
+        self.n = self.ploidy - 1 
+
+        if not cmd_exists("wfmash"):
+            logger.error(f'No such command of `wfmash`.')
+            sys.exit()
+
+        fasta_prefix = Path(fasta).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+        self.prefix = fasta_prefix
+
+        self.paf = f"{self.prefix}.selfalign.paf"
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        if not output:
+            self.output = f"{self.prefix}.raw.allele.table"
+        else:
+            self.output = output
+
+    def align(self):
+        # cmd = ["wfmash", self.fasta, "-m", "-t", str(self.threads),
+        #        "-H", "0.001", "-n", f"{self.n}", "-l", f"{self.l}",
+        #         "-L",
+                #  "-Y", "#", "-s", f"{self.s}", "-p", f"{self.p}" ]
+        cmd = ["wfmash", self.fasta, "-m", "-t", str(self.threads),
+               "-H", f"{self.H}", "-n", f"{self.n}", "-l", f"{self.l}",
+                "-k", f"{self.k}",
+                  "-Y", "#", "-s", f"{self.s}", "-p", f"{self.p}" ]
+        
+        logger.info("Self mapping ...")
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.paf, "w"),
+                      stderr=open(f"{self.log_dir}/alleles.align.log", "w"),
+                      bufsize=-1)
+            )
+            pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{cmd}.')
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}.')
+                
+    def read_paf(self):
+        logger.info(f"Load alignments results `{self.paf}`")
+        df = pd.read_csv(self.paf, sep='\t', header=None, usecols=range(13),
+                         names=self.PAF_HADER, index_col=None)
+        df['identity'] = df['identity'].map(lambda x: x.replace("id:f:", ""))
+        df1 = df[df['contig1'] < df['contig2']]
+        df2 = df[df['contig1'] > df['contig2']]
+        df2.columns = self.PAF_HADER2
+        df = pd.concat([df1, df2], axis=0)
+        df = df.sort_values(['contig1', 'start1', 'contig2', 'start2'])
+        self.paf_df = df 
+
+        return df 
+        
+    def remove_subset(self, allele_lines):
+        allele_lines = [frozenset(allele_line) for allele_line in allele_lines]
+        new_allele_lines = set(allele_lines)
+        
+        for allele_line in allele_lines:
+            if len(allele_line) < self.ploidy:
+                subsets = {other for other in allele_lines if other != allele_line and allele_line.issubset(other)}
+                if subsets:
+                    new_allele_lines.difference_update({allele_line})
+
+        return [list(allele_line) for allele_line in new_allele_lines]
+
+    def pairwise(self, allele_lines):
+        
+        pairs = set()
+        for allele_line in allele_lines:
+            pairs.update(combinations(allele_line, 2))
+        
+        return pairs
+
+    def paf2allele(self):
+        logger.info("Convert alignments to allele table ...")
+        allele_lines = []
+        ss = humanized2numeric(self.s)
+
+        
+
+        def func(contig, tmp_df):
+
+            def process_row(row, ss, i):
+                start1, end1 = row['start1'], row['end1']
+                contig2 = row['contig2']
+                a.loc[(start1 + ss//5) / ss: (end1 - ss/5)/ss, i] = contig2
+
+
+            tmp_allele_lines = []
+            if len(tmp_df) <= self.n:
+                tmp_allele_lines.append([contig, *tmp_df['contig2']])
+            else:
+                length = tmp_df.head(1)['length1'].values[0]
+                
+                a = np.zeros((length // ss , 1))
+                a = pd.DataFrame(a)
+                a[0] = contig 
+                i = 0
+
+                for idx, row in tmp_df.iterrows():
+                    i += 1
+                    start1, end1 = row['start1'], row['end1']
+                    contig2 = row['contig2']
+                    a.loc[(start1 + ss//5) / ss: (end1 - ss/5)/ss, i] = contig2
+                # tmp_df.apply(process_row, axis=1, args=(ss, i))
+                a = a.drop_duplicates()
+
+                res = a.apply(lambda x: x.dropna().values.tolist(), axis=1)
+                res = list(filter(lambda x: len(x) > 1, res))
+                tmp_allele_lines.extend(res)
+
+            return tmp_allele_lines
+        
+
+        args = [(contig, tmp_df) for contig, tmp_df in self.paf_df.groupby('contig1')]
+        allele_lines = Parallel(n_jobs=min(self.threads, len(args)))(
+            delayed(func)(i, j) for i, j in args
+        )
+        allele_lines = list_flatten(allele_lines)
+        allele_lines = self.remove_subset(allele_lines)
+        # self.contig_pairs = self.pairwise(allele_lines)
+         
+
+        res_df = pd.DataFrame(allele_lines)
+        res_df = res_df.drop_duplicates().sort_values(by=0).reset_index(drop=True)
+        
+        return res_df
+
+    def export_allele2(self):
+        df = self.paf_df[['contig1', 'contig2', 'length1', 'length2', 'matches', 'identity', 'strand']]
+        df = df.drop_duplicates(['contig1', 'contig2'])
+        df2 = df.copy()
+        df2.columns = ['contig2', 'contig1', 'length1', 'length2', 'matches', 'identity',  'strand']
+        df = pd.concat([df, df2], axis=0)
+        df = df.dropna()
+        df['matches'] = df['matches'].astype(int)
+
+        # df = df.set_index(['contig1', 'contig2'])
+        
+        # unmap_contig_pairs = set(self.contig_pairs).difference(set(map(tuple, df.index.tolist())))
+        # self.supplementary_align(unmap_contig_pairs)
+
+        # df = df.reindex(self.contig_pairs)
+
+        df = df.reset_index(drop=True).reset_index().reset_index()
+        
+        df['strand'] = df['strand'].map(lambda x: 1 if x == "+" else -1)
+        df.to_csv(f"{self.prefix}.allele.table", sep='\t', 
+                  index=None, header=None)
+        logger.info(f"Export the allele table `{self.prefix}.allele.table`")
+        
+        return df 
+
+    def supplementary_align(self, unmap_contig_pairs):
+        fasta_db = read_fasta(self.fasta)
+        with open(f"{self.prefix}.unmap.contig1.fasta", "w") as out1, \
+                open(f"{self.prefix}.unmap.contig2.fasta", "w") as out2:
+        
+            for contig1, contig2 in unmap_contig_pairs:
+                if contig1 > contig2:
+                    continue
+                seq1, seq2 = fasta_db[contig1], fasta_db[contig2]
+                print(f">{contig1}\n{seq1}", file=out1)
+                print(f">{contig2}\n{seq2}", file=out2)
+
+
+    def save(self, output):
+        self.allele_table.reset_index().reset_index().to_csv(
+            output, header=None, index=None, sep='\t'
+        )
+        logger.info(f"Successful output raw allele table in `{self.output}`")
+
+    def run(self):
+        # if not Path(self.paf).exists():
+        #     logger.info(f"No such file of `{self.paf}`")
+        self.align()
+
+        self.paf_df = self.read_paf()
+
+        if not self.no_raw_table:
+            self.allele_table = self.paf2allele()
+            self.save(self.output)
+       
+        self.export_allele2()
+    
+
 
 def filter_high_similarity_contigs(alleletable, contacts, min_values, output):
     at = AlleleTable(alleletable, fmt='allele2', sort=False)
@@ -430,6 +659,3 @@ def filter_high_similarity_contigs(alleletable, contacts, min_values, output):
     res = set(res.values.flatten().tolist())
 
     print("\n".join(res), file=output)
-
-    
-

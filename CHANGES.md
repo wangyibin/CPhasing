@@ -1,5 +1,17 @@
 # Release notes #
 
+## [v0.1.0]
+Date: 2024-04-07
+## New features
+- `alleles2`, a method for allelic contig identification by self mapping
+- `cphasing-rs prune`, a method to prune by raw allele table (ALLHiC allele table)
+
+## Enhancement
+- `scaffolding`, increase the performance of long contigs
+
+## Bug fixes
+- `plot`, fixed bug that it can not be used in pandas v2.0
+
 ## [v0.0.64]
 Date: 2024-03-11
 ## Bug fixes

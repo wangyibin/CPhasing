@@ -21,7 +21,10 @@ from .core import (
     CountRE, 
     PairTable
 )
-from .utilities import run_cmd
+from .utilities import (
+    run_cmd,
+    humanized2numeric
+    )
 
 logger = logging.getLogger("cphasing")
 
@@ -274,7 +277,7 @@ def cli(verbose, quiet):
     metavar="FLOAT",
     help="Resolution of the first partition",
     type=click.FloatRange(-1.0, 10.0),
-    default=1.0,
+    default=-1.0,
     show_default=True
 )
 @click.option(
@@ -1406,6 +1409,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     pass 
 
 
+
 @cli.command()
 @click.option(
     "-f",
@@ -1489,7 +1493,8 @@ def alleles(fasta, output,
                 minimum_similarity, diff_thres,
                 min_length):
     """
-    Build allele table.
+    Build allele table by kmer similarity (recommend).
+
     """
     
     from .alleles import PartigAllele
@@ -1505,6 +1510,116 @@ def alleles(fasta, output,
                         min_cnt, minimum_similarity, diff_thres,
                          filter_value=min_length, output=output)
     pa.run()
+
+
+@cli.command(short_help="Build allele table by self mapping.")
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="FILE",
+    help="polyploid contig-level fasta.",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    "-n",
+    "--ploidy",
+    help="ploidy level of genome.",
+    metavar="INT",
+    type=int,
+    default=None,
+    show_default=True,
+)
+@click.option(
+    "-k",
+    "--kmer",
+    metavar="INT",
+    type=int,
+    help="kmer size for wfmash",
+    default=19,
+    show_default=True
+)
+@click.option(
+    "-s",
+    "--segment-length",
+    "segment_length",
+    help="segment length for wfmash",
+    metavar="STR",
+    default="5k",
+    show_default=True
+)
+@click.option(
+    "-l",
+    "--block-length",
+    "block_length",
+    help="keep merged mappings supported by homologies of this total length for wfmash",
+    metavar="STR",
+    default="10k",
+    show_default=True,
+)
+@click.option(
+    "-p",
+    "--map-pct-id",
+    "identity",
+    help="Percent identity in the wfmash",
+    metavar="INT",
+    type=click.IntRange(50, 100),
+    default=95,
+    show_default=True,
+)
+@click.option(
+    "--kmer-threshold",
+    "kmer_threshold",
+    help="Ignore the top % most-frequent kmers for wfmash",
+    metavar="FLOAT",
+    type=click.FloatRange(0.0, 100.0),
+    default=1.0,
+    show_default=True,
+)
+@click.option(
+    "-r",
+    "--output-raw-table",
+    "output_raw_table",
+    help="Ouput the raw format allele table, which decripted in ALLHiC.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="PATH",
+    help="path of output allele table [default: fasta_prefix.allele.table]",
+    default=None
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. Only use for gmap method.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def alleles2(fasta, ploidy, kmer, segment_length, block_length,
+                identity, kmer_threshold, output_raw_table, output, threads):
+    """
+    Identify the allelic contigs by self-mapping.
+
+    """
+    from .alleles import AlignmentAlleles
+    no_raw_table = False if output_raw_table else True
+    aa = AlignmentAlleles(fasta, ploidy, 
+                            k=kmer, 
+                            s=segment_length,
+                            l=block_length,
+                            H=kmer_threshold,
+                            p=identity,
+                            no_raw_table=no_raw_table,
+                            threads=threads, 
+                            output=output)
+    aa.run()
+
 
 
 @cli.command(short_help="Generate the allelic contig and cross-allelic contig table.")
@@ -1781,12 +1896,14 @@ def hypergraph(contacts,
     from .hypergraph import (
         HyperExtractor, 
         HyperExtractorSplit,
-        Extractor
+        Extractor,
+        ExtractorSplit
         )
     from .utilities import read_chrom_sizes
 
     contigsizes = read_chrom_sizes(contigsize)
-    contigs = natsorted(contigsizes.index.values.tolist())
+    contigs = contigsizes.index.values.tolist()
+    # contigs = natsorted(contigsizes.index.values.tolist())
 
     if whitelist:
         whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
@@ -1816,9 +1933,14 @@ def hypergraph(contacts,
 
         else:
             pairs_files = contacts
+        
+        if not split:
 
-        e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], threads)
-        e.save(output)
+            e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], threads)
+            e.save(output)
+        else:
+            e = ExtractorSplit(pairs_files, contig_idx, contigsizes.to_dict()['length'], split, threads)
+            e.save(output)
 
 
 @cli.command()
@@ -1898,7 +2020,7 @@ def hypergraph(contacts,
 @click.option(
     '--mode',
     help="mode of hyperpartition, conflict of `-inc`. The basal equal to phasing. [default: None]",
-    type=click.Choice(["basal", "haploid", "phasing", "basal_withprune", None]),
+    type=click.Choice(["basal", "haploid", "phasing", "basal_withprune", "None"]),
     default=None,
     show_default=True
 )
@@ -2098,7 +2220,7 @@ def hypergraph(contacts,
     metavar="FLOAT",
     help="Resolution of the first partition",
     type=click.FloatRange(-1.0, 10.0),
-    default=1.0,
+    default=-1.0,
     show_default=True
 )
 @click.option(
@@ -2108,6 +2230,28 @@ def hypergraph(contacts,
     help="Resolution of the second partition",
     type=click.FloatRange(-1.0, 10.0),
     default=1.0,
+    show_default=True
+)
+@click.option(
+    "-ir1",
+    "--init-resolution1",
+    "init_resolution1",
+    metavar="FLOAT",
+    help="Initial resolution of the automatic search resolution in first partition"
+    ", only used when `--resolution1=-1`.",
+    type=float,
+    default=0.8,
+    show_default=True
+)
+@click.option(
+    "-ir2",
+    "--init-resolution2",
+    "init_resolution2",
+    metavar="FLOAT",
+    type=float,
+    help="Initial resolution of the automatic search resolution in second partition"
+    ", only used when `--resolution2=-1`.",
+    default=0.8,
     show_default=True
 )
 @click.option(
@@ -2212,6 +2356,8 @@ def hyperpartition(hypergraph,
                     min_length, 
                     resolution1,
                     resolution2,
+                    init_resolution1,
+                    init_resolution2,
                     min_weight,
                     min_quality1,
                     min_quality2,
@@ -2242,27 +2388,47 @@ def hyperpartition(hypergraph,
 
     ultra_complex = None
     # mode = "basal" if mode == "haploid" else mode 
-
+    n = re.split(":|x|\|", n) if n else None
+    mode = None if mode == "None" else mode
     if mode == "basal":
         incremental = False
+        logger.info("Running hyperpartition with `basal(haploid)` mode.")
         if alleletable or prunetable:
             logger.warn("allelic information will not be used in basal mode")
             alleletable = None
-            prunetable = None
+            prunetable = None  
     elif mode == "phasing":
         incremental = True 
         assert alleletable or prunetable,\
             "phasing mode must add `-pt` or `-at` param"
+        logger.info("Running hyperpartition with `phasing` mode.")
+
     elif mode == "basal_withprune":
         incremental = False
         assert alleletable or prunetable, \
             "basal_withprune modemust add `-pt` or `-at` param"
+        logger.info("Running hyperpartition with `basal_withprune` mode.")
     else:
-        incremental = incremental
-        if incremental is False:
-            logger.warn("Mode not be specified, running basal_withprune mode")
+        incremental = incremental 
+        if incremental is False: 
+            if (alleletable is not None or prunetable is not None):
+                if n:
+                    if len(n) >= 2:
+                        logger.info(f"You have specified two group numbers of `{':'.join(n)}`, "
+                                    "the mode was set to `phasing` to run two-layer cluster.")
+                        incremental = True
+                    else:
+                        logger.warn("Mode not be specified, running `basal_withprune` mode, "
+                                "if you want to phase the diploid or polyploid, please "
+                                "set the mode to `phasing`, or add `-inc` parameter.")
+                else:
+                    logger.warn("Mode not be specified, running basal_withprune mode, "
+                                "if you want to phase the diploid or polyploid, please "
+                                "set the mode to `phasing`, or add `-inc` parameter.")
+            else:
+                logger.warn("Mode not be specified, running `basal(haploid)` mode")
         else:
-            logger.warn("`-inc` be specified, will run in `phasing` mode")
+            logger.info("`-inc` be specified, will run in `phasing` mode")
 
     if kprune_norm_method == "auto":
         if pairs:
@@ -2273,10 +2439,17 @@ def hyperpartition(hypergraph,
             kprune_norm_method = "none"
     
     if n is not None:
-        if ":" in n and incremental is False:
-            logger.warn("Second round partition will not be run, or `-inc` parameters must be added")
+        # n = re.split(":|x|\|", n) 
+        if len(n) <= 1 and incremental is True:
+            logger.warn("Second round partition will not be run, if you want to run second round partition the `-inc` parameters must be added")
 
-    n = re.split(":|x|\|", n) if n else [None, None]
+
+    else:
+        n = [None, None]
+
+    if n[0] is None and resolution1 < 0:
+        logger.info(f"The group number of first cluster was not be specified, set the resolution1 from {resolution1} to 1.0.")
+        resolution1 = 1.0 
 
     for i, v in enumerate(n):
         if v:
@@ -2303,7 +2476,9 @@ def hyperpartition(hypergraph,
     prefix = Path(hypergraph).stem
     if porec:
         contigs = contigsizes.index.values.tolist()
-        contigs = natsorted(contigs)
+        contigs = list(map(str, contigs))
+
+        # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
@@ -2319,7 +2494,8 @@ def hyperpartition(hypergraph,
 
     elif pairs:
         contigs = contigsizes.index.values.tolist()
-        contigs = natsorted(contigs)
+        contigs = list(map(str, contigs))
+        # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
@@ -2411,6 +2587,8 @@ def hyperpartition(hypergraph,
                             min_length,
                             resolution1, 
                             resolution2,
+                            init_resolution1,
+                            init_resolution2,
                             min_weight,
                             min_quality1,
                             min_quality2,
@@ -2499,6 +2677,14 @@ def hyperpartition(hypergraph,
     show_default=True
 )
 @click.option(
+    "--keep-temp",
+    "keep_temp",
+    help="Dont not delete the tempdir",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     "-o",
     "--output",
     metavar="STR",
@@ -2528,6 +2714,7 @@ def scaffolding(clustertable, count_re, clm,
                 split_contacts, 
                 allele_table,
                 fasta, method,
+                keep_temp,
                 output, threads):
     """
     Ordering and orientation the contigs.
@@ -2542,15 +2729,22 @@ def scaffolding(clustertable, count_re, clm,
 
     from .algorithms.scaffolding import AllhicOptimize, HapHiCSort
     
+    if split_contacts is None and (method == "haphic" or method == "haphic_fastsort"):
+        logger.warn("The split contacts not be specified, change the method to `allhic`.")
+        method = "allhic"
+
+    if fasta is None:
+        logger.warn("Will not generate the agp file, because the fasta not be specified")                               
+
     if method == "allhic":
         ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table,
-                                fasta=fasta, output=output, threads=threads)
+                                fasta=fasta, keep_temp=keep_temp, output=output, threads=threads)
         ao.run()
     elif method == "haphic":
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
         assert fasta is not None, "fasta must specified by `-f` parameters"
         hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
-                                allele_table=allele_table,
+                                allele_table=allele_table, keep_temp=keep_temp,
                                 fasta=fasta, output=output, threads=threads)
         hs.run()
 
@@ -2641,8 +2835,8 @@ def build(fasta, output, output_agp, only_agp):
     "-bs",
     "--binsize",
     help="Bin size in bp.",
-    type=int,
-    default=10000,
+    type=str,
+    default="10000",
     show_default=True
 )
 @click.option(
@@ -2673,7 +2867,7 @@ def pairs2cool(pairs, chromsize, outcool,
 
     logger.info(f"Load pairs: `{pairs}`.")
     logger.info(f"Bin size: {binsize}")
-    
+    binsize = humanized2numeric(binsize)
     if fofn:
         pairs_files = [i.strip() for i in open(pairs) if i.strip()]
         pid = os.getpid()
@@ -2838,6 +3032,15 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True
 )
 @click.option(
+    '--balance',
+    help="""
+    balance the matrix.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '--balanced',
     help="""
     Plot balanced values, which need cool have weights columns in bins.
@@ -2882,6 +3085,7 @@ def plot(matrix,
             chrom_per_row, 
             dpi, 
             cmap,
+            balance,
             balanced,
             no_lines,
             no_ticks,):
@@ -2892,6 +3096,7 @@ def plot(matrix,
     from .plot import (
         adjust_matrix,
         coarsen_matrix, 
+        balance_matrix,
         plot_heatmap
         
     )
@@ -2913,7 +3118,23 @@ def plot(matrix,
 
         if not no_coarsen and factor > 1:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
-    
+
+    if balance:
+        cool = cooler.Cooler(matrix)
+        try:
+            cool.bins()[:]['weight']
+            if balanced:
+                logger.warn("Weight existed in matrix, "
+                            "the `--balanced` parameter added, force execute balance.")
+                balance_matrix(matrix, force=True, threads=threads)
+            else:
+                logger.warn("Weight existed in matrix, skip the balance step, "
+                        "or add `--balanced` to force rerun balance.")
+        except KeyError:
+
+            balance_matrix(matrix, threads)
+            balanced = True
+
     if op.exists(chromosomes):
         logger.info(f"Load chromosomes list from the file `{chromosomes}`.")
         chromosomes = [i.strip() for i in open(chromosomes) if i.strip()]
@@ -2934,6 +3155,7 @@ def plot(matrix,
         cool = cooler.Cooler(matrix)
         try:
             cool.bins()[:]['weight']
+            logger.info("Plot the balanced matrix.")
         except KeyError:
             logger.warn("There is not column of `bins/weight` in cool file, set `balanced=False`")
             balanced = False

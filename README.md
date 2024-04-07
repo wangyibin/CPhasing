@@ -38,6 +38,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
 ```
 #### Dependencies
 1. For core function
+    - [wfmash](https://github.com/waveygang/wfmash)(>=0.13.0)
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)

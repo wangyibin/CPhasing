@@ -123,37 +123,52 @@ def Prune(at: AlleleTable, cr: CountRE, pt: PairTable, normalize=False):
         if res_df.empty:
             continue
         
-        all_db = (res_df.stack()
+        all_db = set(res_df.stack()
                     .index.values
                     .tolist())
         
-        tmp_retain_db = list(res_df.idxmax(axis=1)
+        tmp_retain_db = set(res_df.idxmax(axis=1)
                     .reset_index()
                     .itertuples(index=False, name=None))
         retain_db.update(tmp_retain_db)
 
-        tmp_remove_db = set(all_db) - set(tmp_retain_db)
-        tmp_remove_db = tmp_remove_db - retain_db
+        tmp_remove_db = all_db.difference(tmp_retain_db).difference(retain_db)
+        
         remove_db.update(tmp_remove_db)
 
-    remove_db = set(remove_db)
-    remove_db2 = set(map(lambda x: x[::-1], remove_db))
-    remove_db = remove_db | remove_db2
-
+    # remove_db = set(remove_db)
+    # remove_db2 = set(map(lambda x: x[::-1], remove_db))
+    # remove_db = remove_db | remove_db2
+    remove_db = remove_db.union(set(map(lambda x: x[::-1], remove_db)))
     remove_db = [pair for pair in remove_db if pair in pt.data.index]
 
-    pt.data = pt.data.drop(remove_db, axis=0)
+    pt.data.drop(remove_db, axis=0, inplace=True)
     if normalize:
-        pt.data = pt.data.drop(['NormalizedLinks'], axis=1)
+        pt.data.drop(['NormalizedLinks'], axis=1, inplace=True)
 
     allelic_pairs2 = set(map(lambda x: x[::-1], allelic_pairs))
     allelic_pairs = set(allelic_pairs) | allelic_pairs2
-    remove_db = set(remove_db) | set(allelic_pairs)
 
+    with open("prune.contig.table", "w") as output:
+        for pair in allelic_pairs:
+            if pair[0] > pair[1]:
+                continue
+            print(f"{pair[0]}\t{pair[1]}\t0\t0\t0\t1.0\t0", file=output )
+        
+        for pair in remove_db:
+            if pair[0] > pair[1]:
+                continue
+            if pair in allelic_pairs:
+                continue 
+
+            print(f"{pair[0]}\t{pair[1]}\t0\t0\t0\t0\t1", file=output )
+
+    remove_db = set(remove_db) | set(allelic_pairs)
     with open("prune.contig.list", "w") as output:
         for pair in remove_db:
             if pair[0] > pair[1]:
                 continue
             print("\t".join(pair), file=output)
+        
 
     return remove_db

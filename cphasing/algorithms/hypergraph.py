@@ -71,7 +71,8 @@ class HyperGraph:
         self.contigsizes = self.edges.contigsizes
         self.min_quality = min_quality
         self.get_data()
-       
+
+
 
     def get_data(self):
         """
@@ -122,6 +123,21 @@ class HyperGraph:
         # self.nodes = np.delete(self.nodes, contig_idx)
 
         # self.shape = (len(self.nodes), max(self.col) + 1)
+
+    def extract_rows(self, contigs):
+        """
+        extract rows by contig list
+        """     
+        contigs = [x for x in contigs if x not in self.edges.idx.values()]
+        contig_idx = [self.edges.idx[i] for i in contigs]
+
+        remove_idx = np.in1d(self.row, contig_idx)
+
+        self.removed_count += len(contig_idx)
+
+        self.row = self.row[remove_idx]
+        self.col = self.col[remove_idx]
+
 
     def incidence_matrix(self, min_contacts=1):
         """
@@ -349,7 +365,7 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
-def IRMM(H, NW, 
+def IRMM(H, NW=None, 
             P_allelic_idx=None,
             P_weak_idx=None,
             allelic_factor=-1,

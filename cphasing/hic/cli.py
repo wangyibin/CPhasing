@@ -494,7 +494,7 @@ def prune(
     """
     from .prune import Prune
 
-    at = AlleleTable(alleletable, sort=False)
+    at = AlleleTable(alleletable, sort=True)
     cr = CountRE(count_re)
     pt = PairTable(pairtable, symmetric=False)
 

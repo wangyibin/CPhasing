@@ -904,9 +904,9 @@ def plot_heatmap_core(matrix,
     cbar.locator = plt.MaxNLocator(5)
     
     if norm == 'log1p':
-        cbar.set_label("Log$_{10}$(Contacts + 1)", fontsize=12)
+        cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=12)
     elif norm == 'log':
-        cbar.set_label("Log(Contacts)", fontsize=12)
+        cbar.set_label("Log(Contact)", fontsize=12)
     else:
         cbar.set_label("Contacts", fontsize=12)
 

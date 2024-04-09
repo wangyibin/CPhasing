@@ -53,12 +53,12 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre):
 
     if len(readsLst) > 1:
         minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} \
-                            | minimap2 -t {} --qstrand --cs -cx map-ont \
+                            | minimap2 -t {} --qstrand -cx map-ont \
                             -p.3 {} - > {}.paf".format(
                                 cat_cmd, ' '.join(readsLst), window, min_length, threads, fasta,  outPre)
     else:
         minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} \
-                            | minimap2 -t {} --qstrand --cs -cx map-ont \
+                            | minimap2 -t {} --qstrand -cx map-ont \
                             -p.3 {} - > {}.paf".format(
                                 readsLst[0], window, min_length, threads, fasta,  outPre)
     

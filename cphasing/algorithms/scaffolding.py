@@ -61,11 +61,12 @@ class HaplotypeAlign:
             "Chr02": [Tour, Tour, Tour ...]}
     """
     def __init__(self, at: str, tour_list: list,
-                 threads: int = 4):
+                 workdir=".", threads: int = 4):
         at = AlleleTable(at, sort=False, fmt='allele2')
         self.tour_list = tour_list 
         self.allele_data = at.data.set_index([1, 2])
         self.hap_tour_db = self.get_hap_tour_db(self.tour_list) 
+        self.workdir = workdir
         self.threads = threads 
 
     def get_hap_tour_db(self, tour_list):
@@ -85,7 +86,7 @@ class HaplotypeAlign:
 
 
     @staticmethod
-    def align(tour1: Tour, tour2: dict, data: pd.DataFrame):
+    def align(tour1: Tour, tour2: dict, data: pd.DataFrame, workdir: str):
         """
         align two haplotype contigs by allele table data
 
@@ -99,6 +100,8 @@ class HaplotypeAlign:
             1       2  mzShared  strand
             ctg1    ctg3  200   1
             ctg2    ctg4  20    -1
+
+        workdir: str
         
             
         """
@@ -127,19 +130,20 @@ class HaplotypeAlign:
             tour2.reverse()
             # tour2.rm()
             # tour2.backup("before_reverse")
-            
-            tour2.save(tour2.filename)    
+            tour2.save(f"{workdir}/{tour2.filename}")    
         
     
     def run(self):
         logger.info("Adjust the tours to parallel among different haplotypes.")
         args = []
+
         for hap, tours in self.hap_tour_db.items():
             for i in range(1, len(tours)):
-                args.append((tours[0], tours[i], self.allele_data))
+
+                args.append((tours[0], tours[i], self.allele_data, self.workdir))
         try:
             Parallel(n_jobs=min(len(args), self.threads))(delayed(
-                    self.align)(i, j, k) for i, j, k in args
+                    self.align)(i, j, k, l) for i, j, k, l in args
             )
         except ValueError:
             logger.warning("Failed to run HaplotypeAlign. skipped")
@@ -224,7 +228,7 @@ class AllhicOptimize:
         
         os.chdir(workdir)
         if self.allele_table and len(tour_res) > 1:
-            hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+            hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
             hap_align.run()
 
 
@@ -371,7 +375,7 @@ class HapHiCSort:
 
         
         if self.allele_table and len(tour_res) >= 2:
-            hap_align = HaplotypeAlign(self.allele_table, tour_res, self.threads)
+            hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
             hap_align.run()
 
 

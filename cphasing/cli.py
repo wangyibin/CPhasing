@@ -290,6 +290,28 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-ir1",
+    "--init-resolution1",
+    "init_resolution1",
+    metavar="FLOAT",
+    help="Initial resolution of the automatic search resolution in first partition"
+    ", only used when `--resolution1=-1`.",
+    type=float,
+    default=0.8,
+    show_default=True
+)
+@click.option(
+    "-ir2",
+    "--init-resolution2",
+    "init_resolution2",
+    metavar="FLOAT",
+    type=float,
+    help="Initial resolution of the automatic search resolution in second partition"
+    ", only used when `--resolution2=-1`.",
+    default=0.8,
+    show_default=True
+)
+@click.option(
     '-fc',
     '--first-cluster',
     'first_cluster',
@@ -463,6 +485,8 @@ def pipeline(fasta,
             n,
             resolution1,
             resolution2, 
+            init_resolution1,
+            init_resolution2,
             first_cluster,
             exclude_group_to_second,
             normalize,
@@ -549,6 +573,8 @@ def pipeline(fasta,
         n=n,
         resolution1=resolution1,
         resolution2=resolution2,
+        init_resolution1=init_resolution1,
+        init_resolution2=init_resolution2,
         first_cluster=first_cluster,
         normalize=normalize,
         exclude_group_to_second=exclude_group_to_second,

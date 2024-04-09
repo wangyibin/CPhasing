@@ -50,7 +50,7 @@ Date: 2024-01-19
 ## [v0.0.59]
 ## Enhancement
 - `hyperpartition`, add automatic search resolution
-- `kprune`, update the fomulate of normalization
+- `kprune`, update the formulate of normalization
 
 ## [v0.0.58]
 
@@ -63,7 +63,7 @@ Date: 2024-01-19
 ## [v0.0.57]
 ## Enhancement
 - `pipeline`, add `hcr`
-- `hcr`, optimzed
+- `hcr`, optimized
 
 ## [v0.0.56]
 ## Enhancement 
@@ -73,7 +73,7 @@ Date: 2024-01-19
 ## [v0.0.55]
 ## New features
 - `hcr_from_contacts`, add new function of hcr
-- `plot_lines`, plot lines of evalutation
+- `plot_lines`, plot lines of evaluation
 
 ## [v0.0.54]
 ## Bug fixes

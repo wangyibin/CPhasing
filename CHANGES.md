@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.1.1]
+Date: 2024-04-09
+## New features
+- `plot`, speed up
+- `alleles`, remove filter function
+
 ## [v0.1.0]
 Date: 2024-04-07
 ## New features

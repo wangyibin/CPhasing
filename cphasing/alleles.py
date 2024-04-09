@@ -190,9 +190,9 @@ class PartigRecords:
                             record.seqName2, sep='\t', file=output)
             elif fmt == "allele2":
                 strand = 1 if record.strand == "+" else -1
-                if k:
-                    if int(record.mzShared) * k * float(record.kmerSimilarity) < filter_value:
-                        continue 
+                # if k:
+                #     if int(record.mzShared) * k * float(record.kmerSimilarity) < filter_value:
+                #         continue 
                 print(i, i, record.seqName1, 
                             record.seqName2, 
                             record.mzConsidered1,

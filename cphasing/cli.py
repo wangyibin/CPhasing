@@ -375,6 +375,16 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-ml",
+    "--min-length",
+    "min_length",
+    help="Minimum length of contigs",
+    metavar="INT",
+    type=int,
+    default=10000,
+    show_default=True
+)
+@click.option(
     "-Nx",
     "--Nx",
     metavar="INT",
@@ -462,6 +472,7 @@ def pipeline(fasta,
             min_quality1,
             min_quality2,
             min_contacts,
+            min_length,
             nx,
             min_scaffold_length,
             whitelist,
@@ -548,6 +559,7 @@ def pipeline(fasta,
         min_quality1=min_quality1,
         min_quality2=min_quality2,
         min_contacts=min_contacts,
+        min_length=min_length,
         Nx=nx,
         min_scaffold_length=min_scaffold_length,
         factor=factor,
@@ -1484,8 +1496,9 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     "min_length",
     help="minimum the sum of valid kmer length",
     type=int,
-    default=5000,
-    show_default=True
+    default=100,
+    show_default=True,
+    hidden=True
 )
 def alleles(fasta, output, 
                 kmer_size, window_size, 
@@ -2606,10 +2619,16 @@ def hyperpartition(hypergraph,
         else:
             first_cluster = None 
         
-        hp.incremental_partition(n, first_cluster)
+        if merge_cluster:
+            logger.error("Imcomplete function of merge cluster in phasing mode.")
+            sys.exit(-1)
+            hp.phased_merge_cluster(_merge_cluster)
+        else:
+            hp.incremental_partition(n, first_cluster)
     else:
         if merge_cluster:
-            hp.merge_cluster(_merge_cluster)
+            groups = list(_merge_cluster.data.values())
+            hp.merge_cluster(groups)
         else:
             hp.single_partition(int(n[0]))
     
@@ -2978,15 +2997,39 @@ def pairs2cool(pairs, chromsize, outcool,
     default="plot.heatmap.png",
     show_default=True
 )
-# @click.option(
-#     '-t',
-#     '--threads',
-#     help='Number of threads. (unused)',
-#     type=int,
-#     default=4,
-#     metavar='INT',
-#     show_default=True,
-# )
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. (unused)',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    "-s",
+    "--scale",
+    metavar="STR",
+    default="log1p",
+    type=click.Choice(["log1p", "log", "none"]),
+    show_default=True,
+)
+@click.option(
+    "-vmin",
+    "--vmin",
+    metavar="FLOAT",
+    default=None,
+    type=float,
+    show_default=True,
+)
+@click.option(
+    "-vmax",
+    "--vmax",
+    metavar="FLOAT",
+    default=None,
+    type=float,
+    show_default=True,
+)
 @click.option(
     '-c',
     '--chromosomes',
@@ -3071,6 +3114,24 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True,
     is_flag=True,
 )
+@click.option(
+    '-rx',
+    '--rotate-xticks',
+    'rotate_xticks',
+    help="Rotate the x ticks",
+    is_flag=True,
+    default=False, 
+    show_default=True
+)
+@click.option(
+    '-ry',
+    '--rotate-yticks',
+    'rotate_yticks',
+    help="Rotate the x ticks",
+    is_flag=True,
+    default=False, 
+    show_default=True
+)
 def plot(matrix, 
             agp, 
             factor,
@@ -3079,7 +3140,10 @@ def plot(matrix,
             no_coarsen,
             only_plot, 
             output,
-            # threads, 
+            threads, 
+            scale,
+            vmin,
+            vmax,
             chromosomes, 
             per_chromosomes,
             chrom_per_row, 
@@ -3088,7 +3152,9 @@ def plot(matrix,
             balance,
             balanced,
             no_lines,
-            no_ticks,):
+            no_ticks,
+            rotate_xticks,
+            rotate_yticks,):
     """
     Adjust or Plot the contacts matrix after assembling.
     """
@@ -3100,7 +3166,6 @@ def plot(matrix,
         plot_heatmap
         
     )
-    threads = 1
 
     if agp is None:
         only_plot = True 
@@ -3111,7 +3176,7 @@ def plot(matrix,
         if not no_adjust:
             if which("bedtools") is None:
                 raise ValueError(f"bedtools: command not found.")
-            matrix = adjust_matrix(matrix, agp)
+            matrix = adjust_matrix(matrix, agp, threads=threads)
 
         if only_adjust:
             sys.exit()
@@ -3167,9 +3232,14 @@ def plot(matrix,
                  chrom_per_row=chrom_per_row,
                  dpi=dpi,
                  cmap=cmap, 
+                 scale=scale,
+                 vmin=vmin,
+                 vmax=vmax,
                  balanced=balanced,
                  xticks=xticks, 
                  yticks=yticks,
+                 rotate_xticks=rotate_xticks,
+                 rotate_yticks=rotate_yticks,
                  add_lines=False if no_lines else True,
                  threads=threads)
 

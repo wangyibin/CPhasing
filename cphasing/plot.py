@@ -65,7 +65,9 @@ def get_bins(bin_size, chrom_size, start=0, orientation="+",
     [('Chr2', 0, 23333)]
     """
     bin_intervals = []
+    chrom_size_dict = dict(chrom_size)
     if region:
+        # chrom_size = [(region, chrom_size_dict[region])]
         tmp = []
         for chroms in chrom_size:
             chrom, size = chroms
@@ -84,7 +86,7 @@ def get_bins(bin_size, chrom_size, start=0, orientation="+",
         for interval in range(start, size, bin_size):
                 bin_intervals.append((chrom, interval, 
                                     min(size, interval + bin_size)))
-       
+
     return bin_intervals if not reverse else bin_intervals[::-1]
 
 
@@ -151,31 +153,32 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
     split chromosome regions into specifial intervals for agp file
 
     """
+    logger.debug("Binnify the agp ...")
     db = []
-    for i, row in agp_df.iterrows():
-        row.start = row.start - 1
-        row.tig_start = int(row.tig_start) - 1
-        #row.tig_end = int(row.tig_end) + 1
+    agp_df['start'] -= 1
+    agp_df['tig_start'] = agp_df['tig_start'].astype(int) - 1
+    def process_row(row):
         if int(row.end - row.start + 1) <= bin_size:
-            tmp_row = row.copy()
-            db.append(tmp_row)
+            return pd.DataFrame([row])
         else:
             tmp_chrom_bins = get_bins(bin_size,  [(row.name, int(row.end))],
-                                      start=row.start, orientation=row.orientation)
+                                    start=row.start, orientation=row.orientation)
             tmp_contig_bins = get_bins(
                 bin_size, [(row.id, int(row.tig_end))], start=0,
                 reverse=False if row.orientation == "+" else True)
 
+            rows = []
             for (_, start, end), (_, tig_start, tig_end) in \
                     zip(tmp_chrom_bins, tmp_contig_bins):
-
                 tmp_row = row.copy()
-                tmp_row.loc[['start', 'end', 'tig_start', 'tig_end']] = start, \
+                tmp_row[['start', 'end', 'tig_start', 'tig_end']] = start, \
                         end, tig_start, tig_end
-        
-                db.append(tmp_row)
+               
+                rows.append(tmp_row)
 
-    res_df = pd.concat(db, axis=1).T
+        return pd.DataFrame(rows)
+
+    res_df = pd.concat(agp_df.parallel_apply(process_row, axis=1).tolist())
 
     return res_df
           
@@ -204,7 +207,7 @@ def findIntersectRegion(a, b, fraction=0.51):
     return overlaps
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
-
+    logger.debug("Get the coordinates of contig on chrom.")
     _file1 = tempfile.NamedTemporaryFile(delete=False)
     _file2 = tempfile.NamedTemporaryFile(delete=False)
     _file3 = tempfile.NamedTemporaryFile(delete=False)
@@ -226,7 +229,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     _file3.close()
 
     df = df[~df.where(df == '.').any(axis=1)]
-    df = df.drop([3, 4, 5, 10], axis=1)
+    df.drop([3, 4, 5, 10], axis=1, inplace=True)
     df.columns = ['chrom', 'start', 'end', 'contig',
                   'tig_start', 'tig_end', 'orientation']
     
@@ -398,7 +401,9 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     
     if outprefix is None:
+        agpprefix = op.basename(agp).rsplit(".", 1)[0]
         outprefix = op.basename(cool.filename).rsplit(".", 1)[0]
+        outprefix = agpprefix + "." + outprefix
     ## get chromosome size database from arguments or agp file
     if not chromSize:
         chrom_sizes = agp_df.groupby(agp_df.index)['end'].max()
@@ -414,8 +419,9 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info("Converting contig-level coordinate to chromosome-level")
     chrom_bin_interval_df = pd.DataFrame(get_bins(bin_size, chrom_sizes), 
                                     columns=['chrom', 'start', 'end'])
-  
-    chrom_regions = chrom_bin_interval_df.apply(lambda x: chrRangeID(x.values), axis=1)
+    
+    pandarallel.initialize(nb_workers=threads, verbose=0)
+    chrom_regions = chrom_bin_interval_df.parallel_apply(lambda x: chrRangeID(x.values), axis=1)
     contig_bins = cool.bins()
     # contig_idx_db = dict(zip(cool.chromnames, range(len(cool.chromnames))))
     new_agp = splitAGPByBinSize(agp_df, bin_size=bin_size)
@@ -424,7 +430,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         chrom_bin_interval_df, new_agp.drop(['number', 'type'], axis=1))
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
     
-    pandarallel.initialize(nb_workers=threads, verbose=0)
+
     
     contig_bins_index = contig_bins[:][['chrom', 'start' ,'end']].parallel_apply(
         lambda x: chrRangeID(x.values), axis=1)
@@ -455,8 +461,9 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     split_contig_on_chrom_df['chromidx'] = \
         split_contig_on_chrom_df['chrom_region'].cat.codes.values
     
+    contig_bins_index_set = set(contig_bins_index.index)
     split_contig_on_chrom_df = split_contig_on_chrom_df[
-        split_contig_on_chrom_df['contig_region'].isin(contig_bins_index.index)]
+        split_contig_on_chrom_df['contig_region'].isin(contig_bins_index_set)]
 
     split_contig_on_chrom_df['contigidx'] = contig_bins_index.loc[
         split_contig_on_chrom_df['contig_region']]['contigidx'].values
@@ -499,7 +506,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, reorder the contig-level matrix, '
                 f' and output into `{outprefix}.ordered.cool`')
     
-    logger.info('Staring to collaspe chromosome bin ...')
+    logger.info('Starting to collaspe chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
@@ -621,9 +628,10 @@ def balance_matrix(cool, force=False, threads=4):
 
 def plot_heatmap(matrix, output, 
                     vmin=None, vmax=None,
-                    log=False, log1p=True, 
+                    scale="log1p", 
                     xlabel=None, ylabel=None, 
                     xticks=True, yticks=True,
+                    rotate_xticks=False, rotate_yticks=False,
                     remove_short_bin=True,
                     add_lines=False,
                     chromosomes=None, 
@@ -642,6 +650,14 @@ def plot_heatmap(matrix, output,
     if balanced:
         log1p = False 
         log = True
+
+    if scale == "log1p":
+        log1p = True
+    elif scale == "log":
+        log = True 
+    else:
+        log = False
+        log1p =False
 
     if not per_chromosomes:
         chrom_offset = cool._load_dset('indexes/chrom_offset')
@@ -670,6 +686,7 @@ def plot_heatmap(matrix, output,
                                                 ].tolist()
         else:
             if remove_short_bin:
+                logger.debug("Removing the short bin ...")
                 retain_chroms = chromsizes[chromsizes >= binsize].index.values
                 if len(retain_chroms) < len(chromsizes): 
                     new_idx = bins.loc[retain_chroms]['index']
@@ -682,6 +699,7 @@ def plot_heatmap(matrix, output,
         # matrix = matrix.todense()
 
         if log1p or log:
+            logger.debug("Masking the zero ...")
             mask = matrix == 0
             mask_nan = np.isnan(matrix)
             mask_inf = np.isinf(matrix)
@@ -696,10 +714,13 @@ def plot_heatmap(matrix, output,
 
         if log1p:
             matrix += 1 
-            norm = LogNorm()
-            # matrix = np.log10(matrix)
+            # norm = LogNorm(vmax=vmax, vmin=vmin)
+            norm = "log1p"
+            matrix = np.log10(matrix)
         elif log:
-            norm = LogNorm()
+            norm = "log"
+            matrix = np.log(matrix)
+            # norm = LogNorm(vmax=vmax, vmin=vmin)
         else:
             norm = None
 
@@ -713,7 +734,9 @@ def plot_heatmap(matrix, output,
 
         ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
-                            xticks=xticks, yticks=yticks,
+                            xticks=xticks, yticks=yticks, 
+                            rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
+                            vmin=vmin, vmax=vmax, 
                             cmap=cmap, add_lines=add_lines,
                             tick_fontsize=tick_fontsize)
     
@@ -737,6 +760,10 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     from matplotlib.colors import LogNorm
     
 
+    if balanced:
+        log1p = False 
+        log = True
+
     chrom_offset = cool._load_dset('indexes/chrom_offset')
     chromsizes = cool.chromsizes
     binsize = cool.binsize
@@ -744,7 +771,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     bins['chrom'] = bins['chrom'].astype('str')
     bins = bins.set_index('chrom')
 
-    matrix = cool.matrix(balance=False, sparse=True)[:].todense()
+    matrix = cool.matrix(balance=balanced, sparse=True)[:].todense()
 
     if chromosomes:
         new_idx = bins.loc[chromosomes]['index']
@@ -784,8 +811,8 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
     def _plot(ax, chrom, matrix, chrom_range):
         chrom_matrix = matrix[chrom_range[0]:chrom_range[1], :][:, chrom_range[0]:chrom_range[1]]
-        chrom_matrix = chrom_matrix.toarray()
-        if log1p:
+        chrom_matrix = chrom_matrix
+        if log1p or log:
             mask = chrom_matrix == 0
             mask_nan = np.isnan(chrom_matrix)
             mask_inf = np.isinf(chrom_matrix)
@@ -800,7 +827,15 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
         if log1p:
             chrom_matrix += 1
-            norm = LogNorm()
+            chrom_matrix = np.log10(chrom_matrix)
+            norm = None
+            # norm = LogNorm()
+        elif log:
+            norm = None
+            chrom_matrix = np.log(chrom_matrix)
+            # norm = LogNorm()
+        else:
+            norm = None
 
 
         plot_heatmap_core(chrom_matrix, ax, norm=norm, xlabel=chrom,
@@ -823,15 +858,21 @@ def plot_heatmap_core(matrix,
                         ax,
                         chromnames=None,
                         chrom_offset=None,
-                        norm=None,
+                        norm=None, vmin=None, vmax=None,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
+                        rotate_xticks=False, rotate_yticks=False,
                         tick_fontsize=16,
                         cmap="redp1_r",
                         add_lines=False):
     import colormaps as cmaps
+    import matplotlib.pyplot as plt 
+    import matplotlib
+    matplotlib.use('Agg')       
+    from matplotlib import colors
     import seaborn as sns 
-
+    
+    logger.info("Plotting the heatmap.")
     try:
         """
         https://pratiman-91.github.io/colormaps/
@@ -841,13 +882,33 @@ def plot_heatmap_core(matrix,
         colormap = cmap 
     
     # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
-    sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
-                    norm=norm,
-                    cbar=True, 
-                    cbar_kws=dict(shrink=.4, pad=0.03))
+    # sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
+    #                 norm=norm,
+    #                 cbar=True, 
+    #                 cbar_kws=dict(shrink=.4, pad=0.03))
     
-    cbar = ax.collections[0].colorbar
+    # cbar = ax.collections[0].colorbar
+    # cbar.ax.tick_params(labelsize=10)
+
+    fig = plt.gcf()
+    cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
+                    interpolation=None)
+    
+    cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
+    ax.set_xlim(0, matrix.shape[0])
+    ax.set_ylim(0, matrix.shape[1])
+
+
+    cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
     cbar.ax.tick_params(labelsize=10)
+    cbar.locator = plt.MaxNLocator(5)
+    
+    if norm == 'log1p':
+        cbar.set_label("Log$_{10}$(Contacts + 1)", fontsize=12)
+    elif norm == 'log':
+        cbar.set_label("Log(Contacts)", fontsize=12)
+    else:
+        cbar.set_label("Contacts", fontsize=12)
 
     if add_lines and chrom_offset:
         ax.hlines(chrom_offset[1:], *ax.get_xlim(), 
@@ -861,12 +922,14 @@ def plot_heatmap_core(matrix,
     ax.tick_params(width=0)
     if xticks and chromnames:
         ax.set_xticks(mid_tick_pos)
-        ax.set_xticklabels(chromnames, fontsize=tick_fontsize)
+        rotation = "vertical" if rotate_xticks else "horizontal"
+        ax.set_xticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
     else:
         ax.set_xticks([])
     if yticks and chromnames:
         ax.set_yticks(mid_tick_pos)
-        ax.set_yticklabels(chromnames, fontsize=tick_fontsize)
+        rotation = "vertical" if rotate_yticks else "horizontal"
+        ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotate_yticks)
     else:
         ax.set_yticks([])
 
@@ -875,7 +938,11 @@ def plot_heatmap_core(matrix,
     
     if ylabel:
         ax.set_ylabel(ylabel, fontsize=18, labelpad=15)
-     
+
     sns.despine(top=False, right=False)
+
+
+    # ax.axis([0, matrix.shape[0], 0, matrix.shape[1]])
+    ax.axis([0, matrix.shape[0], matrix.shape[1], 0])
 
     return ax

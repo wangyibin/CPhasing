@@ -897,12 +897,13 @@ class HyperPartition:
                             tmp2_length = vertices_idx_sizes.loc[tmp2].sum().values[0]
                             overlap1 = tmp1_length / group1_length
                             overlap2 = tmp2_length / group2_length
-
+                            
                             # tmp_mzShared = allelic_pair_df.reindex(product_contig_pair)['mzShared'].sum()
                             # tmp1_mz = mz_df.reindex(group1)['mz1'].sum()
                             # tmp2_mz = mz_df.reindex(group2)['mz1'].sum()
-                            # overlap1 = tmp_mzShared / tmp1_mz 
-                            # overlap2 = tmp_mzShared / tmp2_mz
+                           
+                            # overlap1 = tmp_mzShared  / tmp1_mz 
+                            # overlap2 = tmp_mzShared  / tmp2_mz
                             # print(i, j, group1_length, group2_length, overlap1, overlap2)
 
                             if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
@@ -916,7 +917,7 @@ class HyperPartition:
             total_value = value_matrix.sum()
         
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
-
+           
             for i in range(current_group_number):
                 i_value = value_matrix[i].sum()
                 for j in range(i+1, current_group_number):
@@ -947,7 +948,7 @@ class HyperPartition:
         
         return K
 
-    def merge_cluster(self, merge_cluster):
+    def merge_cluster(self, groups):
         """
         merge several clusters into k groups
         """
@@ -958,7 +959,8 @@ class HyperPartition:
         A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
                                           self.NW,
                                           self.allelic_factor, self.min_weight)
-        _K = list(merge_cluster.data.values())
+        
+        _K = groups
         self.K = list(list(map(lambda x: vertices_idx[x], i)) for i in _K)
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -979,6 +981,19 @@ class HyperPartition:
         
 
         return self.K  
+    
+    def phased_merge_cluster(self, merge_cluster):
+        """
+        merge the phased cluster
+        """
+
+        ## find hap 
+        hap_group = OrderedDict()
+        for group in merge_cluster.groups:
+            hap = group.rsplit("g")[0]
+            if hap not in hap_group:
+                hap_group[hap] = []
+            hap_group[hap].append(group)
         
 
     def post_check(self):

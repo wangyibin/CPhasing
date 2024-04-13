@@ -2,7 +2,6 @@
 
 import logging
 import os
-import dask.array as da
 import gc
 import numpy as np
 import pandas as pd
@@ -406,7 +405,8 @@ def IRMM(H, NW=None,
     --------
     >>> IRMM(H, vertices)
     """
-
+    if max_round > 1:
+        import dask.array as da 
     # if P_allelic_idx or P_weak_idx:
     #     P_allelic_df = pd.concat(P_allelic_idx, axis=1)
     #     P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
@@ -504,6 +504,7 @@ def IRMM(H, NW=None,
 
         if iter_round >= max_round:
             break
+
 
         a = da.from_array(H_T, chunks=(chunk, H_T.shape[1]))
 

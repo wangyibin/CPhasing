@@ -72,7 +72,7 @@ class Extractor:
             # else:
             #     compression='infer'
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                                header=None, index_col=None,
+                                header=None, index_col=None, 
                                 usecols=[1, 3], names=['chrom1', 'chrom2'], 
                                )
            
@@ -387,25 +387,32 @@ class HyperExtractor:
                                     engine=PQ_ENGINE)
             else: 
                 try:
+                    logger.debug("Start to load one porec table.")
                     df = pd.read_csv(infile, 
                                     sep='\t',
                                     header=None,
                                     index_col=None,
-                                        usecols=['read_idx', 'chrom',
-                                                # 'start', 'end', 
-                                                'mapping_quality',
-                                                #'filter_reason'
-                                                ],
-                                        names=self.HEADER)
+                                    engine=CSV_ENGINE,
+                                    dtype_backend=CSV_ENGINE,
+                                    usecols=[0, 5, 8])
+                                    # usecols=['read_idx', 'chrom',
+                                    #             # 'start', 'end', 
+                                    #             'mapping_quality',
+                                    #             #'filter_reason'
+                                    #             ],
+                    df.columns = ['read_idx', 'chrom', 'mapping_quality']
+                                    # names=self.HEADER)
+                    
                 except pd.errors.ParserError:
                     logger.error("The input contacts are not the pore-c table format"
                                 "do you want to parse Pairs file? please add parameters of `--pairs`")
                     sys.exit(-1)
             # df = df.query("filter_reason == 'pass'")
             if self.min_quality > 1:
+                
                 df = df.query(f"mapping_quality >= {self.min_quality}")
             df_list = [df]
-        
+            logger.debug("Successful load porec table.")
 
         else:
             infiles = []
@@ -422,7 +429,7 @@ class HyperExtractor:
                                             'mapping_quality',
                                             #'filter_reason'
                                             ], 
-                                    engine='pyarrow',),
+                                    engine=PQ_ENGINE,),
                                     infiles))
                 
                 # df_list = Parallel(n_jobs=self.threads)(delayed(
@@ -433,18 +440,23 @@ class HyperExtractor:
                 
             else:
                 df_list = list(map(lambda x: pd.read_csv(
-                                x, names=self.HEADER, 
-                                    usecols=['read_idx', 'chrom', 
-                                            # 'start', 'end', 
-                                            'mapping_quality',
-                                            #'filter_reason'
-                                            ], 
+                                x,
+                                    # usecols=['read_idx', 'chrom', 
+                                    #         # 'start', 'end', 
+                                    #         'mapping_quality',
+                                    #         #'filter_reason'
+                                    #         ], 
+                                    usecols=[0, 5, 8],
                                     sep='\t',
                                     index_col=None,
                                     header=None,
+                                    engine=CSV_ENGINE,
+                                    dtype_backend=CSV_ENGINE,
                                     ),
                                     #filters=[('pass_filter', '=', True)]),
                                     infiles))
+                for df in df_list:
+                    df.columns = ['read_idx', 'chrom', 'mapping_quality']
                 
                 if self.min_quality > 1:
                     df_list = Parallel(n_jobs=self.threads)(delayed(
@@ -452,7 +464,7 @@ class HyperExtractor:
                                                           f"'min_quality >= {self.min_quality}")
                                                     # .drop("filter_reason", axis=1)
                                                     )(i) for i in df_list)
-                    df = df.query(f"mapping_quality >= {self.min_quality}")
+                    # df = df.query(f"mapping_quality >= {self.min_quality}")
                 # else:
                 #     df_list = Parallel(n_jobs=self.threads)(delayed(
                 #                         lambda x: x.query("filter_reason == 'pass'")
@@ -494,7 +506,7 @@ class HyperExtractor:
             args.append((pore_c_table, self.contig_idx, threads_2, 
                         self.min_order, self.max_order, 
                         self.min_alignments, self.is_parquet))
-        
+        logger.debug("Processing Pore-C table ...")
         res = Parallel(n_jobs=threads_1)(
                         delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
                                 for i, j, k, l, m, n, o in args)
@@ -512,11 +524,11 @@ class HyperExtractor:
         
         res_df = pd.concat(res)
         mapping_quality_res = pd.concat(mapping_quality_res)
-        
+
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),
                        col=res_df['read_idx'].values.flatten().tolist(),
-                       mapq=mapping_quality_res.values.flatten().tolist(),
+                       mapq=mapping_quality_res.to_numpy().flatten().tolist(),
                        contigsizes=self.contigsizes)
         
         number_of_contigs = len(self.contig_idx)
@@ -620,12 +632,14 @@ class HyperExtractorSplit:
                                 sep='\t',
                                 header=None,
                                 index_col=None,
-                                    usecols=['read_idx', 'chrom',
+                                usecols=['read_idx', 'chrom',
                                             'start', 'end', 
                                             'mapping_quality',
                                             #'filter_reason'
                                             ],
-                                    names=self.HEADER)
+                                engine=CSV_ENGINE,
+                                dtype_backend=CSV_ENGINE,
+                                names=self.HEADER)
                 
                 if self.min_quality > 1:
                     df = df.query(f"mapping_quality >= {self.min_quality}")

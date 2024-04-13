@@ -20,6 +20,7 @@ import pandas as pd
 
 from cphasing.core import PAFTable
 
+
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
                         description=__doc__,

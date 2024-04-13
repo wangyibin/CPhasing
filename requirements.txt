@@ -14,7 +14,7 @@ networkx
 numpy >= 1.22.0
 matplotlib
 msgspec
-pandas
+pandas >= 2.2.0
 pandarallel
 pyarrow >= 8.0.0
 pyfaidx >= 0.7.0

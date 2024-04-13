@@ -23,6 +23,7 @@ import networkx as nx
 import networkx.algorithms.approximation as nx_app 
 import igraph as ig 
 import pandas as pd
+import scipy
 import shutil
 
 from collections import defaultdict
@@ -33,15 +34,16 @@ from pytools import natsorted
 from scipy.sparse import tril, coo_matrix
 
 
-from cphasing.algorithms.hypergraph import IRMM
-from cphasing.core import (
+from ..algorithms.hypergraph import IRMM
+from .._config import *
+from ..core import (
                 AlleleTable, 
                 CountRE, 
                 ClusterTable, 
                 Clm, 
                 Tour
                 )
-from cphasing.utilities import choose_software_by_platform, run_cmd
+from ..utilities import choose_software_by_platform, run_cmd
 
 
 logger = logging.getLogger(__name__)
@@ -1586,9 +1588,13 @@ def raw_sort(K, A, length_array, threads=4):
         sub_group_idx = dict(zip(range(len(sub_group)), list(sub_group)))
         
         sub_A = A[sub_group, :][:, sub_group]
-        sub_NA = sub_A / NW 
-        sub_NA[np.where(sub_NA == 0.0)] = 0.00001
-        sub_NA2 = 1 / sub_NA
+        sub_NA = sub_A / NW
+        try:
+            sub_NA2 = 1 / sub_NA
+        except TypeError:
+            sub_NA = sub_NA.toarray()
+            sub_NA2 = 1 / sub_NA
+
         try:
             G = ig.Graph.Weighted_Adjacency(sub_NA2, mode='undirected', loops=False).to_networkx()
 

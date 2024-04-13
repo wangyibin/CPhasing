@@ -3,6 +3,8 @@ import pandas as pd
 PQ_ENGINE = "pyarrow"
 PQ_VERSION = "2.6"
 
+CSV_ENGINE = "pyarrow"
+
 ## Datatype for PAFTable or PoreCTable
 CHROM_COORD_DTYPE = "uint32"
 READ_COORD_DTYPE = "uint32"

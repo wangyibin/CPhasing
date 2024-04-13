@@ -1,10 +1,14 @@
 # Release notes #
 
 ## [v0.1.1]
-Date: 2024-04-09
+Date: 2024-04-11
 ## New features
+- `hitig`
+    - `scaffolding`, which enable to scaffolding by ultra-long reads.
+    
 - `plot`, speed up
 - `alleles`, remove filter function
+- `hypergraph`, speed up by porec table load.
 
 ## [v0.1.0]
 Date: 2024-04-07

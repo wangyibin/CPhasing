@@ -647,6 +647,25 @@ from .hitig.cli import hitig
     show_default=True
 )
 @click.option(
+    '-p',
+    '--min-identity',
+    'min_identity',
+    help='Minimum percentage identity of alignments [0, 1.0].',
+    metavar='FLOAT',
+    type=click.FloatRange(0.0, 1.0, clamp=True),
+    default=.75,
+    show_default=True
+)
+@click.option(
+    '-l',
+    '--min-length',
+    'min_length',
+    help='Minimum length of fragments.',
+    metavar='INT',
+    default=10,
+    show_default=True
+)
+@click.option(
     '--realign',
     help="realign to rescue multiple alignments, only support for contig-level",
     is_flag=True,
@@ -679,7 +698,8 @@ from .hitig.cli import hitig
     show_default=True,
 )
 def mapper(reference, fastq, pattern, kmer_size, 
-            window_size, mm2_params, mapq, force, 
+            window_size, mm2_params, mapq, 
+            min_identity, min_length, force, 
             realign, outprefix, threads):
     """
     Mapper for pore-c reads.
@@ -728,7 +748,8 @@ def alignments(ctx):
 )
 @click.option(
     '-q',
-    '--min_quality',
+    '--min-quality',
+    'min_quality',
     help='Minimum quality of mapping [0, 255].',
     metavar='INT',
     type=click.IntRange(0, 255, clamp=True),
@@ -737,7 +758,8 @@ def alignments(ctx):
 )
 @click.option(
     '-p',
-    '--min_identity',
+    '--min-identity',
+    'min_identity',
     help='Minimum percentage identity of alignments [0, 1.0].',
     metavar='FLOAT',
     type=click.FloatRange(0.0, 1.0, clamp=True),
@@ -746,7 +768,8 @@ def alignments(ctx):
 )
 @click.option(
     '-l',
-    '--min_length',
+    '--min-length',
+    'min_length',
     help='Minimum length of fragments.',
     metavar='INT',
     default=10,
@@ -1506,7 +1529,7 @@ def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
     help="minimum k-mer similarity for similarity calculation.",
     metavar="FLOAT",
     type=click.FloatRange(0, 1),
-    default=.2,
+    default=.5,
     show_default=True
 )
 @click.option(
@@ -1566,8 +1589,7 @@ def alleles(fasta, output,
     help="ploidy level of genome.",
     metavar="INT",
     type=int,
-    default=None,
-    show_default=True,
+    required=True
 )
 @click.option(
     "-k",
@@ -2486,7 +2508,7 @@ def hyperpartition(hypergraph,
     else:
         n = [None, None]
 
-    if n[0] is None and resolution1 < 0:
+    if (n[0] is None or n[0] == '0') and resolution1 < 0:
         logger.info(f"The group number of first cluster was not be specified, set the resolution1 from {resolution1} to 1.0.")
         resolution1 = 1.0 
 
@@ -2642,6 +2664,8 @@ def hyperpartition(hypergraph,
     if incremental:
         if first_cluster and op.exists(first_cluster):
             first_cluster = ClusterTable(first_cluster)
+            if n[0] != len(first_cluster.groups):
+                logger.warn("The group number of first cluster is conflicted with the specified group number (-n.")
         else:
             first_cluster = None 
         

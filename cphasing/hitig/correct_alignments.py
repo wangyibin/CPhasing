@@ -78,11 +78,16 @@ def read_paf(paf, minAS, nhap):
 
     with xopen(paf,'r') as fin:
         for line in fin:
-            tmpLst = line.split('\t')
+            tmpLst = line.split("\t")
+            if len(tmpLst) < 16:
+                continue
             qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, NM, ms, AS = tmpLst[:15]
+            if not qn:
+                continue
             qi = int(qn.split("_")[-1])
+      
             originQn = "_".join(qn.split("_")[:-1])
-            NM, ms, AS = list(map(lambda x: int(x.split(":")[-1]), [NM, ms, AS]))
+            NM, AS = list(map(lambda x: int(x.split(":")[-1]), [NM, AS]))
             if AS < minAS:
                 continue
             if originQn not in pafDic:

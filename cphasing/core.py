@@ -2499,7 +2499,7 @@ class PAFTable:
             Path(self.output).mkdir(exist_ok=True)
             
             read_idx, scans = self.read_split_info()
-            print(len(read_idx), sum(scans), len(scans))
+           
             chunks = pd.read_csv(self.file, sep='\t', usecols=range(12), 
                             header=None, names=self.PAF_HEADER[:12], 
                             dtype=self.META, iterator=True)

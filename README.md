@@ -18,7 +18,7 @@ The advantages of `C-Phasing`:
 ## Download C-Phasing and install all dependencies
 git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
-conda env create -f environment.yml
+conda env create -f environment.py11.yml
 conda activate cphasing
 
 ## Add these command into .bash_profile or .bashrc
@@ -52,26 +52,26 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 ### **[hitig tutorial](cphasing/hitig)**
 
 ## One command pipeline of C-Phasing
-- Start from a pore-c data
-Current only support single fastq file, if you have multi cells, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.
+- Start from a pore-c data  
+Current only support single fastq file, if you have multi cells, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.  
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all -n "8:4"
 ```
 - Start from a pore-c table  
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s all 
-```
-- Start from a Hi-C 4DN pairs file
+```  
+- Start from a Hi-C 4DN pairs file  
 ```bash
 cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10
-```
-- Skip some steps
+```  
+- Skip some steps  
 ```bash
 ## skip 1.alleles and 2.prepare steps 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 ```
 
-- Only run specified steps
+- Only run specified steps  
 ```bash
 ## run 3.hyperpartition 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3

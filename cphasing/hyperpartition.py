@@ -625,9 +625,9 @@ class HyperPartition:
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
 
-        # A = HyperGraph.clique_expansion_init(sub_H)
-        # vertices_length = sub_vertices_new_idx_sizes['length']
-        # new_K = raw_sort(new_K, A, vertices_length, threads=1)
+        A = HyperGraph.clique_expansion_init(sub_H)
+        vertices_length = sub_vertices_new_idx_sizes['length']
+        new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
@@ -806,7 +806,7 @@ class HyperPartition:
             
             # results.append(HyperPartition._incremental_partition(sub_k, sub_group_number, prune_pair_df, 
             #              self.H, vertices_idx_sizes, self.NW, 
-            #             self.resolution2, self.min_weight, 
+            #             self.resolution2, self.init_resolution2, self.min_weight, 
             #             self.allelic_similarity,  self.min_allelic_overlap, 
             #             self.allelic_factor, self.cross_allelic_factor,
             #             self.min_scaffold_length, self.threshold, self.max_round, num))

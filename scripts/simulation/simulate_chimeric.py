@@ -197,7 +197,8 @@ def main(args):
         contig_list = set(contig_list) - exists_contig_list
         if len(contig_list) <= 2:
             break 
-        pair = set(random.sample(contig_list, 2))
+   
+        pair = set(random.sample(list(contig_list), 2))
         contig1, contig2 = pair
 
         if len(fasta[contig1]) < 25000 or len(fasta[contig2]) < 25000:
@@ -361,8 +362,8 @@ def main(args):
                 if strand1 == "-" and strand2 == "-":
                     strand1 = "+"
                 if order[0] == 0 and order[1] == 0:
-                    tmp_contig1 = contig1_left if strand1 == "+" else contig1_left.complement
-                    tmp_contig2 = contig2_left if strand2 == "+" else contig2_left.complement
+                    tmp_contig1 = contig1_left if strand1 == "+" else contig1_left.complement[::-1]
+                    tmp_contig2 = contig2_left if strand2 == "+" else contig2_left.complement[::-1]
                     new_contig = str(tmp_contig1) + str(tmp_contig2)
                     new_id = f"{contig1}|{contig2};{contig1_len//2};L{strand1}|L{strand2};chimeric_{type_suffix}"
                     contig_frag1 = str(contig1_right)
@@ -371,8 +372,8 @@ def main(args):
                     contig_frag_id2 = f"{contig2};R;frag;{contig2_len//2}-{contig2_len}"
                     
                 elif order[0] == 0 and order[1] == 1:
-                    tmp_contig1 = contig1_left if strand1 == "+" else contig1_left.complement
-                    tmp_contig2 = contig2_right if strand2 == "+" else contig2_right.complement
+                    tmp_contig1 = contig1_left if strand1 == "+" else contig1_left.complement[::-1]
+                    tmp_contig2 = contig2_right if strand2 == "+" else contig2_right.complement[::-1]
                     new_contig = str(tmp_contig1) + str(tmp_contig2)
         
                     new_id = f"{contig1}|{contig2};{contig1_len//2};L{strand1}|R{strand2};chimeric_{type_suffix}"
@@ -382,8 +383,8 @@ def main(args):
                     contig_frag_id2 = f"{contig2};L;frag;0-{contig2_len//2}"
 
                 elif order[0] == 1 and order[1] == 0:
-                    tmp_contig1 = contig1_right if strand1 == "+" else contig1_right.complement
-                    tmp_contig2 = contig2_left if strand2 == "+" else contig2_left.complement
+                    tmp_contig1 = contig1_right if strand1 == "+" else contig1_right.complement[::-1]
+                    tmp_contig2 = contig2_left if strand2 == "+" else contig2_left.complement[::-1]
                     new_contig = str(tmp_contig1) + str(tmp_contig2)
                
                     new_id = f"{contig1}|{contig2};{contig1_len//2};R{strand1}|L{strand2};chimeric_{type_suffix}"
@@ -392,8 +393,8 @@ def main(args):
                     contig_frag2 = str(contig2_right) 
                     contig_frag_id2 = f"{contig2};R;frag;{contig2_len//2}-{contig2_len}"
                 else:
-                    tmp_contig1 = contig1_right if strand1 == "+" else contig1_right.complement
-                    tmp_contig2 = contig2_right if strand2 == "+" else contig2_right.complement
+                    tmp_contig1 = contig1_right if strand1 == "+" else contig1_right.complement[::-1]
+                    tmp_contig2 = contig2_right if strand2 == "+" else contig2_right.complement[::-1]
                     new_contig = str(tmp_contig1) + str(tmp_contig2)
                     
                     new_id = f"{contig1}|{contig2};{contig1_len//2};R{strand1}|R{strand2};chimeric_{type_suffix}"

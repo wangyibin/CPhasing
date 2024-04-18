@@ -13,6 +13,8 @@ import os.path as op
 import sys
 
 
+import pandas as pd
+
 from joblib import Parallel, delayed
 from pathlib import Path
 from pandarallel import pandarallel 
@@ -23,6 +25,15 @@ from .utilities import listify, list_flatten
 from ._config import *
 
 logger = logging.getLogger(__name__)
+
+
+if pd.__version__.split(".")[0] == 1:
+    pandas_version = 1
+elif pd.__version__.split(".")[0] == 2:
+    pandas_version = 2
+else:
+    pandas_version = 1
+
 
 class Extractor:
     """
@@ -303,21 +314,19 @@ def process_pore_c_table(df, contig_idx, threads=1,
     #         .set_index('read_idx'))
     df = df.set_index('read_idx')
     df = df[['chrom_idx', 'mapping_quality']]
-    df_grouped = df.groupby('read_idx')['chrom_idx']
-    df_grouped_nunique = df_grouped.nunique()
-    df = df.loc[(df_grouped_nunique >= min_order) 
-                    & (df_grouped_nunique <= max_order)]
+    # df_grouped = df.groupby('read_idx')['chrom_idx']
+    # df_grouped_nunique = df_grouped.nunique()
+    # df = df.loc[(df_grouped_nunique >= min_order) 
+    #                 & (df_grouped_nunique <= max_order)]
+    df_grouped_nunique = df.groupby('read_idx')['chrom_idx'].transform('nunique')
+    df = df[(df_grouped_nunique >= min_order) & (df_grouped_nunique <= max_order)]
     
     df = df[['chrom_idx', 'mapping_quality']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
   
-    df['read_idx'] = df['read_idx'].astype('category')
-    df['read_idx'] = df['read_idx'].cat.codes
+    df['read_idx'] = df['read_idx'].astype('category').cat.codes
 
     
     return df
-
-
-
 
 
 class HyperExtractor:
@@ -388,18 +397,26 @@ class HyperExtractor:
             else: 
                 try:
                     logger.debug("Start to load one porec table.")
-                    df = pd.read_csv(infile, 
-                                    sep='\t',
-                                    header=None,
-                                    index_col=None,
-                                    engine=CSV_ENGINE,
-                                    dtype_backend=CSV_ENGINE,
-                                    usecols=[0, 5, 8])
-                                    # usecols=['read_idx', 'chrom',
-                                    #             # 'start', 'end', 
-                                    #             'mapping_quality',
-                                    #             #'filter_reason'
-                                    #             ],
+                    if pandas_version == 2:
+                        df = pd.read_csv(infile, 
+                                        sep='\t',
+                                        header=None,
+                                        index_col=None,
+                                        engine=CSV_ENGINE,
+                                        dtype_backend=CSV_ENGINE,
+                                        usecols=[0, 5, 8])
+                                        # usecols=['read_idx', 'chrom',
+                                        #             # 'start', 'end', 
+                                        #             'mapping_quality',
+                                        #             #'filter_reason'
+                                        #             ],
+                    else:
+                        df = pd.read_csv(infile, 
+                                        sep='\t',
+                                        header=None,
+                                        index_col=None,
+                                        # engine=CSV_ENGINE,
+                                        usecols=[0, 5, 8])
                     df.columns = ['read_idx', 'chrom', 'mapping_quality']
                                     # names=self.HEADER)
                     
@@ -408,7 +425,7 @@ class HyperExtractor:
                                 "do you want to parse Pairs file? please add parameters of `--pairs`")
                     sys.exit(-1)
             # df = df.query("filter_reason == 'pass'")
-            if self.min_quality > 1:
+            if self.min_quality > 0:
                 
                 df = df.query(f"mapping_quality >= {self.min_quality}")
             df_list = [df]
@@ -439,26 +456,37 @@ class HyperExtractor:
 
                 
             else:
-                df_list = list(map(lambda x: pd.read_csv(
-                                x,
-                                    # usecols=['read_idx', 'chrom', 
-                                    #         # 'start', 'end', 
-                                    #         'mapping_quality',
-                                    #         #'filter_reason'
-                                    #         ], 
-                                    usecols=[0, 5, 8],
-                                    sep='\t',
-                                    index_col=None,
-                                    header=None,
-                                    engine=CSV_ENGINE,
-                                    dtype_backend=CSV_ENGINE,
-                                    ),
-                                    #filters=[('pass_filter', '=', True)]),
-                                    infiles))
+                if pandas_version == 2:
+                    df_list = list(map(lambda x: pd.read_csv(
+                                    x,
+                                        # usecols=['read_idx', 'chrom', 
+                                        #         # 'start', 'end', 
+                                        #         'mapping_quality',
+                                        #         #'filter_reason'
+                                        #         ], 
+                                        usecols=[0, 5, 8],
+                                        sep='\t',
+                                        index_col=None,
+                                        header=None,
+                                        engine=CSV_ENGINE,
+                                        dtype_backend=CSV_ENGINE,
+                                        ),
+                                        #filters=[('pass_filter', '=', True)]),
+                                        infiles))
+                else:
+                        df_list = list(map(lambda x: pd.read_csv(
+                                    x,
+                                        usecols=[0, 5, 8],
+                                        sep='\t',
+                                        index_col=None,
+                                        header=None,
+                                        # engine=CSV_ENGINE,
+                                        ),
+                                        infiles))
                 for df in df_list:
                     df.columns = ['read_idx', 'chrom', 'mapping_quality']
                 
-                if self.min_quality > 1:
+                if self.min_quality > 0:
                     df_list = Parallel(n_jobs=self.threads)(delayed(
                                         lambda x: x.query(#f"filter_reason == 'pass' &"
                                                           f"'min_quality >= {self.min_quality}")
@@ -502,15 +530,22 @@ class HyperExtractor:
         if threads_1 == 0:
             threads_1 = 1
         args = []
-        for i, pore_c_table in enumerate(self.pore_c_tables):
-            args.append((pore_c_table, self.contig_idx, threads_2, 
-                        self.min_order, self.max_order, 
-                        self.min_alignments, self.is_parquet))
+
         logger.debug("Processing Pore-C table ...")
-        res = Parallel(n_jobs=threads_1)(
-                        delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
-                                for i, j, k, l, m, n, o in args)
-        
+        if len(self.pore_c_tables) > 1:
+            for i, pore_c_table in enumerate(self.pore_c_tables):
+                args.append((pore_c_table, self.contig_idx, threads_2, 
+                            self.min_order, self.max_order, 
+                            self.min_alignments, self.is_parquet))
+           
+            
+            res = Parallel(n_jobs=threads_1)(
+                            delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
+                                    for i, j, k, l, m, n, o in args)
+        else:
+            res = [process_pore_c_table(self.pore_c_tables[0], self.contig_idx, threads_2, 
+                            self.min_order, self.max_order, 
+                            self.min_alignments, self.is_parquet)]
         idx = 0
         mapping_quality_res = []
         
@@ -530,6 +565,7 @@ class HyperExtractor:
                        col=res_df['read_idx'].values.flatten().tolist(),
                        mapq=mapping_quality_res.to_numpy().flatten().tolist(),
                        contigsizes=self.contigsizes)
+        
         
         number_of_contigs = len(self.contig_idx)
         number_of_hyperedges = res_df['read_idx'].max()
@@ -628,7 +664,8 @@ class HyperExtractorSplit:
                                                 ],
                                     engine=PQ_ENGINE) 
             else:
-                df = pd.read_csv(infile, 
+                if pandas_version == 2:
+                    df = pd.read_csv(infile, 
                                 sep='\t',
                                 header=None,
                                 index_col=None,
@@ -640,8 +677,20 @@ class HyperExtractorSplit:
                                 engine=CSV_ENGINE,
                                 dtype_backend=CSV_ENGINE,
                                 names=self.HEADER)
+                else:
+                    df = pd.read_csv(infile, 
+                                sep='\t',
+                                header=None,
+                                index_col=None,
+                                usecols=['read_idx', 'chrom',
+                                            'start', 'end', 
+                                            'mapping_quality',
+                                            #'filter_reason'
+                                            ],
+                                engine=CSV_ENGINE,
+                                names=self.HEADER)
                 
-                if self.min_quality > 1:
+                if self.min_quality > 0:
                     df = df.query(f"mapping_quality >= {self.min_quality}")
                 df_list = [df]
 

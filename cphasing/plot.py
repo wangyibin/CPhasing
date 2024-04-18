@@ -669,7 +669,7 @@ def plot_heatmap(matrix, output,
 
         chromnames = cool.chromnames
        
-        matrix = cool.matrix(balance=balanced, sparse=True)[:].todense()
+        matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
 
         if chromosomes:
             new_idx = bins.loc[chromosomes]['index']
@@ -696,7 +696,7 @@ def plot_heatmap(matrix, output,
                     chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
                 else:
                     chrom_offset = chrom_offset.tolist()
-        # matrix = matrix.todense()
+        matrix = matrix.todense()
 
         if log1p or log:
             logger.debug("Masking the zero ...")
@@ -732,6 +732,7 @@ def plot_heatmap(matrix, output,
         
         tick_fontsize = 15 / np.log10(len(chromnames))
 
+        logger.info("Plotting heatmap ...")
         ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
                             xticks=xticks, yticks=yticks, 
@@ -771,7 +772,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     bins['chrom'] = bins['chrom'].astype('str')
     bins = bins.set_index('chrom')
 
-    matrix = cool.matrix(balance=balanced, sparse=True)[:].todense()
+    matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
 
     if chromosomes:
         new_idx = bins.loc[chromosomes]['index']
@@ -794,6 +795,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
             chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
 
+    matrix = matrix.todense()
     chromosomes = chromosomes if chromosomes else cool.chromnames
     
     num_rows = int(ceil(float(len(chromosomes)) / chrom_per_row))
@@ -828,10 +830,10 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
         if log1p:
             chrom_matrix += 1
             chrom_matrix = np.log10(chrom_matrix)
-            norm = None
+            norm = "log1p"
             # norm = LogNorm()
         elif log:
-            norm = None
+            norm = "log"
             chrom_matrix = np.log(chrom_matrix)
             # norm = LogNorm()
         else:
@@ -848,6 +850,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
         ax = plt.subplot(grids[row, col])
         chrom_range = (chrom_offset[i], chrom_offset[i+1])
         args.append((ax, chrom, matrix, chrom_range))
+        logger.debug(f"Plotting the heatmap of `{chrom}` ...")
         _plot(ax, chrom, matrix, chrom_range)
     # Parallel(n_jobs=threads)(
     #     delayed(_plot)(i, j, k,l) for i, j, k, l in args)
@@ -872,7 +875,6 @@ def plot_heatmap_core(matrix,
     from matplotlib import colors
     import seaborn as sns 
     
-    logger.info("Plotting the heatmap.")
     try:
         """
         https://pratiman-91.github.io/colormaps/

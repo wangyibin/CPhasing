@@ -58,7 +58,6 @@ def hitig(ctx):
     '-i', 
     '--fastq',
     required=True,
-    type=click.Path(exists=True)
 )
 @click.option(
     '-a',

@@ -36,11 +36,14 @@ banner = """
   \____|    |_|   |_| |_|\__,_|___/_|_| |_|\__, |
                                            |___/ 
 """
+
+HIDDEN = True
 class CommandGroup(click.Group):
     """
     List subcommand in the order there were added.
     """
     def list_commands(self, ctx):
+    
         return list(self.commands)
 
     def get_command(self, ctx, cmd_name):
@@ -99,6 +102,9 @@ def cli(verbose, quiet):
         logger.setLevel(LOG_LEVELS[idx])
     else:
         logger.setLevel(logging.INFO)
+
+
+        
 
 @cli.command()
 @click.option(
@@ -204,7 +210,7 @@ def cli(verbose, quiet):
     '--steps',
     metavar='STR',
     help="steps",
-    default="1,2,3,4",
+    default="1,2,3,4,5",
     show_default=True
 )
 @click.option(
@@ -504,7 +510,7 @@ def pipeline(fasta,
             factor,
             threads):
     """
-    A pipeline of polyploid phaseing and scaffolding\n
+    A pipeline of polyploid phaseing and scaffolding.\n
     Steps:\n
         0. mapper;\t\t\t\t\t\t\t\t\t
         1. alleles;\t\t\t\t\t\t\t\t\t 
@@ -643,7 +649,7 @@ from .hitig.cli import hitig
     help='Minimum quality of mapping [0, 60].',
     metavar='INT',
     type=click.IntRange(0, 60, clamp=True),
-    default=1,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -662,7 +668,7 @@ from .hitig.cli import hitig
     'min_length',
     help='Minimum length of fragments.',
     metavar='INT',
-    default=10,
+    default=30,
     show_default=True
 )
 @click.option(
@@ -720,6 +726,8 @@ def mapper(reference, fastq, pattern, kmer_size,
                         force=force,
                         realign=realign,
                         min_quality=mapq,
+                        min_identity=min_identity,
+                        min_length=min_length,
                         additional_arguments=additional_arguments,
                         outprefix=outprefix,
                         threads=threads)
@@ -853,9 +861,7 @@ def paf2porec(paf, output,
     """
     Convert paf to pore_c_table.
     """
-    print(paf, output, 
-                min_quality, min_identity, min_length, 
-                chunksize, threads)
+
     from .core import PAFTable
 
     chunksize = int(chunksize)
@@ -1075,17 +1081,7 @@ def pairs_chrom2contig(pairs, contig_bed, output):
     "output",
     metavar="Output"
 )
-@click.option(
-    '-t',
-    '--threads',
-    help='Number of threads.',
-    type=int,
-    default=4,
-    metavar='INT',
-    show_default=True,
-    hidden=True
-)
-def pairs2mnd(pairs, output, threads):
+def pairs2mnd(pairs, output):
     """
     convert 4DN pairs to mnd file.
 
@@ -1344,7 +1340,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
                 pairs_files.append(pairs)
                 if not Path(pairs).exists():
                     cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
-                    "-o", pairs]
+                    "-o", pairs, "-q", "0"]
                 
                     flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
                     assert flag == 0, "Failed to execute command, please check log."
@@ -1400,7 +1396,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
         logger.info(f'Successful out high confidence high-orrder '
                     f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-               "-o", f"{prefix}_hcr.pairs.gz", "-q", "1"]
+               "-o", f"{prefix}_hcr.pairs.gz", "-q", "0"]
         
         flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -2885,6 +2881,348 @@ def build(fasta, output, output_agp, only_agp):
     Build(fasta, output, 
             output_agp=output_agp, only_agp=only_agp)
 
+@cli.command(hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
+@click.argument(
+    "fasta",
+    metavar="INPUT_FASTA_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    help="output file path.",
+    default="-",
+    show_default=True
+)
+def chromsizes(fasta, output):
+    cmd = ["cphasing-rs", "chromsizes", f"{fasta}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+    
+
+
+@cli.command(hidden=HIDDEN, short_help="Convert paf to pairs. (hidden)")
+@click.argument(
+    "paf",
+    metavar="INPUT_PAF_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="CONTIGSIZES",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-b",
+    "--bed",
+    default=None,
+    metavar="STR",
+    help="bed file, which only retain the fragment start and end located in it.",
+    type=click.Path(exists=True),
+    show_default=True,
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-p",
+    "--min-identity",
+    "min_identity",
+    default=0.75,
+    metavar="FLOAT",
+    help="Minimum identity of alignments",
+    type=click.FloatRange(0, 1.0),
+    show_default=True,
+)
+@click.option(
+    "-l",
+    "--min-length",
+    "min_length",
+    default=30,
+    metavar="FLOAT",
+    help="Minimum length of alignments",
+    type=int,
+    show_default=True,
+)
+@click.option(
+    "--min-order",
+    "min_order",
+    metavar="INT",
+    help="Minimum order of porec reads.",
+    default=2,
+    type=int,
+    show_default=True
+)
+@click.option(
+    "--max-order",
+    "max_order",
+    metavar="INT",
+    help="Maximum order of porec reads.",
+    default=50,
+    type=int,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def paf2pairs(paf, contigsizes, 
+              bed, min_mapq, 
+              min_identity, min_length, 
+              min_order, max_order, output):
+    if not bed:
+        cmd = ["cphasing-rs", "paf2pairs", paf, 
+             "-q", str(min_mapq), "-p", str(min_identity), 
+            "-l", str(min_length), "-m", str(min_order), 
+            "-M", str(max_order), contigsizes, "-o", output]
+    else:
+        cmd = ["cphasing-rs", "paf2pairs", paf, 
+            "-b", bed, "-q", str(min_mapq), "-p", str(min_identity), 
+            "-l", str(min_length), "-m", str(min_order), 
+            "-M", str(max_order), contigsizes, "-o", output]
+
+
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+
+@cli.command(hidden=HIDDEN, short_help="Convert paf to porec table. (hidden)")
+@click.argument(
+    "paf",
+    metavar="INPUT_PAF_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-b",
+    "--bed",
+    default=None,
+    metavar="STR",
+    help="bed file, which only retain the fragment start and end located in it.",
+    type=click.Path(exists=True),
+    show_default=True,
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-p",
+    "--min-identity",
+    "min_identity",
+    default=0.75,
+    metavar="FLOAT",
+    help="Minimum identity of alignments",
+    type=click.FloatRange(0, 1.0),
+    show_default=True,
+)
+@click.option(
+    "-l",
+    "--min-length",
+    "min_length",
+    default=30,
+    metavar="FLOAT",
+    help="Minimum length of alignments",
+    type=int,
+    show_default=True,
+)
+@click.option(
+    "--max-order",
+    "max_order",
+    metavar="INT",
+    help="Maximum order of porec reads.",
+    default=50,
+    type=int,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    help="output path",
+    default="-",
+    show_default=True
+)
+def paf2porec(paf, bed, min_quality, 
+              min_identity, min_length, 
+              max_order, output):
+    if not bed:
+        cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-M", str(max_order),
+                "-q", str(min_quality), "-l", str(min_length),  paf, "-o", output]
+    else:
+        cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-b",  bed, 
+               "-M", str(max_order), "-q", str(min_quality), "-l", str(min_length),  paf, "-o", output]
+
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+
+@cli.command(hidden=HIDDEN, short_help="Convert porec to pairs. (hidden)")
+@click.argument(
+    "porec",
+    metavar="INPUT_POREC_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="CONTIGSIZES",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "--min-order",
+    "min_order",
+    metavar="INT",
+    help="Minimum order of porec reads.",
+    default=2,
+    type=int,
+    show_default=True
+)
+@click.option(
+    "--max-order",
+    "max_order",
+    metavar="INT",
+    help="Maximum order of porec reads.",
+    default=50,
+    type=int,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def porec2pairs(porec, min_mapq, 
+                min_order, max_order,
+                contigsizes, output):
+    cmd = ["cphasing-rs", "porec2pairs", porec, contigsizes, "-q", min_mapq,
+           "--min-order", min_order, "--max-order", max_order, "-o", output]
+
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '--min-contacts',
+    'min_contacts',
+    help='Minimum contacts for contig pair',
+    default=1,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. (unused)',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs2clm(pairs, min_contacts, threads, output):
+    cmd = ["cphasing-rs", "pairs2clm", f"{pairs}", "-c", f"{min_contacts}", 
+            "-t", f"{threads}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(hidden=True, short_help="Convert pairs to contacts. (hidden)")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '--min-contacts',
+    'min_contacts',
+    help='Minimum contacts for contig pair',
+    metavar="INT",
+    default=1,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-n',
+    '-s',
+    '--split-num',
+    'split_num',
+    metavar="INT",
+    help="Split contigs into several bins",
+    type=int,
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs2contacts(pairs, min_contacts, split_num, output):
+    cmd = ["cphasing-rs", "pairs2contacts", f"{pairs}", "-c", f"{min_contacts}", 
+            "-n", f"{split_num}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(hidden=HIDDEN, short_help="Convert pairs to mnd file. (hidden)")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs2mnd(pairs, output):
+    print(HIDDEN)
+    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+
 @cli.command()
 @click.argument(
     "pairs",
@@ -3033,6 +3371,14 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True
 )
 @click.option(
+    '--only-coarsen',
+    'only_coarsen',
+    help='Only coarsen the input matrix.',
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '--only-plot',
     'only_plot',
     help='Only plot the matrix.',
@@ -3090,6 +3436,7 @@ def pairs2cool(pairs, chromsize, outcool,
 @click.option(
     '-pc',
     '--per-chromosomes',
+    '--per-chromosome',
     'per_chromosomes',
     help='Instead of plotting the whole matrix, '
             'each chromosome is plotted next to the other.',
@@ -3170,7 +3517,7 @@ def pairs2cool(pairs, chromsize, outcool,
     'rotate_xticks',
     help="Rotate the x ticks",
     is_flag=True,
-    default=False, 
+    default=True, 
     show_default=True
 )
 @click.option(
@@ -3188,6 +3535,7 @@ def plot(matrix,
             no_adjust, 
             only_adjust, 
             no_coarsen,
+            only_coarsen,
             only_plot, 
             output,
             threads, 
@@ -3219,8 +3567,11 @@ def plot(matrix,
 
     if agp is None:
         only_plot = True 
-        logger.warning( "Only plot the matrix. "
-                "If you want to adjust matrix to chromosome-level, please provide agp file. ")
+        if not only_coarsen:
+            logger.warn( "Only plot the matrix. "
+                    "If you want to adjust matrix to chromosome-level, please provide agp file. ")
+        else:
+            logger.warn("Only coarsen the input matrix.")
 
     if not only_plot:
         if not no_adjust:
@@ -3228,10 +3579,16 @@ def plot(matrix,
                 raise ValueError(f"bedtools: command not found.")
             matrix = adjust_matrix(matrix, agp, threads=threads)
 
+       
         if only_adjust:
             sys.exit()
+        
 
         if not no_coarsen and factor > 1:
+            matrix = coarsen_matrix(matrix, factor, None, threads)   
+    
+    else:
+        if only_coarsen:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
 
     if balance:
@@ -3275,7 +3632,8 @@ def plot(matrix,
             logger.warn("There is not column of `bins/weight` in cool file, set `balanced=False`")
             balanced = False
     
-    plot_heatmap(matrix,
+    if not only_coarsen:
+        plot_heatmap(matrix,
                  output,
                  chromosomes=chromosomes,
                  per_chromosomes=per_chromosomes,
@@ -3310,7 +3668,9 @@ ALIASES = {
     "sf": scaffolding,
     "scaf": scaffolding, 
     "scaffold": scaffolding,
-    "scaffolds": scaffolding
+    "scaffolds": scaffolding,
+    "contigsizes": chromsizes,
+    "pairs2contact": pairs2contacts,
 }
 
 ## hic subcommand

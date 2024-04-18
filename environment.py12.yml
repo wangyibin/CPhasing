@@ -53,6 +53,7 @@ dependencies:
   - gsl=2.7=he838d99_0
   - gst-plugins-base=1.14.1=h6a678d5_1
   - gstreamer=1.14.1=h5eee18b_1
+  - htslib=1.19.1=h81da01d_2
   - icu=73.2=h59595ed_0
   - intel-openmp=2023.1.0=hdb19cb5_46306
   - intervaltree=3.1.0=pyhd8ed1ab_1
@@ -74,7 +75,7 @@ dependencies:
   - libclang13=14.0.6=default_he11475f_1
   - libcups=2.4.2=h2d74bed_1
   - libcurl=8.5.0=h251f7ec_0
-  - libdeflate=1.17=h5eee18b_1
+  - libdeflate=1.18=h0b41bf4_0
   - libedit=3.1.20230828=h5eee18b_0
   - libev=4.33=h7f8727e_1
   - libevent=2.1.12=hdbd6064_1
@@ -90,6 +91,7 @@ dependencies:
   - libllvm14=14.0.6=hdb19cb5_3
   - libnghttp2=1.57.0=h2d74bed_0
   - libnsl=2.0.0=h5eee18b_0
+  - libopenblas=0.3.21=pthreads_h78a6416_3
   - libpng=1.6.39=h5eee18b_0
   - libpq=12.17=hdbd6064_0
   - libprotobuf=3.20.3=he621ea3_0
@@ -97,7 +99,7 @@ dependencies:
   - libssh2=1.10.0=hdbd6064_2
   - libstdcxx-ng=13.2.0=h7e041cc_5
   - libthrift=0.15.0=h1795dd8_2
-  - libtiff=4.5.1=h6a678d5_0
+  - libtiff=4.2.0=hf544144_3
   - libuuid=2.38.1=h0b41bf4_0
   - libwebp-base=1.3.2=h5eee18b_0
   - libxcb=1.15=h7f8727e_0
@@ -122,6 +124,7 @@ dependencies:
   - numexpr=2.8.7=py312hf827012_0
   - numpy=1.26.4=py312hc5e2394_0
   - numpy-base=1.26.4=py312h0da6c21_0
+  - openblas=0.3.21=pthreads_h320a7e8_3
   - openjpeg=2.4.0=h3ad879b_0
   - openssl=3.2.1=hd590300_1
   - orc=1.7.4=hb3bc3d3_1
@@ -160,12 +163,12 @@ dependencies:
   - tbb=2021.8.0=hdb19cb5_0
   - texttable=1.6.4=pyhd3eb1b0_0
   - tk=8.6.13=noxft_h4845f30_101
-  - toolz=0.12.1=pyhd8ed1ab_0
+  - toolz=0.12.0=py312h06a4308_0
   - tornado=6.3.3=py312h5eee18b_0
   - typing_extensions=4.9.0=py312h06a4308_1
   - tzdata=2024a=h04d1e81_0
   - utf8proc=2.6.1=h5eee18b_1
-  - wfmash=0.7.0=h5269a4d_2
+  - wfmash=0.13.0=h11f254b_0
   - wheel=0.41.2=py312h06a4308_0
   - xkeyboard-config=2.41=hd590300_0
   - xorg-kbproto=1.0.7=h7f98852_1002

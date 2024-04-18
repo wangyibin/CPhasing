@@ -161,7 +161,7 @@ class AllhicOptimize:
                     threads=4):
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
-        self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.clm_file = str(Path(clm).absolute())
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
         self.output = output
@@ -171,6 +171,12 @@ class AllhicOptimize:
         self.threads = threads 
 
         self.allhic_path = choose_software_by_platform("allhic")
+
+    @property
+    def clm(self):
+        df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
+
+        return df
 
     @staticmethod
     def extract_count_re(group, contigs, count_re):
@@ -183,11 +189,16 @@ class AllhicOptimize:
     def extract_clm(group, contigs, clm):
         
         contig_pairs = list(permutations(contigs, 2))
-        contig_with_orientation_pairs = []
-        for pair in contig_pairs:
-            for strand1, strand2 in [('+', '+'), ('+', '-'),
-                                    ('-', '+'), ('-', '-')]:
-                contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
+        contig_with_orientation_pairs = (
+            f"{pair[0]}{strand1} {pair[1]}{strand2}"
+            for pair in contig_pairs
+            for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
+        )
+        # contig_with_orientation_pairs = []
+        # for pair in contig_pairs:
+        #     for strand1, strand2 in [('+', '+'), ('+', '-'),
+        #                             ('-', '+'), ('-', '-')]:
+        #         contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
         
         tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
         tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
@@ -215,13 +226,17 @@ class AllhicOptimize:
         os.chdir(tmpDir)
         workdir = os.getcwd()
         args = []
+        clm = self.clm
+
+
+
         for group in self.clustertable.data.keys():
             contigs = self.clustertable.data[group]
-            tmp_clm = AllhicOptimize.extract_clm(group, contigs, self.clm)
+            tmp_clm = AllhicOptimize.extract_clm(group, contigs, clm)
             tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
             args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
         
-        del self.clm
+        del clm
         gc.collect()
         
         
@@ -273,7 +288,7 @@ class HapHiCSort:
         
         self.clustertable = ClusterTable(clustertable)
         self.count_re = CountRE(count_re, minRE=1)
-        self.clm = pd.read_csv(clm, sep='\t', header=None, index_col=0)
+        self.clm_file = str(Path(clm).absolute())
         self.split_contacts = Path(split_contacts).absolute()
         self.skip_allhic = skip_allhic
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
@@ -287,6 +302,12 @@ class HapHiCSort:
         Path(self.log_dir).mkdir(exist_ok=True)
 
         self.allhic_path = choose_software_by_platform("allhic")
+
+    @property
+    def clm(self):
+        df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
+        
+        return df
 
     @staticmethod
     def extract_count_re(group, contigs, count_re):
@@ -352,15 +373,15 @@ class HapHiCSort:
         os.chdir(tmpDir)
         workdir = os.getcwd()
 
-
+        clm = self.clm
         args = []
         for group in self.clustertable.data.keys():
             contigs = self.clustertable.data[group]
-            tmp_clm = HapHiCSort.extract_clm(group, contigs, self.clm)
+            tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
             tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
             args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
         
-        del self.clm
+        del clm
         gc.collect()
         
         HapHiCSort._run(self.fasta, self.split_contacts, "./", 

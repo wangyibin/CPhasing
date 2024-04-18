@@ -293,6 +293,7 @@ class ChromapMapper:
         cmd = ['pigz', '-p', str(self.threads), f'{str(self.output_pairs)}']
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.compress.log')
         assert flag == 0, "Failed to execute command, please check log."
+        logger.info("Done.")
 
     def run(self):
         self.get_contig_sizes()
@@ -485,22 +486,22 @@ class PoreCMapper:
         if not op.exists(self.outpaf) or self.force:
             self.mapping()
         else:
-            logger.warning(f"The paf of `{self.outpaf} existing, skipped ...")
+            logger.warning(f"The paf of `{self.outpaf} existing, skipped `reads mapping` ...")
 
         if self.realign:
             if not op.exists(self.realign_outpaf) or self.force:
                 self.run_realign()
             else:
-                logger.warning(f"The realign paf of `{self.realign_outpaf} existing, skipped ...")
+                logger.warning(f"The realign paf of `{self.realign_outpaf} existing, skipped `realign` ...")
 
         if not op.exists(self.outporec) or self.force:
             self.paf2porec()
         else:
-            logger.warning(f"The porec table of {self.outporec} existing, skipped ...")
+            logger.warning(f"The porec table of {self.outporec} existing, skipped `paf2porec`...")
         
         if not op.exists(self.outpairs) or self.force:
             self.porec2pairs()
         else:
-            logger.warning(f"The pairs of {self.outpairs} existing, skipped ...")
+            logger.warning(f"The pairs of {self.outpairs} existing, skipped `porec2pairs` ...")
 
         logger.info("Mapping done.")

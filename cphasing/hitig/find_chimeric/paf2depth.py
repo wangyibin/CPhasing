@@ -8,6 +8,8 @@ import sys
 
 import math
 import collections
+from multiprocessing import Pool
+
 
 logger = logging.getLogger(__name__)
 
@@ -119,8 +121,14 @@ def workflow(paf, fastaFile, win, outPre):
     pafDic = read_paf(paf)
     genomeSize = read_fasta(fastaFile)
     binDic, winDic = build_windic(genomeSize, win)
+
     winDic = bin_reads(pafDic, winDic, win)
     depthDic = cal_depth(winDic)
+    # with Pool(processes=4) as p:
+    #     winDic = p.starmap(bin_reads, [(pafDic, winDic, win) for _ in range(p._processes)])
+
+    # with Pool(processes=4) as p:
+    #     depthDic = p.starmap(cal_depth, [(winDic,) for _ in range(p._processes)])
 
     return output(outPre, depthDic)
 

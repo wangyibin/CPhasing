@@ -37,6 +37,17 @@ class HyperEdges(msgspec.Struct):
     contigsizes: dict 
     mapq: list
 
+    def to_numpy(self):
+        self.row = np.array(self.row)
+        self.col = np.array(self.col)
+        if self.mapq:
+            self.mapq = np.array(self.mapq)
+
+    def to_list(self):
+        self.row = self.row.tolist()
+        self.col = self.col.tolist()
+        if self.mapq:
+            self.mapq = self.mapq.tolist()
 
 def merge_hyperedges(HE_list: list) -> HyperEdges:
     

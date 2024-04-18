@@ -508,12 +508,14 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
     # initialize output_path_list and set known_adjacency
     output_path_list = list()
     known_adjacency = set()
-    for ctg in ctgs:
-        ctg_H, ctg_T = ctg+'_0', ctg+'_1'
-        output_path_list.append([ctg_H, ctg_T])
-        index_pairs.append((HT_index_dict[ctg_H], HT_index_dict[ctg_T]))
-        known_adjacency.add(tuple(sorted([ctg_H, ctg_T])))
-
+    # for ctg in ctgs:
+    #     ctg_H, ctg_T = ctg+'_0', ctg+'_1'
+    #     output_path_list.append([ctg_H, ctg_T])
+    #     index_pairs.append((HT_index_dict[ctg_H], HT_index_dict[ctg_T]))
+    #     known_adjacency.add(tuple(sorted([ctg_H, ctg_T])))
+    output_path_list = [[ctg+'_0', ctg+'_1'] for ctg in ctgs]
+    index_pairs = [(HT_index_dict[ctg+'_0'], HT_index_dict[ctg+'_1']) for ctg in ctgs]
+    known_adjacency = set(tuple(sorted([ctg+'_0', ctg+'_1'])) for ctg in ctgs)
     # a list to store all shortest paths in the forest
     path_list = ctgs.copy()
     # flank_HT_dict is used to store the flank region length of scaffolds

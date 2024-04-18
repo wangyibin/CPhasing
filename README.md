@@ -54,6 +54,7 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 ## One command pipeline of C-Phasing
 - Start from a pore-c data  
 Current only support single fastq file, if you have multi cells, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.  
+
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all -n "8:4"
 ```
@@ -108,15 +109,15 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
     cphasing alleles -f draft.asm.fasta
     ```
 
-2. **prepare**
-    > Prepare some data for subsequence analysis
-    ```bash
+2. **prepare**  
+    > Prepare some data for subsequence analysis  
+    ```bash  
     ## results are `sample.counts_AAGCTT.txt`, `sample.clm`, `sample.split.contacts`, `sample.contacts`
     cphasing prepare draft.asm.fasta sample.pairs.gz 
-    ```
+    ```  
 
 3. **hyperpartition**  
-    ```bash
+    ```bash  
     ## result is `output.clusters.txt`
     ## for haploid scaffolding 
     cphasing hyperpartition sample.porec.gz draft.asm.contigsizes output.clusters.txt
@@ -125,26 +126,27 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
     cphasing hyperpartition sample.porec.gz draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -n 8:4 -t 4
     ### auto generate groups
     cphasing hyperpartition sample.porec.gz draft.asm.contigsizes output.clusters.txt -pt prune.contig.table -inc -t 4
-    ```
+    ```  
+
     Notes: If you are not satisfied with the number of groups, you can adjust the resolution parameters (`-r1` or `-r2`)  to make difference groups. `-r1` controls the first cluster while `-r2` controls the second cluster in phasing mode. Increasing the resolution can generate more groups while decreasing it will get fewer groups.  
     If you want to group some contigs, you can input a contig list with the `-wl` parameter.
 
 4. **scaffolding**  
-    ```bash
+    ```bash  
     ## result is `groups.agp`
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -sc sample.split.contacts -f draft.asm.fasta -t 4
 
     ## for polyploid can specified allele table to adjust the orientation of different haplotypes
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -at draft.asm.allele.table -sc sample.split.contacts -f draft.asm.fasta 
-    ```
+    ```  
 5. **plot**  
     > Adjust the contig-level contacts matrix into chromosome-level and plot a heatmap.  
 
-    ```bash
+    ```bash  
     ## result is `sample.10000.cool` and `groups.wg.png`
     cphasing pairs2cool sample.pairs.gz draft.asm.contigsizes sample.10000.cool
     cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
-    ```
+    ```  
 
 
 ### Curation by Juicebox

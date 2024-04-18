@@ -90,6 +90,7 @@ def check_break_point(LisDic, win, outPre, edge):
                     genomeSize[ftn] = ftl
                 if ctn not in genomeSize:
                     genomeSize[ctn] = ctl
+                
                 """
                 |--->||---->|
                 |--->||<----|

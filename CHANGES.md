@@ -1,14 +1,22 @@
 # Release notes #
 
+## [v0.1.2]
+Date: 2024-04-18
+## Enhancement 
+- `scaffolding`, optimzed
+- `cphasing-rs pairs2clm`, speed up
+
 ## [v0.1.1]
 Date: 2024-04-11
 ## New features
 - `hitig`
     - `scaffolding`, which enable to scaffolding by ultra-long reads.
-    
+
+## Enhancement
 - `plot`, speed up
 - `alleles`, remove filter function
 - `hypergraph`, speed up by porec table load.
+
 
 ## [v0.1.0]
 Date: 2024-04-07

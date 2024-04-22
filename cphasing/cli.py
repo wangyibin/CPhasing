@@ -120,7 +120,9 @@ def cli(verbose, quiet):
     '--porec-data',
     'porec_data',
     metavar="PoreC_Data",
-    help="",
+    help="Pore-C data. Currently, only support for single file. "
+    "If you want to input multi porec data, you can run `cphasing mapper` for each cell."
+    "And then use `cphasing merge` to merge porec table into a single file.",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -144,12 +146,32 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    '-hic1',
+    '--hic1',
+    metavar="R1_Reads",
+    help="Input hic read1 to run the pipeline by hic data",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-hic2',
+    '--hic2',
+    metavar="R2_Reads",
+    help="Input hic read2 to run the pipeline by hic data",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
     '-p',
     '--pattern',
-    help='Pattern of restriction enzyme. Comma separated for multiple pattern.',
+    help="Pattern of restriction enzyme. Comma separated for multiple pattern."
+    " Don't need to specified.",
     metavar="STR",
     default="AAGCTT",
     show_default=True,
+    hidden=True,
 )
 @click.option(
     "-hcr",
@@ -475,6 +497,8 @@ def pipeline(fasta,
             porec_data, 
             porectable, 
             pairs, 
+            hic1,
+            hic2,
             pattern,
             hcr,   
             hcr_percent,
@@ -540,10 +564,11 @@ def pipeline(fasta,
     """
     from .pipeline.pipeline import run 
     
-    assert any([(porec_data is not None), (porectable is not None), (pairs is not None)]), \
-        "PoreC data or PoreC table or Pairs must specified"
+    assert any([(porec_data is not None), (porectable is not None), 
+                (pairs is not None), ((hic1 is not None) and (hic2 is not None))]), \
+        "PoreC data or PoreC table or Hi-C data or Pairs must specified"
 
-
+    
     if steps:
         if steps == "all":
             steps = set(["0", "1", "2", "3", "4", "5"])
@@ -562,6 +587,8 @@ def pipeline(fasta,
     
     run(fasta, porec_data,
         porectable, pairs, 
+        hic1=hic1,
+        hic2=hic2,
         pattern=pattern,
         hcr_flag=hcr,
         hcr_percent=hcr_percent,
@@ -1441,6 +1468,22 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     show_default=True,
 )
 @click.option(
+    '-spc',
+    '--skip-pairs2contacts',
+    'skip_pairs2contacts',
+    help='skip convert pairs to contacts',
+    default=False,
+    is_flag=True,
+)
+@click.option(
+    '-spc',
+    '--skip-pairs2clm',
+    'skip_pairs2clm',
+    help='skip convert pairs to clm',
+    default=False,
+    is_flag=True,
+)
+@click.option(
     '-t',
     '--threads',
     help="Number of threads. ",
@@ -1456,7 +1499,9 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
     default=None,
     show_default=True
 )
-def prepare(fasta, pairs, min_contacts, pattern, threads, outprefix):
+def prepare(fasta, pairs, min_contacts, pattern,
+            skip_pairs2contacts, skip_pairs2clm,
+              threads, outprefix):
     """
 
     """
@@ -1570,7 +1615,7 @@ def alleles(fasta, output,
     pa.run()
 
 
-@cli.command(short_help="Build allele table by self mapping.")
+@cli.command(short_help="Build allele table by self mapping.", hidden=True)
 @click.option(
     "-f",
     "--fasta",
@@ -1993,10 +2038,11 @@ def hypergraph(contacts,
         
         if not split:
 
-            e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], threads)
+            e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], 
+                            min_quality=min_quality, threads=threads)
             e.save(output)
         else:
-            e = ExtractorSplit(pairs_files, contig_idx, contigsizes.to_dict()['length'], split, threads)
+            e = ExtractorSplit(pairs_files, contig_idx, contigsizes.to_dict()['length'], split, threads=threads)
             e.save(output)
 
 
@@ -2540,7 +2586,7 @@ def hyperpartition(hypergraph,
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
-            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'])
+            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
             he.save(f"{prefix}.hg")
             hypergraph = he.edges
         else:
@@ -2556,7 +2602,7 @@ def hyperpartition(hypergraph,
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
-            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'])
+            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
             he.save(f"{prefix}.hg")
             hypergraph = he.edges
         else:
@@ -2583,6 +2629,8 @@ def hyperpartition(hypergraph,
             HE_list.append(ultra_long_hypergraph)
    
         hypergraph = merge_hyperedges(HE_list)
+    
+    hypergraph.to_numpy()
     
 
 

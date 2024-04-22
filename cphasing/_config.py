@@ -14,3 +14,4 @@ PERCENTAGE_DTYPE = "float32"
 
 ## Datatype of HyperGraph order
 HYPERGRAPH_ORDER_DTYPE = "int8"
+HYPERGRAPH_COL_DTYPE = "int32"

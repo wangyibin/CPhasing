@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def hic(ctx):
     """
-    These functions were developing for ALLHiC2 but deprecated.
+    These functions were developed for ALLHiC2 but deprecated.
     """
     pass
 
@@ -93,7 +93,7 @@ def hic(ctx):
     help='Minimum quality of mapping [0, 60].',
     metavar='INT',
     type=click.IntRange(0, 60, clamp=True),
-    default=1,
+    default=0,
     show_default=True
 )
 @click.option(

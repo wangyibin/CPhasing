@@ -10,7 +10,6 @@ import os
 import os.path as op
 import sys
 
-from Bio import Restriction
 from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
@@ -229,7 +228,9 @@ class ChromapMapper:
     def __init__(self, reference, read1, read2, 
                     kmer_size=17, window_size=7, min_quality=30, 
                     threads=4, additional_arguments=(), 
-                    path='chromap', log_dir='logs'):
+                    path='_chromap', log_dir='logs'):
+        
+
         self.reference = Path(reference)
         self.index_path = Path(f'{self.reference.stem}.index')
         self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
@@ -246,7 +247,11 @@ class ChromapMapper:
 
         self._path = path
         if which(self._path) is None:
-            raise ValueError(f"{self._path}: command not found")
+            if which(self._path.rstrip("_")) is None:
+                raise ValueError(f"{self._path}: command not found")
+            else:
+                self._path = self._path.rstrip("_")
+
 
         if which('pigz') is None:
             raise ValueError(f"pigz: command not found")
@@ -290,7 +295,7 @@ class ChromapMapper:
         logger.info("Done.")
 
     def compress(self):
-        cmd = ['pigz', '-p', str(self.threads), f'{str(self.output_pairs)}']
+        cmd = ['pigz', '-f', '-p', str(self.threads), f'{str(self.output_pairs)}']
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.compress.log')
         assert flag == 0, "Failed to execute command, please check log."
         logger.info("Done.")

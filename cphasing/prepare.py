@@ -63,7 +63,8 @@ def count_re_in_genome(fasta, enzyme, output=None):
 
 
 def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3, 
-            threads=4, outprefix=None, log_dir="logs"):
+            threads=4, outprefix=None, skip_pairs2clm=False,
+            skip_pairs2contacts=False, log_dir="logs"):
 
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -78,13 +79,21 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3,
     ## count re
     cmd = ["cphasing-rs", "count_re", fasta, "-o", 
             f"{outprefix}.counts_{pattern}.txt", "-p", pattern]
-    run_cmd(cmd, log=f'{log_dir}/prepare.count_re.log')
+    flag = run_cmd(cmd, log=f'{log_dir}/prepare.count_re.log')
+    assert flag == 0, "Failed to execute command, please check log."
 
     ## pairs2clm
-    cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
-            "-t", str(threads), "-o", f"{outprefix}.clm" ]
-    run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
+    if not skip_pairs2clm:
+        cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
+                "-t", str(threads), "-o", f"{outprefix}.clm" ]
+        flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
+        assert flag == 0, "Failed to execute command, please check log."
 
+    if not skip_pairs2contacts:
+        cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts),
+                "-o", f"{outprefix}.contacts" ]
+        flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+        assert flag == 0, "Failed to execute command, please check log."
     # ## pairs2split_contacts
     # cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts), 
     #         "-n", "2", "-o", f"{outprefix}.split.contacts"]

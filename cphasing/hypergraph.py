@@ -13,6 +13,7 @@ import os.path as op
 import sys
 
 
+import numpy as np
 import pandas as pd
 
 from joblib import Parallel, delayed
@@ -55,12 +56,14 @@ class Extractor:
     >>> extractor = Extractor(pairs_pathes, contig_idx, contigsizes)
  
     """
-    def __init__(self, pairs_pathes, contig_idx, contigsizes, threads=4):
+    def __init__(self, pairs_pathes, contig_idx, contigsizes, 
+                 min_quality=1, threads=4, low_memory=True):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
-
+        self.min_mapq = min_quality
         self.threads = threads 
+        self.low_memory = low_memory
         self.edges = self.generate_edges()
 
     @staticmethod
@@ -76,26 +79,41 @@ class Extractor:
         """
         """
         logger.info(f"Extract edges from pairs.") 
-
+        if self.low_memory:
+            dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
+        else:
+            dtype={'mapq': 'int8'}
+        
         if len(self.pairs_pathes) == 1:
-            # if self.pairs_pathes[0][-3:] == ".gz":
-            #     compression = 'gzip'
-            # else:
-            #     compression='infer'
-            p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                                header=None, index_col=None, 
-                                usecols=[1, 3], names=['chrom1', 'chrom2'], 
-                               )
-           
-            res = Extractor._process_df(p, self.contig_idx, self.threads)    
-            res = res.reset_index()
-  
+
+            p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
+                                header=None, index_col=None, nrows=1)
+            if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+                p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
+                                header=None, index_col=None, dtype=dtype,
+                                usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'], 
+                                # converters={"chrom1": self.contig_idx.get, 
+                                #             "chrom2": self.contig_idx.get}
+                                ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1)
+                # p = p.query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1).reset_index(drop=True)
+            
+            else:
+                p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
+                                    header=None, index_col=None, 
+                                    dtype=dtype,
+                                    usecols=[1, 3], names=['chrom1', 'chrom2'], 
+                                )
+
+            
+            res = Extractor._process_df(p, self.contig_idx, self.threads)   
+            
+            res = res.reset_index(drop=True).reset_index()
+       
             res = pd.concat([res[['chrom1', 'index']].rename(
                                         columns={'chrom1': 'row', 'index': 'col'}),
                               res[['chrom2', 'index']].rename(
                                         columns={'chrom2': 'row', 'index': 'col'})], 
-                              axis=1)
-
+                              axis=0)
 
         else: 
             p_list = self.pairs_pathes
@@ -108,35 +126,48 @@ class Extractor:
             threads_1 = int(self.threads / threads_2)
             if threads_1 == 0:
                 threads_1 = 1
-            
-            res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
-                lambda x: pd.read_csv(x, sep='\t', comment="#",
-                                header=None, index_col=None, 
-                                # compression=compression,
-                                usecols=[1, 3], names=['chrom1', 'chrom2']))
-                                (i) for i in p_list)
-            
+
+            p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
+                                header=None, index_col=None, nrows=1)
+            if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+                res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                                lambda x: pd.read_csv(x, sep='\t', comment="#",
+                                                header=None, index_col=None, 
+                                                # compression=compression,
+                                                dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'},
+                                                usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
+                                                ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1))
+                                                (i) for i in p_list)
+
+            else:
+                res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                            lambda x: pd.read_csv(x, sep='\t', comment="#",
+                                            header=None, index_col=None, 
+                                            # compression=compression,
+                                            #  dtype={'chrom1': 'category', 'chrom2': 'category'},
+                                            usecols=[1, 3], names=['chrom1', 'chrom2']))
+                                            (i) for i in p_list)
+                
             args = [ (i, self.contig_idx, threads_2) for i in res ]
         
 
             res = Parallel(n_jobs=threads_1)(delayed(
                                 Extractor._process_df)(i, j, k) for i, j, k in args)
             
-            res = pd.concat(res, axis=1).reset_index()
+            res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
             res = pd.concat([res[['chrom1', 'index']].rename(
                                         columns={'chrom1': 'row', 'index': 'col'}),
                               res[['chrom2', 'index']].rename(
                                         columns={'chrom2': 'row', 'index': 'col'})], 
-                              axis=1)
-        
+                              axis=0)
         number_of_contigs = len(self.contig_idx)
-        length = res['row'].shape[0] * res['row'].shape[1]
+        length = res['col'].max()
         logger.info(f"Result of {length} raw "
                     f"hyperedges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
         return HyperEdges(idx=self.contig_idx, 
-                            row=res['row'].values.flatten().tolist(), 
-                            col=res['col'].values.flatten().tolist(),
+                            row=res['row'].values.tolist(), 
+                            col=res['col'].values.tolist(),
                             contigsizes=self.contigsizes,
                             mapq=[])
 
@@ -171,11 +202,12 @@ class ExtractorSplit:
                  contig_idx, 
                  contigsizes, 
                  split=2,
+                 min_quality=1,
                  threads=4):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
-
+        self.min_mapq = min_quality
         self.threads = threads 
         
         self.split = split

@@ -24,6 +24,14 @@ from cphasing.plot import chrRangeID
 logger = logging.getLogger(__name__)
 
 
+class CollapseContigs:
+    def __init__(self, cool_path):
+        self.cool_path = cool_path 
+        self.cool = cooler.Cooler(self.cool_path)
+        
+        pass 
+
+
 def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):
     """
     Params:

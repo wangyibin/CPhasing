@@ -1641,6 +1641,8 @@ def raw_sort(K, A, length_array, threads=4):
     # res = []
     # for i, j, k in args:
     #     res.append(func(i, j, k))
+    if len(args) < 1:
+        return K
     res = Parallel(n_jobs=min(threads, len(args)))(delayed(
         func)(i, j, k) for i, j, k in args 
     )
@@ -1671,6 +1673,7 @@ def test_hyperscaffold(args):
     contigs = [i.strip() for i in open(args.contig_list)]
     
     he = msgspec.msgpack.decode(open(args.hg, 'rb').read(), type=HyperEdges)
+    he.to_numpy()
     hg = HyperGraph(he)
 
     hs = HyperScaffolding(hg, contigs)

@@ -1,9 +1,17 @@
 # Release notes #
 
+## [v0.1.3]
+Date: 2024-04-22
+## New features
+- `_chromap`, add a modified `chromap`
+## Enhancement
+- `hypergraph`, reduce memory usage
+
+
 ## [v0.1.2]
 Date: 2024-04-18
 ## Enhancement 
-- `scaffolding`, optimzed
+- `scaffolding`, optimized
 - `cphasing-rs pairs2clm`, speed up
 
 ## [v0.1.1]

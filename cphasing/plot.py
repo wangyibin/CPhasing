@@ -649,8 +649,9 @@ def plot_heatmap(matrix, output,
     cool = cooler.Cooler(matrix)
     if balanced:
         log1p = False 
-        log = True
-
+        log = False 
+        scale = ""
+        
     if scale == "log1p":
         log1p = True
     elif scale == "log":
@@ -658,6 +659,8 @@ def plot_heatmap(matrix, output,
     else:
         log = False
         log1p =False
+
+
 
     if not per_chromosomes:
         chrom_offset = cool._load_dset('indexes/chrom_offset')
@@ -722,7 +725,10 @@ def plot_heatmap(matrix, output,
             matrix = np.log(matrix)
             # norm = LogNorm(vmax=vmax, vmin=vmin)
         else:
-            norm = None
+            if balanced:
+                norm = "balanced"
+            else:
+                norm = None
 
         factor = round(matrix.shape[0] / 5000 + 1, 2)   
         fig_width = round(7 * factor, 2) 
@@ -909,6 +915,8 @@ def plot_heatmap_core(matrix,
         cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=12)
     elif norm == 'log':
         cbar.set_label("Log(Contact)", fontsize=12)
+    elif norm == 'balanced':
+        cbar.set_label("Normalized Contacts", fontsize=12)
     else:
         cbar.set_label("Contacts", fontsize=12)
 

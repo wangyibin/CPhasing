@@ -9,6 +9,7 @@ import argparse
 import logging
 import os
 import os.path as op
+import re
 import sys
 
 from pathlib import Path
@@ -25,6 +26,8 @@ def run(fasta,
         porec_data,
         porec_table,
         pairs, 
+        hic1=None,
+        hic2=None,
         pattern="AAGCTT",
         hcr_flag=False,
         hcr_percent=0.95,
@@ -76,6 +79,12 @@ def run(fasta,
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
+
+    
+    # if n:
+    #     if len(re.split(":|x|\|", n)) <= 1:
+    #         mode = 'basal'
+
     mode = 'basal' if mode == 'haploid' else mode
     if mode == 'basal':
         
@@ -95,7 +104,21 @@ def run(fasta,
         porec_table = hg_input
         input_param = "--porec"
         
-        if not Path(pairs).exists() and not Path(porec_table).exists():
+        if not Path(pairs).exists() and not Path(porec_table).exists() and "0" not in skip_steps:
+            steps.add("0")
+    
+    elif hic1 and hic2:
+        pairs_prefix = Path(Path(hic1).stem).with_suffix('')
+        while pairs_prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
+            pairs_prefix = pairs_prefix.with_suffix('')
+        pairs_prefix = str(pairs_prefix).replace('_R1', '')
+        pairs = f"{pairs_prefix}.pairs.gz"
+        hg_input = f"{pairs_prefix}.pairs.gz"
+        porec_table = None
+        hg_flag = ""
+        input_param = "--pairs"
+
+        if not Path(pairs).exists() and "0" not in skip_steps:
             steps.add("0")
         
     else:
@@ -124,22 +147,46 @@ def run(fasta,
             logger.info("""#----------------------------------#
 #      Running step 0. mapper      #
 #----------------------------------#""")
-            try:
-                porec_mapper.main(args=[fasta, 
-                                porec_data,
-                                # "-p",
-                                # pattern,
-                                "-t",
-                                str(threads)],
-                                prog_name='mapper')
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
-                
-                if exit_code != 0:
-                    raise e
+            if porec_data:
+                try:
+                    porec_mapper.main(args=[fasta, 
+                                    porec_data,
+                                    # "-p",
+                                    # pattern,
+                                    "-t",
+                                    str(threads)],
+                                    prog_name='mapper')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+            
+            if hic1 and hic2:
+                try:
+                    hic_mapper.main(args=[
+                                    "-r",
+                                    fasta, 
+                                    "-1" ,
+                                    hic1,
+                                    "-2",
+                                    hic2,
+                                    # "-p",
+                                    # pattern,
+                                    "-t",
+                                    str(threads)],
+                                    prog_name='mapper')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
     
     contigsizes = f"{fasta_prefix}.contigsizes"
     if not Path(contigsizes).exists():
@@ -247,7 +294,7 @@ def run(fasta,
     else:
         prepare_input = pairs
 
-    if not Path(prepare_input).exists():
+    if not Path(prepare_input).exists() and (hic1 is None ):
         logger.info("Generating pairs file ...")
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
                     "-o", pairs, "-q", "0"]
@@ -288,11 +335,20 @@ def run(fasta,
 #       Running step 2. prepare    #
 #----------------------------------#""")
         try:
-            prepare.main(args=[fasta,
-                            prepare_input, 
-                            "-p",
-                            pattern],
-                            prog_name='prepare')
+            if porec_table:
+                prepare.main(args=[fasta,
+                                prepare_input, 
+                                "-p",
+                                pattern, 
+                                "--skip-pairs2contacts"],
+                                prog_name='prepare')
+            else:
+                 prepare.main(args=[fasta,
+                                prepare_input, 
+                                "-p",
+                                pattern],
+                                prog_name='prepare')
+                 
         except SystemExit as e:
             exc_info = sys.exc_info()
             exit_code = e.code
@@ -301,6 +357,8 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
+        
+    
     
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
 

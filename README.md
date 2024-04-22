@@ -18,7 +18,7 @@ The advantages of `C-Phasing`:
 ## Download C-Phasing and install all dependencies
 git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
-conda env create -f environment.py11.yml
+conda env create -f environment.py12.yml
 conda activate cphasing
 
 ## Add these command into .bash_profile or .bashrc
@@ -38,7 +38,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
 ```
 #### Dependencies
 1. For core function
-    - [wfmash](https://github.com/waveygang/wfmash)(>=0.13.0)
+    - [wfmash](https://github.com/waveygang/wfmash)(>=0.13.0) (Optional for alleles2)
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
@@ -60,11 +60,16 @@ cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all -n "8:4"
 ```
 - Start from a pore-c table  
 ```bash
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s all 
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s all  -n "8:4"
 ```  
-- Start from a Hi-C 4DN pairs file  
+
+- Start from a paired-end Hi-C data  
 ```bash
-cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10
+cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n "8:4"
+```
+- Start from a Hi-C 4DN pairs file  =
+```bash
+cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n "8:4"
 ```  
 - Skip some steps  
 ```bash

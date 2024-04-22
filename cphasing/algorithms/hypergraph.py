@@ -8,7 +8,7 @@ import pandas as pd
 import msgspec
 import igraph as ig
 
-from .._config import HYPERGRAPH_ORDER_DTYPE
+from .._config import HYPERGRAPH_ORDER_DTYPE, HYPERGRAPH_COL_DTYPE
 
 from joblib import Parallel, delayed
 from scipy.sparse import (
@@ -38,10 +38,10 @@ class HyperEdges(msgspec.Struct):
     mapq: list
 
     def to_numpy(self):
-        self.row = np.array(self.row)
-        self.col = np.array(self.col)
+        self.row = np.array(self.row, dtype=np.int32)
+        self.col = np.array(self.col, dtype=HYPERGRAPH_COL_DTYPE)
         if self.mapq:
-            self.mapq = np.array(self.mapq)
+            self.mapq = np.array(self.mapq, dtype=np.int8)
 
     def to_list(self):
         self.row = self.row.tolist()
@@ -76,6 +76,7 @@ class HyperGraph:
     edges: HyperEdges
         HyperEdges
     """
+
     def __init__(self, edges, min_quality=1):
         self.edges = edges 
         self.contigsizes = self.edges.contigsizes
@@ -88,16 +89,18 @@ class HyperGraph:
         """
         initial assign row and edges
         """
-        if self.min_quality > 1 and self.edges.mapq:
+        if self.min_quality > 1 and self.edges.mapq.size:
             self.mapq = np.array(self.edges.mapq, dtype=np.int8)
 
             retain_idx = self.mapq >= self.min_quality
-            self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
-            self.row = np.array(self.edges.row)
+            # self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+            self.nodes = np.array([k for k, v in sorted(self.edges.idx.items(), key=lambda item: item[1])])
+            self.row = self.edges.row
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
-            self.col = np.array(self.edges.col)[retain_idx]
-            self.idx = np.sort(np.array(pd.unique(self.row)))
+            self.col = self.edges.col[retain_idx]
+            # self.idx = np.sort(np.array(pd.unique(self.row)))
+            self.idx = np.unique(self.row)
             remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
 
             self.remove_contigs = self.nodes[~remove_idx]
@@ -107,9 +110,10 @@ class HyperGraph:
            
         else:
             self.mapq = np.array([])
-            self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
-            self.row = np.array(self.edges.row)
-            self.col = np.array(self.edges.col)
+            # self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
+            self.nodes = np.array([k for k, v in sorted(self.edges.idx.items(), key=lambda item: item[1])])
+            self.row = self.edges.row
+            self.col = self.edges.col
             self.remove_contigs = np.array([])
 
         self.shape = (len(self.nodes), max(self.col) + 1)
@@ -120,7 +124,7 @@ class HyperGraph:
         remove rows by contig list
         """     
         contigs = [x for x in contigs if x not in self.edges.idx.values()]
-        contig_idx = [self.edges.idx[i] for i in contigs]
+        contig_idx = np.array([self.edges.idx[i] for i in contigs], dtype=int)
 
         remove_idx = np.in1d(self.row, contig_idx)
 
@@ -179,6 +183,9 @@ class HyperGraph:
             matrix = matrix[:, non_zero_edges_idx]
             self.shape = matrix.shape 
 
+        del self.row, self.col 
+        gc.collect()
+
         return matrix 
 
     @staticmethod
@@ -200,10 +207,9 @@ class HyperGraph:
         D_e_inv[D_e_inv == -np.inf] = 0
         D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
                                 W.shape, dtype=np.float32)
+    
         
-        H_T = H.T
-        
-        A = H @ W @ D_e_inv @ H_T
+        A = H @ W @ D_e_inv @ H.T
 
         if NW is not None:
             A = A.toarray() * NW
@@ -441,10 +447,13 @@ def IRMM(H, NW=None,
     D_e_inv[D_e_inv == -np.inf] = 0
     D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
                             W.shape, dtype=np.float32)
-    
-    H_T = H.T
 
-    A = H @ W @ D_e_inv @ H_T
+    if max_round <= 1:
+        A = H @ W @ D_e_inv @ H.T
+
+    else:
+        H_T = H.T
+        A = H @ W @ D_e_inv @ H_T
     
     if min_weight > 0:
         mask = A >= min_weight
@@ -460,7 +469,7 @@ def IRMM(H, NW=None,
     A.prune()
 
     if max_round <= 1:
-        del W, D_e_num, D_e_inv, H_T
+        del W, D_e_num, D_e_inv
         gc.collect() 
 
     if P_allelic_idx or P_weak_idx:

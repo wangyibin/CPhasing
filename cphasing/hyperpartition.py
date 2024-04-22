@@ -164,9 +164,8 @@ class HyperPartition:
 
 
         self.HG = HyperGraph(self.edges, min_quality=self.min_quality1)
-        if not self.HG.edges.mapq:
-            pass 
         
+
         ## remove edges
         del edges 
         gc.collect()
@@ -177,6 +176,10 @@ class HyperPartition:
             self.NW = self.get_normalize_weight()
         else:
             self.NW = None
+
+        # if self.HG.mapq.size == 0:
+        #     del self.HG.edges 
+        #     gc.collect()
 
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
@@ -439,7 +442,7 @@ class HyperPartition:
                                                         threads=self.threads)
                 self.filter_cluster(verbose=0)
                 result_K_length = len(self.K)
-                logger.info(f"Generated `{result_K_length}` at resolution `{tmp_resolution}`.")
+                logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution}`.")
                 tmp_resolution += 0.2
 
                 
@@ -743,7 +746,7 @@ class HyperPartition:
 
         logger.info("Starting second hyperpartition ...")
 
-        if self.HG.edges.mapq and (self.min_quality2 > self.min_quality1):
+        if self.HG.edges.mapq.size and (self.min_quality2 > self.min_quality1):
             idx_to_vertices = self.idx_to_vertices
 
             tmp_K = list(map(lambda y: list(

@@ -14,6 +14,7 @@ import sys
 import cooler 
 import numpy as np 
 import pandas as pd
+from scipy import stats
 
 import matplotlib as mpl
 mpl.use('Agg')
@@ -28,7 +29,7 @@ def plot(data, output="output"):
     data = data[data <= np.percentile(data, 98) * 1.5]
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
-    sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+    kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     formatter = plt.gca().get_yaxis().get_major_formatter()
     plt.gca().yaxis.set_major_formatter(formatter)
@@ -42,6 +43,18 @@ def plot(data, output="output"):
     plt.yticks(fontsize=18)
     plt.xlabel("Contacts", fontsize=24)
     plt.ylabel("Density", fontsize=24)
+
+    # x = kdelines.lines[0].get_xdata()
+    # y = kdelines.lines[0].get_ydata()
+    # max_idx = np.argmax(y)
+    # print(max_idx,x[max_idx] * 0.25, x[max_idx] * 1.75, y[max_idx] )
+    
+    # ax.fill_between((x[max_idx] * 0.25, x[max_idx] * 1.75), 
+    #                 0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    # ax.axvline(x[max_idx] * 0.25, linestyle='--', color='k')
+    # ax.axvline(x[max_idx] * 1.75, linestyle='--', color='k')
+
+    # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
     
@@ -66,6 +79,8 @@ def main(args):
     bins = cool.bins()[:]
     matrix = cool.matrix(balance=False, sparse=True)[:]
     sum_values = np.array(matrix.sum(axis=1)).T[0]
+    sum_values = np.nan_to_num(sum_values)
+    # print(sum_values)
 
     plot(sum_values)
 

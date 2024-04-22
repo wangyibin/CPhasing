@@ -30,6 +30,7 @@ def main(args):
     args = p.parse_args(args)
 
     hypergraph = msgspec.msgpack.decode(open(args.hypergraph, 'rb').read(), type=HyperEdges)
+    hypergraph.to_numpy()
     HG = HyperGraph(hypergraph)
     H = HG.incidence_matrix()
 

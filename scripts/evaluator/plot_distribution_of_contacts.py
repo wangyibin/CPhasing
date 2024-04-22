@@ -20,6 +20,7 @@ import seaborn as sns
 
 import pandas as pd 
 import numpy as np
+from scipy import stats
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
@@ -46,6 +47,9 @@ def main(args):
     sum_array = np.array(matrix.sum(axis=1)).T[0]
     sum_array_nonzero = sum_array[sum_array > 0]
     percentile_value = np.percentile(sum_array_nonzero, args.percentile)
+    
+    print(stats.iqr(sum_array_nonzero), file=sys.stderr)
+
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(5.5, 5))
     ax = sns.histplot(sum_array_nonzero, ax=ax)

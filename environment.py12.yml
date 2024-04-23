@@ -182,6 +182,7 @@ dependencies:
   - pip:
     - asciitree==0.3.3
     - cloudpickle==3.0.0
+    - click_didyoumean==0.3.1
     - colormaps==0.4.1
     - cooler==0.9.3
     - dask==2.10.1
@@ -212,3 +213,4 @@ dependencies:
     - urllib3==2.2.1
     - zict==3.0.0
     - zipp==3.18.1
+    

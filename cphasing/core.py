@@ -20,7 +20,6 @@ import pyranges as pr
 import tempfile
 
 from collections import Counter, OrderedDict, defaultdict
-from dask.distributed import Client
 from joblib import Parallel, delayed
 from itertools import combinations
 from multiprocessing import Process, Pool
@@ -2448,6 +2447,7 @@ class PAFTable:
 
         if self.use_dask:
             import dask.dataframe as dd
+            from dask.distributed import Client
             self.client = Client(n_workers=self.threads) if self.threads > 1 else None
         
         if not no_read:
@@ -2685,6 +2685,7 @@ class PoreCTable:
 
         if self.use_dask:
             import dask.dataframe as dd
+            from dask.distributed import Client
             self.client = Client(n_workers=self.threads)
         else:
             pandarallel.initialize(nb_workers=self.threads, verbose=0)

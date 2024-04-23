@@ -7,6 +7,7 @@ cli for hic pipelines
 
 import rich_click as click
 from rich_click import RichCommand
+from click_didyoumean import DYMGroup
 
 import logging
 import sys
@@ -26,7 +27,7 @@ from ..utilities import run_cmd
 logger = logging.getLogger(__name__)
 
 
-class CommandGroup(click.Group, RichCommand):
+class CommandGroup(DYMGroup, RichCommand):
     """
     List subcommand in the order there were added.
     """

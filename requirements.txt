@@ -1,5 +1,6 @@
 biopython
 click
+click-didyoumean
 colormaps
 cooler >= 0.8.11
 dask

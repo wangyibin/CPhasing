@@ -3,7 +3,7 @@
 
 import rich_click as click
 from rich_click import RichCommand
-from rich_click import rich_config
+from click_didyoumean import DYMGroup
 
 
 import logging
@@ -16,7 +16,7 @@ import pandas as pd
 
 from collections import defaultdict
 from pathlib import Path
-from pytools import natsorted
+# from pytools import natsorted
 from shutil import which
 
 from . import __version__
@@ -66,7 +66,7 @@ click.rich_click.ERRORS_EPILOGUE = "To find out more, visit [https://github.com/
 click.rich_click.OPTION_GROUPS = {
     "cphasing pipeline": [
         {
-            "name": "Options for Input Files",
+            "name": "Options of Input Files",
             "options": ["--fasta", "--porec-data", "--porectable", 
                             "--pairs", "--hic1", "--hic2"]
         },
@@ -112,15 +112,43 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of Plot",
             "options": ["--factor"]
         },
-         {
+        {
             "name": "Global Options",
-            "options": ["--threads"]
+            "options": ["--threads", "--help"]
         }
        
+    ],
+    "cphasing plot": [
+        {
+            "name": "Options of Matrix Operation",
+            "options": ["--matrix", "--factor", 
+                        "--no-coarsen", "--only-coarsen",
+                        "--balance", "--balanced"]
+        },
+        {
+            "name": "Options of AGP Adjustment",
+            "options": ["--agp", "--only-adjust"]
+        },
+        {
+            "name": "Options of Heatmap",
+            "options": [
+                        "--chromosomes", "--per-chromosomes",
+                        "--chrom-per-row",
+                        "--vmin", "--vmax", 
+                        "--scale",
+                        "--dpi", "--cmap", 
+                        "--no-lines", "--no-ticks", 
+                        "--rotate-xticks", "--rotate-yticks"]
+            
+        },
+        {
+            "name": "Global Options",
+            "options": ["--output", "--threads", "--help"]
+        }
     ]
 }
 
-class CommandGroup(click.Group, RichCommand):
+class CommandGroup(DYMGroup, RichCommand):
     """
     List subcommand in the order there were added.
     """
@@ -339,7 +367,8 @@ def cli(verbose, quiet):
     '-m',
     '--mode',
     metavar="STR",
-    help="mode of hyperpartition, the basal equal to phasing",
+    help="mode of hyperpartition, the basal equal to haploid. "
+    "`['basal', 'haploid', 'phasing', 'basal_with_prune']`",
     default='phasing',
     show_default=True,
     type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),
@@ -669,6 +698,10 @@ def pipeline(fasta,
     > - Input pore-c data\n
     ```bash
     $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"\n
+    ```
+    > - Input multiple pore-c data\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz -t 10
     ```
     > - Input pore-c table\n
     ```bash
@@ -1046,7 +1079,7 @@ def paf2porec(paf, output,
     # pore_c_table.save(output, paf.tmpdir)
     paf.clean_tempoary()
 
-@alignments.command(hidden=True, deprecated=True)
+@alignments.command(cls=RichCommand, hidden=True, deprecated=True)
 @click.argument(
     "pore_c_table",
     metavar="Pore-C-Table",
@@ -1101,7 +1134,7 @@ def summary(pore_c_table, read_number, threads, use_dask):
     contact_df.to_csv(f"{prefix}.concatemer.summary", sep='\t', 
                             header=True, index=True)
     
-@alignments.command(hidden=True)
+@alignments.command(cls=RichCommand, hidden=True)
 @click.argument(
     'pore_c_table',
     type=click.Path(exists=True),
@@ -1179,7 +1212,7 @@ def pore_c_chrom2contig(
     res_df.to_parquet(output)
     logger.info(f'Done, output new Pore-C record in `{output}`')
 
-@alignments.command(hidden=True)
+@alignments.command(cls=RichCommand, hidden=True)
 @click.argument(
     "pairs",
     metavar="Pairs",
@@ -1239,7 +1272,7 @@ def pairs_chrom2contig(pairs, contig_bed, output):
     p.chrom2contig(contig_df, output=output)
 
 
-@alignments.command()
+@alignments.command(cls=RichCommand)
 @click.argument(
     "pairs",
     metavar="Pairs",
@@ -1265,7 +1298,7 @@ def pairs2mnd(pairs, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@alignments.command()
+@alignments.command(cls=RichCommand)
 @click.argument(
     'pairs',
     metavar='Pairs',
@@ -1299,7 +1332,7 @@ def pairs_intersect(pairs, bed, output):
     flag = run_cmd(cmd, log=f"logs/pairs-intersect.log")
     assert flag == 0, "Failed to execute command, please check log."
 
-@alignments.command()
+@alignments.command(cls=RichCommand)
 @click.argument(
     'table',
     metavar='Pore-C-Table',
@@ -1344,7 +1377,7 @@ def porec_intersect(table, bed, output, threads):
     flag = run_cmd(cmd, log=f"logs/porec-intersect.log")
     assert flag == 0, "Failed to execute command, please check log."
 
-@alignments.command()
+@alignments.command(cls=RichCommand)
 @click.argument(
     'table',
     metavar='Pore-C-Table',
@@ -1737,7 +1770,7 @@ def alleles(fasta, output,
                 minimum_similarity, diff_thres,
                 min_length):
     """
-    Build allele table by kmer similarity (recommend).
+    Build allele table by kmer similarity.
 
     """
     
@@ -3410,7 +3443,7 @@ def pairs2mnd(pairs, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -3428,7 +3461,7 @@ def pairs2mnd(pairs, output):
 @click.option(
     "-bs",
     "--binsize",
-    help="Bin size in bp.",
+    help="Bin size in bp. Enabled with suffix of [k, m]",
     type=str,
     default="10000",
     show_default=True
@@ -3513,6 +3546,7 @@ def pairs2cool(pairs, chromsize, outcool,
     '-m',
     '--matrix',
     metavar='COOL',
+    help="Contacts matrix stored by Cool format.",
     required=True,
     type=click.Path(exists=True)
 )
@@ -3572,6 +3606,7 @@ def pairs2cool(pairs, chromsize, outcool,
     default=False,
     is_flag=True,
     show_default=True,
+    hidden=True,
 )
 @click.option(
     '-o',
@@ -3742,6 +3777,24 @@ def plot(matrix,
             rotate_yticks,):
     """
     Adjust or Plot the contacts matrix after assembling.
+
+    > **Usage:**
+    > - adjust the matrix by agp and plot a heatmap 
+    ```bash
+    cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
+    ```
+    > - adjust the matrix by agp and plot a 100k resolution heatmap
+    ```bash
+    cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png -k 10
+    ```
+    > - only plot a heatmap
+    ```bash
+    cphasing plot -m sample.100k.cool -o sample.100k.png
+    ```
+    > - Plot some chromosomes 
+    ```bash
+    cphasing plot -m sample.100k.cool -c Chr01,Chr02 -o Chr01_Chr02.100k.png
+    ```
     """
     import cooler
     from .plot import (

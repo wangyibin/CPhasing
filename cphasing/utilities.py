@@ -18,7 +18,6 @@ import pandas as pd
 from Bio import SeqIO 
 from collections import OrderedDict
 from pathlib import Path, PosixPath
-from pyfaidx import Fasta
 
 
 logger = logging.getLogger(__name__)
@@ -403,7 +402,7 @@ def get_genome_size(fasta):
     >>> get_genome_size("sample.fasta")
     100000
     """
-    
+    from pyfaidx import Fasta
 
     if str(fasta)[-3:] == ".gz":
         handle = xopen(fasta)
@@ -428,6 +427,7 @@ def get_contig_length(fasta):
     """
     get contig length database from fasta
     """
+    from pyfaidx import Fasta
     fasta = Fasta(fasta)
     contigs = list(map(lambda x: x.name, fasta))
     lengths = list(map(len, list(fasta)))

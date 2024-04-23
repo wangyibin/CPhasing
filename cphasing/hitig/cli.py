@@ -6,7 +6,7 @@ cli for ultra-long ont pipelines
 
 import rich_click as click
 from rich_click import RichCommand
-from rich_click import rich_config
+from click_didyoumean import DYMGroup
 
 import logging
 import sys
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # click.rich_click.ERRORS_EPILOGUE = "To find out more, visit https://github.com/wangyibin/CPhasing"
 
 
-class CommandGroup(click.Group, RichCommand):
+class CommandGroup(DYMGroup, RichCommand):
     """
     List subcommand in the order there were added.
     """

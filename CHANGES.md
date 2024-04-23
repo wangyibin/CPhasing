@@ -1,5 +1,12 @@
 # Release notes #
 
+## [v0.1.4]
+Date: 2024-04-23
+## Enhancement
+- colorful the help text
+- `hcr`, use kde peaks 
+
+
 ## [v0.1.3]
 Date: 2024-04-22
 ## New features

@@ -16,11 +16,56 @@ import numpy as np
 import pandas as pd
 import pyranges as pr 
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from matplotlib.ticker import MaxNLocator
+
+
 logger = logging.getLogger(__name__)
 
+def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
+    fig, ax = plt.subplots(figsize=(5.7, 5))
+    plt.rcParams['font.family'] = 'Arial'
+    data = data[data <= np.percentile(data, 98) * 1.5]
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    formatter = plt.gca().get_yaxis().get_major_formatter()
+    plt.gca().yaxis.set_major_formatter(formatter)
+    plt.gca().yaxis.get_offset_text().set_fontsize(14)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    formatter = plt.gca().get_xaxis().get_major_formatter()
+    plt.gca().xaxis.set_major_formatter(formatter)
+    plt.gca().xaxis.get_offset_text().set_fontsize(14)
+    plt.xlim(0, np.percentile(data, 95) * 2)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xlabel("Contacts", fontsize=24)
+    plt.ylabel("Density", fontsize=24)
 
-def hcr_by_contacts(cool_file, output, percent=95, ):
-    percent = int(percent)
+    x = kdelines.lines[0].get_xdata()
+    y = kdelines.lines[0].get_ydata()
+    max_idx = np.argmax(y)
+    
+    
+    ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
+    ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
+
+    # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
+    plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+    logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
+
+    return x[max_idx] * lower_value, x[max_idx] * upper_value
+
+def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75 ):
+
     cool = cooler.Cooler(cool_file)
     binsize = cool.binsize
     bins = cool.bins()[:]
@@ -37,10 +82,11 @@ def hcr_by_contacts(cool_file, output, percent=95, ):
 
     sum_values_nonzero = sum_values[sum_values > 0]
 
+    min_value, max_value = plot(sum_values_nonzero)
     #median = np.median(sum_values)
-    max_value = np.percentile(sum_values_nonzero, percent)
-    logger.debug(f"Percent{percent} value is {max_value}")
-    res = np.where(sum_values < max_value)
+    # max_value = np.percentile(sum_values_nonzero, percent)
+    # logger.debug(f"Percent{percent} value is {max_value}")
+    res = np.where((sum_values <= max_value) & (sum_values >= min_value))
     
     hcr_regions = bins.loc[res[1]]
     total_length = contigsizes.sum()
@@ -49,10 +95,12 @@ def hcr_by_contacts(cool_file, output, percent=95, ):
     hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
     logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
     
+    hcr_regions = hcr_regions[['chrom', 'start', 'end']]
     hcr_regions.columns = ['Chromosome', 'Start', 'End']
     hcr_regions_pr = pr.PyRanges(hcr_regions)
     hcr_regions_pr.merge().df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
+
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,

@@ -84,7 +84,8 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HCR",
-            "options": ["--hcr", "--hcr-percent", "--hcr-binsize", "--hcr-bed", "--hcr-invert"]
+            "options": ["--hcr", "--hcr-lower", "--hcr-upper", "--hcr-binsize",
+                         "--hcr-bed", "--hcr-invert"]
         },
         {
             "name": "Options of Alleles",
@@ -171,7 +172,7 @@ class CommandGroup(DYMGroup, RichCommand):
              cls=CommandGroup,
              epilog=f"""
             \b
-            Version: {__version__}
+            Version: {__version__}\n
             Please check out the docs at: [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)
             """)
 @click.option(
@@ -325,13 +326,21 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
-    "-hcr-percent",
-    "--hcr-percent",
-    "hcr_percent",
-    metavar="INT",
-    help="Percent HCRs for subsequence analysis",
-    default=95,
-    type=click.IntRange(0, 100),
+    "-hcr-l",
+    "--hcr-lower",
+    "hcr_lower",
+    help="Lower value of peak value.",
+    type=float,
+    default=.01,
+    show_default=True,
+)
+@click.option(
+    "-hcr-u",
+    "--hcr-upper",
+    "hcr_upper",
+    help="Upper value of peak value.",
+    type=float,
+    default=1.75,
     show_default=True,
 )
 @click.option(
@@ -651,7 +660,8 @@ def pipeline(fasta,
             hic_mapper_k,
             hic_mapper_w,
             hcr,   
-            hcr_percent,
+            hcr_lower,
+            hcr_upper,
             hcr_bs,
             hcr_bed,
             hcr_invert,
@@ -763,7 +773,8 @@ def pipeline(fasta,
         hic_mapper_k=hic_mapper_k,
         hic_mapper_w=hic_mapper_w,
         hcr_flag=hcr,
-        hcr_percent=hcr_percent,
+        hcr_lower=hcr_lower,
+        hcr_upper=hcr_upper,
         hcr_bs=hcr_bs, 
         hcr_bed=hcr_bed,
         hcr_invert=hcr_invert,
@@ -812,8 +823,8 @@ from .hitig.cli import hitig
     required=True
 )
 @click.option(
-    "-p",
-    "--pattern",
+    "-e",
+    "--enzyme",
     metavar="STR",
     default="",
     help="Restrict site pattern, use comma to separate multiple patterns.",
@@ -904,7 +915,7 @@ from .hitig.cli import hitig
     metavar='INT',
     show_default=True,
 )
-def mapper(reference, fastq, pattern, kmer_size, 
+def mapper(reference, fastq, enzyme, kmer_size, 
             window_size, mm2_params, mapq, 
             min_identity, min_length, force, 
             realign, outprefix, threads):
@@ -921,7 +932,7 @@ def mapper(reference, fastq, pattern, kmer_size,
     additional_arguments = mm2_params.strip().split()
  
     pcm = PoreCMapper(reference, fastq,
-                        pattern=pattern,
+                        pattern=enzyme,
                         k = kmer_size,
                         w = window_size,
                         force=force,
@@ -1470,11 +1481,19 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 @click.option(
-    "-p",
-    "--percent",
-    help="Percentile of high confidence regions.",
-    type=click.IntRange(0, 100),
-    default=95,
+    "-l",
+    "--lower",
+    help="Lower value of peak value.",
+    type=float,
+    default=.01,
+    show_default=True,
+)
+@click.option(
+    "-u",
+    "--upper",
+    help="Upper value of peak value.",
+    type=float,
+    default=1.75,
     show_default=True,
 )
 @click.option(
@@ -1511,8 +1530,8 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     default=None,
     show_default=True
 )
-def hcr(porectable, pairs, contigsize, binsize, percent, 
-        bed, invert, fofn, output):
+def hcr(porectable, pairs, contigsize, binsize, 
+        lower, upper, bed, invert, fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -1567,7 +1586,9 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
                 pairs2cool.main(args=[
                                     pairs,
                                     contigsize,
-                                    out_small_cool
+                                    out_small_cool,
+                                    "-bs",
+                                    binsize
                                 ],
                                 prog_name='pairs2cool')
             except SystemExit as e:
@@ -1583,7 +1604,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
             logger.warn(f"Use exists cool file of `{out_small_cool}`.")
         
    
-        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , percent)
+        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , lower, upper)
         bed =  f"{prefix}.{binsize}.hcr.bed"
  
         
@@ -3342,8 +3363,8 @@ def paf2porec(paf, bed, min_quality,
 def porec2pairs(porec, min_mapq, 
                 min_order, max_order,
                 contigsizes, output):
-    cmd = ["cphasing-rs", "porec2pairs", porec, contigsizes, "-q", min_mapq,
-           "--min-order", min_order, "--max-order", max_order, "-o", output]
+    cmd = ["cphasing-rs", "porec2pairs", porec, contigsizes, "-q", str(min_mapq),
+           "--min-order", str(min_order), "--max-order", str(max_order), "-o", output]
 
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."

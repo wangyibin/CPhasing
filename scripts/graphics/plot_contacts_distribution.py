@@ -44,15 +44,15 @@ def plot(data, output="output"):
     plt.xlabel("Contacts", fontsize=24)
     plt.ylabel("Density", fontsize=24)
 
-    # x = kdelines.lines[0].get_xdata()
-    # y = kdelines.lines[0].get_ydata()
-    # max_idx = np.argmax(y)
-    # print(max_idx,x[max_idx] * 0.25, x[max_idx] * 1.75, y[max_idx] )
+    x = kdelines.lines[0].get_xdata()
+    y = kdelines.lines[0].get_ydata()
+    max_idx = np.argmax(y)
+    print(max_idx,x[max_idx] * 0.1, x[max_idx] * 1.85, y[max_idx] )
     
-    # ax.fill_between((x[max_idx] * 0.25, x[max_idx] * 1.75), 
-    #                 0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
-    # ax.axvline(x[max_idx] * 0.25, linestyle='--', color='k')
-    # ax.axvline(x[max_idx] * 1.75, linestyle='--', color='k')
+    ax.fill_between((x[max_idx] * 0.1, x[max_idx] * 1.85), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    ax.axvline(x[max_idx] * 0.1, linestyle='--', color='k')
+    ax.axvline(x[max_idx] * 1.85, linestyle='--', color='k')
 
     # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
@@ -68,6 +68,8 @@ def main(args):
     pOpt = p.add_argument_group('Optional arguments')
     pReq.add_argument('cool_file', 
             help='')
+    pOpt.add_argument('-o', '--output', type=str,
+            default="output", help='output prefix of plot file [default: output]')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -77,12 +79,22 @@ def main(args):
 
     cool = cooler.Cooler(cool_file)
     bins = cool.bins()[:]
+    binsize = cool.binsize
     matrix = cool.matrix(balance=False, sparse=True)[:]
+
     sum_values = np.array(matrix.sum(axis=1)).T[0]
+    
+    sum_values = np.array(matrix.sum(axis=1).T[0])
+    
+    small_bins = bins[bins['end'] - bins['start'] < cool.binsize]
+    small_bins_sum_values = sum_values.T[small_bins.index]
+    adjust_small_bins_sum_values = small_bins_sum_values.T / \
+        ((small_bins['end'] - small_bins['start']) / binsize).values
+    sum_values[:, small_bins.index] = adjust_small_bins_sum_values
     sum_values = np.nan_to_num(sum_values)
     # print(sum_values)
 
-    plot(sum_values)
+    plot(sum_values, args.output)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -29,6 +29,10 @@ def run(fasta,
         hic1=None,
         hic2=None,
         pattern="AAGCTT",
+        mapper_k=15,
+        mapper_w=10,
+        hic_mapper_k=17,
+        hic_mapper_w=7,
         hcr_flag=False,
         hcr_percent=0.95,
         hcr_bs=10000,
@@ -96,8 +100,8 @@ def run(fasta,
         fasta_prefix = fasta_prefix.with_suffix("")
 
     if porec_data:
-        porec_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
-        pairs_prefix = str(Path(porec_data).name).replace(".gz", "").rsplit(".", 1)[0]
+        porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
+        pairs_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
         pairs = f"{pairs_prefix}.pairs.gz"
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
@@ -150,9 +154,13 @@ def run(fasta,
             if porec_data:
                 try:
                     porec_mapper.main(args=[fasta, 
-                                    porec_data,
+                                    *porec_data,
                                     # "-p",
                                     # pattern,
+                                    "-k",
+                                    mapper_k,
+                                    "-w",
+                                    mapper_w,
                                     "-t",
                                     str(threads)],
                                     prog_name='mapper')
@@ -174,6 +182,10 @@ def run(fasta,
                                     hic1,
                                     "-2",
                                     hic2,
+                                    "-k",
+                                    hic_mapper_k,
+                                    "-w",
+                                    hic_mapper_w,
                                     # "-p",
                                     # pattern,
                                     "-t",

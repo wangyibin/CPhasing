@@ -268,6 +268,11 @@ class ChromapMapper:
                 "-o", str(self.contigsizes)]
         run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
 
+    def get_genome_size(self):
+        from .utilities import get_genome_size
+
+        return get_genome_size(self.reference)
+
     def index(self):
         """
         Create chromap index.
@@ -312,7 +317,7 @@ class ChromapMapper:
 
 
 class PoreCMapper:
-    def __init__(self, reference, read, pattern="GATC", 
+    def __init__(self, reference, reads, pattern="GATC", 
                     k=15, w=10, min_quality=1, 
                     min_identity=0.75, min_length=30, realign=False,
                     additional_arguments=("-x", "map-ont"), outprefix=None,
@@ -321,7 +326,7 @@ class PoreCMapper:
         self.reference = Path(reference)
         self.index_path = Path(f'{self.reference.stem}.index')
         self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
-        self.read = Path(read)
+        self.reads = reads
         self.pattern = pattern
         self.additional_arguments = additional_arguments
         self.realign = realign
@@ -339,7 +344,7 @@ class PoreCMapper:
             raise ValueError(f"cphasing-rs: command not found")
 
 
-        self.prefix = Path(self.read.stem).with_suffix('')
+        self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta"}:
             self.prefix = self.prefix.with_suffix('')
        
@@ -402,49 +407,115 @@ class PoreCMapper:
 
     def mapping(self):
         secondary = "yes" if self.realign else "no"
-        cmd = [self._path, 
-                '-t', str(self.threads),
-                 '-k', str(self.k),
-                 '-w', str(self.w),
-                '-c',
-                f'--secondary={secondary}',
-                '-I', self.batchsize,
-                str(self.reference),
-                str(self.read)]
-        cmd.extend(list(self.additional_arguments))
 
-        cmd2 = ["pigz", "-c", "-p", "4"]
+        if len(self.reads) == 1:
+            cmd = [self._path, 
+                    '-t', str(self.threads),
+                    '-k', str(self.k),
+                    '-w', str(self.w),
+                    '-c',
+                    f'--secondary={secondary}',
+                    '-I', self.batchsize,
+                    str(self.reference),
+                    str(self.reads[0])]
+            cmd.extend(list(self.additional_arguments))
 
-        logger.info('Running command:')
-        logger.info('\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
-                    + ' > ' + str(self.outpaf))
-        #run_cmd(cmd)
-        pipelines = []
-        try:
-            pipelines.append(
-                Popen(cmd, stdout=PIPE,
-                stderr=open(f'{self.log_dir}/{self.prefix}'
-                '.mapping.log', 'w'),
-                bufsize=-1)
-            )
+            cmd2 = ["pigz", "-c", "-p", "4"]
 
-            pipelines.append(
-                Popen(cmd2, stdin=pipelines[-1].stdout,
-                      stdout=open(self.outpaf, 'wb'),
-                      stderr=open(f'{self.log_dir}/{self.prefix}'
-                '.mapping.log', 'w'),
-                bufsize=-1)
-            )
-            pipelines[-1].wait()
+            logger.info('Running command:')
+            logger.info('\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
+                        + ' > ' + str(self.outpaf))
+            #run_cmd(cmd)
+            pipelines = []
+            try:
+                pipelines.append(
+                    Popen(cmd, stdout=PIPE,
+                    stderr=open(f'{self.log_dir}/{self.prefix}'
+                    '.mapping.log', 'w'),
+                    bufsize=-1)
+                )
+
+                pipelines.append(
+                    Popen(cmd2, stdin=pipelines[-1].stdout,
+                        stdout=open(self.outpaf, 'wb'),
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                    '.mapping.log', 'w'),
+                    bufsize=-1)
+                )
+                pipelines[-1].wait()
+            
+            finally:
+                for p in pipelines:
+                    if p.poll() is None:
+                        p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
         
-        finally:
-            for p in pipelines:
-                if p.poll() is None:
-                    p.terminate()
+        else:
+            # logger.error("Developing")
+            # raise ValueError("Developing")
+            if self.reads[0][-3:] == ".gz":
+                cat_cmd = "zcat"
             else:
-                assert pipelines != [], \
-                    "Failed to execute command, please check log."
+                cat_cmd = "cat"
+            
+            cmd0 = [cat_cmd]
+            cmd0.extend(self.reads)
 
+
+            cmd = [self._path, 
+                    '-t', str(self.threads),
+                    '-k', str(self.k),
+                    '-w', str(self.w),
+                    '-c',
+                    f'--secondary={secondary}',
+                    '-I', self.batchsize,
+                    str(self.reference),
+                    ]
+            cmd.extend(list(self.additional_arguments))
+            cmd.append("-")
+
+            cmd2 = ["pigz", "-c", "-p", "4"]
+
+            logger.info('Running command:')
+            logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
+                        + ' > ' + str(self.outpaf))
+            #run_cmd(cmd)
+            pipelines = []
+            try:
+                
+                pipelines.append(
+                    Popen(cmd0, stdout=PIPE,
+                    stderr=open(f'{self.log_dir}/{self.prefix}'
+                    '.mapping.log', 'w'),
+                    bufsize=-1)
+                )
+
+                pipelines.append(
+                    Popen(cmd, stdin=pipelines[-1].stdout,
+                          stdout=PIPE,
+                    stderr=open(f'{self.log_dir}/{self.prefix}'
+                    '.mapping.log', 'w'),
+                    bufsize=-1)
+                )
+
+                pipelines.append(
+                    Popen(cmd2, stdin=pipelines[-1].stdout,
+                        stdout=open(self.outpaf, 'wb'),
+                        stderr=open(f'{self.log_dir}/{self.prefix}'
+                    '.mapping.log', 'w'),
+                    bufsize=-1)
+                )
+                pipelines[-1].wait()
+            
+            finally:
+                for p in pipelines:
+                    if p.poll() is None:
+                        p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
     
     def run_realign(self):
         cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]

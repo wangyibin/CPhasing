@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-import click
+
+import rich_click as click
+from rich_click import RichCommand
+from rich_click import rich_config
+
+
 import logging
 import sys 
 import os
@@ -38,7 +43,84 @@ banner = """
 """
 
 HIDDEN = True
-class CommandGroup(click.Group):
+
+# help_config = click.RichHelpConfiguration(
+#     show_arguments=True,
+    
+# )
+click.rich_click.USE_MARKDOWN = True
+click.rich_click.STYLE_COMMANDS_TABLE_SHOW_LINES = False
+click.rich_click.STYLE_COMMANDS_TABLE_PAD_EDGE = True
+click.rich_click.STYLE_COMMANDS_TABLE_BOX = "SIMPLE"
+click.rich_click.STYLE_COMMANDS_TABLE_BORDER_STYLE = "red"
+# click.rich_click.STYLE_COMMANDS_TABLE_ROW_STYLES = ["yellow", "green", "cyan"]
+click.rich_click.MAX_WIDTH = 128
+
+click.rich_click.SHOW_ARGUMENTS = True
+click.rich_click.APPEND_METAVARS_HELP = True
+click.rich_click.SHOW_METAVARS_COLUMN = False
+click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
+click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
+click.rich_click.ERRORS_EPILOGUE = "To find out more, visit [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)"
+
+click.rich_click.OPTION_GROUPS = {
+    "cphasing pipeline": [
+        {
+            "name": "Options for Input Files",
+            "options": ["--fasta", "--porec-data", "--porectable", 
+                            "--pairs", "--hic1", "--hic2"]
+        },
+        {
+            "name": "Advance Options of Pipeline",
+            "options": ["--mode", "--steps", "--skip-steps"]
+        },
+        {
+            "name": "Options of Pore-C Mapper",
+            "options": ["--mapper-k", "--mapper-w"]
+        },
+         {
+            "name": "Options of Hi-C Mapper",
+            "options": ["--hic-mapper-k", "--hic-mapper-w"]
+        },
+        {
+            "name": "Options of HCR",
+            "options": ["--hcr", "--hcr-percent", "--hcr-binsize", "--hcr-bed", "--hcr-invert"]
+        },
+        {
+            "name": "Options of Alleles",
+            "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d"]
+        },
+        {
+            "name": "Options of HyperPartition",
+            "options": ["-n", "--min-contacts",
+                        "--Nx", "--min-length", "--min-weight",
+                        "--whitelist",
+                        "--resolution1", "--resolution2",
+                         "--init-resolution1",  "--init-resolution2",
+                          "--first-cluster", "--normalize", 
+                          "--min-quality1", "--min-quality2",
+                           "--min-scaffold-length",
+                          "--allelic-similarity", "--min-allelic-overlap",
+                          "--exclude-group-to-second"
+                          ]
+        },
+        {
+            "name": "Options of Scaffolding",
+            "options": ["--scaffolding-method"]
+        },
+        {
+            "name": "Options of Plot",
+            "options": ["--factor"]
+        },
+         {
+            "name": "Global Options",
+            "options": ["--threads"]
+        }
+       
+    ]
+}
+
+class CommandGroup(click.Group, RichCommand):
     """
     List subcommand in the order there were added.
     """
@@ -58,10 +140,11 @@ class CommandGroup(click.Group):
 
 @click.version_option(__version__, "-V", "--version")
 @click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
-            cls=CommandGroup, epilog=f"""
+             cls=CommandGroup,
+             epilog=f"""
             \b
             Version: {__version__}
-            Please check out the docs at: https://github.com/wangyibin/CPhasing
+            Please check out the docs at: [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)
             """)
 @click.option(
     "-v", 
@@ -78,15 +161,9 @@ class CommandGroup(click.Group):
 )
 def cli(verbose, quiet):
     """
-    \b 
-   ____      ____  _               _             
-  / ___|    |  _ \| |__   __ _ ___(_)_ __   __ _ 
- | |   _____| |_) | '_ \ / _` / __| | '_ \ / _` |
- | |__|_____|  __/| | | | (_| \__ \ | | | | (_| |
-  \____|    |_|   |_| |_|\__,_|___/_|_| |_|\__, |
-                                           |___/ 
+    **Phasing** and scaffolding polyploid genomes based on Pore-**C**, Ultra-long, or Hi-**C** data.    
+    --------------------
 
-    Phasing and scaffolding polyploid genomes based on Pore-C, Ultra-long, or Hi-C data.
     \f
 
     :param click.core.Context ctx: Click context.
@@ -106,7 +183,7 @@ def cli(verbose, quiet):
 
         
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.option(
     '-f',
     '--fasta',
@@ -119,10 +196,12 @@ def cli(verbose, quiet):
     '-pcd',
     '--porec-data',
     'porec_data',
-    metavar="PoreC_Data",
-    help="Pore-C data. Currently, only support for single file. "
-    "If you want to input multi porec data, you can run `cphasing mapper` for each cell."
-    "And then use `cphasing merge` to merge porec table into a single file.",
+    metavar="PoreC Data",
+    multiple=True,
+    help="Pore-C data. Multiple files use multiple options, such as -pcd read1.fq.gz -pcd read2.fq.gz. "
+    "However, the prefix of subsequence output files use the read1. "
+    "If you want to run parallel of multi porec data, you can run `cphasing mapper` for each cell. "
+    "And then use `cphasing merge` to merge porec table into a single file",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -148,8 +227,8 @@ def cli(verbose, quiet):
 @click.option(
     '-hic1',
     '--hic1',
-    metavar="R1_Reads",
-    help="Input hic read1 to run the pipeline by hic data",
+    metavar="R1 Reads",
+    help="Input hic read1 to run the pipeline by hic data, only support one file",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -157,8 +236,8 @@ def cli(verbose, quiet):
 @click.option(
     '-hic2',
     '--hic2',
-    metavar="R2_Reads",
-    help="Input hic read2 to run the pipeline by hic data",
+    metavar="R2 Reads",
+    help="Input hic read2 to run the pipeline by hic data, only support one file",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -172,6 +251,42 @@ def cli(verbose, quiet):
     default="AAGCTT",
     show_default=True,
     hidden=True,
+)
+@click.option(
+    '-mapper-k',
+    "--mapper-k",
+    "mapper_k",
+    metavar="INT",
+    help="kmer size for mapper",
+    default=15,
+    show_default=True
+)
+@click.option(
+    '-mapper-w',
+    "--mapper-w",
+    "mapper_w",
+    metavar="INT",
+    help="window size for mapper",
+    default=10,
+    show_default=True
+)
+@click.option(
+    '-hic-mapper-k',
+    "--hic-mapper-k",
+    "hic_mapper_k",
+    metavar="INT",
+    help="kmer size for mapper",
+    default=17,
+    show_default=True
+)
+@click.option(
+    '-hic-mapper-w',
+    "--hic-mapper-w",
+    "hic_mapper_w",
+    metavar="INT",
+    help="window size for mapper",
+    default=7,
+    show_default=True
 )
 @click.option(
     "-hcr",
@@ -221,17 +336,19 @@ def cli(verbose, quiet):
     show_default=True,
 )
 @click.option(
+    '-m',
     '--mode',
+    metavar="STR",
     help="mode of hyperpartition, the basal equal to phasing",
-    type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),
     default='phasing',
     show_default=True,
+    type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),
 )
 @click.option(
     '-s',
     '--steps',
     metavar='STR',
-    help="steps",
+    help="steps, comma seperate",
     default="1,2,3,4,5",
     show_default=True
 )
@@ -349,9 +466,8 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
-    '--exclude-group-to-second',
     '--exclude-to-second',
-    '--exclude-group-second',
+    '--exclude-group-to-second',
     'exclude_group_to_second',
     metavar="STR",
     help='exclude several groups that do not run in second round cluster, comma seperate. 1-base.'
@@ -469,7 +585,7 @@ def cli(verbose, quiet):
     '--scaffolding-method',
     'scaffolding_method',
     metavar='STR',
-    help="the method of scaffolding",
+    help="The method of scaffolding",
     default="haphic",
     type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
     show_default=True
@@ -477,6 +593,7 @@ def cli(verbose, quiet):
 @click.option(
     '--factor',
     '-k',
+    metavar="INT",
     help='Factor of plot matrix. '
             'If you input 10k matrix and want to plot heatmap at 500k, '
             'factor should be set with 50.',
@@ -500,6 +617,10 @@ def pipeline(fasta,
             hic1,
             hic2,
             pattern,
+            mapper_k,
+            mapper_w,
+            hic_mapper_k,
+            hic_mapper_w,
             hcr,   
             hcr_percent,
             hcr_bs,
@@ -534,31 +655,45 @@ def pipeline(fasta,
             factor,
             threads):
     """
-    A pipeline of polyploid phaseing and scaffolding.\n
-    Steps:\n
-        0. mapper;\t\t\t\t\t\t\t\t\t
-        1. alleles;\t\t\t\t\t\t\t\t\t 
-        2. prepare;\t\t\t\t\t\t\t\t\t
-        3. hyperpartiton;\t\t\t\t\t\t\t\t\t
-        4. scaffolding;\t\t\t\t\t\t\t\t\t
-        5. plot;\t\t\t\t\t\t\t\t\t
+    A pipeline of diploid or polyploid phasing and scaffolding.\n
+    Also support for haploid scaffolding.
+    > **Steps:**\n
+        0. mapper : mapping sequencing data to reference\n
+        1. alleles : identify the allelic contigs by self comparison\n
+        2. prepare : prepare some datas for subsequence analysis.\n
+        3. hyperpartiton : partition contigs into seveal groups\n
+        4. scaffolding : ordering and orientation contigs \n
+        5. plot : plot the heatmap of assembly\n
 
-    Usages:\n
-        Input pore-c data\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"
-        Input pore-c table\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10
-        Input pairs\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -prs sample.pairs.gz -t 10 
-
-        Skip step:\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -ss 1 
-        Only run a step:\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -s 1
-
-        Basal mode:\t\t\t\t\t\t\t\t\t
-        $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 --mode basal
-
+    > **Usages:**\n
+    > - Input pore-c data\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"\n
+    ```
+    > - Input pore-c table\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10\n
+    ```
+    > - Input hic reads \n
+    ```bash
+    cphasing pipeline -f contigs.fasta -hic1 sample_R1.fastq.gz -hic2 sample_R2.fastq.gz -t 10\n
+    ```
+    > - Input pairs\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -prs sample.pairs.gz -t 10\n
+    ```
+    > - Skip step:\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -ss 1\n
+    ```
+    > - Only run a step:\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -s 1\n
+    ```
+    > - Haploid mode:\n
+    ```bash
+    $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 --mode haploid\n
+    ```
 
         
     """
@@ -590,6 +725,10 @@ def pipeline(fasta,
         hic1=hic1,
         hic2=hic2,
         pattern=pattern,
+        mapper_k=mapper_k, 
+        mapper_w=mapper_w,
+        hic_mapper_k=hic_mapper_k,
+        hic_mapper_w=hic_mapper_w,
         hcr_flag=hcr,
         hcr_percent=hcr_percent,
         hcr_bs=hcr_bs, 
@@ -628,14 +767,16 @@ def pipeline(fasta,
 ## Subcommand of UL ONT pipeline
 from .hitig.cli import hitig 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "reference",
     type=click.Path(exists=True)
 )
 @click.argument(
     "fastq",
-    type=click.Path(exists=True)
+    nargs=-1,
+    type=click.Path(exists=True),
+    required=True
 )
 @click.option(
     "-p",
@@ -739,7 +880,7 @@ def mapper(reference, fastq, pattern, kmer_size,
 
         REFERENCE: Path of reference
 
-        FASTQ: Path of pore-c reads
+        FASTQ: Path of pore-c reads, multiple file enabled, the prefix of output default only use sample 1.
 
     """
     from .mapper import PoreCMapper
@@ -766,7 +907,7 @@ def mapper(reference, fastq, pattern, kmer_size,
 def alignments(ctx):
     pass
 
-@alignments.command(hidden=True, deprecated=True)
+@alignments.command(cls=RichCommand, hidden=True, deprecated=True)
 @click.argument(
     "paf",
     metavar="PAF",
@@ -830,7 +971,7 @@ def paf2pairs(paf, chromsize, output,
     paf.clean_tempoary()
 
 
-@alignments.command(hidden=True, deprecated=True)
+@alignments.command(cls=RichCommand, hidden=True, deprecated=True)
 @click.argument(
     "paf",
     type=click.Path(exists=True)
@@ -1260,7 +1401,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         
     pct.to_pao_csv(output)
 
-@cli.command(short_help='Only retain the HCRs from Pore-C/Hi-C data')
+@cli.command(cls=RichCommand, short_help='Only retain the HCRs from Pore-C/Hi-C data')
 @click.option(
     '-pct',
     '--porectable',
@@ -1439,7 +1580,7 @@ def hcr(porectable, pairs, contigsize, binsize, percent,
         logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
 
-@cli.command(short_help='Prepare data for subsequence analysis.')
+@cli.command(cls=RichCommand, short_help='Prepare data for subsequence analysis.')
 @click.argument(
     "fasta",
     metavar="INPUT_FASTA_PATH",
@@ -1512,7 +1653,7 @@ def prepare(fasta, pairs, min_contacts, pattern,
 
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.option(
     "-f",
     "--fasta",
@@ -1615,7 +1756,7 @@ def alleles(fasta, output,
     pa.run()
 
 
-@cli.command(short_help="Build allele table by self mapping.", hidden=True)
+@cli.command(cls=RichCommand, short_help="Build allele table by self mapping.", hidden=True)
 @click.option(
     "-f",
     "--fasta",
@@ -1724,7 +1865,7 @@ def alleles2(fasta, ploidy, kmer, segment_length, block_length,
 
 
 
-@cli.command(short_help="Generate the allelic contig and cross-allelic contig table.")
+@cli.command(cls=RichCommand, short_help="Generate the allelic contig and cross-allelic contig table.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -1857,7 +1998,7 @@ def kprune(alleletable, contacts,
     # kp.save_prune_list(output, symmetric)
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "contacts",
     metavar="Contacts",
@@ -1985,14 +2126,13 @@ def hypergraph(contacts,
     """
     Construct hypergraph from contacts.
 
-    The hypergraph or graph of pore-c or hic enabled 
-        extract from pore-c table or 4DN pairs. 
+    The hypergraph or graph of pore-c or hic enabled extract from pore-c table or 4DN pairs. 
 
-        Contacts : Path of Pore-C table or 4DN pairs.
+        Contacts : Path of Pore-C table or 4DN pairs.\n
         
-        Contig_sizes : Path of contig sizes.
+        Contig_sizes : Path of contig sizes.\n
 
-        OUTPUT : Path of output hypergraph.
+        OUTPUT : Path of output hypergraph.\n
 
     """
     from .hypergraph import (
@@ -2046,7 +2186,7 @@ def hypergraph(contacts,
             e.save(output)
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -2263,7 +2403,6 @@ def hypergraph(contacts,
 @click.option(
     '--exclude-group-to-second',
     '--exclude-to-second',
-    '--exclude-group-second',
     'exclude_group_to_second',
     metavar="STR",
     help='exclude several groups that do not run in second round cluster, comma seperate. 1-base.'
@@ -2730,7 +2869,7 @@ def hyperpartition(hypergraph,
 
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "clustertable",
     metavar="ClusterTable",
@@ -2888,7 +3027,7 @@ def hyperoptimize(hypergraph):
     ho.evaluate()
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.argument(
     "fasta",
     metavar="Fasta",
@@ -2929,7 +3068,7 @@ def build(fasta, output, output_agp, only_agp):
     Build(fasta, output, 
             output_agp=output_agp, only_agp=only_agp)
 
-@cli.command(hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
 @click.argument(
     "fasta",
     metavar="INPUT_FASTA_PATH",
@@ -3045,7 +3184,7 @@ def paf2pairs(paf, contigsizes,
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(hidden=HIDDEN, short_help="Convert paf to porec table. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert paf to porec table. (hidden)")
 @click.argument(
     "paf",
     metavar="INPUT_PAF_PATH",
@@ -3121,7 +3260,7 @@ def paf2porec(paf, bed, min_quality,
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(hidden=HIDDEN, short_help="Convert porec to pairs. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert porec to pairs. (hidden)")
 @click.argument(
     "porec",
     metavar="INPUT_POREC_PATH",
@@ -3176,7 +3315,7 @@ def porec2pairs(porec, min_mapq,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -3251,7 +3390,7 @@ def pairs2contacts(pairs, min_contacts, split_num, output):
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(hidden=HIDDEN, short_help="Convert pairs to mnd file. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to mnd file. (hidden)")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -3369,7 +3508,7 @@ def pairs2cool(pairs, chromsize, outcool,
     # merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
 
 
-@cli.command()
+@cli.command(cls=RichCommand)
 @click.option(
     '-m',
     '--matrix',
@@ -3757,7 +3896,7 @@ def allelic_error(cluster, alleletable, contigsizes):
 def utils(ctx):
     pass
 
-@utils.command(short_help='Convert agp to assembly file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to assembly file.')
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -3788,7 +3927,7 @@ def agp2assembly(agpfile, output, add_gap):
     agp2assembly(agpfile, output, add_gap)
 
 
-@utils.command(short_help='Convert agp to cluster file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to cluster file.')
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -3810,7 +3949,7 @@ def agp2cluster(agpfile, output):
     from .agp import agp2cluster
     agp2cluster(agpfile, output)
 
-@utils.command(short_help='Convert agp to fasta file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to fasta file.')
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -3850,7 +3989,7 @@ def agp2fasta(agpfile, fasta, output, threads):
     from .agp import agp2fasta
     agp2fasta(agpfile, fasta, output)
 
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     "agp",
     metavar="AGP",
@@ -3882,7 +4021,7 @@ def agp2tour(agp, outdir, force):
 
     agp2tour(agp, outdir, force)
 
-@utils.command(short_help='Statistics of contigsizes')
+@utils.command(cls=RichCommand, short_help='Statistics of contigsizes')
 @click.argument(
     'contigsizes',
     metavar="ContigSizes",
@@ -3928,7 +4067,7 @@ def statagp(agp, output):
     statagp(agp, output)
 
 
-@utils.command(short_help='Statistics of ClusterTable.')
+@utils.command(cls=RichCommand, short_help='Statistics of ClusterTable.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -3957,7 +4096,7 @@ def statcluster(cluster, contigsizes, output):
         _contigs = ct.data[group]
         print(group, df.loc[_contigs]['length'].sum(), file=output)
 
-@utils.command(short_help='Convert cluster to several count RE files.')
+@utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -3990,7 +4129,7 @@ def cluster2agp(cluster, contigsizes, output):
     ct.to_agp(contigsizes=contigsizes, output=output)
 
 
-@utils.command(short_help='Convert cluster to several count RE files.')
+@utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -4015,7 +4154,7 @@ def cluster2count(cluster, count_re):
  
     ct.to_countRE(count_re)
 
-@utils.command(short_help='Convert cluster to pseudo assembly file.')
+@utils.command(cls=RichCommand, short_help='Convert cluster to pseudo assembly file.')
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -4065,7 +4204,7 @@ def cluster2tour(cluster):
  
     ct.to_tour()
 
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     "count_re",
     type=click.Path(exists=True)
@@ -4105,7 +4244,7 @@ def countRE2cluster(count_re, output, fofn):
         
 
 
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH",
@@ -4175,7 +4314,7 @@ def merge_cool(coolfile,
                     no_dia=no_dia,
                     symmetric_upper=symmetric_upper)
     
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH"
@@ -4203,7 +4342,7 @@ def extract_matrix(coolfile, chromlist, outcool):
     chromlist = [i.strip() for i in open(chromlist) if i.strip()]
     extract_matrix(coolfile, chromlist, outcool)
 
-@utils.command(hidden=True)
+@utils.command(hidden=True, cls=RichCommand)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH"
@@ -4235,7 +4374,7 @@ def prune_matrix(coolfile, prunetable, outcool):
 
     prune_matrix(coolfile, prunepairs, outcool)
 
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     "real_list",
     metavar="Real_List",
@@ -4265,7 +4404,7 @@ def pseudo_agp(real_list, contigsizes, output):
     pseudo_agp(real_list, contigsizes, output)
 
 
-@utils.command()
+@utils.command(cls=RichCommand)
 @click.argument(
     'alleletable',
     metavar='AlleleTable',

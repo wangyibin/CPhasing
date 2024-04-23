@@ -4,7 +4,10 @@
 cli for ultra-long ont pipelines
 """
 
-import click
+import rich_click as click
+from rich_click import RichCommand
+from rich_click import rich_config
+
 import logging
 import sys
 
@@ -14,8 +17,22 @@ from ..cli import cli
 
 logger = logging.getLogger(__name__)
 
+# click.rich_click.STYLE_COMMANDS_TABLE_SHOW_LINES = False
+# click.rich_click.STYLE_COMMANDS_TABLE_PAD_EDGE = True
+# click.rich_click.STYLE_COMMANDS_TABLE_BOX = "SIMPLE"
+# click.rich_click.STYLE_COMMANDS_TABLE_BORDER_STYLE = "red"
+# click.rich_click.STYLE_COMMANDS_TABLE_ROW_STYLES = ["yellow", "green", "cyan"]
+# click.rich_click.MAX_WIDTH = 128
 
-class CommandGroup(click.Group):
+# click.rich_click.SHOW_ARGUMENTS = True
+# click.rich_click.APPEND_METAVARS_HELP = True
+# click.rich_click.SHOW_METAVARS_COLUMN = True
+# click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
+# click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
+# click.rich_click.ERRORS_EPILOGUE = "To find out more, visit https://github.com/wangyibin/CPhasing"
+
+
+class CommandGroup(click.Group, RichCommand):
     """
     List subcommand in the order there were added.
     """
@@ -38,7 +55,7 @@ class CommandGroup(click.Group):
 @click.pass_context
 def hitig(ctx):
     """
-    Higher quality of contig can help us to phasing and scaffolding assembly well.
+    Higher quality of contig can help us to phasing and scaffolding assembly well.\n
     So, we can use Ultra-long or HiFi data to correct chimeric or identify high confidence regions (HCRs).
 
     """
@@ -47,7 +64,7 @@ def hitig(ctx):
 
 
 
-@hitig.command()
+@hitig.command(cls=RichCommand)
 @click.option(
     '-f',
     '--fasta',
@@ -208,7 +225,7 @@ def pipeline(fasta, fastq, min_as, min_mapq,
     )
 
 
-@hitig.command(hidden=True)
+@hitig.command(cls=RichCommand, hidden=True)
 @click.option(
     '-i',
     '--fastq',
@@ -255,7 +272,7 @@ def split_reads(fastq, window, npart, threads):
     pipe(fastq, window, npart, threads)
 
 
-@hitig.command()
+@hitig.command(cls=RichCommand)
 @click.option(
     '-f',
     '--fasta',
@@ -347,7 +364,7 @@ def correct_alignments(
     workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq)
 
 
-@hitig.command()
+@hitig.command(cls=RichCommand)
 @click.option(
     '-p',
     '--corrected-paf',
@@ -455,7 +472,7 @@ def find_chimeric(
     correct_fasta.workflow(fasta, break_pos_file, output)
 
 
-@hitig.command()
+@hitig.command(cls=RichCommand)
 @click.option(
     '-l',
     '--lis',

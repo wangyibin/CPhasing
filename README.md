@@ -38,7 +38,6 @@ export PATH=/path/to/CPhasing/bin:$PATH
 ```
 #### Dependencies
 1. For core function
-    - [wfmash](https://github.com/waveygang/wfmash)(>=0.13.0) (Optional for alleles2)
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
@@ -53,21 +52,30 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 
 ## One command pipeline of C-Phasing
 - Start from a pore-c data  
-Current only support single fastq file, if you have multi cells, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.  
 
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -s all -n "8:4"
 ```
+
+- Start from multi pore-c data
+
+```bash
+cphasing pipeline -f draft.asm.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz -t 10 -s all -n "8:4"
+```
+If you want to run in cluster system and submit to multi nodes, you can use `cphasing mapper` and `cphasing-rs porec-merge` to generate the `porec.gz`.  
+
+
 - Start from a pore-c table  
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s all  -n "8:4"
 ```  
 
+
 - Start from a paired-end Hi-C data  
 ```bash
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n "8:4"
 ```
-- Start from a Hi-C 4DN pairs file  =
+- Start from a Hi-C 4DN pairs file   
 ```bash
 cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n "8:4"
 ```  

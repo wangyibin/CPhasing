@@ -4,12 +4,15 @@
 cli for hic pipelines
 """
 
-import click
+
+import rich_click as click
+from rich_click import RichCommand
+
 import logging
 import sys
 
 
-from ..cli import CommandGroup
+
 from ..cli import cli 
 from ..core import (
     AlleleTable, 
@@ -22,6 +25,24 @@ from ..utilities import run_cmd
 
 logger = logging.getLogger(__name__)
 
+
+class CommandGroup(click.Group, RichCommand):
+    """
+    List subcommand in the order there were added.
+    """
+    def list_commands(self, ctx):
+        return list(self.commands)
+
+    def get_command(self, ctx, cmd_name):
+        """
+        Alias command, https://stackoverflow.com/questions/46641928/python-click-multiple-command-names
+        """
+        try:
+            cmd_name = ALIASES[cmd_name].name 
+        except KeyError:
+            pass 
+        return super().get_command(ctx, cmd_name)
+
 @cli.group(cls=CommandGroup, short_help='Sub-command for the legacy Hi-C pipeline.')
 @click.pass_context
 def hic(ctx):
@@ -30,7 +51,7 @@ def hic(ctx):
     """
     pass
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.option(
     '-f',
     '--fasta',
@@ -129,7 +150,11 @@ def mapper(
     """
     Mapper for reads mapping.
     """
-    assert len(read1) == len(read2), "reads must paired."
+    # assert len(read1) == len(read2), "reads must paired."
+
+    if read1 == read2:
+        logger.warn("The read1 and read2 are the sample files. Please check it.")
+
 
     if aligner == 'hisat2':
         if enzyme is None:
@@ -164,7 +189,7 @@ def mapper(
                 cmd2 = ['LC_ALL=C', 'grep', '-v', '#']
 
 
-@hic.command()
+@hic.command(cls=RichCommand, hidden=True)
 @click.argument(
     'fasta',
     type=click.Path(exists=True)
@@ -278,7 +303,7 @@ def correct(
     c.run()
 
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.option(
     "-f",
     "--fasta",
@@ -348,7 +373,7 @@ def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
     
 
     
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'infile',
     metavar='InFile',
@@ -392,7 +417,7 @@ def extract(infile, fastafile, enzyme, minLinks):
     print(restriction_site(enzyme))
     run_cmd(cmd)
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'alleletable',
     type=click.Path(exists=True),
@@ -452,7 +477,7 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
     pt = PairTable(pairtable)
     pregroup(at, cr, pt, fasta, outdir, threads)
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -502,7 +527,7 @@ def prune(
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'count_re',
     metavar='CountRE',
@@ -637,7 +662,7 @@ def partition(
                                 threads=threads)
         ap.run()
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'clustertable',
     metavar='ClusterTable',
@@ -702,7 +727,7 @@ def recluster(
     rc.run(method=method)
 
 
-@hic.command()
+@hic.command(cls=RichCommand)
 @click.argument(
     'clustertable',
     metavar='ClusterTable',
@@ -770,3 +795,7 @@ def rescue(
                 )
     r.rescue()
     r.save(output)
+
+
+
+ALIASES = {}

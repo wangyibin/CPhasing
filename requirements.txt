@@ -23,4 +23,5 @@ pytools
 seaborn
 ray
 rich
+rich-click
 scipy

@@ -40,14 +40,12 @@ class HyperEdges(msgspec.Struct):
     def to_numpy(self):
         self.row = np.array(self.row, dtype=np.int32)
         self.col = np.array(self.col, dtype=HYPERGRAPH_COL_DTYPE)
-        if self.mapq:
-            self.mapq = np.array(self.mapq, dtype=np.int8)
+        self.mapq = np.array(self.mapq, dtype=np.int8)
 
     def to_list(self):
         self.row = self.row.tolist()
         self.col = self.col.tolist()
-        if self.mapq:
-            self.mapq = self.mapq.tolist()
+        self.mapq = self.mapq.tolist()
 
 def merge_hyperedges(HE_list: list) -> HyperEdges:
     
@@ -463,7 +461,7 @@ def IRMM(H, NW=None,
         A = A.toarray() * NW
         row, col = np.nonzero(A)
         values = A[row, col]
-        A = csr_matrix((values, (row, col)), shape=A.shape)
+        A = csr_matrix((values, (row, col)), shape=A.shape, dtype=np.float32)
 
     A.setdiag(0)
     A.prune()

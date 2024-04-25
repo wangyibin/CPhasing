@@ -13,7 +13,6 @@ import re
 import shutil
 import sys
 
-import cooler
 import numpy as np
 import pandas as pd 
 import pyranges as pr 
@@ -317,7 +316,7 @@ class AlleleTable:
         
         df = pd.read_csv(self.filename, sep='\t', header=None, 
                             index_col=0, names=self.columns,
-                            usecols=self.columns, comment="#", engine='python')
+                            usecols=self.columns, comment="#")
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
 
@@ -2182,6 +2181,7 @@ class MndTable:
         logger.info(f'Successful written pairs file into `{output}`.')
 
 class Contact:
+    import cooler
     def __init__(self, coolfile, symmetric=True):
         self.coolfile = coolfile 
         self.cool = cooler.Cooler(self.coolfile)
@@ -2662,6 +2662,7 @@ class PAFTable:
         shutil.rmtree(self.tmpdir)
 
 class PoreCTable:
+    import cooler
     HEADER = ["read_idx", "read_length",
               "read_start", "read_end", 
               "strand", "chrom", "start", 

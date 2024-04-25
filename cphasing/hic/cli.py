@@ -418,7 +418,7 @@ def extract(infile, fastafile, enzyme, minLinks):
     print(restriction_site(enzyme))
     run_cmd(cmd)
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True)
 @click.argument(
     'alleletable',
     type=click.Path(exists=True),

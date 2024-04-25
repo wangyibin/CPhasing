@@ -119,6 +119,61 @@ click.rich_click.OPTION_GROUPS = {
         }
        
     ],
+    "cphasing pipe": [
+        {
+            "name": "Options of Input Files",
+            "options": ["--fasta", "--porec-data", "--porectable", 
+                            "--pairs", "--hic1", "--hic2"]
+        },
+        {
+            "name": "Advance Options of Pipeline",
+            "options": ["--mode", "--steps", "--skip-steps"]
+        },
+        {
+            "name": "Options of Pore-C Mapper",
+            "options": ["--mapper-k", "--mapper-w"]
+        },
+         {
+            "name": "Options of Hi-C Mapper",
+            "options": ["--hic-mapper-k", "--hic-mapper-w"]
+        },
+        {
+            "name": "Options of HCR",
+            "options": ["--hcr", "--hcr-lower", "--hcr-upper", "--hcr-binsize",
+                         "--hcr-bed", "--hcr-invert"]
+        },
+        {
+            "name": "Options of Alleles",
+            "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d"]
+        },
+        {
+            "name": "Options of HyperPartition",
+            "options": ["-n", "--min-contacts",
+                        "--Nx", "--min-length", "--min-weight",
+                        "--whitelist",
+                        "--resolution1", "--resolution2",
+                         "--init-resolution1",  "--init-resolution2",
+                          "--first-cluster", "--normalize", 
+                          "--min-quality1", "--min-quality2",
+                           "--min-scaffold-length",
+                          "--allelic-similarity", "--min-allelic-overlap",
+                          "--exclude-group-to-second"
+                          ]
+        },
+        {
+            "name": "Options of Scaffolding",
+            "options": ["--scaffolding-method"]
+        },
+        {
+            "name": "Options of Plot",
+            "options": ["--factor"]
+        },
+        {
+            "name": "Global Options",
+            "options": ["--threads", "--help"]
+        }
+       
+    ],
     "cphasing plot": [
         {
             "name": "Options of Matrix Operation",
@@ -526,7 +581,7 @@ def cli(verbose, quiet):
     "--allelic-similarity",
     "allelic_similarity",
     metavar="FLOAT",
-    help="The similarity of allelic",
+    help="The similarity of allelic, which used to merge clusters",
     default=0.85,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
@@ -700,7 +755,7 @@ def pipeline(fasta,
         0. mapper : mapping sequencing data to reference\n
         1. alleles : identify the allelic contigs by self comparison\n
         2. prepare : prepare some datas for subsequence analysis.\n
-        3. hyperpartiton : partition contigs into seveal groups\n
+        3. hyperpartiton : partition contigs into several groups\n
         4. scaffolding : ordering and orientation contigs \n
         5. plot : plot the heatmap of assembly\n
 
@@ -1512,6 +1567,15 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 @click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping `[0, 60]`.',
+    metavar='INT',
+    type=click.IntRange(0, 60, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
     '--fofn',
     help="""
     If this flag is set then the SRC_ASSIGN_TABLES is a file of
@@ -1531,7 +1595,7 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 def hcr(porectable, pairs, contigsize, binsize, 
-        lower, upper, bed, invert, fofn, output):
+        lower, upper, bed, invert, min_quality, fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -1618,15 +1682,15 @@ def hcr(porectable, pairs, contigsize, binsize,
         logger.info(f'Successful out high confidence high-orrder '
                     f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-               "-o", f"{prefix}_hcr.pairs.gz", "-q", "0"]
+               "-o", f"{prefix}_hcr.pairs.gz", "-q", str(min_quality)]
         
         flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
     else:
-        cmd = ["cphasing-rs", "pairs-intersect", pairs, bed,
-               "-o", f"{prefix}_hcr.pairs.gz"]
+        cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, 
+               "-q", str(min_quality), "-o", f"{prefix}_hcr.pairs.gz"]
         if invert:
             cmd.append("-v")
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
@@ -1702,7 +1766,10 @@ def prepare(fasta, pairs, min_contacts, pattern,
     """
     from .prepare import pipe 
 
-    pipe(fasta, pairs, pattern, min_contacts, threads, outprefix)
+    pipe(fasta, pairs, pattern, 
+         min_contacts, skip_pairs2clm=skip_pairs2clm,
+         skip_pairs2contacts=skip_pairs2contacts,
+         threads=threads, outprefix=outprefix)
     pass 
 
 
@@ -2391,7 +2458,7 @@ def hypergraph(contacts,
     "--allelic-similarity",
     "allelic_similarity",
     metavar="FLOAT",
-    help="The similarity of allelic",
+    help="The similarity of allelic, which used to merge clusters",
     default=0.85,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
@@ -3802,11 +3869,11 @@ def plot(matrix,
     > **Usage:**
     > - adjust the matrix by agp and plot a heatmap 
     ```bash
-    cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png
+    cphasing plot -a groups.agp -m sample.10000.cool -o groups.500k.wg.png
     ```
     > - adjust the matrix by agp and plot a 100k resolution heatmap
     ```bash
-    cphasing plot -a groups.agp -m sample.10000.cool -o groups.wg.png -k 10
+    cphasing plot -a groups.agp -m sample.10000.cool -o groups.100k.wg.png -k 10
     ```
     > - only plot a heatmap
     ```bash

@@ -5,6 +5,7 @@ Date: 2024-04-23
 ## Enhancement
 - colorful the help text
 - `hcr`, use kde peaks 
+- `pipeline`, use 
 
 
 ## [v0.1.3]

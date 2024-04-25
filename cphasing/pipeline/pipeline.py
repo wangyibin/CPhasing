@@ -282,7 +282,8 @@ def run(fasta,
         
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"
-            prepare_input = f"{pairs_prefix}_hcr.pairs.gz"
+            prepare_input = f"{pairs_prefix}.pairs.gz"
+    
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:
@@ -315,6 +316,13 @@ def run(fasta,
             
     else:
         prepare_input = pairs
+        if not porec_table and min_quality1 > 0: 
+            hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
+            cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
+                "-o", hg_input , "-q", str(min_quality1)]
+            flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
+            assert flag == 0, "Failed to execute command, please check log."
+    
 
     if not Path(prepare_input).exists() and (hic1 is None ):
         logger.info("Generating pairs file ...")
@@ -352,6 +360,7 @@ def run(fasta,
         
     allele_table = None if mode == "basal" else f"{fasta_prefix}.allele.table" 
 
+    prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
     if "2" not in skip_steps and "2" in steps:
         logger.info("""#----------------------------------#
 #       Running step 2. prepare    #
@@ -368,7 +377,8 @@ def run(fasta,
                  prepare.main(args=[fasta,
                                 prepare_input, 
                                 "-p",
-                                pattern],
+                                pattern,
+                                "--skip-pairs2contacts"],
                                 prog_name='prepare')
                  
         except SystemExit as e:
@@ -380,9 +390,14 @@ def run(fasta,
             if exit_code != 0:
                 raise e
         
+        if not porec_table:
+            cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
+                   "-q", str(min_quality2), "-c", str(min_contacts),
+                "-o", f"{prepare_prefix}.contacts" ]
+            flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+            assert flag == 0, "Failed to execute command, please check log."
     
-    
-    prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
+   
 
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
 

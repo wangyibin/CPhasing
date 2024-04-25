@@ -333,7 +333,7 @@ class reCluster(object):
         incorrcet_db = defaultdict(list)
         db = {}
         l = list(map(lambda x: list(x.items()),
-                    self.reClusterTable[self.groups].dropna(how='all').to_dict('record')))
+                    self.reClusterTable[self.groups].dropna(how='all').to_dict('records')))
 
         for i in set([i[::-1] for item in l for i in item
                                 if pd.isna(i[1]) is not True]):

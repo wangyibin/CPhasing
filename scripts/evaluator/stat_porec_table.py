@@ -38,6 +38,8 @@ def main(args):
     args = p.parse_args(args)
 
     paf = args.paf 
+
+    pd.set_option('display.float_format',  '{:,.4f}'.format)
     df = pd.read_csv(paf, sep='\t', usecols=range(12), names=PAFTable.PAF_HEADER[:12], 
                         header=None, dtype=PAFTable.META)
     df['read_idx'] = df['read_name'].cat.codes
@@ -57,13 +59,15 @@ def main(args):
     
     
     total_alignments = len(df)
-    df = df.query("mapping_quality >= 1 & identity > 0.75 & fragment_length > 30" )
+    df = df.query("mapping_quality >= 1 & identity > 0.8 & fragment_length > 150" )
     df_grouped = df.groupby('read_idx', sort=False)
     unique_alignments = len(df)
 
 
     df_grouped_nunique = df_grouped['read_start'].nunique()
     unique_reads = df_grouped_nunique.count()
+    unique_mean_fragment_number = df_grouped_nunique.mean()
+    unique_median_fragment_number = df_grouped_nunique.median()
     unique_mean_fragment_length = df['fragment_length'].mean()
     unique_median_fragment_length = df['fragment_length'].median()
     unique_singleton_read_number = (df_grouped_nunique == 1).value_counts()[True]
@@ -83,13 +87,16 @@ def main(args):
     res_df.loc["Median fragment length (bp)", "counts"] = median_fragment_length
 
     res_df.loc["Unique reads (M)", "counts"] = unique_reads / 1e6
-    res_df.loc["Unique alignments (M)", "counts"] = unique_alignments / 1e6
+    res_df.loc["Unique fragments (M)", "counts"] = unique_alignments / 1e6
+    res_df.loc["Unique mean fragment number", "counts"] = unique_mean_fragment_number
+    res_df.loc["Unique median fragment number", "counts"] = unique_median_fragment_number
     res_df.loc["Unique mean fragment length (bp)", "counts"] = unique_mean_fragment_length
     res_df.loc["Unique median fragment length (bp)", "counts"] = unique_median_fragment_length
     res_df.loc["Unique singleton (M)", "counts"] = unique_singleton_read_number / 1e6
     res_df.loc["Unique reads (Order ≥ 2) (M)", "counts"] = unique_valid_read_number / 1e6
     res_df.loc["Unique reads (Order ≥ 3) (M)", "counts"] = unique_high_order_read_number / 1e6 
-    res_df.loc["Pairwise contacts count (M)", "counts"] = pairwise_contacts / 1e6
+    res_df.loc["Pairwise contacts (M)", "counts"] = pairwise_contacts / 1e6
+    res_df.loc["Valid rate", "counts"] = unique_valid_read_number / mapping_reads
 
     res_df.to_csv(args.output, sep='\t', index=True, header=None)
    

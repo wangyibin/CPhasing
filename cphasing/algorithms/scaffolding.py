@@ -139,10 +139,13 @@ class HaplotypeAlign:
         logger.info("Adjust the tours to parallel among different haplotypes.")
         args = []
 
-        for hap, tours in self.hap_tour_db.items():
-            for i in range(1, len(tours)):
-
-                args.append((tours[0], tours[i], self.allele_data, self.workdir))
+        # for hap, tours in self.hap_tour_db.items():
+        #     for i in range(1, len(tours)):
+        #         args.append((tours[0], tours[i], self.allele_data, self.workdir))
+        
+        args = [(tours[0], tours[i], self.allele_data, self.workdir) 
+                    for hap, tours in self.hap_tour_db.items() 
+                    for i in range(1, len(tours))]
         try:
             Parallel(n_jobs=min(len(args), self.threads))(delayed(
                     self.align)(i, j, k, l) for i, j, k, l in args

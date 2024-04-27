@@ -764,7 +764,7 @@ def pipeline(fasta,
     ```bash
     $ cphasing pipeline -f contigs.fasta -pcd sample.fastq.gz -t 10 -s "all"\n
     ```
-    > - Input multiple pore-c data\n
+    > - Input multiple pore-c datas. It will use the sample1 as the prefix of output\n
     ```bash
     $ cphasing pipeline -f contigs.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz -t 10
     ```
@@ -788,7 +788,7 @@ def pipeline(fasta,
     ```bash
     $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 -s 1\n
     ```
-    > - Haploid mode:\n
+    > - Haploid mode, will skip 1.alleles and only run a round of partition:\n
     ```bash
     $ cphasing pipeline -f contigs.fasta -pct sample.porec.gz -t 10 --mode haploid\n
     ```
@@ -926,7 +926,7 @@ from .hitig.cli import hitig
     help='Minimum percentage identity of alignments [0, 1.0].',
     metavar='FLOAT',
     type=click.FloatRange(0.0, 1.0, clamp=True),
-    default=.75,
+    default=.8,
     show_default=True
 )
 @click.option(
@@ -935,7 +935,16 @@ from .hitig.cli import hitig
     'min_length',
     help='Minimum length of fragments.',
     metavar='INT',
-    default=30,
+    default=150,
+    show_default=True
+)
+@click.option(
+    '-me',
+    '--max-edge',
+    'max_edge',
+    help='Maximum length of fragment located in the edge of contigs.',
+    metavar='INT',
+    default=2000,
     show_default=True
 )
 @click.option(
@@ -972,8 +981,8 @@ from .hitig.cli import hitig
 )
 def mapper(reference, fastq, enzyme, kmer_size, 
             window_size, mm2_params, mapq, 
-            min_identity, min_length, force, 
-            realign, outprefix, threads):
+            min_identity, min_length, max_edge,
+            force, realign, outprefix, threads):
     """
     Mapper for pore-c reads.
 
@@ -995,6 +1004,7 @@ def mapper(reference, fastq, enzyme, kmer_size,
                         min_quality=mapq,
                         min_identity=min_identity,
                         min_length=min_length,
+                        max_edge=max_edge,
                         additional_arguments=additional_arguments,
                         outprefix=outprefix,
                         threads=threads)
@@ -1144,6 +1154,8 @@ def paf2porec(paf, output,
 
     # pore_c_table.save(output, paf.tmpdir)
     paf.clean_tempoary()
+
+
 
 @alignments.command(cls=RichCommand, hidden=True, deprecated=True)
 @click.argument(
@@ -3261,6 +3273,15 @@ def chromsizes(fasta, output):
     show_default=True,
 )
 @click.option(
+    '-e',
+    '--max-edge',
+    'max_edge',
+    help='Maximum length of fragment located in the edge of contigs.',
+    metavar='INT',
+    default=0,
+    show_default=True
+)
+@click.option(
     "--min-order",
     "min_order",
     metavar="INT",
@@ -3288,15 +3309,18 @@ def chromsizes(fasta, output):
 def paf2pairs(paf, contigsizes, 
               bed, min_mapq, 
               min_identity, min_length, 
+              max_edge,
               min_order, max_order, output):
     if not bed:
         cmd = ["cphasing-rs", "paf2pairs", paf, 
              "-q", str(min_mapq), "-p", str(min_identity), 
             "-l", str(min_length), "-m", str(min_order), 
+            "-e", str(max_edge),
             "-M", str(max_order), contigsizes, "-o", output]
     else:
         cmd = ["cphasing-rs", "paf2pairs", paf, 
             "-b", bed, "-q", str(min_mapq), "-p", str(min_identity), 
+            "-e", str(max_edge),
             "-l", str(min_length), "-m", str(min_order), 
             "-M", str(max_order), contigsizes, "-o", output]
 
@@ -3351,6 +3375,15 @@ def paf2pairs(paf, contigsizes,
     show_default=True,
 )
 @click.option(
+    '-e',
+    '--max-edge',
+    'max_edge',
+    help='Maximum length of fragment located in the edge of contigs.',
+    metavar='INT',
+    default=2000,
+    show_default=True
+)
+@click.option(
     "--max-order",
     "max_order",
     metavar="INT",
@@ -3369,13 +3402,16 @@ def paf2pairs(paf, contigsizes,
 )
 def paf2porec(paf, bed, min_quality, 
               min_identity, min_length, 
+              max_edge,
               max_order, output):
     if not bed:
         cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-M", str(max_order),
-                "-q", str(min_quality), "-l", str(min_length),  paf, "-o", output]
+                "-q", str(min_quality), "-l", str(min_length),  paf, 
+                "-e", str(max_edge), "-o", output]
     else:
         cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-b",  bed, 
-               "-M", str(max_order), "-q", str(min_quality), "-l", str(min_length),  paf, "-o", output]
+               "-M", str(max_order), "-q", str(min_quality), "-l", str(min_length), 
+               "-e", str(max_edge), "-o", output]
 
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."

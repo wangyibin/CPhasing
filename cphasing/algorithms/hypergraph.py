@@ -168,16 +168,13 @@ class HyperGraph:
                              )
 
         if min_contacts:
-            row_sum = matrix.sum(axis=1).T.A1
-            non_zero_contig_idx = row_sum >= min_contacts
+            non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
             matrix = matrix[non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
-            logger.info(f"Total {self.shape[0] - non_zero_contig_idx.shape[0]} "
+            logger.info(f"Total {self.shape[0] - matrix.shape[0]} "
                         f"low-singal (contacts < {min_contacts}) contigs were removed")
             
-            col_sum = matrix.sum(axis=0).A1 
-            non_zero_edges_idx = col_sum >= 2
-       
+            non_zero_edges_idx = matrix.sum(axis=0).A1 >= 2
             matrix = matrix[:, non_zero_edges_idx]
             self.shape = matrix.shape 
 

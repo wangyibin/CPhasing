@@ -319,7 +319,8 @@ class ChromapMapper:
 class PoreCMapper:
     def __init__(self, reference, reads, pattern="GATC", 
                     k=15, w=10, min_quality=1, 
-                    min_identity=0.75, min_length=30, realign=False,
+                    min_identity=0.8, min_length=150, 
+                    max_edge=2000, realign=False,
                     additional_arguments=("-x", "map-ont"), outprefix=None,
                     threads=4, path='minimap2', log_dir='logs',
                     force=False):
@@ -361,6 +362,7 @@ class PoreCMapper:
         self.min_quality = min_quality
         self.min_identity = min_identity
         self.min_length = min_length
+        self.max_edge = max_edge
         self.k = k 
         self.w = w
         self.force = force
@@ -527,11 +529,13 @@ class PoreCMapper:
             cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-b",
                    f"{self.reference.stem}.slope.{self.pattern}.bed", "-q", 
                     f"{self.min_quality}", "-l", f"{self.min_length}", 
-                    "-p", f"{self.min_identity}",
+                    "-me", f"{self.max_edge}", "-p", f"{self.min_identity}",
                     "-o", f"{self.outporec}",
                 ]
         else:
             cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-q", 
+                    f"{self.min_quality}", "-l", f"{self.min_length}",
+                    "-me", f"{self.max_edge}", "-p", f"{self.min_identity}",
                         f"{self.min_quality}", "-o", f"{self.outporec}"]
 
         run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')

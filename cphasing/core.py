@@ -1345,13 +1345,14 @@ class Tour:
         ['utg002+', 'utg001-']
         """
         _data = self.to_tuples()[::-1]
-        _new_data = []
-        for contig, orient in _data:
-            if orient == '+':
-                orient = '-'
-            else:
-                orient = '+'
-            _new_data.append((contig, orient))
+        # _new_data = []
+        # for contig, orient in _data:
+        #     if orient == '+':
+        #         orient = '-'
+        #     else:
+        #         orient = '+'
+        #     _new_data.append((contig, orient))
+        _new_data = [(contig, '-' if orient == '+' else '+') for contig, orient in _data]
         
         self.data = list(map(lambda x: TourSingle(''.join(x)), _new_data))
 

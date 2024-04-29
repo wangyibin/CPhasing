@@ -31,7 +31,7 @@ dependencies:
   - brotli-bin=1.0.9=h5eee18b_7
   - bzip2=1.0.8=h5eee18b_5
   - c-ares=1.19.1=h5eee18b_0
-  - ca-certificates=2024.2.2=hbcca054_0
+  - ca-certificates=2024.3.11=h06a4308_0
   - chromap=0.2.6=hdcf5f25_0
   - click=8.1.7=unix_pyh707e725_0
   - contourpy=1.2.0=py312hdb19cb5_0
@@ -131,6 +131,7 @@ dependencies:
   - packaging=23.2=py312h06a4308_0
   - pandas=2.2.1=py312h526ad5a_0
   - pcre2=10.42=hebb0a14_0
+  - pigz=2.6=h27cfd23_0
   - pillow=10.2.0=py312h5eee18b_0
   - pip=23.3.1=py312h06a4308_0
   - platformdirs=3.10.0=py312h06a4308_0
@@ -181,8 +182,8 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
     - asciitree==0.3.3
+    - click-didyoumean==0.3.1
     - cloudpickle==3.0.0
-    - click_didyoumean==0.3.1
     - colormaps==0.4.1
     - cooler==0.9.3
     - dask==2.10.1
@@ -213,4 +214,3 @@ dependencies:
     - urllib3==2.2.1
     - zict==3.0.0
     - zipp==3.18.1
-    

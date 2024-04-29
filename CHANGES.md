@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.1.5]
+Data: 2024-04-29
+## Enhancement 
+- environment, add pigz 
+- `hic mapper`, remove pcr duplicates as default parameters
+
 ## [v0.1.4]
 Date: 2024-04-23
 ## Enhancement

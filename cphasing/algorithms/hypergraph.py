@@ -502,6 +502,9 @@ def IRMM(H, NW=None,
         return A, None, []
 
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
+    # cluster_assignments = G.community_leiden(weights='weight', resolution=resolution)
+    # import leidenalg as la
+    # cluster_assignments = la.find_partition(G, la.CPMVertexPartition, resolution_parameter=0.01)
     cluster_results = list(map(set, list(cluster_assignments.as_cover())))
   
     cluster_stat = list(map(len, cluster_results))

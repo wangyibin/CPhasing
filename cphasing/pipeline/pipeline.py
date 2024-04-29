@@ -230,7 +230,7 @@ def run(fasta,
 
         if porec_table:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
-            prepare_input = f"{porec_prefix}_hcr.pairs.gz"
+            prepare_input = f"{porec_prefix}.pairs.gz"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:

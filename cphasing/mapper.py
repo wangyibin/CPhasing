@@ -292,6 +292,7 @@ class ChromapMapper:
                 '-w', str(self.window_size),
                 '-q', str(self.min_quality),
                 '-x', str(self.index_path), 
+                '--remove-pcr-duplicates',
                 '-r', str(self.reference), '-1', str(self.read1),
                 '-2', str(self.read2), '-o', str(self.output_pairs)]
 

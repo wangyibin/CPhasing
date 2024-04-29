@@ -326,10 +326,10 @@ class AlleleTable:
             df.columns = list(range(1, len(df.columns) + 1))
             df = df.drop_duplicates(list(range(1, len(df.columns) + 1)))
         elif self.fmt == "allele2":
-            df = df.drop(1, axis=1)
+            df.drop(1, axis=1, inplace=True)
             df.columns = [1, 2] + self.AlleleHeader2[4:]
 
-            df = df.drop_duplicates([1, 2])
+            df.drop_duplicates([1, 2], inplace=True)
             
         df = df.reset_index(drop=True)
 
@@ -1345,15 +1345,8 @@ class Tour:
         ['utg002+', 'utg001-']
         """
         _data = self.to_tuples()[::-1]
-        # _new_data = []
-        # for contig, orient in _data:
-        #     if orient == '+':
-        #         orient = '-'
-        #     else:
-        #         orient = '+'
-        #     _new_data.append((contig, orient))
         _new_data = [(contig, '-' if orient == '+' else '+') for contig, orient in _data]
-        
+
         self.data = list(map(lambda x: TourSingle(''.join(x)), _new_data))
 
     @property

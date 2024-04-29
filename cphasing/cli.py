@@ -678,7 +678,10 @@ def cli(verbose, quiet):
     '--scaffolding-method',
     'scaffolding_method',
     metavar='STR',
-    help="The method of scaffolding",
+    help="The method of scaffolding, `['haphic', 'allhic', 'haphic_fastsort']`."
+    "haphic: haphic_fastsort + allhic, which will quicker than allhic only. "
+    "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
+    "achieve better results than the previous version",
     default="haphic",
     type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
     show_default=True

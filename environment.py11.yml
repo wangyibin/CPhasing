@@ -16,9 +16,9 @@ dependencies:
   - brotli-bin=1.1.0=hd590300_1
   - bzip2=1.0.8=h5eee18b_5
   - c-ares=1.28.1=hd590300_0
-  - ca-certificates=2024.2.2=hbcca054_0
+  - ca-certificates=2024.3.11=h06a4308_0
   - cairo=1.18.0=h3faef2a_0
-  - certifi=2024.2.2=pyhd8ed1ab_0
+  - certifi=2024.2.2=py311h06a4308_0
   - chromap=0.2.6=hdcf5f25_0
   - click=8.1.7=unix_pyh707e725_0
   - cloudpickle=2.2.1=py311h06a4308_0
@@ -145,12 +145,12 @@ dependencies:
   - pandas=2.2.2=py311h320fe9a_0
   - partd=1.4.1=py311h06a4308_0
   - pcre2=10.43=hcad00b1_0
+  - pigz=2.6=h27cfd23_0
   - pillow=10.0.1=py311h8aef010_1
   - pip=23.3.1=py311h06a4308_0
   - pixman=0.43.2=h59595ed_0
   - platformdirs=4.2.0=pyhd8ed1ab_0
   - ply=3.11=pyhd8ed1ab_2
-  - psutil=5.9.0=py311h5eee18b_0
   - pthread-stubs=0.4=h36c2ea0_1001
   - pulseaudio-client=16.1=hb77b528_5
   - pyfaidx=0.8.1.1=pyhdfd78af_0
@@ -216,7 +216,7 @@ dependencies:
   - zstd=1.5.5=hfc55251_0
   - pip:
     - asciitree==0.3.3
-    - click_didyoumean==0.3.1
+    - click-didyoumean==0.3.1
     - colormaps==0.4.1
     - cooler==0.9.3
     - cytoolz==0.12.3
@@ -224,11 +224,13 @@ dependencies:
     - h5py==3.11.0
     - multiprocess==0.70.16
     - ncls==0.0.68
+    - psutil==5.9.8
     - pyarrow==15.0.2
+    - pynvml==11.5.0
     - pyranges==0.0.129
     - rich-click==1.7.4
+    - scalene==1.5.39
     - simplejson==3.19.2
     - sorted-nearest==0.0.39
     - tabulate==0.9.0
     - toolz==0.12.1
-

@@ -121,9 +121,10 @@ def hic(ctx):
 @click.option(
     '-a',
     '--aligner',
-    help='Aligner executable.',
-    type=click.Choice(['chromap']),#, 'hisat2']),
-    default='chromap',
+    help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
+    'if you want to use the offical version you can set aligner to `chromap`',
+    type=click.Choice(['_chromap', 'chromap']),#, 'hisat2']),
+    default='_chromap',
     show_default=True
 )
 @click.option(
@@ -169,7 +170,7 @@ def mapper(
                             min_quality=mapq, threads=threads)
         hm2.run()
         
-    elif aligner == 'chromap':
+    elif aligner == 'chromap' or aligner == '_chromap':
         from ..mapper import ChromapMapper
         from ..core import PairHeader
         res = []
@@ -178,7 +179,8 @@ def mapper(
                                 kmer_size=kmer_size,
                                 window_size=window_size,
                                 min_quality=mapq, 
-                                threads=threads)
+                                threads=threads,
+                                path=aligner)
             cm.run()
             res.append(cm.output_pairs)
         else:

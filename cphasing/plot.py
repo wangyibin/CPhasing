@@ -495,10 +495,11 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     reordered_matrix = triu(reordered_matrix).tocoo()
 
-    chrom_pixels = dict(zip(['bin1_id', 'bin2_id', 'count'],
-                            [reordered_matrix.row,
-                            reordered_matrix.col,
-                            reordered_matrix.data]))
+    chrom_pixels = {
+        'bin1_id': reordered_matrix.row,
+        'bin2_id': reordered_matrix.col,
+        'count': reordered_matrix.data
+    }
 
     order_cool_path = f"{outprefix}.ordered.cool"
     cooler.create_cooler(order_cool_path, reordered_contig_bins,

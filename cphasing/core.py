@@ -2393,7 +2393,7 @@ class PAFTable:
         'strand', 'chrom', 
         'chrom_length', 'start', 
         'end', 'matches', 
-        'aln_length', 'mapping_quality',
+        'align_length', 'mapping_quality',
         'pass_filter', 'filter_reason'
         ]
 

@@ -386,12 +386,14 @@ class PoreCMapper:
     def get_contig_sizes(self):
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
                 "-o", str(self.contigsizes)]
-        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        assert flag == 0, "Failed to execute command, please check log."
 
     def get_digest_bed(self):
         cmd = ["cphasing-rs", "digest", str(self.reference), "-p", str(self.pattern), 
                     "-o", f"{self.reference.stem}.slope.{self.pattern}.bed" ]
-        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.digest.log")
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.digest.log")
+        assert flag == 0, "Failed to execute command, please check log."
 
     def index(self):
         """
@@ -522,7 +524,8 @@ class PoreCMapper:
     
     def run_realign(self):
         cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]
-        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.realign.log')
+        flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.realign.log')
+        assert flag == 0, "Failed to execute command, please check log."
 
     def paf2porec(self):
         paf = self.realign_outpaf if self.realign else self.outpaf
@@ -530,27 +533,33 @@ class PoreCMapper:
             cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-b",
                    f"{self.reference.stem}.slope.{self.pattern}.bed", "-q", 
                     f"{self.min_quality}", "-l", f"{self.min_length}", 
-                    "-me", f"{self.max_edge}", "-p", f"{self.min_identity}",
+                    "-e", f"{self.max_edge}", "-p", f"{self.min_identity}",
                     "-o", f"{self.outporec}",
                 ]
         else:
             cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-q", 
                     f"{self.min_quality}", "-l", f"{self.min_length}",
-                    "-me", f"{self.max_edge}", "-p", f"{self.min_identity}",
-                        f"{self.min_quality}", "-o", f"{self.outporec}"]
+                    "-e", f"{self.max_edge}", "-p", f"{self.min_identity}",
+                      "-o", f"{self.outporec}"]
 
-        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')
+        flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')
+        assert flag == 0, "Failed to execute command, please check log."
 
     def porec2pairs(self):
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
                str(self.contigsizes), "-q", f"{self.min_quality}",
                 "-o", f"{self.outpairs}"]
         
-        run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
+        flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
+        assert flag == 0, "Failed to execute command, please check log."
     
     def run(self):
         
-        self.get_contig_sizes()
+        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
+                           "existing, skipped ...")
         
         # if not self.index_path.exists() or self.force:
         #     self.index()

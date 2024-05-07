@@ -13,7 +13,7 @@ Date: 2024-05-07
 Date: 2024-04-29
 ## Enhancement 
 - environment, add pigz 
-- `hic mapper`, remove pcr duplicates as default parameters
+- `hic mapper`, add "remove pcr duplicates" as default parameters
 
 ## [v0.1.4]
 Date: 2024-04-23

@@ -122,7 +122,7 @@ def main(args):
         
         if row[7] < 100:
             row[7] = 0
-        if row[6] - row[8]:
+        if row[6] - row[8] < 100:
             row[8] = row[6]
 
         return row 

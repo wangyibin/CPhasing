@@ -1527,7 +1527,8 @@ class Tour:
         old_end = 0
         for contig, orient in self:
             try:
-                length = len(fasta[contig])
+                length = fasta.faidx.index[contig].rlen
+                # length = len(fasta[contig])
             except KeyError:
                 continue
             
@@ -2393,7 +2394,7 @@ class PAFTable:
         'strand', 'chrom', 
         'chrom_length', 'start', 
         'end', 'matches', 
-        'aln_length', 'mapping_quality',
+        'align_length', 'mapping_quality',
         'pass_filter', 'filter_reason'
         ]
 

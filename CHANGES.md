@@ -1,7 +1,16 @@
 # Release notes #
 
+## [v0.1.6]
+Date: 2024-05-07
+## Enhancement
+- `hcr_by_contacts`, remove whole collapsed contigs 
+- `stat_porec_table`, reduce memory usage
+## Bug fixes
+- `scaffolding`, length db not load contig that RE count < 3
+- `simulate_collapse`, fixed bug of contig position in collapsed contigs
+
 ## [v0.1.5]
-Data: 2024-04-29
+Date: 2024-04-29
 ## Enhancement 
 - environment, add pigz 
 - `hic mapper`, remove pcr duplicates as default parameters

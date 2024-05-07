@@ -102,7 +102,7 @@ def main(args):
 
     colors = ['#a83836', "#253761",  '#df8384', '#8dc0ed',]
     
-    sns.pointplot(data=hist, x='order', y='proportion', colors=colors[0], ax=ax)
+    sns.pointplot(data=hist, x='order', y='proportion', color=colors[0], ax=ax)
 
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)

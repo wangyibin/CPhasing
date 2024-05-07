@@ -76,11 +76,11 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Pore-C Mapper",
-            "options": ["--mapper-k", "--mapper-w"]
+            "options": ["--mapper-k", "--mapper-w", "--mapping-quality"]
         },
          {
             "name": "Options of Hi-C Mapper",
-            "options": ["--hic-mapper-k", "--hic-mapper-w"]
+            "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
         },
         {
             "name": "Options of HCR",
@@ -131,11 +131,11 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Pore-C Mapper",
-            "options": ["--mapper-k", "--mapper-w"]
+            "options": ["--mapper-k", "--mapper-w", "--mapping-quality"]
         },
          {
             "name": "Options of Hi-C Mapper",
-            "options": ["--hic-mapper-k", "--hic-mapper-w"]
+            "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
         },
         {
             "name": "Options of HCR",
@@ -353,6 +353,16 @@ def cli(verbose, quiet):
     help="window size for mapper",
     default=10,
     show_default=True
+)
+@click.option(
+    '-q',
+    '--mapping-quality',
+    'mapping_quality',
+    metavar='INT',
+    help='minimum mapping quality of mapper or hicmapper.',
+    default=0,
+    show_default=True,
+    type=click.IntRange(0, 60),
 )
 @click.option(
     '-hic-mapper-k',
@@ -715,6 +725,7 @@ def pipeline(fasta,
             pattern,
             mapper_k,
             mapper_w,
+            mapping_quality,
             hic_mapper_k,
             hic_mapper_w,
             hcr,   
@@ -828,6 +839,7 @@ def pipeline(fasta,
         pattern=pattern,
         mapper_k=mapper_k, 
         mapper_w=mapper_w,
+        mapping_quality=mapping_quality,
         hic_mapper_k=hic_mapper_k,
         hic_mapper_w=hic_mapper_w,
         hcr_flag=hcr,
@@ -1645,6 +1657,10 @@ def hcr(porectable, pairs, contigsize, binsize,
                     assert flag == 0, "Failed to execute command, please check log."
                 else:
                     logger.warn(f"Use exists 4DN pairs file of `{pairs}`.")
+        else:
+            prefix = Path(pairs).with_suffix("")
+            while prefix.suffix in {'.gz', 'gz', '.pairs'}:
+                prefix = prefix.with_suffix('')
         
     else:
         if fofn:
@@ -3130,7 +3146,6 @@ def scaffolding(clustertable, count_re, clm,
         ao.run()
     elif method == "haphic":
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
-        assert fasta is not None, "fasta must specified by `-f` parameters"
         hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
                                 allele_table=allele_table, keep_temp=keep_temp,
                                 fasta=fasta, output=output, threads=threads)
@@ -3138,7 +3153,6 @@ def scaffolding(clustertable, count_re, clm,
 
     else:
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
-        assert fasta is not None, "fasta must specified by `-f` parameters"
         hs = HapHiCSort(clustertable, count_re, clm, split_contacts, skip_allhic=True,
                         allele_table=allele_table, fasta=fasta, output=output, threads=threads)
         hs.run()

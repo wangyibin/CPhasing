@@ -48,7 +48,7 @@ def Build(fasta_file, output='groups.asm.fasta',
         unanchor_tigs = set(fasta.keys()) - set(agp_df[agp_df[4] == 'W'][5].values.tolist())
         unanchor_res = []
         for unanchor_tig in unanchor_tigs:
-            length = len(fasta[unanchor_tig])
+            length = fasta.faidx.index[unanchor_tig].rlen
             unanchor_res.append([unanchor_tig, 1, length, 1, 'W', unanchor_tig, 
                 1, length, '+'])
         unanchor_df = pd.DataFrame(unanchor_res)

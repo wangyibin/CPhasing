@@ -64,7 +64,8 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
 
     return x[max_idx] * lower_value, x[max_idx] * upper_value
 
-def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75 ):
+def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
+                    remove_whole_collapsed_contigs=True):
 
     cool = cooler.Cooler(cool_file)
     binsize = cool.binsize
@@ -82,13 +83,21 @@ def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75 ):
 
     sum_values_nonzero = sum_values[sum_values > 0]
 
-    min_value, max_value = plot(sum_values_nonzero)
+    min_value, max_value = plot(sum_values_nonzero, lower_value, 
+                                upper_value, output=output.replace(".bed", ""))
     #median = np.median(sum_values)
     # max_value = np.percentile(sum_values_nonzero, percent)
     # logger.debug(f"Percent{percent} value is {max_value}")
     res = np.where((sum_values <= max_value) & (sum_values >= min_value))
-    
+
     hcr_regions = bins.loc[res[1]]
+    
+    res = np.where((sum_values > max_value))
+    collapsed_regions = bins.loc[res[1]]
+    collapsed_regions = collapsed_regions[['chrom', 'start', 'end']]
+    collapsed_regions.columns = ['Chromosome', 'Start', 'End']
+    collapsed_regions['Chromosome'] = collapsed_regions['Chromosome'].astype(str)
+
     total_length = contigsizes.sum()
     num_hcr_regions = len(hcr_regions)
     logger.debug(f"Identify {num_hcr_regions} regions")
@@ -98,7 +107,28 @@ def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75 ):
     hcr_regions = hcr_regions[['chrom', 'start', 'end']]
     hcr_regions.columns = ['Chromosome', 'Start', 'End']
     hcr_regions_pr = pr.PyRanges(hcr_regions)
-    hcr_regions_pr.merge().df.to_csv(output, sep='\t', index=None, header=None)
+    hcr_regions_pr = hcr_regions_pr.merge()
+
+    if remove_whole_collapsed_contigs:
+        contigsizes_db = contigsizes.to_dict()
+        
+        collapsed_regions = collapsed_regions.eval('Length = End - Start')
+        
+        collapsed_regions['Total_length'] = collapsed_regions['Chromosome'].map(contigsizes_db.get)
+        collapsed = collapsed_regions.groupby('Chromosome')['Length'].sum().reset_index()
+        collapsed['Total_length'] = collapsed['Chromosome'].map(contigsizes_db.get)
+        
+        collapsed = collapsed.eval('Rate = 1 - (Total_length - Length) / Total_length')
+        collapsed = collapsed[collapsed['Rate'] > 0.9]
+        collapsed_df = contigsizes.loc[collapsed.Chromosome].reset_index()
+        collapsed_df[1] = 0
+        collapsed_df.columns = ['Chromosome', 'End', 'Start']
+        collapsed_df = collapsed_df[['Chromosome', 'Start', 'End']]
+        collapsed_pr = pr.PyRanges(collapsed_df)
+        hcr_regions_pr = hcr_regions_pr.intersect(collapsed_pr, invert=True)
+
+
+    hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
 
 

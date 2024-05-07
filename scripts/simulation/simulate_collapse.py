@@ -66,16 +66,17 @@ def main(args):
     paf = paf[(paf[2] < 100) | ((paf[1] - paf[3]) < 100)]
     paf = paf[(paf[7] < 100) | ((paf[6] - paf[8]) < 100)]
 
+    print(paf, file=sys.stderr)
 
     def func(row):
         if row[2] < 100:
             row[2] = 0
-        if row[1] - row[3] < 100:
+        if (row[1] - row[3]) < 100:
             row[3] = row[1]
         
         if row[7] < 100:
             row[7] = 0
-        if row[6] - row[8]:
+        if (row[6] - row[8]) < 100:
             row[8] = row[6]
 
         return row 
@@ -91,7 +92,7 @@ def main(args):
                              'length1', 'start1', 'end1',
                              'strand', 'length2', 'start2',
                              'end2']
-    
+    print(high_similarity_data, file=sys.stderr)
     high_similarity_contig_pairs = high_similarity_data[["contig1", "contig2"]].values
     high_similarity_data = high_similarity_data.set_index(['contig1', 'contig2'])
 

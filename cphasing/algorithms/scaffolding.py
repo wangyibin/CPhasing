@@ -290,7 +290,9 @@ class HapHiCSort:
                     threads=4):
         
         self.clustertable = ClusterTable(clustertable)
+        self.count_re_path = Path(count_re).absolute()
         self.count_re = CountRE(count_re, minRE=1)
+        
         self.clm_file = str(Path(clm).absolute())
         self.split_contacts = Path(split_contacts).absolute()
         self.skip_allhic = skip_allhic
@@ -335,7 +337,7 @@ class HapHiCSort:
         return f"{group}.clm"
 
     @staticmethod
-    def run_haphic_optimize(fasta, split_contacts, tmp_dir, skip_allhic, threads=4, log_dir="logs", ):
+    def run_haphic_optimize(total_count_re, split_contacts, tmp_dir, skip_allhic, threads=4, log_dir="logs", ):
         script_realpath = os.path.dirname(os.path.realpath(__file__))
         haphic_sort = f"{script_realpath}/HapHiC_sort.py"
         
@@ -347,7 +349,7 @@ class HapHiCSort:
                     "--skip_allhic",
                     "--processes",
                     str(threads),
-                    str(fasta),
+                    str(total_count_re),
                     str(split_contacts), 
                     tmp_dir]
         else:
@@ -355,7 +357,7 @@ class HapHiCSort:
                 haphic_sort, 
                 "--processes",
                 str(threads),
-                str(fasta),
+                str(total_count_re),
                 str(split_contacts), 
                 tmp_dir]
 
@@ -365,8 +367,8 @@ class HapHiCSort:
         run_cmd(cmd, log=f"../{log_dir}/HapHiC_sort.log", out2err=True)
       
     @staticmethod
-    def _run(fasta, split_contacts, workdir, skip_allhic=True, threads=4, log_dir="logs"):
-        HapHiCSort.run_haphic_optimize(fasta, split_contacts, workdir, skip_allhic, threads, log_dir)
+    def _run(total_count_re, split_contacts, workdir, skip_allhic=True, threads=4, log_dir="logs"):
+        HapHiCSort.run_haphic_optimize(total_count_re, split_contacts, workdir, skip_allhic, threads, log_dir)
         
     
     def run(self):
@@ -387,7 +389,7 @@ class HapHiCSort:
         del clm
         gc.collect()
         
-        HapHiCSort._run(self.fasta, self.split_contacts, "./", 
+        HapHiCSort._run(self.count_re_path, self.split_contacts, "./", 
                             skip_allhic=self.skip_allhic, threads=self.threads,
                             log_dir=self.log_dir)
         
@@ -395,7 +397,7 @@ class HapHiCSort:
 
         tour_res = glob.glob("./*.tour")
         if len(tour_res) == 0:
-            logger.warn("Failed to run HapHiC sort")
+            logger.warn("Failed to run HapHiC sort, please check log file in logs.")
             sys.exit(-1)
 
 

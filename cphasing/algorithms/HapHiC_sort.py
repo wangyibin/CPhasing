@@ -27,7 +27,9 @@ from networkx import Graph, connected_components, shortest_path
 from networkx import tree as nxtree
 from scipy.sparse import coo_matrix
 
+from cphasing.core import CountRE
 from cphasing.utilities import xopen
+
 
 logging.basicConfig(
         format='%(asctime)s <%(filename)s> [%(funcName)s] %(message)s',
@@ -55,7 +57,6 @@ def parse_fasta(fasta):
             else:
                 fa_dict[ctg] += len(line.strip())
     return fa_dict
-
 
 def dict_to_matrix(dict_, shape, add_self_loops=False):
 
@@ -688,7 +689,7 @@ def parse_arguments():
     # Parameters for parsing input files and pipeline control
     input_group = parser.add_argument_group('>>> Parameters for parsing input files and pipeline control')
     input_group.add_argument(
-            'fasta', help='draft genome in FASTA format')
+            'total_count_re', help='CountRE file of all contigs')
     input_group.add_argument(
             'HT_links', help='HT_links.pkl generated in the clustering step')
     input_group.add_argument(
@@ -799,10 +800,9 @@ def run(args, log_file=None):
 
     # Using default RE here is ok. Because in the sorting step,
     # we don't care about the restriction sites.
-    fa_dict = parse_fasta(args.fasta)
+    fa_dict = CountRE(args.total_count_re, minRE=1).length_db 
 
     # load HT_link_dict from contacts file
-    
     HT_link_df = pd.read_csv(args.HT_links, sep='\t', header=None, index_col=None)
     # cis_contact = HT_link_df.loc[HT_link_df[0] == HT_link_df[1]]
 

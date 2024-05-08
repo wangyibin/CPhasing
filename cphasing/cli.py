@@ -84,7 +84,8 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HCR",
-            "options": ["--hcr", "--hcr-lower", "--hcr-upper", "--hcr-binsize",
+            "options": ["--hcr", "--hcr-lower", "--hcr-upper",
+                         "--collapsed-contigs-ratio", "--hcr-binsize",
                          "--hcr-bed", "--hcr-invert"]
         },
         {
@@ -139,7 +140,8 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HCR",
-            "options": ["--hcr", "--hcr-lower", "--hcr-upper", "--hcr-binsize",
+            "options": ["--hcr", "--hcr-lower", "--hcr-upper", 
+                        "--collapsed-contigs-ratio", "--hcr-binsize",
                          "--hcr-bed", "--hcr-invert"]
         },
         {
@@ -406,6 +408,18 @@ def cli(verbose, quiet):
     help="Upper value of peak value.",
     type=float,
     default=1.75,
+    show_default=True,
+)
+@click.option(
+    "-cr",
+    "--collapsed-contigs-ratio",
+    "collapsed_contig_ratio",
+    metavar="FLOAT",
+    help="minimum regions of the collapsed contig, "
+    " which mean the region of a contig higher than upper "
+    "value will be regarded as collapsed and remove the whole contigs",
+    type=click.FloatRange(0.0, 1.0),
+    default=.0,
     show_default=True,
 )
 @click.option(
@@ -731,6 +745,7 @@ def pipeline(fasta,
             hcr,   
             hcr_lower,
             hcr_upper,
+            collapsed_contig_ratio,
             hcr_bs,
             hcr_bed,
             hcr_invert,
@@ -845,6 +860,7 @@ def pipeline(fasta,
         hcr_flag=hcr,
         hcr_lower=hcr_lower,
         hcr_upper=hcr_upper,
+        collapsed_contig_ratio=collapsed_contig_ratio,
         hcr_bs=hcr_bs, 
         hcr_bed=hcr_bed,
         hcr_invert=hcr_invert,
@@ -1579,6 +1595,18 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True,
 )
 @click.option(
+    "-cr",
+    "--collapsed-contigs-ratio",
+    "collapsed_contig_ratio",
+    metavar="FLOAT",
+    help="minimum regions of the collapsed contig, "
+    " which mean the region of a contig higher than upper "
+    "value will be regarded as collapsed and remove the whole contigs",
+    type=click.FloatRange(0.0, 1.0),
+    default=.0,
+    show_default=True,
+)
+@click.option(
     "-b",
     "--bed",
     help="HCRs bed file",
@@ -1622,7 +1650,8 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 def hcr(porectable, pairs, contigsize, binsize, 
-        lower, upper, bed, invert, min_quality, fofn, output):
+        lower, upper, collapsed_contig_ratio,
+          bed, invert, min_quality, fofn, output):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -1699,7 +1728,8 @@ def hcr(porectable, pairs, contigsize, binsize,
             logger.warn(f"Use exists cool file of `{out_small_cool}`.")
         
    
-        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , lower, upper)
+        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , 
+                        lower, upper, collapsed_contig_ratio)
         bed =  f"{prefix}.{binsize}.hcr.bed"
  
         
@@ -1712,12 +1742,12 @@ def hcr(porectable, pairs, contigsize, binsize,
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f'Successful out high confidence high-orrder '
                     f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
-        cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-               "-o", f"{prefix}_hcr.pairs.gz", "-q", str(min_quality)]
+        # cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
+        #        "-o", f"{prefix}_hcr.pairs.gz", "-q", str(min_quality)]
         
-        flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
-        assert flag == 0, "Failed to execute command, please check log."
-        logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
+        # flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
+        # assert flag == 0, "Failed to execute command, please check log."
+        # logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
     else:
         cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, 
@@ -3552,14 +3582,25 @@ def pairs2clm(pairs, min_contacts, threads, output):
     show_default=True,
 )
 @click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
     "-o",
     "--output",
     metavar="OUTPUT",
     default="-",
     show_default=True
 )
-def pairs2contacts(pairs, min_contacts, split_num, output):
-    cmd = ["cphasing-rs", "pairs2contacts", f"{pairs}", "-c", f"{min_contacts}", 
+def pairs2contacts(pairs, min_contacts, split_num, 
+                   min_quality, output):
+    cmd = ["cphasing-rs", "pairs2contacts", f"{pairs}", 
+           "-c", f"{min_contacts}", "-q", f"{min_quality}",
             "-n", f"{split_num}", "-o", f"{output}"]
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."

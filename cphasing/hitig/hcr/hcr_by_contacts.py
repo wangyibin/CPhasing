@@ -65,7 +65,7 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     return x[max_idx] * lower_value, x[max_idx] * upper_value
 
 def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
-                    remove_whole_collapsed_contigs=True):
+                    min_remove_whole_collapsed_contigs_rate=0.9):
 
     cool = cooler.Cooler(cool_file)
     binsize = cool.binsize
@@ -109,7 +109,7 @@ def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
     hcr_regions_pr = pr.PyRanges(hcr_regions)
     hcr_regions_pr = hcr_regions_pr.merge()
 
-    if remove_whole_collapsed_contigs:
+    if min_remove_whole_collapsed_contigs_rate:
         contigsizes_db = contigsizes.to_dict()
         
         collapsed_regions = collapsed_regions.eval('Length = End - Start')
@@ -119,7 +119,7 @@ def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
         collapsed['Total_length'] = collapsed['Chromosome'].map(contigsizes_db.get)
         
         collapsed = collapsed.eval('Rate = 1 - (Total_length - Length) / Total_length')
-        collapsed = collapsed[collapsed['Rate'] > 0.9]
+        collapsed = collapsed[collapsed['Rate'] > min_remove_whole_collapsed_contigs_rate]
         collapsed_df = contigsizes.loc[collapsed.Chromosome].reset_index()
         collapsed_df[1] = 0
         collapsed_df.columns = ['Chromosome', 'End', 'Start']

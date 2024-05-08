@@ -17,21 +17,6 @@ from ..cli import cli
 
 logger = logging.getLogger(__name__)
 
-# click.rich_click.STYLE_COMMANDS_TABLE_SHOW_LINES = False
-# click.rich_click.STYLE_COMMANDS_TABLE_PAD_EDGE = True
-# click.rich_click.STYLE_COMMANDS_TABLE_BOX = "SIMPLE"
-# click.rich_click.STYLE_COMMANDS_TABLE_BORDER_STYLE = "red"
-# click.rich_click.STYLE_COMMANDS_TABLE_ROW_STYLES = ["yellow", "green", "cyan"]
-# click.rich_click.MAX_WIDTH = 128
-
-# click.rich_click.SHOW_ARGUMENTS = True
-# click.rich_click.APPEND_METAVARS_HELP = True
-# click.rich_click.SHOW_METAVARS_COLUMN = True
-# click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
-# click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
-# click.rich_click.ERRORS_EPILOGUE = "To find out more, visit https://github.com/wangyibin/CPhasing"
-
-
 class CommandGroup(DYMGroup, RichCommand):
     """
     List subcommand in the order there were added.

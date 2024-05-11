@@ -2957,8 +2957,10 @@ def hyperpartition(hypergraph,
 
     if whitelist:
         whitelist = [i.strip() for i in open(whitelist) if i.strip()]
+        logger.info(f"{len(whitelist)} contigs will be load to cluster.")
     if blacklist:
         blacklist = [i.strip() for i in open(blacklist) if i.strip()]
+        logger.info(f"{len(blacklist)} contigs will be removed to cluster.")
 
     if merge_cluster:
         assert n[0] != 0, "parameter `k` must add to run merge cluster"
@@ -3029,8 +3031,8 @@ def hyperpartition(hypergraph,
     if incremental:
         if first_cluster and op.exists(first_cluster):
             first_cluster = ClusterTable(first_cluster)
-            if n[0] != len(first_cluster.groups):
-                logger.warn("The group number of first cluster is conflicted with the specified group number (-n.")
+            if n[0] != len(first_cluster.groups) and n[0]:
+                logger.warn("The group number of first cluster is conflicted with the specified group number specified in `-n`.")
         else:
             first_cluster = None 
         
@@ -3074,6 +3076,7 @@ def hyperpartition(hypergraph,
     "--split-contacts",
     "split_contacts",
     metavar="SPLIT_CONTACTS",
+    help="Split contacts from `cphasing-rs pairs2clm`, only used in `haphic` or `haphic_fastsort` mode.",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -3113,7 +3116,7 @@ def hyperpartition(hypergraph,
 @click.option(
     "--keep-temp",
     "keep_temp",
-    help="Dont not delete the tempdir",
+    help="Dont not delete the tempdir.",
     default=False,
     is_flag=True,
     show_default=True
@@ -3122,14 +3125,14 @@ def hyperpartition(hypergraph,
     "-o",
     "--output",
     metavar="STR",
-    help="Output agp file, only valid when fasta file exists",
+    help="Output agp file, only valid when fasta file exists.",
     default="groups.agp",
     show_default=True
 )
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads. (unused)',
+    help='Number of threads.',
     type=int,
     default=4,
     metavar='INT',

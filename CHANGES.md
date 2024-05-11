@@ -1,5 +1,11 @@
 # Release notes #
 
+## [v0.1.7]
+Date: 2024-05-11
+## Enhancement
+- `hypergraph`, speed up data loading
+- `scaffolding`, speed up clm loadding 
+
 ## [v0.1.6]
 Date: 2024-05-07
 ## Enhancement

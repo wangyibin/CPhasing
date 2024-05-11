@@ -385,7 +385,7 @@ class HyperPartition:
         else: 
             return False
 
-    def single_partition(self, k=None, sort_by_length=True, sort_group=True):
+    def single_partition(self, k=None, sort_by_length=True, sort_group=False):
         """
         Single partition
 
@@ -629,8 +629,8 @@ class HyperPartition:
                                             min_allelic_overlap)
 
         A = HyperGraph.clique_expansion_init(sub_H)
-        vertices_length = sub_vertices_new_idx_sizes['length']
-        new_K = raw_sort(new_K, A, vertices_length, threads=1)
+        # vertices_length = sub_vertices_new_idx_sizes['length']
+        # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
@@ -825,11 +825,20 @@ class HyperPartition:
             for _ in j:
                 self.inc_chr_idx.append(i)
         
-        second_group_info = []
-        for i, res in enumerate(results, 1):
-            for j, _ in enumerate(res, 1):
-                # second_group_info.append(f"Chr{i:0>2}g{j}")
-                second_group_info.append(f"{i}g{j}")
+        logger.debug(f"{self.inc_chr_idx}")
+
+        # idx = 0
+        # for i, j in groupby(self.inc_chr_idx):
+        #     j = list(j)
+        #     tmp_groups = [self.K[i2] for i2 in range(idx, idx + len(j))]
+        #     logger.debug(tmp_groups)
+        #     idx += len(j)
+            
+            
+            
+         
+        second_group_info = [f"{i}g{j}" for i, res in enumerate(results, 1) 
+                                            for j, _ in enumerate(res, 1) ]
 
         if self.exclude_group_to_second:
             exclude_group_init_idx = len(results) + 1
@@ -997,7 +1006,10 @@ class HyperPartition:
             if hap not in hap_group:
                 hap_group[hap] = []
             hap_group[hap].append(group)
-        
+    
+    def remove_misassembly(self):
+
+        pass 
 
     def post_check(self):
         """

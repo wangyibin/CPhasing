@@ -89,11 +89,12 @@ def parse_groups(groups, fa_len_dict):
                 largest_group_dict[source_chr] = length
             if source_chr != dominant_chr:
                 if source_chr.split("_")[0] == dominant_chr.split("_")[0]:
+                   
                     inter_homo_err += length
                 else:
                     inter_nonhomo_err += length
 
-        if dominant_chr.split('_')[0] in {'chr13', 'chr14', 'chr15', 'chr21', 'chr22'}:
+        if source_chr.split('_')[0] in {'chr13', 'chr14', 'chr15', 'chr21', 'chr22'}:
             continue 
         
         excluded_anchored_len += excluded_group_len

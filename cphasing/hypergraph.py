@@ -15,6 +15,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from joblib import Parallel, delayed
 from pathlib import Path
@@ -73,6 +74,7 @@ class Extractor:
         df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
         df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
 
+
         return df
 
     def generate_edges(self):
@@ -80,29 +82,42 @@ class Extractor:
         """
         logger.info(f"Extract edges from pairs.") 
         if self.low_memory:
-            dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
+            # dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
+            dtype = {'chrom1': pl.Categorical, 'chrom2': pl.Categorical, 'mapq': pl.Int8}
         else:
-            dtype={'mapq': 'int8'}
+            dtype={'mapq': pl.Int8}
         
         if len(self.pairs_pathes) == 1:
 
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
-                p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                                header=None, index_col=None, dtype=dtype,
-                                usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'], 
-                                # converters={"chrom1": self.contig_idx.get, 
-                                #             "chrom2": self.contig_idx.get}
-                                ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1)
-                # p = p.query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1).reset_index(drop=True)
+                # p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
+                #                 header=None, index_col=None, dtype=dtype,
+                #                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'], 
+                #                 # converters={"chrom1": self.contig_idx.get, 
+                #                 #             "chrom2": self.contig_idx.get}
+                #                 ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1)
+                ## p = p.query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1).reset_index(drop=True)
+                p = pl.read_csv(self.pairs_pathes[0], separator='\t', has_header=False,
+                                comment_prefix="#", columns=[1, 3, 7],
+                                new_columns=['chrom1', 'chrom2', 'mapq'],
+                                dtypes=dtype)
+                p = p.filter(pl.col('mapq') >= self.min_mapq).drop('mapq')
+                p = p.to_pandas()
             
             else:
-                p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                                    header=None, index_col=None, 
-                                    dtype=dtype,
-                                    usecols=[1, 3], names=['chrom1', 'chrom2'], 
-                                )
+                # p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
+                #                     header=None, index_col=None, 
+                #                     dtype=dtype,
+                #                     usecols=[1, 3], names=['chrom1', 'chrom2'], 
+                #                 )
+                p = pl.read_csv(self.pairs_pathes[0], separator='\t', has_header=False,
+                                comment_prefix="#", columns=[1, 3],
+                                new_columns=['chrom1', 'chrom2'],
+                                dtypes=dtype)
+               
+                p = p.to_pandas()
 
             
             res = Extractor._process_df(p, self.contig_idx, self.threads)   
@@ -134,7 +149,7 @@ class Extractor:
                                 lambda x: pd.read_csv(x, sep='\t', comment="#",
                                                 header=None, index_col=None, 
                                                 # compression=compression,
-                                                dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'},
+                                                dtype=dtype,
                                                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
                                                 ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1))
                                                 (i) for i in p_list)
@@ -143,8 +158,7 @@ class Extractor:
                 res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                             lambda x: pd.read_csv(x, sep='\t', comment="#",
                                             header=None, index_col=None, 
-                                            # compression=compression,
-                                            #  dtype={'chrom1': 'category', 'chrom2': 'category'},
+                                            dtype=dtype,
                                             usecols=[1, 3], names=['chrom1', 'chrom2']))
                                             (i) for i in p_list)
                 
@@ -165,6 +179,7 @@ class Extractor:
         logger.info(f"Result of {length} raw "
                     f"hyperedges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
+        
         return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
@@ -334,29 +349,43 @@ def process_pore_c_table(df, contig_idx, threads=1,
                             min_order=2, max_order=50, 
                             min_alignments=50, is_parquet=False):
    
-    pandarallel.initialize(nb_workers=threads, verbose=0)
-    df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get)
-    df.dropna(axis=0, inplace=True)
-    df['chrom_idx'] = df['chrom_idx'].astype('int')
+    # pandarallel.initialize(nb_workers=threads, verbose=0)
+    # df['chrom_idx'] = df['chrom'].parallel_map(contig_idx.get)
+    # df.dropna(axis=0, inplace=True)
+    # df['chrom_idx'] = df['chrom_idx'].astype('int')
 
-    # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
-    #                     df.chrom.cat.categories))
-    # df = (df.assign(alignment_length=lambda x: x.end - x.start)
-    #         .query(f"alignment_length >= {min_alignments}")
-    #         .set_index('read_idx'))
-    df = df.set_index('read_idx')
-    df = df[['chrom_idx', 'mapping_quality']]
-    # df_grouped = df.groupby('read_idx')['chrom_idx']
-    # df_grouped_nunique = df_grouped.nunique()
-    # df = df.loc[(df_grouped_nunique >= min_order) 
-    #                 & (df_grouped_nunique <= max_order)]
-    df_grouped_nunique = df.groupby('read_idx')['chrom_idx'].transform('nunique')
-    df = df[(df_grouped_nunique >= min_order) & (df_grouped_nunique <= max_order)]
+
+    # # chrom_db = dict(zip(range(len(df.chrom.cat.categories)), 
+    # #                     df.chrom.cat.categories))
+    # # df = (df.assign(alignment_length=lambda x: x.end - x.start)
+    # #         .query(f"alignment_length >= {min_alignments}")
+    # #         .set_index('read_idx'))
+    # df = df.set_index('read_idx')
+    # df = df[['chrom_idx', 'mapping_quality']]
+    # # df_grouped = df.groupby('read_idx')['chrom_idx']
+    # # df_grouped_nunique = df_grouped.nunique()
+    # # df = df.loc[(df_grouped_nunique >= min_order) 
+    # #                 & (df_grouped_nunique <= max_order)]
+    # df_grouped_nunique = df.groupby('read_idx')['chrom_idx'].transform('nunique')
+    # df = df[(df_grouped_nunique >= min_order) & (df_grouped_nunique <= max_order)]
     
-    df = df[['chrom_idx', 'mapping_quality']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
-  
-    df['read_idx'] = df['read_idx'].astype('category').cat.codes
+    # df = df[['chrom_idx', 'mapping_quality']].reset_index().drop_duplicates(['read_idx', 'chrom_idx'])
 
+    # df['read_idx'] = df['read_idx'].astype('category').cat.codes
+
+    df = df.with_columns(pl.col('chrom').apply(contig_idx.get).alias('chrom_idx')).drop_nulls()
+    df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
+    
+    df = df.with_columns(pl.col('read_idx').cast(pl.UInt32))
+    df = df.select(['read_idx', 'chrom_idx', 'mapping_quality'])
+    df_grouped_nunique = df.groupby('read_idx').agg(pl.col('chrom_idx').n_unique().alias('chrom_idx_nunique'))
+    df = df.join(df_grouped_nunique, on='read_idx')
+    df = df.filter((pl.col('chrom_idx_nunique') >= min_order) & (pl.col('chrom_idx_nunique') <= max_order))
+
+    df = df.unique(['read_idx', 'chrom_idx'], maintain_order=True)
+    df = df.with_columns(pl.col('read_idx').cast(pl.Utf8).cast(pl.Categorical).to_physical())
+    
+    df = df.to_pandas()
     
     return df
 
@@ -427,39 +456,48 @@ class HyperExtractor:
                                                 ],
                                     engine=PQ_ENGINE)
             else: 
-                try:
-                    logger.debug("Start to load one porec table.")
-                    if pandas_version == 2:
-                        df = pd.read_csv(infile, 
-                                        sep='\t',
-                                        header=None,
-                                        index_col=None,
-                                        engine=CSV_ENGINE,
-                                        dtype_backend=CSV_ENGINE,
-                                        usecols=[0, 5, 8])
-                                        # usecols=['read_idx', 'chrom',
-                                        #             # 'start', 'end', 
-                                        #             'mapping_quality',
-                                        #             #'filter_reason'
-                                        #             ],
-                    else:
-                        df = pd.read_csv(infile, 
-                                        sep='\t',
-                                        header=None,
-                                        index_col=None,
-                                        # engine=CSV_ENGINE,
-                                        usecols=[0, 5, 8])
-                    df.columns = ['read_idx', 'chrom', 'mapping_quality']
-                                    # names=self.HEADER)
+                logger.debug("Start to load one porec table.")
+                df = pl.read_csv(infile, separator='\t', has_header=False,
+                                 columns=[0, 5, 8], 
+                                 dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
+                                 new_columns=['read_idx', 'chrom', 'mapping_quality'])
+                
+                # try:
+                #     logger.debug("Start to load one porec table.")
+                #     if pandas_version == 2:
+                #         df = pd.read_csv(infile, 
+                #                         sep='\t',
+                #                         header=None,
+                #                         index_col=None,
+                #                         engine=CSV_ENGINE,
+                #                         dtype_backend=CSV_ENGINE,
+                #                         usecols=[0, 5, 8])
+                #                         # usecols=['read_idx', 'chrom',
+                #                         #             # 'start', 'end', 
+                #                         #             'mapping_quality',
+                #                         #             #'filter_reason'
+                #                         #             ],
+                #     else:
+                #         df = pd.read_csv(infile, 
+                #                         sep='\t',
+                #                         header=None,
+                #                         index_col=None,
+                #                         # engine=CSV_ENGINE,
+                #                         usecols=[0, 5, 8])
+                #     df.columns = ['read_idx', 'chrom', 'mapping_quality']
+                #                     # names=self.HEADER)
                     
-                except pd.errors.ParserError:
-                    logger.error("The input contacts are not the pore-c table format"
-                                "do you want to parse Pairs file? please add parameters of `--pairs`")
-                    sys.exit(-1)
+                # except pd.errors.ParserError:
+                #     logger.error("The input contacts are not the pore-c table format"
+                #                 "do you want to parse Pairs file? please add parameters of `--pairs`")
+                #     sys.exit(-1)
             # df = df.query("filter_reason == 'pass'")
             if self.min_quality > 0:
                 
-                df = df.query(f"mapping_quality >= {self.min_quality}")
+                # df = df.query(f"mapping_quality >= {self.min_quality}")
+                df = df.filter(pl.col('mapping_quality') >= self.min_quality)
+            
+           
             df_list = [df]
             logger.debug("Successful load porec table.")
 
@@ -488,50 +526,58 @@ class HyperExtractor:
 
                 
             else:
-                if pandas_version == 2:
-                    df_list = list(map(lambda x: pd.read_csv(
-                                    x,
-                                        # usecols=['read_idx', 'chrom', 
-                                        #         # 'start', 'end', 
-                                        #         'mapping_quality',
-                                        #         #'filter_reason'
-                                        #         ], 
-                                        usecols=[0, 5, 8],
-                                        sep='\t',
-                                        index_col=None,
-                                        header=None,
-                                        engine=CSV_ENGINE,
-                                        dtype_backend=CSV_ENGINE,
-                                        ),
-                                        #filters=[('pass_filter', '=', True)]),
-                                        infiles))
-                else:
-                        df_list = list(map(lambda x: pd.read_csv(
-                                    x,
-                                        usecols=[0, 5, 8],
-                                        sep='\t',
-                                        index_col=None,
-                                        header=None,
-                                        # engine=CSV_ENGINE,
-                                        ),
-                                        infiles))
-                for df in df_list:
-                    df.columns = ['read_idx', 'chrom', 'mapping_quality']
+                # if pandas_version == 2:
+                #     df_list = list(map(lambda x: pd.read_csv(
+                #                     x,
+                #                         # usecols=['read_idx', 'chrom', 
+                #                         #         # 'start', 'end', 
+                #                         #         'mapping_quality',
+                #                         #         #'filter_reason'
+                #                         #         ], 
+                #                         usecols=[0, 5, 8],
+                #                         sep='\t',
+                #                         index_col=None,
+                #                         header=None,
+                #                         engine=CSV_ENGINE,
+                #                         dtype_backend=CSV_ENGINE,
+                #                         ),
+                #                         #filters=[('pass_filter', '=', True)]),
+                #                         infiles))
+                # else:
+                #         df_list = list(map(lambda x: pd.read_csv(
+                #                     x,
+                #                         usecols=[0, 5, 8],
+                #                         sep='\t',
+                #                         index_col=None,
+                #                         header=None,
+                #                         # engine=CSV_ENGINE,
+                #                         ),
+                #                         infiles))
+                # for df in df_list:
+                #     df.columns = ['read_idx', 'chrom', 'mapping_quality']
+                
+                df_list = list(map(lambda x: pl.read_csv(
+                    x, separator='\t', has_header=False,
+                    columns=[0, 5, 8], dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
+                    new_columns=['read_idx', 'chrom', 'mapping_quality']
+                ), infiles))
                 
                 if self.min_quality > 0:
+                    # df_list = Parallel(n_jobs=self.threads)(delayed(
+                    #                     lambda x: x.query(#f"filter_reason == 'pass' &"
+                    #                                       f"'min_quality >= {self.min_quality}'")
+                    #                                 # .drop("filter_reason", axis=1)
+                    #                                 )(i) for i in df_list)
+                    
                     df_list = Parallel(n_jobs=self.threads)(delayed(
-                                        lambda x: x.query(#f"filter_reason == 'pass' &"
-                                                          f"'min_quality >= {self.min_quality}")
-                                                    # .drop("filter_reason", axis=1)
-                                                    )(i) for i in df_list)
-                    # df = df.query(f"mapping_quality >= {self.min_quality}")
+                        lambda x: x.filter(pl.col('mapping_quality') >= self.min_quality).to_pandas())(i) for i in df_list)
                 # else:
                 #     df_list = Parallel(n_jobs=self.threads)(delayed(
                 #                         lambda x: x.query("filter_reason == 'pass'")
                 #                                     .drop("filter_reason", axis=1)
                 #                                     )(i) for i in df_list)
         
-
+               
         return df_list
     
 
@@ -576,8 +622,8 @@ class HyperExtractor:
                                     for i, j, k, l, m, n, o in args)
         else:
             res = [process_pore_c_table(self.pore_c_tables[0], self.contig_idx, threads_2, 
-                            self.min_order, self.max_order, 
-                            self.min_alignments, self.is_parquet)]
+                                        self.min_order, self.max_order, 
+                                        self.min_alignments, self.is_parquet)]
         idx = 0
         mapping_quality_res = []
         

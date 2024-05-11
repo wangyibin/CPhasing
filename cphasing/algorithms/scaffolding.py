@@ -12,6 +12,8 @@ import os
 import os.path as op
 import sys
 import tempfile
+import warnings
+warnings.simplefilter('ignore')
 
 
 import cooler
@@ -23,6 +25,7 @@ import networkx as nx
 import networkx.algorithms.approximation as nx_app 
 import igraph as ig 
 import pandas as pd
+import polars as pl
 import scipy
 import shutil
 
@@ -177,7 +180,11 @@ class AllhicOptimize:
 
     @property
     def clm(self):
-        df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
+        # df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
+        
+        df = pl.scan_csv(self.clm_file, separator='\t', 
+                         has_header=False, low_memory=True,
+                         dtypes={"column_2": pl.datatypes.UInt32})       
 
         return df
 
@@ -192,20 +199,18 @@ class AllhicOptimize:
     def extract_clm(group, contigs, clm):
         
         contig_pairs = list(permutations(contigs, 2))
-        contig_with_orientation_pairs = (
+        contig_with_orientation_pairs = set(
             f"{pair[0]}{strand1} {pair[1]}{strand2}"
             for pair in contig_pairs
             for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
         )
-        # contig_with_orientation_pairs = []
-        # for pair in contig_pairs:
-        #     for strand1, strand2 in [('+', '+'), ('+', '-'),
-        #                             ('-', '+'), ('-', '-')]:
-        #         contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
         
-        tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-        tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+        # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+        # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
 
+        tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
+        tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
+        
         return f"{group}.clm"
 
     @staticmethod
@@ -232,13 +237,22 @@ class AllhicOptimize:
         clm = self.clm
 
 
+        groups = list(self.clustertable.data.keys())
+        # args = []
+        # for group in groups:
+        #     contigs = self.clustertable.data[group]
+        #     args.append((group, contigs, clm))
+        
+        # clms = Parallel(n_jobs=min(len(args), self.threads))(delayed(
+        #     AllhicOptimize.extract_clm)(i, j, k) for i, j, k in args
+        # )
 
-        for group in self.clustertable.data.keys():
+        for i, group in enumerate(groups):
             contigs = self.clustertable.data[group]
             tmp_clm = AllhicOptimize.extract_clm(group, contigs, clm)
             tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
             args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
-        
+ 
         del clm
         gc.collect()
         
@@ -310,8 +324,11 @@ class HapHiCSort:
 
     @property
     def clm(self):
-        df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
-        
+        # df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
+        df = pl.scan_csv(self.clm_file, separator='\t', 
+                         has_header=False, low_memory=True,
+                         dtypes={"column_2": pl.datatypes.UInt32})   
+               
         return df
 
     @staticmethod
@@ -330,9 +347,12 @@ class HapHiCSort:
             for strand1, strand2 in [('+', '+'), ('+', '-'),
                                     ('-', '+'), ('-', '-')]:
                 contig_with_orientation_pairs.append(f"{pair[0]}{strand1} {pair[1]}{strand2}")
-        
-        tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-        tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+        contig_with_orientation_pairs = set(contig_with_orientation_pairs)
+        # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+        # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+
+        tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
+        tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
 
         return f"{group}.clm"
 

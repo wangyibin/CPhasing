@@ -201,6 +201,7 @@ dependencies:
     - ncls==0.0.68
     - pandarallel==1.6.5
     - partd==1.4.1
+    - polars==0.20.25
     - psutil==5.9.0
     - pyarrow==15.0.2
     - pyfaidx==0.8.1.1

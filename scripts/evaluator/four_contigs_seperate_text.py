@@ -81,7 +81,10 @@ def main(args):
             for contig1 in group1:
                 for contig2 in group2:
                     contig_edge = (contig1, contig2)
-                    score = contacts_db[contig_edge]
+                    try:
+                        score = contacts_db[contig_edge]
+                    except KeyError:
+                        score = 0
                     scores.append(score)
                     contig_edges.append(contig_edge)
             
@@ -108,7 +111,10 @@ def main(args):
             scores = []
             for contig2 in contigs[1:]:
                 contig_edge = (contig1, contig2)
-                score = contacts_db[contig_edge]
+                try:
+                    score = contacts_db[contig_edge]
+                except KeyError:
+                    score = 0
                 scores.append(score)
             
             console.print(contigs[np.argmax(scores) + 1])

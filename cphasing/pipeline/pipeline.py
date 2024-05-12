@@ -406,7 +406,7 @@ def run(fasta,
         if not porec_table:
             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
                    "-q", str(min_quality2), "-c", str(min_contacts),
-                "-o", f"{prepare_prefix}.contacts" ]
+                "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
             assert flag == 0, "Failed to execute command, please check log."
     

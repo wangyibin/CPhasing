@@ -416,7 +416,7 @@ def run(fasta,
 
     clm = f"{prepare_prefix}.clm"
     
-    contacts = f"{prepare_prefix}.contacts"
+    contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
     split_contacts = f"{prepare_prefix}.split.contacts"
     
     output_cluster = "output.clusters.txt"

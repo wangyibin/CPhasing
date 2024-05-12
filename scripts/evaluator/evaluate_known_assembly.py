@@ -101,6 +101,10 @@ def main(args):
         try:
             group, _contigs, _contigs_chrom, _contigs_chrom_count = group_assign[real_chrom]
             main_contigs = list(filter(lambda x: real_chrom in x, _contigs))
+            error_contigs = set(_contigs) - set(main_contigs)
+            if error_contigs:
+                print(group, error_contigs)
+                print()
             P = sum(list(map(lambda x: contigsizes.get(x), main_contigs))) \
                 / sum(list(map(lambda x: contigsizes.get(x), _contigs)))
             R = sum(list(map(lambda x: contigsizes.get(x), main_contigs))) \

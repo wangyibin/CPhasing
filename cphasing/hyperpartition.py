@@ -1008,7 +1008,7 @@ class HyperPartition:
             hap_group[hap].append(group)
     
     def remove_misassembly(self):
-
+            
         pass 
 
     def post_check(self):

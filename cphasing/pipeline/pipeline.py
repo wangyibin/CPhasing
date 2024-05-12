@@ -328,10 +328,13 @@ def run(fasta,
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
             hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
-            cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
-                "-o", hg_input , "-q", str(min_quality1)]
-            flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
-            assert flag == 0, "Failed to execute command, please check log."
+            if not Path(hg_input).exists():
+                cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
+                    "-o", hg_input , "-q", str(min_quality1)]
+                flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
+                assert flag == 0, "Failed to execute command, please check log."
+            else:
+                logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
     
 
     if not Path(prepare_input).exists() and (hic1 is None ):

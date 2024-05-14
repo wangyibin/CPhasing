@@ -16,7 +16,8 @@ from itertools import (
     permutations, 
     combinations, 
     product, 
-    groupby
+    groupby,
+    cycle
     )
 from joblib import Parallel, delayed
 from scipy.sparse import hstack, csr_matrix
@@ -162,7 +163,7 @@ class HyperPartition:
         self.contigs = self.contigsizes.index.values.tolist()
         self.K = []
 
-
+        logger.debug(f"min_quality1: {self.min_quality1}")
         self.HG = HyperGraph(self.edges, min_quality=self.min_quality1)
         
 
@@ -461,8 +462,8 @@ class HyperPartition:
 
         # self.K = list(filter(lambda x: len(x) > 1, self.K))
         self.K = list(map(list, self.K))
-        # self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         self.K = self.filter_cluster()
+        # self.K = sorted(self.K, key=lambda x: len(x), reverse=True)
         
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
@@ -496,7 +497,8 @@ class HyperPartition:
                                             self.prune_pair_df, self.allelic_similarity,
                                             self.min_allelic_overlap)
 
-        
+        # self.remove_misassembly()
+
         if sort_group:
             vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
             self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
@@ -505,7 +507,7 @@ class HyperPartition:
             self.K = sorted(self.K, 
                             key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                             reverse=True)
-            
+    
         group_info = [i for i in range(1, len(self.K) + 1)]
         length_contents = list(map(
             lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
@@ -524,6 +526,7 @@ class HyperPartition:
         single function for incremental_partition.
         """
         K = np.array(list(K))
+        # sub_raw_A = raw_A[K, :][:, K]
         sub_H, _ = extract_incidence_matrix2(H, K)
         del H 
         gc.collect() 
@@ -628,14 +631,19 @@ class HyperPartition:
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
 
-        A = HyperGraph.clique_expansion_init(sub_H)
+        
+
+        if prune_pair_df is not None:
+            new_K = HyperPartition._remove_misassembly(new_K, sub_H, sub_prune_pair_df, 
+                                                        allelic_similarity=allelic_similarity)
+            
         # vertices_length = sub_vertices_new_idx_sizes['length']
         # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
-        return cluster_assignments, new_K
+        return A, cluster_assignments, new_K
     
 
     def kprune(self, alleletable, first_cluster_file=None, contacts=None, is_run=True):
@@ -746,6 +754,7 @@ class HyperPartition:
 
         logger.info("Starting second hyperpartition ...")
 
+        # raw_A = HyperGraph.clique_expansion_init(self.H)
         if self.HG.edges.mapq.size and (self.min_quality2 > self.min_quality1):
             idx_to_vertices = self.idx_to_vertices
 
@@ -819,29 +828,20 @@ class HyperPartition:
                                 (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) 
                                     for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y in args)
         
-        self.cluster_assignments, results = zip(*results)
+        self.sub_A_list, self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []
         for i, j in enumerate(results):
             for _ in j:
                 self.inc_chr_idx.append(i)
         
-        logger.debug(f"{self.inc_chr_idx}")
-
-        # idx = 0
-        # for i, j in groupby(self.inc_chr_idx):
-        #     j = list(j)
-        #     tmp_groups = [self.K[i2] for i2 in range(idx, idx + len(j))]
-        #     logger.debug(tmp_groups)
-        #     idx += len(j)
-            
-            
-            
-         
+ 
         second_group_info = [f"{i}g{j}" for i, res in enumerate(results, 1) 
                                             for j, _ in enumerate(res, 1) ]
 
         if self.exclude_group_to_second:
             exclude_group_init_idx = len(results) + 1
+
+        self.K = results 
 
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
@@ -1008,8 +1008,159 @@ class HyperPartition:
             hap_group[hap].append(group)
     
     def remove_misassembly(self):
+        idx_to_vertices = self.idx_to_vertices
+        tmp_df = self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
+                                    (self.prune_pair_df['similarity'] >= self.allelic_similarity)][['contig1', 'contig2']]
+        P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx, allelic_factor=0)
+
+        allelic_idx_set = set(map(tuple, tmp_df.values))
+        cadinate_missassembly_groups = []
+        removed_missassembly_groups = []
+        raw_group_idx_db = {}
+        for i, group in enumerate(self.K):
+            group.sort()
             
-        pass 
+            raw_group_idx_db.update(dict(zip(group, cycle([i]))))
+            res = set(combinations(group, 2)).intersection(allelic_idx_set)
+
+            cadinate_missassembly_groups.append(list(map(np.array, res)))
+            removed_missassembly_groups.append(list(set(group) - set(list_flatten(list(res)))))
+       
+
+        logger.debug(f"Find {sum(map(len, cadinate_missassembly_groups))} pairs cadinate homolog misassemblies..")
+        logger.debug(len(removed_missassembly_groups))
+        corrected_idx = {}
+        for j, mis_groups in enumerate(cadinate_missassembly_groups):
+            for mis in mis_groups:
+                if len(mis) == 0:
+                    continue
+                values = np.zeros(shape=(2, len(self.K)))
+                
+                for k in range(values.shape[1]):
+                    values[0, k] = A[mis[0], :][:, removed_missassembly_groups[k]].sum(axis=1)
+                    values[1, k] = A[mis[1], :][:, removed_missassembly_groups[k]].sum(axis=1)
+    
+                
+                values_argmax = values.argmax(axis=1)
+                res = values_argmax == j
+                logger.debug(np.array(list(map(idx_to_vertices.get, mis))))
+                logger.debug(values)
+
+                if res.all():
+                    continue
+                
+                if not res.any():
+                    corrected_idx[mis[0]] = values_argmax[~res][0]
+                    corrected_idx[mis[1]] = values_argmax[~res][0]
+                    # removed_missassembly_groups[corrected_idx[mis[0]]].add(mis[0])
+                    # removed_missassembly_groups[corrected_idx[mis[1]]].add(mis[1])
+                    continue
+               
+                corrected_idx[mis[~res][0]] = values_argmax[~res][0]
+                # removed_missassembly_groups[corrected_idx[mis[~res][0]]].add(mis[~res][0])
+                
+                
+        logger.debug(f"Corrected {len(corrected_idx)} misassemblies.")
+        for idx in corrected_idx:
+            # logger.debug(" ".join(map(str, [idx, corrected_idx[idx], raw_group_idx_db[idx]])))
+            self.K[raw_group_idx_db[idx]].remove(idx)
+            self.K[corrected_idx[idx]].append(idx)
+
+    @staticmethod
+    def _remove_misassembly(K, sub_H, prune_pair_df=None, allelic_similarity=0.85):
+        
+        if prune_pair_df is None:
+            return K
+        tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) & 
+                                (prune_pair_df['similarity'] >= allelic_similarity)][['contig1', 'contig2']]
+        P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        allelic_idx_set = set(map(tuple, tmp_df.values))
+        # A = sub_raw_A.tolil()
+        # A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+        # A = A.tocsr()
+        A = HyperGraph.clique_expansion_init(sub_H, P_allelic_idx, allelic_factor=0)
+        cadinate_missassembly_groups = []
+        removed_missassembly_groups = []
+        raw_group_idx_db = {}
+        for i, group in enumerate(K):
+            group.sort()
+            
+            raw_group_idx_db.update(dict(zip(group, cycle([i]))))
+            res = set(combinations(group, 2)).intersection(allelic_idx_set)
+
+            cadinate_missassembly_groups.append(list(map(np.array, res)))
+            removed_missassembly_groups.append(set(group) - set(list_flatten(list(res))))
+    
+        logger.debug(f"Find {sum(map(len, cadinate_missassembly_groups))} pairs cadinate homolog misassemblies..")
+        corrected_idx = {}
+        for j, mis_groups in enumerate(cadinate_missassembly_groups):
+            for mis in mis_groups:
+                if len(mis) == 0:
+                    continue
+                values = np.zeros(shape=(2, len(K)))
+                A_mis = A[mis, :]
+                for k in range(values.shape[1]):
+                    values[:, k] = A_mis[:, list(removed_missassembly_groups[k])].sum()
+
+                values_argmax = values.argmax(axis=1)
+                res = values_argmax == j
+                # logger.debug(np.array(list(map(idx_to_vertices.get, mis)))[~res])
+                if res.all():
+                    continue
+                
+                if not res.any():
+                    corrected_idx[mis[0]] = values_argmax[~res][0]
+                    corrected_idx[mis[1]] = values_argmax[~res][0]
+                    continue
+               
+                corrected_idx[mis[~res][0]] = values_argmax[~res][0]
+                
+                
+        logger.debug(f"Corrected {len(corrected_idx)} misassemblies.")
+        for idx in corrected_idx:
+            # logger.debug(" ".join(map(str, [idx, corrected_idx[idx], raw_group_idx_db[idx]])))
+            K[raw_group_idx_db[idx]].remove(idx)
+            K[corrected_idx[idx]].append(idx)
+        
+        return K
+
+    # def remove_misassembly_hap(self):
+    #     if not self.prune_pair_df:
+    #         return
+        
+    #     idx_to_vertices = self.idx_to_vertices
+    #     A = HyperGraph.clique_expansion_init(self.H)
+    #     logger.debug(A.shape)
+    #     allelic_idx_set = set(map(tuple, 
+    #                     self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
+    #                                         (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
+    #                     [['contig1', 'contig2']].values)
+    #                     )
+    #     for i, hap_groups in enumerate(self.K):
+    #         if len(hap_groups) < 1:
+    #             continue 
+            
+    #         candicate_misassembly_groups = []
+    #         removed_misassembly_hap_groups = []
+    #         for group in hap_groups:
+    #             group.sort()
+                
+    #             res = set(combinations(group, 2)).intersection(allelic_idx_set)
+    #             candicate_misassembly_groups.append(res)
+    #             removed_misassembly_hap_groups.append(set(group) - res)
+            
+    #         for j, candicate_misassemblies in enumerate(candicate_misassembly_groups):
+    #             if not candicate_misassemblies:
+    #                 continue
+                
+    #             for mis in candicate_misassemblies:
+    #                 logger.debug(list(map(idx_to_vertices.get, mis)))
+                
+
+
+        
+
 
     def post_check(self):
         """

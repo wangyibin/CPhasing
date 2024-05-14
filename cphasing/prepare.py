@@ -11,6 +11,7 @@ import os.path as op
 import sys
 
 import pandas as pd
+import polars as pl
 
 from collections import OrderedDict
 from pathlib import Path
@@ -61,6 +62,14 @@ def count_re_in_genome(fasta, enzyme, output=None):
         logger.info(f"Successful output Count RE file in `{output}`.")
     return res_df
 
+def split_contacts_to_contacts(split_contacts, output):
+    df = pl.read_csv(split_contacts, separator='\t', has_header=False,
+                     new_columns=['contig1', 'contig2', 'count'],
+                     dtypes={
+                             'count': pl.UInt32})
+    df = df.with_columns(pl.col('contig1').str.strip_suffix("_0").str.strip_suffix("_1"),
+                         pl.col('contig2').str.strip_suffix("_0").str.strip_suffix("_1"))
+    df.group_by(['contig1', 'contig2']).sum().write_csv(output, separator='\t', has_header=False)
 
 def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3, 
             threads=4, outprefix=None, skip_pairs2clm=False,
@@ -89,12 +98,16 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_contacts=3,
         flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
         assert flag == 0, "Failed to execute command, please check log."
 
-    if not skip_pairs2contacts:
-        cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts),
-                "-o", f"{outprefix}.contacts" ]
-        flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-        assert flag == 0, "Failed to execute command, please check log."
     # ## pairs2split_contacts
     # cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts), 
     #         "-n", "2", "-o", f"{outprefix}.split.contacts"]
     # run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+
+    if not skip_pairs2contacts:
+        # cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts),
+        #         "-o", f"{outprefix}.contacts" ]
+        # flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+        # assert flag == 0, "Failed to execute command, please check log."
+        split_contacts_to_contacts(f"{outprefix}.split.contacts", f"{outprefix}.contacts"  )
+        logger.info(f"Output contacts `{outprefix}.contacts`")
+    

@@ -111,6 +111,7 @@ def parse_groups(groups, fa_len_dict):
                     excluded_inter_homo_err += length
                 else:
                     excluded_inter_nonhomo_err += length
+                    print(source_chr, dominant_chr)
 
 
     return n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict, excluded_anchored_len, excluded_inter_homo_err, excluded_inter_nonhomo_err

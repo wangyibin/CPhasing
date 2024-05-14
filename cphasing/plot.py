@@ -208,9 +208,9 @@ def findIntersectRegion(a, b, fraction=0.51):
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     logger.debug("Get the coordinates of contig on chrom.")
-    _file1 = tempfile.NamedTemporaryFile(delete=False)
-    _file2 = tempfile.NamedTemporaryFile(delete=False)
-    _file3 = tempfile.NamedTemporaryFile(delete=False)
+    _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
 
     chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
 
@@ -280,10 +280,8 @@ class sumSmallContig(object):
         self.contig2chrom = self.contig2chrom.reset_index()
 
        
-        contig2chrom_index = self.contig2chrom.groupby('chromidx')['contigidx'].aggregate(list)
 
-        contig2chrom_index = contig2chrom_index.apply(lambda x: x[0])
-
+        contig2chrom_index = self.contig2chrom.groupby('chromidx')['contigidx'].first()
         self.contig2chrom_index = contig2chrom_index.values
         # self.contig_edges = list(zip(contig2chrom_index[:-1], 
         #                             contig2chrom_index[1:]))
@@ -295,14 +293,11 @@ class sumSmallContig(object):
         self.value_coumns = list(columns)
         self.agg = {'count': 'sum'}
         
-        edges = []
-        for i in range(0, len(self.contig2chrom_index), batchsize):
-            tmp_list = self.contig2chrom_index[i: i+batchsize]
-            edges.append(tmp_list[-1])
-        edges = np.r_[0, edges]
+        edges = self.contig2chrom_index[np.arange(0, len(self.contig2chrom_index), batchsize)]
+        edges = np.append(edges, self.contig2chrom_index[-1])
         self.edges = list(zip(edges[:-1], edges[1:]))
-       
         
+
     def _aggregate(self, span):
 
         cool = cooler.Cooler(self.cool_path)
@@ -337,8 +332,8 @@ class sumSmallContig(object):
         
         batchsize = self.batchsize
         spans = self.edges
-    
-        for i in range(0, len(spans), batchsize):
+        spans_length = len(spans)
+        for i in range(0, spans_length, batchsize):
             try:
                 if batchsize > 1:
                     lock.acquire()
@@ -361,11 +356,11 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
     edges = np.r_[0, np.cumsum(new_bins.groupby(
         'chrom').count().reset_index()['start'].tolist())]
     edges = list(zip(edges[:-1], edges[1:]))
- 
+    
     if dtypes is None:
         dtypes = {}
     input_dtypes = cool.pixels().dtypes
-  
+ 
     for col in columns:
         if col in input_dtypes:
             dtypes.setdefault(col, input_dtypes[col])
@@ -381,7 +376,7 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
             columns,
             map=pool.map if threads > 1 else map, 
         )
-        
+
         #kwargs.setdefault("append", True)
     
         create(output, new_bins, iterator, dtypes=dtypes, **kwargs)
@@ -429,7 +424,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     split_contig_on_chrom_df = getContigOnChromBins(
         chrom_bin_interval_df, new_agp.drop(['number', 'type'], axis=1))
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
-    
+
 
     
     contig_bins_index = contig_bins[:][['chrom', 'start' ,'end']].parallel_apply(
@@ -507,7 +502,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, reorder the contig-level matrix, '
                 f' and output into `{outprefix}.ordered.cool`')
     
-    logger.info('Starting to collaspe chromosome bin ...')
+    logger.info('Starting to collaspe contig bin to chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
@@ -555,6 +550,13 @@ def coarsen_matrix(cool, k, out, threads):
         
         out = cool.replace(str(input_resolution), to_humanized(out_resolution))
         out = out.replace(to_humanized(input_resolution), to_humanized(out_resolution))
+
+        if to_humanized(out_resolution) not in out:
+            if "chrom.cool" in out:
+                out = out.replace("chrom.cool", f"{to_humanized(out_resolution)}.chrom.cool")
+            else:
+                out = out.replace("cool", f"{to_humanized(out_resolution)}.chrom.cool")
+            
 
     try:
         coarsen.main(args=[cool, 

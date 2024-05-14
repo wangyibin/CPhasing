@@ -14,6 +14,7 @@ import gc
 
 import pickle
 import pandas as pd
+import polars as pl
 import numpy as np
 import argparse
 from collections import defaultdict
@@ -803,7 +804,12 @@ def run(args, log_file=None):
     fa_dict = CountRE(args.total_count_re, minRE=1).length_db 
 
     # load HT_link_dict from contacts file
-    HT_link_df = pd.read_csv(args.HT_links, sep='\t', header=None, index_col=None)
+    # HT_link_df = pd.read_csv(args.HT_links, sep='\t', header=None, index_col=None)
+    HT_link_df = pl.read_csv(args.HT_links, separator='\t', has_header=False,
+                            dtypes={"column_1": pl.Categorical, 
+                                    "column_2": pl.Categorical,
+                                    "column_3": pl.UInt32}).to_pandas()
+    HT_link_df.columns = [0, 1, 2]
     # cis_contact = HT_link_df.loc[HT_link_df[0] == HT_link_df[1]]
 
     # cis_contact = cis_contact[[0, 2]].set_index([0])
@@ -830,7 +836,7 @@ def run(args, log_file=None):
     HT_link_df = pd.concat([HT_link_df, HT_link_df_2], axis=0)
     HT_link_df.drop_duplicates(subset=[0, 1], inplace=True)
 
-    HT_link_df = HT_link_df.set_index([0, 1])
+    HT_link_df.set_index([0, 1], inplace=True)
     
 
 

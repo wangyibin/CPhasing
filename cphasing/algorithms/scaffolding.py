@@ -23,6 +23,7 @@ import gc
 import numpy as np
 import networkx as nx 
 import networkx.algorithms.approximation as nx_app 
+import multiprocessing
 import igraph as ig 
 import pandas as pd
 import polars as pl
@@ -183,7 +184,7 @@ class AllhicOptimize:
         # df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
         
         df = pl.scan_csv(self.clm_file, separator='\t', 
-                         has_header=False, low_memory=True,
+                         has_header=False, #low_memory=True,
                          dtypes={"column_2": pl.datatypes.UInt32})       
 
         return df
@@ -226,6 +227,14 @@ class AllhicOptimize:
 
         return tmp_res
     
+
+    @staticmethod
+    def _process_group(args):
+        group, contigs, clm, count_re, allhic_path, workdir = args
+        tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
+        tmp_count_re = HapHiCSort.extract_count_re(group, contigs, count_re)
+        return (allhic_path, tmp_count_re, tmp_clm, workdir)
+
     def run(self):
         from ..cli import build
     
@@ -238,7 +247,7 @@ class AllhicOptimize:
 
 
         groups = list(self.clustertable.data.keys())
-        # args = []
+        args = []
         # for group in groups:
         #     contigs = self.clustertable.data[group]
         #     args.append((group, contigs, clm))
@@ -246,12 +255,19 @@ class AllhicOptimize:
         # clms = Parallel(n_jobs=min(len(args), self.threads))(delayed(
         #     AllhicOptimize.extract_clm)(i, j, k) for i, j, k in args
         # )
-
-        for i, group in enumerate(groups):
+        args = []
+        for group in groups:
             contigs = self.clustertable.data[group]
-            tmp_clm = AllhicOptimize.extract_clm(group, contigs, clm)
-            tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
-            args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
+            args.append((group, contigs, clm, self.count_re, self.allhic_path, workdir))
+        
+        with multiprocessing.get_context('spawn').Pool(processes=min(10, self.threads)) as pool:
+            args = pool.map(AllhicOptimize._process_group, args)
+
+        # for i, group in enumerate(groups):
+        #     contigs = self.clustertable.data[group]
+        #     tmp_clm = AllhicOptimize.extract_clm(group, contigs, clm)
+        #     tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, self.count_re)
+        #     args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
  
         del clm
         gc.collect()
@@ -326,7 +342,7 @@ class HapHiCSort:
     def clm(self):
         # df = pd.read_csv(self.clm_file, sep='\t', header=None, index_col=0)
         df = pl.scan_csv(self.clm_file, separator='\t', 
-                         has_header=False, low_memory=True,
+                         has_header=False, #low_memory=True,
                          dtypes={"column_2": pl.datatypes.UInt32})   
                
         return df
@@ -389,7 +405,13 @@ class HapHiCSort:
     @staticmethod
     def _run(total_count_re, split_contacts, workdir, skip_allhic=True, threads=4, log_dir="logs"):
         HapHiCSort.run_haphic_optimize(total_count_re, split_contacts, workdir, skip_allhic, threads, log_dir)
-        
+    
+    @staticmethod
+    def _process_group(args):
+        group, contigs, clm, count_re, allhic_path, workdir = args
+        tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
+        tmp_count_re = HapHiCSort.extract_count_re(group, contigs, count_re)
+        return (allhic_path, tmp_count_re, tmp_clm, workdir)
     
     def run(self):
         from ..cli import build
@@ -399,12 +421,20 @@ class HapHiCSort:
         workdir = os.getcwd()
 
         clm = self.clm
+
+      
         args = []
         for group in self.clustertable.data.keys():
             contigs = self.clustertable.data[group]
-            tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
-            tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
-            args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
+            args.append((group, contigs, clm, self.count_re, self.allhic_path, workdir))
+        
+        with multiprocessing.get_context('spawn').Pool(processes=min(10, self.threads)) as pool:
+            pool.map(HapHiCSort._process_group, args)
+        # for group in self.clustertable.data.keys():
+        #     contigs = self.clustertable.data[group]
+        #     tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
+        #     tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
+        #     args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
         
         del clm
         gc.collect()

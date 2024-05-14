@@ -233,6 +233,20 @@ class HyperGraph:
                 
             A = A.tocsr()
 
+        # if P_allelic_idx or P_weak_idx:
+        #     A = A.tocoo()
+        #     if P_allelic_idx:
+        #         if allelic_factor == 0: 
+        #             A.data[np.in1d(A.row, P_allelic_idx[0]) & np.in1d(A.col, P_allelic_idx[1])] = 0
+        #         else:
+        #             A.data[np.in1d(A.row, P_allelic_idx[0]) & np.in1d(A.col, P_allelic_idx[1])] *= allelic_factor
+                    
+        #     if P_weak_idx:
+        #         A.data[np.in1d(A.row, P_weak_idx[0]) & np.in1d(A.col, P_weak_idx[1])] = 0 
+
+        #     A = A.tocsr()
+
+
         return A
 
     @staticmethod
@@ -594,38 +608,3 @@ def IRMM(H, NW=None,
         iter_round += 1
     
     return A, cluster_assignments, cluster_results
-
-## old version through hypernetx
-def generate_hypergraph(edges):
-    """
-    generate hypergraph incidence matrix
-
-    Params:
-    --------
-    edges: dict
-        edges for the hypergraph constructions
-
-    Returns:
-    --------
-    H: csc_matrix
-        incidence matrix for hypergraph
-    vertices: list
-        list of contig names
-
-    Examples:
-    --------
-    >>> H, vertices = generate_hypergraph(edges)
-    """
-    pass
-    # import hypernetx as hnx
-    # HG = hnx.Hypergraph(edges, use_nwhy=True)
-
-    # del edges
-    # gc.collect()
-
-    # H = HG.incidence_matrix().astype(np.int8)
-    # vertices = list(HG.nodes)
-
-    
-    # return H, vertices
-

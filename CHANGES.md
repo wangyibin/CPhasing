@@ -1,4 +1,11 @@
 # Release notes #
+## [v0.1.8]
+Date: 2024-05-15
+## Enhancement
+- `hypergraph`, `Extractor`, add mapq to hypergraph
+- `remove_misassembly`, add remove_misassembly of error between homologous chromosome
+## Bug fixes
+- `plot`, fixed bug of resolution not in filename
 
 ## [v0.1.7]
 Date: 2024-05-11

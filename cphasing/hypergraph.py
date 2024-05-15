@@ -103,9 +103,19 @@ class Extractor:
                                 comment_prefix="#", columns=[1, 3, 7],
                                 new_columns=['chrom1', 'chrom2', 'mapq'],
                                 dtypes=dtype)
-                p = p.filter(pl.col('mapq') >= self.min_mapq).drop('mapq')
+                p = p.filter(pl.col('mapq') >= self.min_mapq)
                 p = p.to_pandas()
-            
+
+                res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                
+                res = res.reset_index(drop=True).reset_index()
+        
+                res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
+                                            columns={'chrom1': 'row', 'index': 'col'}),
+                                res[['chrom2', 'index', 'mapq']].rename(
+                                            columns={'chrom2': 'row', 'index': 'col'})], 
+                                axis=0)
+                
             else:
                 # p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
                 #                     header=None, index_col=None, 
@@ -119,29 +129,23 @@ class Extractor:
                
                 p = p.to_pandas()
 
-            
-            res = Extractor._process_df(p, self.contig_idx, self.threads)   
-            
-            res = res.reset_index(drop=True).reset_index()
-       
-            res = pd.concat([res[['chrom1', 'index']].rename(
-                                        columns={'chrom1': 'row', 'index': 'col'}),
-                              res[['chrom2', 'index']].rename(
-                                        columns={'chrom2': 'row', 'index': 'col'})], 
-                              axis=0)
+                res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                res = res.reset_index(drop=True).reset_index()
+                res = pd.concat([res[['chrom1', 'index']].rename(
+                                            columns={'chrom1': 'row', 'index': 'col'}),
+                                res[['chrom2', 'index']].rename(
+                                            columns={'chrom2': 'row', 'index': 'col'})], 
+                                axis=0)
 
         else: 
             p_list = self.pairs_pathes
-            # if p_list[0][-3:] == ".gz":
-            #     compression = 'gzip'
-            # else:
-            #     compression='infer'
             
             threads_2 = self.threads // len(p_list) + 1
             threads_1 = int(self.threads / threads_2)
             if threads_1 == 0:
                 threads_1 = 1
 
+            dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
@@ -151,7 +155,7 @@ class Extractor:
                                                 # compression=compression,
                                                 dtype=dtype,
                                                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
-                                                ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1))
+                                                ).query(f'mapq >= {self.min_mapq}'))
                                                 (i) for i in p_list)
 
             else:
@@ -168,19 +172,37 @@ class Extractor:
             res = Parallel(n_jobs=threads_1)(delayed(
                                 Extractor._process_df)(i, j, k) for i, j, k in args)
             
-            res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
-            res = pd.concat([res[['chrom1', 'index']].rename(
-                                        columns={'chrom1': 'row', 'index': 'col'}),
-                              res[['chrom2', 'index']].rename(
-                                        columns={'chrom2': 'row', 'index': 'col'})], 
-                              axis=0)
+            if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+                res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
+                res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
+                                            columns={'chrom1': 'row', 'index': 'col'}),
+                                res[['chrom2', 'index', 'mapq']].rename(
+                                            columns={'chrom2': 'row', 'index': 'col'})], 
+                                axis=0)
+            else:
+                res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
+                res = pd.concat([res[['chrom1', 'index']].rename(
+                                            columns={'chrom1': 'row', 'index': 'col'}),
+                                res[['chrom2', 'index']].rename(
+                                            columns={'chrom2': 'row', 'index': 'col'})], 
+                                axis=0)
+                
+            
         number_of_contigs = len(self.contig_idx)
         length = res['col'].max()
         logger.info(f"Result of {length} raw "
                     f"hyperedges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
         
-        return HyperEdges(idx=self.contig_idx, 
+        if 'mapq' in res.columns:
+            return HyperEdges(idx=self.contig_idx, 
+                            row=res['row'].values.tolist(), 
+                            col=res['col'].values.tolist(),
+                            contigsizes=self.contigsizes,
+                            mapq=res['mapq'].values.tolist())
+
+        else:
+            return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
                             contigsizes=self.contigsizes,
@@ -627,16 +649,21 @@ class HyperExtractor:
         idx = 0
         mapping_quality_res = []
         
-        for i, df in enumerate(res):
-            mapping_quality_res.append(df['mapping_quality'])
-            if idx:
-                df['read_idx'] = df['read_idx'] + idx 
-                res[i] = df
+        if len(res) > 1:
+            for i, df in enumerate(res):
+                mapping_quality_res.append(df['mapping_quality'])
+                if idx:
+                    df['read_idx'] = df['read_idx'] + idx 
+                    res[i] = df
 
-            idx += len(df)
-        
-        res_df = pd.concat(res)
-        mapping_quality_res = pd.concat(mapping_quality_res)
+                idx += len(df)
+            
+            res_df = pd.concat(res)
+            mapping_quality_res = pd.concat(mapping_quality_res)
+        else:
+            res_df = res[0]
+            mapping_quality_res = res_df['mapping_quality']
+            
 
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),

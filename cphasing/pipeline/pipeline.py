@@ -11,13 +11,17 @@ import os
 import os.path as op
 import re
 import sys
+import time 
 
+from datetime import date
 from pathlib import Path
+from .. import __version__
 from ..utilities import (
     run_cmd, 
     calculate_Nx_from_contigsizes,
     read_chrom_sizes
     )
+
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +86,12 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
+
+    start_time = time.time()
+    logger.info(f"C-Phasing version: {__version__}")
+    today = date.today().strftime("%Y-%m-%d")
+    logger.info(f"Pipeline begins in {today}.")
+
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -256,6 +266,8 @@ def run(fasta,
                                     hcr_bs,
                                     "-b",
                                     hcr_bed,
+                                    "-q",
+                                    min_quality1,
                                     hcr_invert_string
                             ],
                             prog_name="hcr"
@@ -275,7 +287,8 @@ def run(fasta,
                                     "-bs",
                                     hcr_bs,
                                     "-b",
-                                    hcr_bed
+                                    hcr_bed,
+                                   
                             ],
                             prog_name="hcr"
                         )
@@ -297,21 +310,43 @@ def run(fasta,
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:
-                    hcr.main(
-                        args=["-prs",
-                                pairs,
-                                "-cs",
-                                contigsizes,
-                                "-b",
-                                hcr_bed,
-                                "-u",
-                                hcr_upper,
-                                "-l",
-                                hcr_lower
+                    if hcr_invert_string:
+                        hcr.main(
+                            args=["-prs",
+                                    pairs,
+                                    "-cs",
+                                    contigsizes,
+                                    "-b",
+                                    hcr_bed,
+                                    "-u",
+                                    hcr_upper,
+                                    "-l",
+                                    hcr_lower,
+                                    "-q",
+                                    min_quality1,
+                                    hcr_invert_string
 
-                        ],
-                        prog_name="hcr"
-                    )
+                            ],
+                            prog_name="hcr"
+                        )
+                    else:
+                        hcr.main(
+                            args=["-prs",
+                                    pairs,
+                                    "-cs",
+                                    contigsizes,
+                                    "-b",
+                                    hcr_bed,
+                                    "-u",
+                                    hcr_upper,
+                                    "-l",
+                                    hcr_lower,
+                                    "-q",
+                                    min_quality1,
+
+                            ],
+                            prog_name="hcr"
+                        )
                 except SystemExit as e:
                     exc_info = sys.exc_info()
                     exit_code = e.code
@@ -403,12 +438,15 @@ def run(fasta,
             if exit_code != 0:
                 raise e
         
-        if not porec_table:
+    if not porec_table:
+        if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-                   "-q", str(min_quality2), "-c", str(min_contacts),
+                    "-q", str(min_quality2), "-c", str(min_contacts),
                 "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
             assert flag == 0, "Failed to execute command, please check log."
+        else:
+            logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
     
    
 
@@ -618,3 +656,6 @@ def run(fasta,
             if exit_code != 0:
                 raise e
 
+    today = date.today().strftime("%Y-%m-%d")
+    end_time = time.time() - start_time
+    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f}s")

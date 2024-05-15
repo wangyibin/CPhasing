@@ -267,7 +267,7 @@ def cli(verbose, quiet):
         logger.setLevel(logging.INFO)
 
 
-        
+
 
 @cli.command(cls=RichCommand)
 @click.option(
@@ -1756,7 +1756,8 @@ def hcr(porectable, pairs, contigsize, binsize,
             cmd.append("-v")
         flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
         assert flag == 0, "Failed to execute command, please check log."
-        logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
+        logger.info(f'Successful out high confidence contacts into '
+                    '`{f"{prefix}_hcr.pairs.gz"}`')
 
 
 @cli.command(cls=RichCommand, short_help='Prepare data for subsequence analysis.')

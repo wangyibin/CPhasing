@@ -77,7 +77,7 @@ class CountRE:
         else:
             self.data = pd.read_csv(self.filename, sep='\t', 
                                         header=None, index_col=0,
-                                        names=['#Contigs', 'Length', 'RECounts'],
+                                        names=['#Contigs','RECounts', 'Length'],
                                         dtype={'RECounts': int, 
                                                 'Length': int})
             

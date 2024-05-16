@@ -101,17 +101,10 @@ def parse_group(group_file, clm_dir, quick_view):
         raise IOError('Clm file check failed: CANNOT find corresponding clm file '
                 'in {} for group file {}'.format(clm_dir, group_file))
 
-    ctg_group_dict = dict()
-    group_ctg_dict = defaultdict(set)
-
     ctgs = list()
 
-    with open(group_file) as f:
-        for line in f:
-            if line.startswith('#') or not line.strip():
-                continue
-            cols = line.split()
-            ctgs.append((cols[0], int(cols[2])))
+    cr = CountRE(group_file, has_header=False)
+    ctgs = list(cr.length_db.items())
 
     # sort by ctg length
     ctgs.sort(key=lambda x: x[1], reverse=True)
@@ -170,13 +163,15 @@ def get_density_graph(sub_HT_matrix, shape, index_HT_dict, fa_dict, flank_HT_dic
     # construct a length matrix for the calculation of link density
     HT_len_sum_dict = dict()
     indexes = index_HT_dict.keys()
-
+    HT_len_dict = {HT: get_HT_len(HT) for HT in index_HT_dict.values()}
     for i_1, i_2 in combinations(indexes, 2):
 
         HT_1 = index_HT_dict[i_1]
         HT_2 = index_HT_dict[i_2]
-        HT_1_len = get_HT_len(HT_1)
-        HT_2_len = get_HT_len(HT_2)
+        # HT_1_len = get_HT_len(HT_1)
+        # HT_2_len = get_HT_len(HT_2)
+        HT_1_len = HT_len_dict[HT_1]
+        HT_2_len = HT_len_dict[HT_2]
 
         if density_cal_method == 'sum':
             len_sum = HT_1_len + HT_2_len
@@ -206,19 +201,22 @@ def get_unfiltered_confidence_graph(shape, index_pairs, sub_HT_dict, density_gra
     # Confidence is the ratio of the link density of non-sister edge pair A-B,
     # and the link density of the second-largest non-sister edge incident on either A or B.
     # Only if density is not zero, confidence needs to be calculated.
+    density_dict = {i: (density_graph[i, :], density_graph[:, i]) for i in range(shape)}
     for i_1, i_2 in sub_HT_dict:
 
         density = density_graph[i_1, i_2]
 
         # calculate confidence
         # all densities of non-sister edge incident on either A or B, but density of A-B is only counted once
-        all_densities = hstack((density_graph[i_1,:i_2], density_graph[i_1,i_2+1:], density_graph[:,i_2]))
-        # get the index of maximum value
-        argmax = all_densities.argmax()
-        # remove the maximum value (based on the index)
-        all_densities = hstack((all_densities[:argmax], all_densities[argmax+1:]))
-        # the maximum value in the rest is the second largest density
-        second_largest_density = all_densities.max()
+        # all_densities = hstack((density_graph[i_1,:i_2], density_graph[i_1,i_2+1:], density_graph[:,i_2]))
+        all_densities = hstack((density_dict[i_1][0][:i_2], density_dict[i_1][0][i_2+1:], density_dict[i_2][1]))
+        # # get the index of maximum value
+        # argmax = all_densities.argmax()
+        # # remove the maximum value (based on the index)
+        # all_densities = hstack((all_densities[:argmax], all_densities[argmax+1:]))
+        # # the maximum value in the rest is the second largest density
+        # second_largest_density = all_densities.max()
+        second_largest_density = np.partition(all_densities.flatten(), -2)[-2]
         # get the confidence
         if density == 0:
             confidence = 0
@@ -277,13 +275,16 @@ def split_new_scaffold(path, fa_dict, index_HT_dict, known_adjacency):
     assert path_len % 2 == 0
 
     sorted_path = list()
+    HT_ends_dict = {HT: get_HT_ends(HT) for HT in index_HT_dict.values()}
 
     for n in range(path_len//2):
         HT_1 = index_HT_dict[path[2*n]]
         HT_2 = index_HT_dict[path[2*n+1]]
 
-        HT_1, HT_1_left,  HT_1_right = get_HT_ends(HT_1)
-        HT_2, HT_2_left, HT_2_right = get_HT_ends(HT_2)
+        # HT_1, HT_1_left,  HT_1_right = get_HT_ends(HT_1)
+        # HT_2, HT_2_left, HT_2_right = get_HT_ends(HT_2)
+        HT_1, HT_1_left,  HT_1_right = HT_ends_dict[HT_1]
+        HT_2, HT_2_left, HT_2_right = HT_ends_dict[HT_2]
 
         # to figure out how they are linked
         # reverse 1
@@ -463,7 +464,6 @@ def remove_shortest_path(index_pairs, sub_HT_dict, density_graph):
     shortest_i_1, shortest_i_2 = index_pairs.pop(-1)
 
     # update sub_HT_dict
-    new_sub_HT_dict = defaultdict(int)
     for i_1, i_2 in sub_HT_dict.copy():
         if i_1 in {shortest_i_1, shortest_i_2} or i_2 in {shortest_i_1, shortest_i_2}:
             sub_HT_dict.pop((i_1, i_2))
@@ -506,10 +506,7 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
     index_HT_dict = {index: HT for HT, index in HT_index_dict.items()}
 
     # get index pairs of sister edges
-    index_pairs = list()
     # initialize output_path_list and set known_adjacency
-    output_path_list = list()
-    known_adjacency = set()
     # for ctg in ctgs:
     #     ctg_H, ctg_T = ctg+'_0', ctg+'_1'
     #     output_path_list.append([ctg_H, ctg_T])
@@ -830,21 +827,18 @@ def run(args, log_file=None):
     # HT_link_df = HT_link_df.parallel_apply(norm, axis=1)
 
 
-    HT_link_df_2 = HT_link_df[[1, 0, 2]]
-    HT_link_df_2.columns = [0, 1, 2]
+    # HT_link_df_2 = HT_link_df[[1, 0, 2]]
+    # HT_link_df_2.columns = [0, 1, 2]
 
-    HT_link_df = pd.concat([HT_link_df, HT_link_df_2], axis=0)
-    HT_link_df.drop_duplicates(subset=[0, 1], inplace=True)
+    # HT_link_df = pd.concat([HT_link_df, HT_link_df_2], axis=0)
+    # HT_link_df.drop_duplicates(subset=[0, 1], inplace=True)
 
-    HT_link_df.set_index([0, 1], inplace=True)
+    HT_link_dict = HT_link_df.set_index([0, 1]).to_dict()[2]
     
-
-
-    HT_link_dict = HT_link_df.to_dict()[2]
-    for pair, value in HT_link_dict.items():
-        if pair[0] > pair[1]:
-            new_pair = (pair[1], pair[0])
-            HT_link_dict[new_pair] = value
+    # for pair, value in HT_link_dict.items():
+    #     if pair[0] > pair[1]:
+    #         new_pair = (pair[1], pair[0])
+    #         HT_link_dict[new_pair] = value
  
     # extract group-specific data
     # a dict used to store group specific data, it can speed up multiprocessing and improve memory usage

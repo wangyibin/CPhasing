@@ -110,7 +110,9 @@ class HyperPartition:
                     min_weight=1.0,
                     min_quality1=1,
                     min_quality2=2,
+                    mapq_filter_1_to_2=False,
                     min_scaffold_length=10000,
+                    is_remove_misassembly=False,
                     threshold=0.01,
                     max_round=1, 
                     threads=4,
@@ -150,7 +152,8 @@ class HyperPartition:
         self.min_quality1 = min_quality1
         self.min_quality2 = min_quality2
         self.min_scaffold_length = int(min_scaffold_length)
-
+        self.is_remove_misassembly = is_remove_misassembly
+        logger.debug(f"is remove misassembly: {self.is_remove_misassembly}")
         self.threshold = threshold
         self.max_round = max_round
         self.threads = threads
@@ -163,8 +166,12 @@ class HyperPartition:
         self.contigs = self.contigsizes.index.values.tolist()
         self.K = []
 
-        logger.debug(f"min_quality1: {self.min_quality1}")
-        self.HG = HyperGraph(self.edges, min_quality=self.min_quality1)
+        if not mapq_filter_1_to_2:
+            logger.debug(f"min_quality1: {self.min_quality1}")
+            self.HG = HyperGraph(self.edges, min_quality=self.min_quality1)
+        else:
+            logger.debug(f"min_quality2: {self.min_quality2}")
+            self.HG = HyperGraph(self.edges, min_quality=self.min_quality2)
         
 
         ## remove edges
@@ -521,6 +528,7 @@ class HyperPartition:
     def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, NW, 
                             resolution, init_resolution=0.8, min_weight=1, allelic_similarity=0.8, 
                             min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
+                            is_remove_misassembly=False,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -633,7 +641,7 @@ class HyperPartition:
 
         
 
-        if prune_pair_df is not None:
+        if prune_pair_df is not None and is_remove_misassembly:
             new_K = HyperPartition._remove_misassembly(new_K, sub_H, sub_prune_pair_df, 
                                                         allelic_similarity=allelic_similarity)
             
@@ -735,7 +743,7 @@ class HyperPartition:
 
             logger.info(f"First hyperpartition resulted {len(self.K)} groups:\n"
                         f"{first_length_contents}")
-
+            mapq_filter = True
         else:
             vertices_idx = self.vertices_idx
             first_cluster_list = list(first_cluster.data.values())
@@ -744,7 +752,7 @@ class HyperPartition:
             for sub_group in first_cluster_list:
                 self.K.append(list(map(lambda x: vertices_idx[x], sub_group)))
             first_cluster_file = first_cluster.filename
-                
+            mapq_filter = False
             logger.debug(f"Load the first cluster results from exists file `{first_cluster_file}`.")
 
         if self.exclude_group_to_second:
@@ -755,7 +763,7 @@ class HyperPartition:
         logger.info("Starting second hyperpartition ...")
 
         # raw_A = HyperGraph.clique_expansion_init(self.H)
-        if self.HG.edges.mapq.size and (self.min_quality2 > self.min_quality1):
+        if self.HG.edges.mapq.size and (self.min_quality2 > self.min_quality1) and mapq_filter :
             idx_to_vertices = self.idx_to_vertices
 
             tmp_K = list(map(lambda y: list(
@@ -812,7 +820,7 @@ class HyperPartition:
                          self.H, vertices_idx_sizes, self.NW, 
                         self.resolution2, self.init_resolution2, self.min_weight, 
                         self.allelic_similarity,  self.min_allelic_overlap, 
-                        self.allelic_factor, self.cross_allelic_factor,
+                        self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             
             
@@ -825,8 +833,8 @@ class HyperPartition:
         
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z in args)
         
         self.sub_A_list, self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []

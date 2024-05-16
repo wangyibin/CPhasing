@@ -103,7 +103,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
-                          "--exclude-group-to-second"
+                          "--exclude-group-to-second", "--disable-misassembly-remove"
                           ]
         },
         {
@@ -159,7 +159,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
-                          "--exclude-group-to-second"
+                          "--exclude-group-to-second", "--disable-misassembly-remove"
                           ]
         },
         {
@@ -686,6 +686,14 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "--disable-misassembly-remove",
+    "disable_misassembly_remove",
+    help="disable misassembly after second round partition.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     "-wl",
     "--whitelist",
     metavar="PATH",
@@ -702,12 +710,12 @@ def cli(verbose, quiet):
     '--scaffolding-method',
     'scaffolding_method',
     metavar='STR',
-    help="The method of scaffolding, `['haphic', 'allhic', 'haphic_fastsort']`."
-    "haphic: haphic_fastsort + allhic, which will quicker than allhic only. "
+    help="The method of scaffolding, `['precision', 'allhic', 'fast']`."
+    "precision: haphic_fastsort + allhic, which will quicker than allhic only. "
     "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
     "achieve better results than the previous version",
-    default="haphic",
-    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
+    default="precision",
+    type=click.Choice(["precision", "allhic", "fast"]),
     show_default=True
 )
 @click.option(
@@ -773,6 +781,7 @@ def pipeline(fasta,
             min_length,
             nx,
             min_scaffold_length,
+            disable_misassembly_remove,
             whitelist,
             scaffolding_method, 
             factor,
@@ -890,6 +899,7 @@ def pipeline(fasta,
         min_length=min_length,
         Nx=nx,
         min_scaffold_length=min_scaffold_length,
+        disable_misassembly_remove=disable_misassembly_remove,
         factor=factor,
         threads=threads)
     
@@ -2716,6 +2726,14 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    "--disable-misassembly-remove",
+    "disable_misassembly_remove",
+    help="disable misassembly after second round partition.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     "--threshold",
     metavar="FLOAT",
     help="Threshold of reweight.",
@@ -2787,6 +2805,7 @@ def hyperpartition(hypergraph,
                     min_quality1,
                     min_quality2,
                     min_scaffold_length,
+                    disable_misassembly_remove,
                     threshold, 
                     max_round, 
                     threads,
@@ -2994,6 +3013,8 @@ def hyperpartition(hypergraph,
     if not prunetable and not alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
+    is_remove_misassembly = False if disable_misassembly_remove else True
+    mapq_filter_1_to_2 = True if first_cluster else False
     hp = HyperPartition(hypergraph, 
                             contigsizes,
                             None,
@@ -3021,7 +3042,9 @@ def hyperpartition(hypergraph,
                             min_weight,
                             min_quality1,
                             min_quality2,
+                            mapq_filter_1_to_2,
                             min_scaffold_length,
+                            is_remove_misassembly,
                             threshold, 
                             max_round, 
                             threads, 
@@ -3077,7 +3100,7 @@ def hyperpartition(hypergraph,
     "--split-contacts",
     "split_contacts",
     metavar="SPLIT_CONTACTS",
-    help="Split contacts from `cphasing-rs pairs2clm`, only used in `haphic` or `haphic_fastsort` mode.",
+    help="Split contacts from `cphasing-rs pairs2clm`, only used in `precision` or `fast` mode.",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -3109,9 +3132,12 @@ def hyperpartition(hypergraph,
     "--scaffolding-method",
     "method",
     metavar="STR",
-    help="Method of scaffolding",
-    default="haphic",
-    type=click.Choice(["haphic", "allhic", "haphic_fastsort"]),
+    help="The method of scaffolding, `['precision', 'allhic', 'fast']`."
+    "precision: haphic_fastsort + allhic, which will quicker than allhic only. "
+    "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
+    "achieve better results than the previous version",
+    default="precision",
+    type=click.Choice(["precision", "allhic", "fast"]),
     show_default=True
 )
 @click.option(
@@ -3167,7 +3193,7 @@ def scaffolding(clustertable, count_re, clm,
 
     from .algorithms.scaffolding import AllhicOptimize, HapHiCSort
     
-    if split_contacts is None and (method == "haphic" or method == "haphic_fastsort"):
+    if split_contacts is None and (method == "precision" or method == "fast"):
         logger.warn("The split contacts not be specified, change the method to `allhic`.")
         method = "allhic"
 
@@ -3178,7 +3204,7 @@ def scaffolding(clustertable, count_re, clm,
         ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table,
                                 fasta=fasta, keep_temp=keep_temp, output=output, threads=threads)
         ao.run()
-    elif method == "haphic":
+    elif method == "precision":
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
         hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
                                 allele_table=allele_table, keep_temp=keep_temp,

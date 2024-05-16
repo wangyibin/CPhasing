@@ -12,6 +12,7 @@ import os.path as op
 import re
 import sys
 import time 
+# import tracemalloc
 
 from datetime import date
 from pathlib import Path
@@ -71,6 +72,7 @@ def run(fasta,
         min_length=10000,
         Nx=100,
         min_scaffold_length=5e6,
+        disable_misassembly_remove=False,
         whitelist=None,
         factor=50,
         threads=4):
@@ -86,7 +88,7 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
-
+    # tracemalloc.start()
     start_time = time.time()
     logger.info(f"C-Phasing version: {__version__}")
     today = date.today().strftime("%Y-%m-%d")
@@ -239,7 +241,7 @@ def run(fasta,
         whitelist = f"N{Nx}.contigs.list"
         with open(whitelist, 'w') as out:
             out.write("\n".join(whitelist_contigs))
-        logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length}(N{Nx})")
+        logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length} (N{Nx})")
 
     if hcr_flag or hcr_bed:
         hcr_invert_string = "-v" if hcr_invert else ""
@@ -442,11 +444,11 @@ def run(fasta,
         if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
                     "-q", str(min_quality2), "-c", str(min_contacts),
-                "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
+                "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
             assert flag == 0, "Failed to execute command, please check log."
         else:
-            logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
+            logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
     
    
 
@@ -459,8 +461,8 @@ def run(fasta,
     
     output_cluster = "output.clusters.txt"
     
-    hyperpartition_normalize = "-norm" if normalize else ""
-
+    hyperpartition_normalize = "-norm" if normalize else None
+    disable_misassembly_remove = "--disable-misassembly-remove" if disable_misassembly_remove else None 
     if hg_flag == "--pairs":
         hyperpartition_contacts = contacts
     else:
@@ -470,9 +472,8 @@ def run(fasta,
         logger.info("""#----------------------------------#
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
-        try:
-            if hyperpartition_normalize:
-                hyperpartition.main(args=[
+        
+        hyperpartition_args = [
                                 hg_input,
                                 contigsizes,
                                 output_cluster,
@@ -495,7 +496,6 @@ def run(fasta,
                                 init_resolution2,
                                 "-fc",
                                 first_cluster,
-                                hyperpartition_normalize,
                                 "--exclude-group-to-second",
                                 exclude_group_to_second,
                                 "-as",
@@ -518,53 +518,13 @@ def run(fasta,
                                 whitelist,
                                 "-t",
                                 threads
-                            ],
-                            prog_name='hyperpartition')
-            else:
-                hyperpartition.main(args=[
-                                hg_input,
-                                contigsizes,
-                                output_cluster,
-                                input_param,
-                                "--mode",
-                                mode,
-                                "-at",
-                                allele_table,
-                                "-c",
-                                hyperpartition_contacts,
-                                "-n",
-                                n,
-                                "-r1",
-                                resolution1,
-                                "-ir1",
-                                init_resolution1,
-                                "-r2",
-                                resolution2,
-                                "-ir2",
-                                init_resolution2,
-                                "-fc",
-                                first_cluster,
-                                "--exclude-group-to-second",
-                                exclude_group_to_second,
-                                "-as",
-                                allelic_similarity,
-                                "-mao",
-                                min_allelic_overlap,
-                                "-q1",
-                                min_quality1,
-                                "-q2",
-                                min_quality2,
-                                "-ml",
-                                min_length,
-                                "-mc",
-                                min_contacts,
-                                "-ms",
-                                min_scaffold_length,
-                                "-wl",
-                                whitelist,
-                                "-t",
-                                threads
-                            ],
+                            ]
+        if disable_misassembly_remove:
+            hyperpartition_args.append(disable_misassembly_remove)
+        if hyperpartition_normalize:
+            hyperpartition_args.append(hyperpartition_normalize)
+        try:
+            hyperpartition.main(args=hyperpartition_args,
                             prog_name='hyperpartition')
         except SystemExit as e:
             exc_info = sys.exc_info()
@@ -658,4 +618,7 @@ def run(fasta,
 
     today = date.today().strftime("%Y-%m-%d")
     end_time = time.time() - start_time
-    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f}s")
+    # peak_memory = tracemalloc.get_traced_memory()[1] / 1024 / 1024 / 1024
+    # peak_memory = 0
+    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f} s. ") #Peak memory: {peak_memory:2f} Gb")
+    # tracemalloc.stop()

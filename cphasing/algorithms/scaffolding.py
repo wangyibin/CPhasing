@@ -436,7 +436,7 @@ class HapHiCSort:
             contigs = self.clustertable.data[group]
             args.append((group, contigs, clm, self.count_re, self.allhic_path, workdir))
         
-        with multiprocessing.get_context('spawn').Pool(processes=min(10, self.threads)) as pool:
+        with multiprocessing.get_context('spawn').Pool(processes=min(4, self.threads)) as pool:
             pool.map(HapHiCSort._process_group, args)
         # for group in self.clustertable.data.keys():
         #     contigs = self.clustertable.data[group]

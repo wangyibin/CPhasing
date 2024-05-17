@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 5. For Retained LMP, caculate the chimeric alignment
 """
 ### return outPre.paf
-def minimap_mapping(fasta, reads, window, min_windows, threads, outPre):
+def minimap_mapping(fasta, reads, window, min_windows, threads, outPre, is_hifi=False):
     """
     check minimap2 version
     """
@@ -38,6 +38,7 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre):
     if minimapVer < float(24):
         print("Warnning: The minimap2 version should be 2.24 or higher.")
         sys.exit()
+    preset = "map-ont" if not is_hifi else "map-hifi"
 
     if ',' in reads:
         readsLst = reads.split(',')
@@ -53,14 +54,14 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre):
 
     if len(readsLst) > 1:
         minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} \
-                            | minimap2 -t {} --qstrand -cx map-ont \
+                            | minimap2 -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
-                                cat_cmd, ' '.join(readsLst), window, min_length, threads, fasta,  outPre)
+                                cat_cmd, ' '.join(readsLst), window, min_length, threads, preset, fasta,  outPre)
     else:
         minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} \
-                            | minimap2 -t {} --qstrand -cx map-ont \
+                            | minimap2 -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
-                                readsLst[0], window, min_length, threads, fasta,  outPre)
+                                readsLst[0], window, min_length, threads, preset, fasta,  outPre)
     
     logger.info("Running Command:")
     logger.info(f"\t\t{minimap2CMD}")
@@ -734,7 +735,7 @@ def outputLIS(lisBak, pafDic, outpre):
                         
 
 
-def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMapq):
+def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMapq, hifi=False):
     """
     1. get LIS for every single reads
     2. output corrected alignment & LIS path
@@ -743,7 +744,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     """
     pafFile = outPre + ".paf"
     if os.path.exists(pafFile) == False:
-        pafFile = minimap_mapping(fasta, reads, win, min_windows, threads, outPre)
+        pafFile = minimap_mapping(fasta, reads, win, min_windows, threads, outPre, hifi)
     else:
         logger.warn(f"Using existed mapping results: `{pafFile}`")
 

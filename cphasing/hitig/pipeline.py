@@ -27,7 +27,8 @@ def run(
     min_as, min_mapq,
     nhap, window, min_windows,
     min_sa, edge, min_depth,
-    cutoff, threads, output, 
+    cutoff, hifi,
+    threads, output, 
     steps, skip_steps
 ):
     from .correct_alignments import workflow 
@@ -42,7 +43,7 @@ def run(
         logger.info("""#-------------------------------------#
 #  Running step 1. correct alignments #
 #-------------------------------------#""")
-        workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq)
+        workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq, hifi)
     
     if "2" not in skip_steps and "2" in steps:
         logger.info("""#----------------------------------#

@@ -146,6 +146,13 @@ def hitig(ctx):
     show_default=True
 )
 @click.option(
+    '--hifi',
+    help="Input hifi data.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -181,7 +188,8 @@ def hitig(ctx):
 def pipeline(fasta, fastq, min_as, min_mapq, 
     nhap, window, min_windows,
     min_sa, edge, min_depth,
-    cutoff, threads, output,
+    cutoff, hifi, 
+    threads, output,
     steps, skip_steps):
     """
     Pipeline of chimeric correct by hitig.
@@ -205,7 +213,8 @@ def pipeline(fasta, fastq, min_as, min_mapq,
         fasta, fastq, min_as, min_mapq, 
     nhap, window, min_windows,
     min_sa, edge, min_depth,
-    cutoff, threads, output,
+    cutoff, hifi,
+    threads, output,
     steps, skip_steps
     )
 
@@ -316,6 +325,13 @@ def split_reads(fastq, window, npart, threads):
     type=int,
 )
 @click.option(
+    '--hifi',
+    help="Input hifi data.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -333,7 +349,7 @@ def split_reads(fastq, window, npart, threads):
 )
 def correct_alignments(
     fasta, fastq, min_as, min_mapq, 
-    nhap, window, min_windows,
+    nhap, window, min_windows, hifi,
     threads, output
 ):
     """
@@ -346,7 +362,7 @@ def correct_alignments(
         the longest increasing subsequence (LIS) method.
     """
     from .correct_alignments import workflow
-    workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq)
+    workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq, hifi)
 
 
 @hitig.command(cls=RichCommand)

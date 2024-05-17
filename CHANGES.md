@@ -1,4 +1,12 @@
 # Release notes #
+## [v0.1.9]
+Date: 2024-05-17
+## Enhancement
+- `higig`, support for hifi data
+## Bug fixes
+- `pipeline`, fixed bug of contacts generating
+
+
 ## [v0.1.8]
 Date: 2024-05-15
 ## Enhancement

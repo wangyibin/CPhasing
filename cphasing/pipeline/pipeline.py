@@ -441,22 +441,34 @@ def run(fasta,
                 raise e
         
     if not porec_table:
-        if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
-            cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-                    "-q", str(min_quality2), "-c", str(min_contacts),
-                "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
-            flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-            assert flag == 0, "Failed to execute command, please check log."
+        if mode == 'phasing' or mode == 'basal_withprune':
+            if not Path(f"{prepare_prefix}.q{min_quality2}.contacts").exists():
+                cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
+                        "-q", str(min_quality2), 
+                    "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
+                flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+                assert flag == 0, "Failed to execute command, please check log."
+            else:
+                logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
+
+            contacts = f"{prepare_prefix}.q{min_quality2}.contacts"
         else:
-            logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
-    
+            if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
+                cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
+                        "-q", str(min_quality1), "-c", 
+                    "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
+                flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+                assert flag == 0, "Failed to execute command, please check log."
+            else:
+                logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
+            contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
    
 
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
 
     clm = f"{prepare_prefix}.clm"
     
-    contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
+    
     split_contacts = f"{prepare_prefix}.split.contacts"
     
     output_cluster = "output.clusters.txt"

@@ -21,10 +21,8 @@ from shutil import which
 
 from . import __version__
 from .core import (
-    AlleleTable, 
     ClusterTable, 
     CountRE, 
-    PairTable
 )
 from .utilities import (
     run_cmd,

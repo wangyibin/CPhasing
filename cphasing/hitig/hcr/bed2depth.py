@@ -8,7 +8,8 @@ import math
 import collections
 from scipy import signal
 import numpy as np
-
+import pandas as pd
+import pyranges as pr
 
 """
 workflow:
@@ -62,37 +63,73 @@ def get_wave_vally(depthDic, outPre):
     # calculate peak
     peak_ind = signal.find_peaks(yvals, distance=10)
     peak_ind = peak_ind[0]
+    trough_ind = signal.find_peaks(-yvals, distance=10)
+    
+    trough_ind = trough_ind[0]
+    trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])]
+
+
     # draw picture
-    width = 8
+    width = 7
     height = 6
     filepath = outPre + "_dist.pdf"
+    filepath_png = outPre + "_dist.png"
     plt.figure(num=None, figsize=(width, height))
+    plt.rcParams['font.family'] = 'Arial'
     #xxx = xxx[:50]
     #yyy = yyy[:50]
-    plt.plot(xxx, yyy, '*',label='original values')
-    plt.plot(xxx, yvals, 'r',label='polyfit values')
-    colors = ['b', 'g', 'c']
+    plt.plot(xxx, yyy, '*', label='Original', color="#209093")
+    plt.plot(xxx, yvals, 'r', label='Polyfit', color='#cb6e7f')
+    plt.legend()
+    colors = ['#b02418', '#253761', 'c']
+    ax = plt.gca()
+    
     for peaki in [0, 1]:
         peak=peak_ind[peaki]
-        plt.text(peak, 0, str(peak), fontsize = 5, color = colors[peaki])
-        plt.axvline(x=peak, linewidth=1, color = colors[peaki])
-    plt.savefig(filepath)
+        plt.text(peak, ax.get_ylim()[1] / 4, str(peak), 
+                 fontsize = 10, color = colors[peaki],
+                )
+        plt.axvline(x=peak, linewidth=1, color = colors[peaki], linestyle='--')
+    
+    plt.text(trough, ax.get_ylim()[0] / 4 * 3 , str(trough),
+             fontsize=10, color='k', )
+    plt.axvline(x=trough, linewidth=1, color='#bcbcbc', linestyle='--')
+
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.ylabel("Counts", fontsize=14)
+    plt.xlabel("Depth", fontsize=14)
+    plt.savefig(filepath, bbox_inches='tight', dpi=600)
+    plt.savefig(filepath_png, bbox_inches='tight', dpi=600)
+
     plt.show()
     #plt.plot(x, hists[xm:xM], label = "l", color="blue")
-    return peak_ind
+    return peak_ind, trough
 
 ## return region
 def filter_depth(depthDic, peak_ind):
     # print(peak_ind)
     filteredRegion = {}
+    low_coverage_region = {}
+    high_coverage_region = {}
     minpeak, maxpeak = min(peak_ind), max(peak_ind)
     for ctg in depthDic:
         for bin in depthDic[ctg]:
-            if depthDic[ctg][bin] >= minpeak and depthDic[ctg][bin] <= maxpeak:
+            depth = depthDic[ctg][bin]
+            if depth >= minpeak and depth <= maxpeak:
                 if ctg not in filteredRegion:
                     filteredRegion[ctg] = []
                 filteredRegion[ctg].append(bin)
-    return filteredRegion
+            elif depth < minpeak:
+                if ctg not in low_coverage_region:
+                    low_coverage_region[ctg] = []
+                low_coverage_region[ctg].append((bin, depth))
+            elif depth > maxpeak:
+                if ctg not in high_coverage_region:
+                    high_coverage_region[ctg] = []
+                high_coverage_region[ctg].append((bin, depth))
+
+    return low_coverage_region, filteredRegion, high_coverage_region
 
 def output(filteredRegion, outPre):
     with open("{}.hcr_depth.bed".format(outPre), 'w') as fout:
@@ -101,10 +138,48 @@ def output(filteredRegion, outPre):
                 fout.write("{}\t{}\t{}\n".format(ctg, *bin))
     return "{}.hcr_depth.bed".format(outPre)
 
-def workflow(depthFile, win, Max, outPre):
+def output_coverage_region(coverage_region, outPre, low_or_high):
+    with open("{}.{}.bed".format(outPre, low_or_high), 'w') as fout:
+        for ctg in coverage_region:
+            for bin, depth in coverage_region[ctg]:
+                fout.write("{}\t{}\t{}\t{}\n".format(ctg, bin[0], bin[1], depth))
+
+    return "{}.{}.bed".format(outPre, low_or_high)
+
+def workflow(depthFile, win, Max, outPre, 
+             contigsizes=None, junk_coverage=0.5, collapsed_coverage=0.1):
     depthDic = read_depth(depthFile, Max)
-    peak_id = get_wave_vally(depthDic, outPre)
-    filterRegion = filter_depth(depthDic, peak_id)
+    peak_ind, trough = get_wave_vally(depthDic, outPre)
+    low_coverage_region, filterRegion, high_coverage_region = filter_depth(depthDic, peak_ind)
+
+    low_coverage_bed = output_coverage_region(low_coverage_region, outPre, low_or_high="low_coverage")
+    high_coverage_bed = output_coverage_region(high_coverage_region, outPre, low_or_high="high_coverage")
+    cmd = ['bedtools', 'merge', '-i', low_coverage_bed, '-c', '4', '-o', 'mean', ">", low_coverage_bed.replace(".bed", ".merge.bed")]
+    os.system(" ".join(cmd))
+    cmd = ['bedtools', 'merge', '-i', high_coverage_bed, '-c', '4', '-o', 'mean', ">", high_coverage_bed.replace(".bed", ".merge.bed")]
+    os.system(" ".join(cmd))
+
+    if contigsizes:
+        low_coverage_df = pd.read_csv(low_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
+        low_coverage_df = low_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
+        low_coverage_df = low_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
+        high_coverage_df = pd.read_csv(high_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
+        high_coverage_df = high_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
+        high_coverage_df = high_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
+
+        low_coverage_df['length'] = low_coverage_df['Chromosome'].map(contigsizes.get)
+        high_coverage_df['length'] = high_coverage_df['Chromosome'].map(contigsizes.get)
+        low_coverage_df = low_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
+        high_coverage_df = high_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
+
+        low_coverage_df = low_coverage_df[low_coverage_df['Coverage'] > junk_coverage]
+        if not low_coverage_df.empty:
+            low_coverage_df['CN'] = (low_coverage_df['Depth'] / trough)
+            low_coverage_df.to_csv(f'{outPre}.junk.list', sep='\t', header=None, index=None)
+        high_coverage_df = high_coverage_df[high_coverage_df['Coverage'] > collapsed_coverage]
+        if not high_coverage_df.empty:
+            high_coverage_df['CN'] = (high_coverage_df['Depth'] / trough).astype(int)
+            high_coverage_df.to_csv(f'{outPre}.collapsed.list', sep='\t', header=None, index=None)
     
     return output(filterRegion, outPre)
 

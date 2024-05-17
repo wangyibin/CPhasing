@@ -179,23 +179,26 @@ def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
     hcrs_df = hcrs.df
     hcrs_gr = pr.PyRanges(hcrs_df.reset_index())
     df = pd.DataFrame(res)
-    df.columns = ['Chromosome', 'Start', 'End']
-    gr = pr.PyRanges(df)
-    overlapped = hcrs_gr.join(gr).new_position('intersection')
-    overlapped = overlapped.df
+    if not df.empty:
+        df.columns = ['Chromosome', 'Start', 'End']
+        gr = pr.PyRanges(df)
+        overlapped = hcrs_gr.join(gr).new_position('intersection')
+        overlapped = overlapped.df
     
-    corrected_hcrs = []
-    drop_idx = []
-    for i, row in overlapped.iterrows():
-        new_contig_id = f"{row.Chromosome}_{row.Start_b}_{row.End_b}"
-        new_start = row.Start - row.Start_b 
-        new_end = row.End - row.Start_b 
-        corrected_hcrs.append((new_contig_id, new_start, new_end))
-        drop_idx.append(row['index'])
-    
-    corrected_hcrs_df = pd.DataFrame(corrected_hcrs, columns=hcrs_df.columns)
-    all_df = pd.concat([hcrs_df.drop(list(set(drop_idx)), axis=0), 
+        corrected_hcrs = []
+        drop_idx = []
+        for i, row in overlapped.iterrows():
+            new_contig_id = f"{row.Chromosome}_{row.Start_b}_{row.End_b}"
+            new_start = row.Start - row.Start_b 
+            new_end = row.End - row.Start_b 
+            corrected_hcrs.append((new_contig_id, new_start, new_end))
+            drop_idx.append(row['index'])
+        
+        corrected_hcrs_df = pd.DataFrame(corrected_hcrs, columns=hcrs_df.columns)
+        all_df = pd.concat([hcrs_df.drop(list(set(drop_idx)), axis=0), 
                         corrected_hcrs_df], axis=0)
+    else:
+        all_df = hcrs_df
     
     all_df.to_csv(output, sep='\t', index=None, header=None)
     
@@ -225,6 +228,7 @@ def workflow(LisFile, SA, depthFile, minCount, minMapqCount,
         correct_hcr_by_break_pos(overlap_gr, break_pos, contig_sizes, output)
         logger.info(f"Successful output chimeric-corrected `{len(overlap_gr)}` HCRs in `{output}`.")
     else:
+
         overlap_gr.df.to_csv(output, sep='\t', 
                                 index=None, header=None)
         logger.info(f"Successful output `{len(overlap_gr)}` HCRs in `{output}`.")

@@ -166,12 +166,12 @@ def main():
 
     
     
-    inter_homo_error_rate = inter_homo_err/anchored_len*100 if anchored_len else 0 
+    inter_homo_error_rate = inter_homo_err/anchored_len if anchored_len else 0 
 
-    inter_nonhomo_error_rate = inter_nonhomo_err/anchored_len * 100 if anchored_len else 0
+    inter_nonhomo_error_rate = inter_nonhomo_err/anchored_len if anchored_len else 0
 
-    excluded_inter_homo_err_rate = excluded_inter_homo_err / excluded_anchored_len * 100 if excluded_anchored_len else 0
-    excluded_inter_nonhomo_err_rate = excluded_inter_nonhomo_err / excluded_anchored_len * 100 if excluded_anchored_len else 0
+    excluded_inter_homo_err_rate = excluded_inter_homo_err / excluded_anchored_len  if excluded_anchored_len else 0
+    excluded_inter_nonhomo_err_rate = excluded_inter_nonhomo_err / excluded_anchored_len if excluded_anchored_len else 0
 
     print('Contiguity\t{}'.format(contiguity))
     print('Inter_homo_error_rate\t{}'.format(inter_homo_error_rate))

@@ -14,6 +14,7 @@ import sys
 
 # from ..cli import CommandGroup
 from ..cli import cli 
+from ..utilities import read_chrom_sizes
 
 logger = logging.getLogger(__name__)
 
@@ -576,13 +577,18 @@ def hcr(lis, split_align, depth, break_pos,
     """
     from .hcr import hcr, bed2depth
 
-    hcr_from_depth_file = bed2depth.workflow(depth, window, max_depth, output)
+    if contig_sizes:
+        contig_sizes_df = read_chrom_sizes(contig_sizes)
+        contig_sizes_db = contig_sizes_df.to_dict()['length']
+
+        hcr_from_depth_file = bed2depth.workflow(depth, window, max_depth, output, contig_sizes_db)
     
     if break_pos and contig_sizes:
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
                         min_count, min_score, output, break_pos, contig_sizes)
     else:
-        logger.warning("The file of break position and contig sizes should be input at the same time.")
+        if break_pos:
+            logger.warning("The file of break position and contig sizes should be input at the same time.")
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
                         min_count, min_score, output)
 

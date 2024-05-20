@@ -581,7 +581,7 @@ def hcr(lis, split_align, depth, break_pos,
         contig_sizes_df = read_chrom_sizes(contig_sizes)
         contig_sizes_db = contig_sizes_df.to_dict()['length']
 
-        hcr_from_depth_file = bed2depth.workflow(depth, window, output, max_depth, contig_sizes_db)
+        hcr_from_depth_file = bed2depth.workflow(depth, window, output, max_depth)
     
     if break_pos and contig_sizes:
         hcr.workflow(lis, split_align, hcr_from_depth_file, 

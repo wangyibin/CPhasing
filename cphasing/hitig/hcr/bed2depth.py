@@ -11,40 +11,51 @@ import numpy as np
 import pandas as pd
 import pyranges as pr
 
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from cphasing.utilities import read_chrom_sizes
+
 """
 workflow:
 (1) calculate depth distribution
 (2) decision an cutoff to filter reads
 """
 
-def read_depth(depthFile, Max):
-    depthDic = {}
-    Max = int(Max)
-    with open(depthFile, 'r') as fin:
-        for line in fin:
-            ctg, bins, bine, depth = line.rstrip().split('\t')
-            depth =Max if float(depth) >= float(Max) else float(depth)
-            [bins, bine, depth] = list(map(int, [bins, bine, float(depth)]))
-            if ctg not in depthDic:
-                depthDic[ctg] = {}
-            depthDic[ctg][(bins, bine)] = depth
-    return depthDic
+def read_depth(depthFile):
+    # depthDic = {}
+    # Max = int(Max)
+    # with open(depthFile, 'r') as fin:
+    #     for line in fin:
+    #         ctg, bins, bine, depth = line.rstrip().split('\t')
+    #         depth = Max if float(depth) >= float(Max) else float(depth)
+    #         [bins, bine, depth] = list(map(int, [bins, bine, float(depth)]))
+    #         if ctg not in depthDic:
+    #             depthDic[ctg] = {}
+    #         depthDic[ctg][(bins, bine)] = depth
 
+    depth_df = pd.read_csv(depthFile, sep='\t', index_col=None, header=None, names=['chrom', 'start', 'end', 'count'])
+   
+    return depth_df
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 ## return  peak_id
-def get_wave_vally(depthDic, outPre):
+def get_wave_vally(depth_df, outPre, Max=None):
     ## convert depth dict to depth hist
-    depthHist = {}
-    for ctg in depthDic:
-        for bin in depthDic[ctg]:
-            depth = int(depthDic[ctg][bin])
-            if depth not in depthHist:
-                depthHist[depth] = 0
-            depthHist[depth] += 1
+    # depthHist = {}
+    # for ctg in depthDic:
+    #     for bin in depthDic[ctg]:
+    #         depth = int(depthDic[ctg][bin])
+    #         if depth not in depthHist:
+    #             depthHist[depth] = 0
+    #         depthHist[depth] += 1
+    depth_df['count'] = depth_df['count'].astype(int)
+    depthHist = depth_df.groupby(['count'])['chrom'].count()
+    max_values = depthHist.argmax()  * 2.5 if not Max else Max
+
+    depthHist = depthHist[depthHist.index < max_values]
+    depthHist = depthHist.to_dict()
     ## find wave vally
     xxxyyy = list(depthHist.items())
     xxxyyy.sort(key = lambda x:x[0])
@@ -56,7 +67,7 @@ def get_wave_vally(depthDic, outPre):
     xxx = np.array(xxx)
     negYYY = np.array(negYYY)
     ###
-    z1 = np.polyfit(xxx, negYYY, 7)
+    z1 = np.polyfit(xxx, negYYY, 10)
     p1 = np.poly1d(z1) 
     # print(p1)
     yvals=p1(xxx) 
@@ -67,8 +78,8 @@ def get_wave_vally(depthDic, outPre):
     
     trough_ind = trough_ind[0]
     trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])]
-
-
+    peak_ind = [peak_ind[peak_ind < trough][0], peak_ind[peak_ind > trough][0]]
+    
     # draw picture
     width = 7
     height = 6
@@ -83,13 +94,13 @@ def get_wave_vally(depthDic, outPre):
     plt.legend()
     colors = ['#b02418', '#253761', 'c']
     ax = plt.gca()
-    
-    for peaki in [0, 1]:
+
+    for i, peaki in enumerate([0, 1]):
         peak=peak_ind[peaki]
         plt.text(peak, ax.get_ylim()[1] / 4, str(peak), 
-                 fontsize = 10, color = colors[peaki],
+                 fontsize = 10, color = colors[i],
                 )
-        plt.axvline(x=peak, linewidth=1, color = colors[peaki], linestyle='--')
+        plt.axvline(x=peak, linewidth=1, color = colors[i], linestyle='--')
     
     plt.text(trough, ax.get_ylim()[0] / 4 * 3 , str(trough),
              fontsize=10, color='k', )
@@ -104,38 +115,21 @@ def get_wave_vally(depthDic, outPre):
 
     plt.show()
     #plt.plot(x, hists[xm:xM], label = "l", color="blue")
-    return peak_ind, trough
+    return [peak_ind[0], peak_ind[1]], trough
 
 ## return region
-def filter_depth(depthDic, peak_ind):
+def filter_depth(depth_df, peak_ind):
     # print(peak_ind)
     filteredRegion = {}
-    low_coverage_region = {}
-    high_coverage_region = {}
     minpeak, maxpeak = min(peak_ind), max(peak_ind)
-    for ctg in depthDic:
-        for bin in depthDic[ctg]:
-            depth = depthDic[ctg][bin]
-            if depth >= minpeak and depth <= maxpeak:
-                if ctg not in filteredRegion:
-                    filteredRegion[ctg] = []
-                filteredRegion[ctg].append(bin)
-            elif depth < minpeak:
-                if ctg not in low_coverage_region:
-                    low_coverage_region[ctg] = []
-                low_coverage_region[ctg].append((bin, depth))
-            elif depth > maxpeak:
-                if ctg not in high_coverage_region:
-                    high_coverage_region[ctg] = []
-                high_coverage_region[ctg].append((bin, depth))
+    
+    filteredRegion = depth_df.query('count >= @minpeak & count <= @maxpeak')
 
-    return low_coverage_region, filteredRegion, high_coverage_region
+    return filteredRegion
 
 def output(filteredRegion, outPre):
-    with open("{}.hcr_depth.bed".format(outPre), 'w') as fout:
-        for ctg in filteredRegion:
-            for bin in filteredRegion[ctg]:
-                fout.write("{}\t{}\t{}\n".format(ctg, *bin))
+    filteredRegion.to_csv("{}.hcr_depth.bed".format(outPre), header=None, sep='\t', index=None)
+
     return "{}.hcr_depth.bed".format(outPre)
 
 def output_coverage_region(coverage_region, outPre, low_or_high):
@@ -146,40 +140,54 @@ def output_coverage_region(coverage_region, outPre, low_or_high):
 
     return "{}.{}.bed".format(outPre, low_or_high)
 
-def workflow(depthFile, win, Max, outPre, 
+def workflow(depthFile, win,  outPre,  Max=None,
              contigsizes=None, junk_coverage=0.5, collapsed_coverage=0.1):
-    depthDic = read_depth(depthFile, Max)
-    peak_ind, trough = get_wave_vally(depthDic, outPre)
-    low_coverage_region, filterRegion, high_coverage_region = filter_depth(depthDic, peak_ind)
+    depth_df = read_depth(depthFile)
+    
+    peak_ind, trough = get_wave_vally(depth_df, outPre, Max=Max)
 
-    low_coverage_bed = output_coverage_region(low_coverage_region, outPre, low_or_high="low_coverage")
-    high_coverage_bed = output_coverage_region(high_coverage_region, outPre, low_or_high="high_coverage")
-    cmd = ['bedtools', 'merge', '-i', low_coverage_bed, '-c', '4', '-o', 'mean', ">", low_coverage_bed.replace(".bed", ".merge.bed")]
-    os.system(" ".join(cmd))
-    cmd = ['bedtools', 'merge', '-i', high_coverage_bed, '-c', '4', '-o', 'mean', ">", high_coverage_bed.replace(".bed", ".merge.bed")]
-    os.system(" ".join(cmd))
+    filterRegion= filter_depth(depth_df, peak_ind)
+    minpeak, maxpeak = min(peak_ind), max(peak_ind)
 
-    if contigsizes:
-        low_coverage_df = pd.read_csv(low_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
-        low_coverage_df = low_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
-        low_coverage_df = low_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
-        high_coverage_df = pd.read_csv(high_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
-        high_coverage_df = high_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
-        high_coverage_df = high_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
+    contig_depth = depth_df.groupby('chrom')['count'].mean()
+    high_coverage_df = contig_depth[contig_depth > maxpeak].to_frame()
+    high_coverage_df['CN'] = (high_coverage_df / trough)['count'].map(np.round)
+    high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=True)
 
-        low_coverage_df['length'] = low_coverage_df['Chromosome'].map(contigsizes.get)
-        high_coverage_df['length'] = high_coverage_df['Chromosome'].map(contigsizes.get)
-        low_coverage_df = low_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
-        high_coverage_df = high_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
+    low_coverage_df = contig_depth[contig_depth < minpeak].to_frame()
+    low_coverage_df['CN'] = (low_coverage_df / trough)['count'].map(np.round)
+    low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=True)
 
-        low_coverage_df = low_coverage_df[low_coverage_df['Coverage'] > junk_coverage]
-        if not low_coverage_df.empty:
-            low_coverage_df['CN'] = (low_coverage_df['Depth'] / trough)
-            low_coverage_df.to_csv(f'{outPre}.junk.list', sep='\t', header=None, index=None)
-        high_coverage_df = high_coverage_df[high_coverage_df['Coverage'] > collapsed_coverage]
-        if not high_coverage_df.empty:
-            high_coverage_df['CN'] = (high_coverage_df['Depth'] / trough).astype(int)
-            high_coverage_df.to_csv(f'{outPre}.collapsed.list', sep='\t', header=None, index=None)
+
+    # low_coverage_bed = output_coverage_region(low_coverage_region, outPre, low_or_high="low_coverage")
+    # high_coverage_bed = output_coverage_region(high_coverage_region, outPre, low_or_high="high_coverage")
+    # cmd = ['bedtools', 'merge', '-i', low_coverage_bed, '-c', '4', '-o', 'mean', ">", low_coverage_bed.replace(".bed", ".merge.bed")]
+    # os.system(" ".join(cmd))
+    # cmd = ['bedtools', 'merge', '-i', high_coverage_bed, '-c', '4', '-o', 'mean', ">", high_coverage_bed.replace(".bed", ".merge.bed")]
+    # os.system(" ".join(cmd))
+    
+
+    # if contigsizes:
+    #     low_coverage_df = pd.read_csv(low_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
+    #     low_coverage_df = low_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
+    #     low_coverage_df = low_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
+    #     high_coverage_df = pd.read_csv(high_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
+    #     high_coverage_df = high_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
+    #     high_coverage_df = high_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
+
+    #     low_coverage_df['length'] = low_coverage_df['Chromosome'].map(contigsizes.get)
+    #     high_coverage_df['length'] = high_coverage_df['Chromosome'].map(contigsizes.get)
+    #     low_coverage_df = low_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
+    #     high_coverage_df = high_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
+    #     print(high_coverage_df)
+    #     low_coverage_df = low_coverage_df[low_coverage_df['Coverage'] > junk_coverage]
+    #     if not low_coverage_df.empty:
+    #         low_coverage_df['CN'] = (low_coverage_df['Depth'] / trough)
+    #         low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=None)
+    #     high_coverage_df = high_coverage_df[high_coverage_df['Coverage'] > collapsed_coverage]
+    #     if not high_coverage_df.empty:
+    #         high_coverage_df['CN'] = (high_coverage_df['Depth'] / trough).astype(int)
+    #         high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=None)
     
     return output(filterRegion, outPre)
 
@@ -187,11 +195,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
     parser.add_argument('-d', '--depthFile', default=None, required=True,
                         help='<filepath>  UL-ONT reads/Hifi depth file, 4colum, Chr start end depth.')
+    parser.add_argument('-c', '--contigsizes', help='contigsizes', default=None)
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')
-    parser.add_argument('-M', '--max', default=100,
+    parser.add_argument('-M', '--max', default=None,
                         help='<int> maximum depth.')
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
-    workflow(args.depthFile, args.win, args.max, args.output)
+    contigsizes = read_chrom_sizes(args.contigsizes)
+    contigsizes = contigsizes.to_dict()['length']
+
+    workflow(args.depthFile, args.win, args.output, int(args.max) if args.max else None, contigsizes)

@@ -1711,32 +1711,41 @@ def hcr(porectable, pairs, contigsize, binsize,
                 prefix = prefix.with_suffix('')
 
 
-    out_small_cool = f"{prefix}.{binsize}.cool"
-    if not bed:
-        if not Path(out_small_cool).exists():
-            try: 
-                pairs2cool.main(args=[
-                                    pairs,
-                                    contigsize,
-                                    out_small_cool,
-                                    "-bs",
-                                    binsize
-                                ],
-                                prog_name='pairs2cool')
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
+    # out_small_cool = f"{prefix}.{binsize}.cool"
+    # if not bed:
+    #     if not Path(out_small_cool).exists():
+    #         try: 
+    #             pairs2cool.main(args=[
+    #                                 pairs,
+    #                                 contigsize,
+    #                                 out_small_cool,
+    #                                 "-bs",
+    #                                 binsize
+    #                             ],
+    #                             prog_name='pairs2cool')
+    #         except SystemExit as e:
+    #             exc_info = sys.exc_info()
+    #             exit_code = e.code
+    #             if exit_code is None:
+    #                 exit_code = 0
                 
-                if exit_code != 0:
-                    raise e
+    #             if exit_code != 0:
+    #                 raise e
+            
+    #     else:
+    #         logger.warn(f"Use exists cool file of `{out_small_cool}`.")
+
+    depth_file = f"{prefix}.{binsize}.depth"
+    if not bed:
+        if not Path(depth_file).exists():
+            cmd = ['cphasing-rs', 'pairs2depth', str(pairs), "-o", depth_file]
+            flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
+            assert flag == 0, "Failed to execute command, please check log."
             
         else:
-            logger.warn(f"Use exists cool file of `{out_small_cool}`.")
-        
+            logger.warning(f"Use exists depth file of `{depth_file}`.")
    
-        hcr_by_contacts(out_small_cool, f"{prefix}.{binsize}.hcr.bed" , 
+        hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
                         lower, upper, collapsed_contig_ratio)
         bed =  f"{prefix}.{binsize}.hcr.bed"
  
@@ -1788,6 +1797,16 @@ def hcr(porectable, pairs, contigsize, binsize,
     show_default=True,
 )
 @click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=0,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
     '-mc',
     '--min-contacts',
     'min_contacts',
@@ -1805,7 +1824,6 @@ def hcr(porectable, pairs, contigsize, binsize,
     is_flag=True,
 )
 @click.option(
-    '-spc',
     '--skip-pairs2clm',
     'skip_pairs2clm',
     help='skip convert pairs to clm',
@@ -1828,7 +1846,8 @@ def hcr(porectable, pairs, contigsize, binsize,
     default=None,
     show_default=True
 )
-def prepare(fasta, pairs, min_contacts, pattern,
+def prepare(fasta, pairs, min_mapq,
+            min_contacts, pattern,
             skip_pairs2contacts, skip_pairs2clm,
               threads, outprefix):
     """
@@ -1837,6 +1856,7 @@ def prepare(fasta, pairs, min_contacts, pattern,
     from .prepare import pipe 
 
     pipe(fasta, pairs, pattern, 
+         min_mapq,
          min_contacts, skip_pairs2clm=skip_pairs2clm,
          skip_pairs2contacts=skip_pairs2contacts,
          threads=threads, outprefix=outprefix)

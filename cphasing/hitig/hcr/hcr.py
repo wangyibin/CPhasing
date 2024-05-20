@@ -95,7 +95,7 @@ def read_depth(depthFile):
 
     # return depthDic
     df = pd.read_csv(depthFile, sep='\t', index_col=None, header=None, 
-                        names=['Chromosome', 'Start', 'End'])
+                        names=['Chromosome', 'Start', 'End', 'Count'])
     
     return df
 
@@ -107,6 +107,7 @@ def read_SAreads(SAFile):
             tmpLst = line.rstrip().split('\t')
             for reads in tmpLst[4].split(','):
                 SAreads[reads] = ""
+
     return SAreads
 
 ## Deprecated
@@ -214,7 +215,7 @@ def workflow(LisFile, SA, depthFile, minCount, minMapqCount,
     logger.info(f"Identified `{len(depth_gr)}` normal depth regions.")
     sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
     logger.info("Identifing continuous regions ...")
-    
+
     sequential_gr = pr.PyRanges(range_dict2frame(sequential_LIS))
     sequential_gr = sequential_gr.merge()
     logger.info(f"Identified `{len(sequential_gr)}` continous regions.")
@@ -228,7 +229,7 @@ def workflow(LisFile, SA, depthFile, minCount, minMapqCount,
         correct_hcr_by_break_pos(overlap_gr, break_pos, contig_sizes, output)
         logger.info(f"Successful output chimeric-corrected `{len(overlap_gr)}` HCRs in `{output}`.")
     else:
-
+        
         overlap_gr.df.to_csv(output, sep='\t', 
                                 index=None, header=None)
         logger.info(f"Successful output `{len(overlap_gr)}` HCRs in `{output}`.")

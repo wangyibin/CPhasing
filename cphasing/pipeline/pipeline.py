@@ -421,6 +421,8 @@ def run(fasta,
                                 prepare_input, 
                                 "-p",
                                 pattern, 
+                                "-q",
+                                mapping_quality,
                                 "--skip-pairs2contacts"],
                                 prog_name='prepare')
             else:
@@ -428,6 +430,8 @@ def run(fasta,
                                 prepare_input, 
                                 "-p",
                                 pattern,
+                                "-q",
+                                mapping_quality,
                                 "--skip-pairs2contacts"],
                                 prog_name='prepare')
                  

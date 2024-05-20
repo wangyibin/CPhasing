@@ -14,6 +14,7 @@ import sys
 import cooler 
 import numpy as np 
 import pandas as pd
+import polars as pl
 import pyranges as pr 
 
 import matplotlib as mpl
@@ -64,7 +65,7 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
 
     return x[max_idx] * lower_value, x[max_idx] * upper_value
 
-def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
+def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
                     min_remove_whole_collapsed_contigs_rate=0.9):
 
     cool = cooler.Cooler(cool_file)
@@ -132,6 +133,82 @@ def hcr_by_contacts(cool_file, output, lower_value=0.1, upper_value=1.75,
     logger.info(f"Successful output HCRs into `{output}`.")
 
 
+def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
+                    min_remove_whole_collapsed_contigs_rate=0.9):
+
+    
+    depth = pl.read_csv(depth_file, separator='\t', has_header=False,
+                        new_columns=['chrom', 'start', 'end', 'count']).to_pandas()
+
+    binsize = (depth['end'] - depth['start']).max()
+    bins = depth[['chrom', 'start', 'end']]
+    contigsizes = depth[['chrom', 'end']].groupby('chrom')['end'].max()
+
+
+  
+    logger.debug("Adjusting small bins value ...")
+    sum_values = depth['count'].values
+
+    small_bins = depth[depth['end'] - depth['start'] < binsize]
+    small_bins_sum_values = sum_values[small_bins.index]
+
+    adjust_small_bins_sum_values = small_bins_sum_values.T / \
+        ((small_bins['end'] - small_bins['start']) / binsize).values
+    sum_values[small_bins.index] = adjust_small_bins_sum_values
+  
+    sum_values_nonzero = sum_values[sum_values > 0]
+
+    min_value, max_value = plot(sum_values_nonzero, lower_value, 
+                                upper_value, output=output.replace(".bed", ""))
+    #median = np.median(sum_values)
+    # max_value = np.percentile(sum_values_nonzero, percent)
+    # logger.debug(f"Percent{percent} value is {max_value}")
+    res = np.where((sum_values <= max_value) & (sum_values >= min_value))
+    
+
+    hcr_regions = bins.loc[res[0]]
+    
+    res = np.where((sum_values > max_value))
+
+    collapsed_regions = bins.loc[res[0]]
+    collapsed_regions = collapsed_regions[['chrom', 'start', 'end']]
+    collapsed_regions.columns = ['Chromosome', 'Start', 'End']
+    collapsed_regions['Chromosome'] = collapsed_regions['Chromosome'].astype(str)
+
+    total_length = contigsizes.sum()
+    
+    num_hcr_regions = len(hcr_regions)
+    logger.debug(f"Identify {num_hcr_regions} regions")
+    hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
+    logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
+    
+    hcr_regions = hcr_regions[['chrom', 'start', 'end']]
+    hcr_regions.columns = ['Chromosome', 'Start', 'End']
+    hcr_regions_pr = pr.PyRanges(hcr_regions)
+    hcr_regions_pr = hcr_regions_pr.merge()
+
+    if min_remove_whole_collapsed_contigs_rate:
+        contigsizes_db = contigsizes.to_dict()
+        
+        collapsed_regions = collapsed_regions.eval('Length = End - Start')
+        
+        collapsed_regions['Total_length'] = collapsed_regions['Chromosome'].map(contigsizes_db.get)
+        collapsed = collapsed_regions.groupby('Chromosome')['Length'].sum().reset_index()
+        collapsed['Total_length'] = collapsed['Chromosome'].map(contigsizes_db.get)
+        
+        collapsed = collapsed.eval('Rate = 1 - (Total_length - Length) / Total_length')
+        collapsed = collapsed[collapsed['Rate'] > min_remove_whole_collapsed_contigs_rate]
+        collapsed_df = contigsizes.loc[collapsed.Chromosome].reset_index()
+        collapsed_df[1] = 0
+        collapsed_df.columns = ['Chromosome', 'End', 'Start']
+        collapsed_df = collapsed_df[['Chromosome', 'Start', 'End']]
+        collapsed_pr = pr.PyRanges(collapsed_df)
+        hcr_regions_pr = hcr_regions_pr.intersect(collapsed_pr, invert=True)
+
+
+    hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
+    logger.info(f"Successful output HCRs into `{output}`.")
+
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
                         description=__doc__,
@@ -141,16 +218,15 @@ def main(args):
     pOpt = p.add_argument_group('Optional arguments')
     pReq.add_argument('cool_file', 
             help='')
-    pOpt.add_argument('-p', '--percent', type=int, default=95,
-            help='percentile' )
-    pOpt.add_argument('-o', '--output', type=argparse.FileType('w'),
-            default=sys.stdout, help='output file [default: stdout]')
+   
+    pOpt.add_argument('-o', '--output', type=str,
+            default="output", help='output file [default: output]')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
     args = p.parse_args(args)
 
-    hcr_by_contacts(args.cool_file, args.output, args.percent)
+    hcr_by_contacts(args.cool_file, args.output)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

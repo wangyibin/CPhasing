@@ -52,7 +52,8 @@ def get_wave_vally(depth_df, outPre, Max=None):
     #         depthHist[depth] += 1
     depth_df['count'] = depth_df['count'].astype(int)
     depthHist = depth_df.groupby(['count'])['chrom'].count()
-    max_values = depthHist.argmax()  * 2.5 if not Max else Max
+    depthHist = depthHist[depthHist.index > 0]
+    max_values = int(depthHist.argmax()  * 2.5) if not Max else Max
 
     depthHist = depthHist[depthHist.index < max_values]
     depthHist = depthHist.to_dict()
@@ -61,9 +62,10 @@ def get_wave_vally(depth_df, outPre, Max=None):
     xxxyyy.sort(key = lambda x:x[0])
     xxx = [x[0] for x in xxxyyy]
     yyy = [y[1] for y in xxxyyy]
-    xxx = xxx[:100]
-    yyy = yyy[:100]
-    negYYY = [-y for y in yyy]
+    xxx = xxx[:max_values]
+    yyy = yyy[:max_values]
+
+    negYYY = -np.array(yyy)
     xxx = np.array(xxx)
     negYYY = np.array(negYYY)
     ###
@@ -78,8 +80,13 @@ def get_wave_vally(depth_df, outPre, Max=None):
     
     trough_ind = trough_ind[0]
     trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])]
-    peak_ind = [peak_ind[peak_ind < trough][0], peak_ind[peak_ind > trough][0]]
-    
+    if not peak_ind:
+        peak_ind = [0, trough * 1.75]
+    else:
+        lower_value = peak_ind[peak_ind < trough][0] if len(peak_ind[peak_ind < trough]) > 0 else 0
+        upper_value = peak_ind[peak_ind > trough][0] if len(peak_ind[peak_ind > trough]) > 0 else trough * 1.75
+        peak_ind = [lower_value, upper_value]
+
     # draw picture
     width = 7
     height = 6
@@ -89,7 +96,7 @@ def get_wave_vally(depth_df, outPre, Max=None):
     plt.rcParams['font.family'] = 'Arial'
     #xxx = xxx[:50]
     #yyy = yyy[:50]
-    plt.plot(xxx, yyy, '*', label='Original', color="#209093")
+    plt.plot(xxx, yyy, '.', label='Original', color="#209093")
     plt.plot(xxx, yvals, 'r', label='Polyfit', color='#cb6e7f')
     plt.legend()
     colors = ['#b02418', '#253761', 'c']
@@ -129,6 +136,9 @@ def filter_depth(depth_df, peak_ind):
 
 def output(filteredRegion, outPre):
     filteredRegion.to_csv("{}.hcr_depth.bed".format(outPre), header=None, sep='\t', index=None)
+    filteredRegion.columns = ['Chromosome', 'Start', 'End', 'Count']
+    filteredRegion_gr = pr.PyRanges(filteredRegion).merge()
+    filteredRegion_gr.df.to_csv("{}.hcr_depth.merged.bed".format(outPre), header=None, sep='\t', index=None)
 
     return "{}.hcr_depth.bed".format(outPre)
 
@@ -140,8 +150,7 @@ def output_coverage_region(coverage_region, outPre, low_or_high):
 
     return "{}.{}.bed".format(outPre, low_or_high)
 
-def workflow(depthFile, win,  outPre,  Max=None,
-             contigsizes=None, junk_coverage=0.5, collapsed_coverage=0.1):
+def workflow(depthFile, win,  outPre,  Max=None):
     depth_df = read_depth(depthFile)
     
     peak_ind, trough = get_wave_vally(depth_df, outPre, Max=Max)
@@ -155,7 +164,7 @@ def workflow(depthFile, win,  outPre,  Max=None,
     high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=True)
 
     low_coverage_df = contig_depth[contig_depth < minpeak].to_frame()
-    low_coverage_df['CN'] = (low_coverage_df / trough)['count'].map(np.round)
+    low_coverage_df['CN'] = (low_coverage_df / trough)['count']
     low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=True)
 
 
@@ -195,7 +204,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")
     parser.add_argument('-d', '--depthFile', default=None, required=True,
                         help='<filepath>  UL-ONT reads/Hifi depth file, 4colum, Chr start end depth.')
-    parser.add_argument('-c', '--contigsizes', help='contigsizes', default=None)
+    # parser.add_argument('-c', '--contigsizes', help='contigsizes', default=None)
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')
     parser.add_argument('-M', '--max', default=None,
@@ -203,7 +212,6 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
-    contigsizes = read_chrom_sizes(args.contigsizes)
-    contigsizes = contigsizes.to_dict()['length']
 
-    workflow(args.depthFile, args.win, args.output, int(args.max) if args.max else None, contigsizes)
+
+    workflow(args.depthFile, args.win, args.output, int(args.max) if args.max else None)

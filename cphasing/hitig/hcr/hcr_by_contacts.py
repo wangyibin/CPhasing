@@ -57,13 +57,15 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
                     0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
     ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
     ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
+    ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
+    ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
 
     # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
     logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
 
-    return x[max_idx] * lower_value, x[max_idx] * upper_value
+    return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
 
 def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
                     min_remove_whole_collapsed_contigs_rate=0.9):
@@ -158,7 +160,7 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
   
     sum_values_nonzero = sum_values[sum_values > 0]
 
-    min_value, max_value = plot(sum_values_nonzero, lower_value, 
+    peak_value, min_value, max_value = plot(sum_values_nonzero, lower_value, 
                                 upper_value, output=output.replace(".bed", ""))
     #median = np.median(sum_values)
     # max_value = np.percentile(sum_values_nonzero, percent)

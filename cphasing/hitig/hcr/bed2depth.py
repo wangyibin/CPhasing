@@ -42,18 +42,11 @@ def read_depth(depthFile):
 
 ## return  peak_id
 def get_wave_vally(depth_df, outPre, Max=None):
-    ## convert depth dict to depth hist
-    # depthHist = {}
-    # for ctg in depthDic:
-    #     for bin in depthDic[ctg]:
-    #         depth = int(depthDic[ctg][bin])
-    #         if depth not in depthHist:
-    #             depthHist[depth] = 0
-    #         depthHist[depth] += 1
-    depth_df['count'] = depth_df['count'].astype(int)
+
+    depth_df['count'] = depth_df['count'].map(np.round)
     depthHist = depth_df.groupby(['count'])['chrom'].count()
     depthHist = depthHist[depthHist.index > 0]
-    max_values = int(depthHist.argmax()  * 2.5) if not Max else Max
+    max_values = round(depthHist.argmax()  * 2.5) if not Max else Max
 
     depthHist = depthHist[depthHist.index < max_values]
     depthHist = depthHist.to_dict()
@@ -69,7 +62,7 @@ def get_wave_vally(depth_df, outPre, Max=None):
     xxx = np.array(xxx)
     negYYY = np.array(negYYY)
     ###
-    z1 = np.polyfit(xxx, negYYY, 10)
+    z1 = np.polyfit(xxx, negYYY, 7)
     p1 = np.poly1d(z1) 
     # print(p1)
     yvals=p1(xxx) 
@@ -80,10 +73,11 @@ def get_wave_vally(depth_df, outPre, Max=None):
     
     trough_ind = trough_ind[0]
     trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])]
-    if not peak_ind:
+
+    if len(peak_ind) == 0:
         peak_ind = [0, trough * 1.75]
     else:
-        lower_value = peak_ind[peak_ind < trough][0] if len(peak_ind[peak_ind < trough]) > 0 else 0
+        lower_value = peak_ind[peak_ind < trough][-1] if len(peak_ind[peak_ind < trough]) > 0 else 0
         upper_value = peak_ind[peak_ind > trough][0] if len(peak_ind[peak_ind > trough]) > 0 else trough * 1.75
         peak_ind = [lower_value, upper_value]
 
@@ -158,45 +152,18 @@ def workflow(depthFile, win,  outPre,  Max=None):
     filterRegion= filter_depth(depth_df, peak_ind)
     minpeak, maxpeak = min(peak_ind), max(peak_ind)
 
-    contig_depth = depth_df.groupby('chrom')['count'].mean()
-    high_coverage_df = contig_depth[contig_depth > maxpeak].to_frame()
+    contig_depth = depth_df.groupby('chrom')['count'].mean().to_frame()
+    contig_depth['CN'] = (contig_depth / trough)
+
+    contig_depth.to_csv(f'{outPre}.allcontigs.depth', sep='\t', header=None, index=True)
+    high_coverage_df = contig_depth[contig_depth['count'] > maxpeak]
     high_coverage_df['CN'] = (high_coverage_df / trough)['count'].map(np.round)
     high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=True)
 
-    low_coverage_df = contig_depth[contig_depth < minpeak].to_frame()
+    low_coverage_df = contig_depth[contig_depth['count'] < minpeak]
     low_coverage_df['CN'] = (low_coverage_df / trough)['count']
     low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=True)
 
-
-    # low_coverage_bed = output_coverage_region(low_coverage_region, outPre, low_or_high="low_coverage")
-    # high_coverage_bed = output_coverage_region(high_coverage_region, outPre, low_or_high="high_coverage")
-    # cmd = ['bedtools', 'merge', '-i', low_coverage_bed, '-c', '4', '-o', 'mean', ">", low_coverage_bed.replace(".bed", ".merge.bed")]
-    # os.system(" ".join(cmd))
-    # cmd = ['bedtools', 'merge', '-i', high_coverage_bed, '-c', '4', '-o', 'mean', ">", high_coverage_bed.replace(".bed", ".merge.bed")]
-    # os.system(" ".join(cmd))
-    
-
-    # if contigsizes:
-    #     low_coverage_df = pd.read_csv(low_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
-    #     low_coverage_df = low_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
-    #     low_coverage_df = low_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
-    #     high_coverage_df = pd.read_csv(high_coverage_bed.replace(".bed", ".merge.bed"), sep='\t', header=None, index_col=None, names=['Chromosome', 'Start', 'End', 'Depth'])
-    #     high_coverage_df = high_coverage_df.eval('size=End-Start').drop(['Start', 'End'], axis=1)
-    #     high_coverage_df = high_coverage_df.groupby('Chromosome', as_index=False).agg({"size": 'sum', 'Depth': 'mean'})
-
-    #     low_coverage_df['length'] = low_coverage_df['Chromosome'].map(contigsizes.get)
-    #     high_coverage_df['length'] = high_coverage_df['Chromosome'].map(contigsizes.get)
-    #     low_coverage_df = low_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
-    #     high_coverage_df = high_coverage_df.eval("Coverage = size / length").drop(['size', 'length'], axis=1)
-    #     print(high_coverage_df)
-    #     low_coverage_df = low_coverage_df[low_coverage_df['Coverage'] > junk_coverage]
-    #     if not low_coverage_df.empty:
-    #         low_coverage_df['CN'] = (low_coverage_df['Depth'] / trough)
-    #         low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=None)
-    #     high_coverage_df = high_coverage_df[high_coverage_df['Coverage'] > collapsed_coverage]
-    #     if not high_coverage_df.empty:
-    #         high_coverage_df['CN'] = (high_coverage_df['Depth'] / trough).astype(int)
-    #         high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=None)
     
     return output(filterRegion, outPre)
 

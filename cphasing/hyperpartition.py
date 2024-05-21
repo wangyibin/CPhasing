@@ -525,7 +525,11 @@ class HyperPartition:
         return self.K  
 
     @staticmethod
-    def _incremental_partition(K, k, prune_pair_df, H, vertices_idx_sizes, NW, 
+    def _incremental_partition(
+                            # raw_K, raw_A, raw_idx_to_vertices, 
+                               K, 
+                            #    idx_to_vertices, 
+                               k, prune_pair_df, H, vertices_idx_sizes, NW, 
                             resolution, init_resolution=0.8, min_weight=1, allelic_similarity=0.8, 
                             min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
                             is_remove_misassembly=False,
@@ -534,7 +538,7 @@ class HyperPartition:
         single function for incremental_partition.
         """
         K = np.array(list(K))
-        # sub_raw_A = raw_A[K, :][:, K]
+        
         sub_H, _ = extract_incidence_matrix2(H, K)
         del H 
         gc.collect() 
@@ -638,18 +642,57 @@ class HyperPartition:
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap)
-
         
 
         if prune_pair_df is not None and is_remove_misassembly:
             new_K = HyperPartition._remove_misassembly(new_K, sub_H, sub_prune_pair_df, 
                                                         allelic_similarity=allelic_similarity)
             
+        
+            
         # vertices_length = sub_vertices_new_idx_sizes['length']
         # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
-        new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
+
+        # new_flatten_K = list_flatten(new_K)
+        # if len(new_flatten_K) < len(raw_K):
+
+        #     new_vertices = list(map(lambda x: list(map(idx_to_vertices.get, x)), new_K))
+        #     new_flatten_vertices = list_flatten(new_vertices)
+            
+        #     raw_vertices = list(map(raw_idx_to_vertices.get, raw_K))
+        #     raw_vertices_to_idx = dict(items[::-1] for items in raw_idx_to_vertices.items())
+            
+        #     new_with_raw_idx = list(map(lambda x: list(map(raw_vertices_to_idx.get, x)), new_vertices))
+
+        #     unanchor_vertices = list(filter(lambda x: x not in set(new_flatten_vertices), set(raw_vertices)))
+            
+        #     sub_raw_new2old_idx = dict(zip(raw_K, range(len(raw_K))))
+        #     # sub_raw_A = raw_A[raw_K, :][:, raw_K]
+        #     # unanchor_list_new_idx = list(map(sub_raw_new2old_idx.get, unanchor_list))
+        #     unanchor_idx = list(map(raw_vertices_to_idx.get, unanchor_vertices))
+        #     # unanchor_idx = list(map(sub_raw_new2old_idx.get, unanchor_idx))
+
+        #     # new_with_raw_idx = list(map(lambda x: list(map(sub_raw_new2old_idx.get, x)), new_with_raw_idx))
+        #     anchor_res_db = {}
+        #     for idx in unanchor_idx:
+        #         res_matrix = np.zeros(len(new_with_raw_idx))
+        #         for j, g in enumerate(new_with_raw_idx):
+        #             # print(raw_idx_to_vertices[idx])
+        #             # print(new_vertices[j])
+        #             res_matrix[j] = raw_A[idx, :][:, g].sum()
+                
+        #         anchor_g = np.argmax(res_matrix)
+        #         anchor_res_db[idx] = anchor_g
+            
+        #     for idx in anchor_res_db:
+        #         new_with_raw_idx[anchor_res_db[idx]].append(idx)
+            
+        #     new_K = new_with_raw_idx
+            
+
+        new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.reindex(x).dropna()['length'].sum(), reverse=True)
 
         return A, cluster_assignments, new_K
     
@@ -762,7 +805,10 @@ class HyperPartition:
 
         logger.info("Starting second hyperpartition ...")
 
-        # raw_A = HyperGraph.clique_expansion_init(self.H)
+        # raw_A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx=self.P_allelic_idx, allelic_factor=0)
+        # raw_K = self.K.copy()
+        # raw_vertices = self.vertices.copy()
+        # raw_idx_to_vertices = self.idx_to_vertices
         if self.HG.edges.mapq.size and (self.min_quality2 > self.min_quality1) and mapq_filter :
             idx_to_vertices = self.idx_to_vertices
 
@@ -774,7 +820,7 @@ class HyperPartition:
             gc.collect()
             self.filter_hypergraph()
             self.H, self.vertices = self.get_hypergraph()
-
+            
             if self.normalize:
                 self.NW = self.get_normalize_weight()
             else:
@@ -782,8 +828,10 @@ class HyperPartition:
                 
             vertices_idx_sizes = pd.DataFrame(self.vertices_idx_sizes, index=['length']).T
             vertices_idx = self.vertices_idx
+        
             tmp_K = list(map(lambda x: list(
                             filter(lambda y: y not in self.HG.remove_contigs, x)), tmp_K))
+           
             tmp_K = list(map(lambda x: list(
                             filter(lambda y: y in vertices_idx, x )), tmp_K))
             self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
@@ -805,7 +853,7 @@ class HyperPartition:
         args = []
         results = []
         self.exclude_groups = []
-
+        idx_to_vertices = self.idx_to_vertices
         for num, sub_k in enumerate(self.K, 1):
             if isinstance(k[1], dict):
                 sub_group_number = int(k[1][num - 1])
@@ -816,7 +864,13 @@ class HyperPartition:
                 if num in self.exclude_group_to_second:
                     self.exclude_groups.append(sub_k)
                     continue
-            args.append((sub_k, sub_group_number, prune_pair_df, 
+            
+            # sub_raw_k = raw_K[num - 1]
+            args.append((
+                        # sub_raw_k, raw_A, raw_idx_to_vertices, 
+                         sub_k, 
+                        #  idx_to_vertices, 
+                         sub_group_number, prune_pair_df, 
                          self.H, vertices_idx_sizes, self.NW, 
                         self.resolution2, self.init_resolution2, self.min_weight, 
                         self.allelic_similarity,  self.min_allelic_overlap, 
@@ -824,7 +878,9 @@ class HyperPartition:
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             
             
-            # results.append(HyperPartition._incremental_partition(sub_k, sub_group_number, prune_pair_df, 
+            # results.append(HyperPartition._incremental_partition(sub_raw_k,
+            #              raw_A, raw_idx_to_vertices, sub_k, idx_to_vertices,
+            #                sub_group_number, prune_pair_df, 
             #              self.H, vertices_idx_sizes, self.NW, 
             #             self.resolution2, self.init_resolution2, self.min_weight, 
             #             self.allelic_similarity,  self.min_allelic_overlap, 
@@ -851,6 +907,7 @@ class HyperPartition:
 
         self.K = results 
 
+        # self.vertices = raw_vertices
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
 
@@ -858,7 +915,7 @@ class HyperPartition:
             self.K.extend(self.exclude_groups)
 
         length_contents = list(map(
-            lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
+            lambda  x: "{:,}".format(int(vertices_idx_sizes.reindex(x).dropna()['length'].sum())), self.K))
         second_length_contents = list(zip(second_group_info, length_contents))
         
         if self.exclude_group_to_second:
@@ -1133,6 +1190,17 @@ class HyperPartition:
         
         return K
 
+    def rescue(self):
+        """
+        rescue unanchor contigs 
+        """
+        pass 
+
+    def rescue_collapsed(self, is_duplicate=True):
+        """
+        rescue collapsed contigs
+        """
+        pass 
     # def remove_misassembly_hap(self):
     #     if not self.prune_pair_df:
     #         return

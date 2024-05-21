@@ -5,7 +5,6 @@
 pipeline of C-Phasing
 """
 
-import argparse
 import logging
 import os
 import os.path as op
@@ -74,6 +73,7 @@ def run(fasta,
         min_scaffold_length=5e6,
         disable_misassembly_remove=False,
         whitelist=None,
+        blacklist=None,
         factor=50,
         threads=4):
     from ..cli import (mapper as porec_mapper,

@@ -1741,7 +1741,7 @@ def hcr(porectable, pairs, contigsize, binsize,
             cmd = ['cphasing-rs', 'pairs2depth', str(pairs), "-o", depth_file]
             flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
             assert flag == 0, "Failed to execute command, please check log."
-            
+
         else:
             logger.warning(f"Use exists depth file of `{depth_file}`.")
    
@@ -2994,10 +2994,11 @@ def hyperpartition(hypergraph,
 
 
     if whitelist:
-        whitelist = [i.strip() for i in open(whitelist) if i.strip()]
+        whitelist = [i.strip().split()[0] for i in open(whitelist) if i.strip()]
         logger.info(f"{len(whitelist)} contigs will be load to cluster.")
     if blacklist:
-        blacklist = [i.strip() for i in open(blacklist) if i.strip()]
+        blacklist = [i.strip().split()[0] for i in open(blacklist) if i.strip()]
+
         logger.info(f"{len(blacklist)} contigs will be removed to cluster.")
 
     if merge_cluster:

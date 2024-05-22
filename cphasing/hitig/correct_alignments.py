@@ -80,7 +80,7 @@ def read_paf(paf, minAS, nhap):
     with xopen(paf,'r') as fin:
         for line in fin:
             tmpLst = line.split("\t")
-            if len(tmpLst) < 16:
+            if len(tmpLst) < 15:
                 continue
             qn, ql, qs, qe, s, tn, tl, ts, te, al1, al2, mapq, NM, ms, AS = tmpLst[:15]
             if not qn:
@@ -163,7 +163,7 @@ def reads2ctg(ASreadsDic, mapqPafDic, allreadsDic):
 def calculate_LMP_pipeline(bestReadsDic, allreadsDic, mapqPafDic, win, qn):
     LISBAK = []
     lisWin = int(float(win) * 1.25)
-    overlapWin = int(float(win)*0.75)
+    overlapWin = int(float(win)*0.25)
     winDis = 2 * win
     ctg2AnchorDic = reads2ctg(bestReadsDic, mapqPafDic, allreadsDic)
     for tn in ctg2AnchorDic:
@@ -173,6 +173,8 @@ def calculate_LMP_pipeline(bestReadsDic, allreadsDic, mapqPafDic, win, qn):
         LIS_result = LIS(alignLst, allreadsDic, lisWin, overlapWin)
         LIS_result.sort(key = lambda x : x[0][0][0])
         ## fill LIS gap
+        if len(LIS_result) == 0:
+            continue
         filledGapLIS = fill_gap(allreadsDic, LIS_result, winDis, tn)
         filledGapLIS.sort(key = lambda x : x[0][0][0])
         ## get Tl & find LIS which loacated in 5' or 3' of this contig.
@@ -239,6 +241,7 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
         for i in range(1, n):
             qi, ri, type = nums[i]
             align = allreadsDic[qi][ri]
+            
             if align[2] != fstring:
                 continue
             pos1 = int(align[4])
@@ -246,6 +249,7 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
             preAlign = allreadsDic[preQi][preRi]
             pos2 = int(preAlign[4])
             posDis = pos1 - pos2
+            
             if fstring == "-" and (posDis + winDis) >= 0 and (posDis + overlapWin) <= 0:
                 rst.append(nums[i])
             elif fstring == "+" and (winDis - posDis) >= 0 and (-posDis + overlapWin) <= 0:
@@ -253,8 +257,13 @@ def LIS(nums, allreadsDic, winDis, overlapWin):
             else:
                 nums_new[nums_index] = nums[i]
                 nums_index += 1
+        
+    
         nums = nums_new[:nums_index]
-        LIS_list.append((rst, fstring))
+        if len(list(filter(lambda x: x[2] == 'M', rst))) >= 2:
+            LIS_list.append((rst, fstring))
+    
+
     return LIS_list
  
 ### return newLIS : [([(qi, ri), (qi, ri)], '+'), ]
@@ -270,6 +279,7 @@ def fill_gap(allreadsDic, LIS_result, winDis, tn):
         sys.exit()
     if n == 1:
         return LIS_result
+
     fillSecAli = {}
     for i in range(0,n-1):
         preLIS = LIS_result[i]
@@ -386,6 +396,7 @@ def fill_gap(allreadsDic, LIS_result, winDis, tn):
     for idx in allIdx:
         if idx not in fillgapIndex:
             newLIS.append(LIS_result[idx])
+        
     return newLIS
 
 
@@ -664,7 +675,6 @@ def checkLIS(lisBak, pafDic):
                 else:
                     pass
             corLis[qn].append((tmpLst, string))
-
     return corLis
 
 
@@ -677,6 +687,7 @@ def outputLIS(lisBak, pafDic, outpre):
     """
     mapqLIS = []
     mapqPaf = []
+
     with open(outpre + '.LIS.gtf', 'w') as fout1, \
         open(outpre + ".corrected.paf", 'w') as fout2:
         for qn in lisBak:
@@ -752,6 +763,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     #pafFile = minimap_mapping(fasta, reads, threads, outPre)
     pafDic = read_paf(pafFile, minAS, nhap)
     bestASpafDic, mapqPafDic = select_mapq(pafDic, minMapq)
+
     allLISDIc = {}
     ## get LIS for every single reads
     qnLst = []
@@ -773,6 +785,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     
     for qn, mergedLIS in AllmergedLIS:
         allLISDIc[qn] = mergedLIS
+       
     ## check LIS
     corLISDic = checkLIS(allLISDIc, pafDic)
     ## output

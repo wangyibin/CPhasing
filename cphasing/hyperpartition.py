@@ -1184,7 +1184,7 @@ class HyperPartition:
                 
         logger.debug(f"Corrected {len(corrected_idx)} misassemblies.")
         for idx in corrected_idx:
-            # logger.debug(" ".join(map(str, [idx, corrected_idx[idx], raw_group_idx_db[idx]])))
+            logger.debug(" ".join(map(str, [idx, corrected_idx[idx], raw_group_idx_db[idx]])))
             K[raw_group_idx_db[idx]].remove(idx)
             K[corrected_idx[idx]].append(idx)
         

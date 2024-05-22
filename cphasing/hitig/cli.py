@@ -403,7 +403,7 @@ def correct_alignments(
     'min_sa',
     metavar='INT',
     help='Number of minmum split alignments in a window.',
-    default=5,
+    default=3,
     type=int,
     show_default=True,
 )
@@ -423,7 +423,7 @@ def correct_alignments(
     metavar='INT',
     help='minimum depth of windows',
     type=int,
-    default=3,
+    default=5,
     show_default=True
 )
 @click.option(

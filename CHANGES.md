@@ -2,7 +2,10 @@
 ## [v0.1.9]
 Date: 2024-05-17
 ## Enhancement
-- `higig`, support for hifi data. Moreover, support for junk and collapsed identification
+- `higig`
+    - upport for hifi data. Moreover, support for junk and collapsed identification
+    - `correct-alignments`, increase performance by filtering low quality LIS
+
 ## Bug fixes
 - `pipeline`, fixed bug of contacts generating
 

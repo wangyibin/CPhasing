@@ -266,7 +266,8 @@ class ChromapMapper:
     def get_contig_sizes(self):
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
                 "-o", str(self.contigsizes)]
-        run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        assert flag == 0, "Failed to execute command, please check log."
 
     def get_genome_size(self):
         from .utilities import get_genome_size

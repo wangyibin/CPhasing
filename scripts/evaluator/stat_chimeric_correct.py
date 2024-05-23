@@ -51,7 +51,7 @@ def main(args):
 
     correct_breaks = []
     incorrect_breaks = []
-
+    break_num = 0
     with open(break_pos_file, 'r') as fp:
         for line in fp:
             if not line.strip():
@@ -60,6 +60,7 @@ def main(args):
             contig, positions = line_list[:2]
             
             for position in positions.split(","):
+                break_num += 1
                 if contig not in real_chimeric_contigs:
                     incorrect_breaks.append((contig, position))
                     continue
@@ -69,7 +70,7 @@ def main(args):
                 else:
                     incorrect_breaks.append((contig, position))
                 
-    P = len(correct_breaks) / (len(incorrect_breaks) + len(correct_breaks))
+    P = len(correct_breaks) / break_num
     R = len(correct_breaks) / len(real_chimeric_contigs)
     F1 = (2 * P * R) / (P + R) if (P + R) else 0
     

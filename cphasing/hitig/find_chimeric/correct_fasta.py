@@ -52,7 +52,7 @@ def break_contig(bpDic2, fa, outPre):
                    # try:
                     fa = faDic[faName]
                     subfa = fa[s:e]
-                    fout.write(">{}_{}_{}\n{}\n".format(faName, s, e, subfa))
+                    fout.write(">{}:{}-{}\n{}\n".format(faName, s, e, subfa))
         #            except:
         #                print(faDic[faName], s, e)
         #                sys.exit()

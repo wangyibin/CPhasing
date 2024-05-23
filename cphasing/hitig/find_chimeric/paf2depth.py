@@ -8,8 +8,9 @@ import sys
 
 import math
 import collections
-from multiprocessing import Pool
 
+from pathlib import Path
+from cphasing.utilities import run_cmd
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def cal_depth(winDic):
         depthDic[ctg] = {}
         for bin in winDic[ctg]:
             #readsLst = winDic[bin]
-            winSize = int(bin[1]) - int(bin[0])
+            winSize = bin[1] - bin[0]
             overlapValue = winDic[ctg][bin]
             #overlapLst = list(map(lambda x :get_overlap(x, bin, pafDic), readsLst))
             #depth = sum(overlapLst)/winSize
@@ -115,22 +116,45 @@ def output(ouPre, depthDIc):
                 fout.write("{}\t{}\t{}\t{:.3f}\n".format(ctg, bini[0], bini[1], depthDIc[ctg][bini]))
     return ouPre + ".depth"
 
+def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000):
+    
+    fasta_prefix = Path(fastaFile).stem
+    contigsizes = f"{fasta_prefix}.contigsizes"
+    cmd = ["cphasing-rs", "chromsizes", fastaFile, 
+                "-o", str(contigsizes)]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+    cmd = f"bedtools makewindows -g {contigsizes} -w {winsize} -s {step} 2>/dev/null > temp.{fasta_prefix}.w{winsize}.s{step}.bed"
+    os.system(cmd)
+
+    cmd = f"cut -f 6,8,9 {paf} > temp.{output}.paf.bed"
+    os.system(cmd)
+
+    cmd = f"bedtools intersect -F 0.5 -a  temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
+    os.system(cmd)
+
+    os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
+    os.remove(f"temp.{output}.paf.bed")
+
+
 def workflow(paf, fastaFile, win, outPre):
     ## 
-    win = int(win)
-    pafDic = read_paf(paf)
-    genomeSize = read_fasta(fastaFile)
-    binDic, winDic = build_windic(genomeSize, win)
+    # win = int(win)
+    # pafDic = read_paf(paf)
+    # genomeSize = read_fasta(fastaFile)
+    # binDic, winDic = build_windic(genomeSize, win)
 
-    winDic = bin_reads(pafDic, winDic, win)
-    depthDic = cal_depth(winDic)
+    # winDic = bin_reads(pafDic, winDic, win)
+    # depthDic = cal_depth(winDic)
     # with Pool(processes=4) as p:
     #     winDic = p.starmap(bin_reads, [(pafDic, winDic, win) for _ in range(p._processes)])
 
     # with Pool(processes=4) as p:
     #     depthDic = p.starmap(cal_depth, [(winDic,) for _ in range(p._processes)])
+    calculate_depth_by_bedtools(paf, fastaFile, outPre, win)
 
-    return output(outPre, depthDic)
+    return f'{outPre}.depth'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")

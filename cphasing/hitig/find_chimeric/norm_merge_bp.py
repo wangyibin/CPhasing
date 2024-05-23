@@ -5,6 +5,8 @@ import math
 import argparse
 import sys
 
+import pandas as pd
+
 """
 workflow:
 (1) read LIS correced paf & read correct break point
@@ -34,16 +36,16 @@ def read_mergeBP(mergeBP):
             bpDic[ctg][bini] = int(count)
     return bpDic
           
+
 def read_depth(depthFile):
-    depthDic = {}
-    with open(depthFile, 'r') as fin:
-        for line in fin:
-            tmpLst = line.rstrip().split('\t')
-            ctg, bi1, bi2, depth = tmpLst
-            if ctg not in depthDic:
-                depthDic[ctg] = {}
-            bini = (int(bi1), int(bi2))
-            depthDic[ctg][bini] = float(depth)
+    df = pd.read_csv(depthFile, sep='\t', header=None, names=['ctg', 'bi1', 'bi2', 'depth'])
+    df[['bi1', 'bi2']] = df[['bi1', 'bi2']].astype(int)
+    df['depth'] = df['depth'].astype(float)
+
+    depthDic = (df.groupby('ctg')
+                    .apply(lambda x: {(bi1, bi2): depth 
+                                        for bi1, bi2, depth in zip(x['bi1'], x['bi2'], x['depth'])}).to_dict())
+
     return depthDic
 
 def find_region_depth(subDepthDic, subBpRegion, win, minDepth):

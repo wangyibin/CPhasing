@@ -102,8 +102,12 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
                 stratIdx = stratIdx if stratIdx >= 0 else 0
                 endIdx = endIdx if endIdx <= maxBIn else maxBIn
                 # print(stratIdx, endIdx,step, win, len(blst))
-                # sys.exit()
-            normBpRatio = float(bpCount)/avaDepth
+                
+            try:
+                normBpRatio = float(bpCount)/avaDepth
+            except:
+                normBpRatio = 0
+                avaDepth = 0
             chimericType = "chimeric" if normBpRatio >= cutoff else "Non-chimeric"
             normBpDic[ctg][bini] = (chimericType, bpCount, avaDepth, normBpRatio)
 

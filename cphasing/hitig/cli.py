@@ -108,6 +108,14 @@ def hitig(ctx):
     type=int,
 )
 @click.option(
+    '--step-size',
+    'step_size',
+    help='step size',
+    default=1000,
+    show_default=True,
+    type=int
+)
+@click.option(
     '-ms',
     '--min-sa',
     'min_sa',
@@ -187,13 +195,29 @@ def hitig(ctx):
     show_default=True
 )
 def pipeline(fasta, fastq, min_as, min_mapq, 
-    nhap, window, min_windows,
+    nhap, window, min_windows, step_size, 
     min_sa, edge, min_depth,
     cutoff, hifi, 
     threads, output,
     steps, skip_steps):
     """
     Pipeline of chimeric correct by hitig.
+
+    > **Steps:**\n
+        1. correct-alignments: mapping and correct alignments\n
+        2. find-chimeric: find chimeric contigs \n
+    
+    > **Usages:**\n
+    > - Input Ultra-long data\n
+    ```bash
+    $ hitig pipeline -f contigs.fasta -i ultra-long.fastq.gz -t 20 
+    ```
+    > - Input HiFi data\n
+    ```bash
+    $ hitig pipeline -f contigs.fasta -i hifi.fasta.gz -t 20 --hifi -w 2000 --step-size 500 -ms 1 
+    ```
+    
+    
     """
     from .pipeline import run 
 
@@ -212,7 +236,7 @@ def pipeline(fasta, fastq, min_as, min_mapq,
     
     run(
         fasta, fastq, min_as, min_mapq, 
-    nhap, window, min_windows,
+    nhap, window, min_windows, step_size,
     min_sa, edge, min_depth,
     cutoff, hifi,
     threads, output,

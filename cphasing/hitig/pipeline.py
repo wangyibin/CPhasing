@@ -26,6 +26,7 @@ def run(
     fasta, fastq,
     min_as, min_mapq,
     nhap, window, min_windows,
+    step,
     min_sa, edge, min_depth,
     cutoff, hifi,
     threads, output, 
@@ -53,7 +54,7 @@ def run(
         corrected_paf = f"{output}.corrected.paf"
         break_point_file = find_split_alignment.workflow(lis, window, min_sa, edge, output)
 
-        depth_file = paf2depth.workflow(corrected_paf, fasta, window, output)
+        depth_file = paf2depth.workflow(corrected_paf, fasta, window, step, output)
 
         break_pos_file = norm_merge_bp.workflow(break_point_file, depth_file, 
                                                     window, min_depth, cutoff, output)

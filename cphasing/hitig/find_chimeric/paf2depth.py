@@ -131,14 +131,14 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000)
     cmd = f"cut -f 6,8,9 {paf} > temp.{output}.paf.bed"
     os.system(cmd)
 
-    cmd = f"bedtools intersect -F 0.5 -a  temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
+    cmd = f"bedtools intersect -f 0.5 -a  temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
     os.system(cmd)
 
     os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
     os.remove(f"temp.{output}.paf.bed")
 
 
-def workflow(paf, fastaFile, win, outPre):
+def workflow(paf, fastaFile, win, step, outPre):
     ## 
     # win = int(win)
     # pafDic = read_paf(paf)
@@ -152,7 +152,7 @@ def workflow(paf, fastaFile, win, outPre):
 
     # with Pool(processes=4) as p:
     #     depthDic = p.starmap(cal_depth, [(winDic,) for _ in range(p._processes)])
-    calculate_depth_by_bedtools(paf, fastaFile, outPre, win)
+    calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step)
 
     return f'{outPre}.depth'
 
@@ -164,8 +164,11 @@ if __name__ == "__main__":
                         help='<filepath>  break-point of chimeric contigs.')
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')
+    parser.add_argument('-s', '--step', default=1000,
+                        help='<int> step size when calculating depth.')
+    
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # paf, breakpointFile, fasta, win, outPre
-    workflow(args.paf, args.fasta, args.win, args.output)
+    workflow(args.paf, args.fasta, args.win, args.step, args.output)

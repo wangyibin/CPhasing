@@ -14,6 +14,15 @@ from ..utilities import xopen
 
 logger = logging.getLogger(__name__)
 
+def get_file_type(input_file):
+    with xopen(input_file) as fp:
+        for line in fp:
+            if line.startswith(">"):
+                return "fasta"
+            elif line.startswith("@"):
+                return "fastq"
+            else:
+                return
 
 """
 0. 比对！
@@ -45,6 +54,11 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre, is_hifi=
     else:
         readsLst = [reads]
 
+    file_type = get_file_type(readsLst[0])
+    if not file_type:
+        logger.error("Input error: please input fasta or fastq.")
+        sys.exit()
+
     if readsLst[0][-3:] == ".gz":
         cat_cmd = "pigz -p 4 -dc"
     else:
@@ -53,15 +67,16 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre, is_hifi=
     min_length = window * min_windows
 
     if len(readsLst) > 1:
-        minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} \
+        minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} -f {}\
                             | minimap2 -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
-                                cat_cmd, ' '.join(readsLst), window, min_length, threads, preset, fasta,  outPre)
+                                cat_cmd, ' '.join(readsLst), window, min_length, 
+                                        file_type, threads, preset, fasta,  outPre)
     else:
-        minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} \
+        minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} -f {} \
                             | minimap2 -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
-                                readsLst[0], window, min_length, threads, preset, fasta,  outPre)
+                                readsLst[0], window, min_length, file_type, threads, preset, fasta,  outPre)
     
     logger.info("Running Command:")
     logger.info(f"\t\t{minimap2CMD}")

@@ -131,7 +131,7 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000)
     cmd = f"cut -f 6,8,9 {paf} > temp.{output}.paf.bed"
     os.system(cmd)
 
-    cmd = f"bedtools intersect -f 0.5 -a  temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
+    cmd = f"bedtools intersect -f 0.5 -a temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
     os.system(cmd)
 
     os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")

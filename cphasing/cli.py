@@ -1275,7 +1275,7 @@ def summary(pore_c_table, read_number, threads, use_dask):
     show_default=True,
     help='Number of threads.'
 )
-def pore_c_chrom2contig(
+def porec_chrom2contig(
     pore_c_table, 
     contig_bed,
     output,
@@ -1862,6 +1862,48 @@ def prepare(fasta, pairs, min_mapq,
          threads=threads, outprefix=outprefix)
     pass 
 
+@cli.command(cls=RichCommand, hidden=True)
+@click.option(
+    '-prs',
+    '--pairs',
+    metavar="Pairs",
+    help="4DN pairs file, which generated from `cphasing mapper`, or `cphasing hic mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-d',
+    '--depth',
+    metavar="Depth",
+    help="Cis long-range counts.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-w',
+    '--window-size',
+    'window_size',
+    metavar='INT',
+    default=300,
+    show_default=True,
+)
+def chimeric(pairs, depth, window_size):
+    from .chimeric import calculate_depth, correct
+    assert any([pairs, depth]), "Pairs or Depth file must be input."
+
+    if pairs:
+        depth_dict = calculate_depth(pairs)
+    elif depth:
+        df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
+                        names=['contig', 'start', 'end', 'depth'])
+        df = df.sort_values(['contig', 'start'])
+    
+        depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
+
+    break_point_res = correct(depth_dict)
+    print(break_point_res)
 
 
 @cli.command(cls=RichCommand)
@@ -3859,6 +3901,7 @@ def pairs2cool(pairs, chromsize, outcool,
     "-s",
     "--scale",
     metavar="STR",
+    help="Method of contact normalization",
     default="log1p",
     type=click.Choice(["log1p", "log", "none"]),
     show_default=True,
@@ -3919,7 +3962,7 @@ def pairs2cool(pairs, chromsize, outcool,
     Colormap of heatmap. 
     Available values can be seen : 
     https://pratiman-91.github.io/colormaps/ 
-    and http://matplotlib.org/examples/color/colormaps_reference.html
+    and http://matplotlib.org/examples/color/colormaps_reference.html and `whitered`.
     """,
     default='redp1_r',
     show_default=True

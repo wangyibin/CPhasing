@@ -103,7 +103,8 @@ class Extractor:
                                 comment_prefix="#", columns=[1, 3, 7],
                                 new_columns=['chrom1', 'chrom2', 'mapq'],
                                 dtypes=dtype)
-                p = p.filter(pl.col('mapq') >= self.min_mapq)
+                if self.min_mapq > 0:
+                    p = p.filter(pl.col('mapq') >= self.min_mapq)
                 p = p.to_pandas()
 
                 res = Extractor._process_df(p, self.contig_idx, self.threads)   

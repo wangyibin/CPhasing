@@ -22,6 +22,7 @@ import pandas as pd
 
 from math import ceil
 from intervaltree import Interval, IntervalTree
+from matplotlib.colors import LinearSegmentedColormap
 from multiprocessing import Lock, Pool
 from joblib import Parallel, delayed
 from pandarallel import pandarallel
@@ -40,6 +41,8 @@ HIC_METADATA['matrix-generated-by-url'] = np.string_(
     'https://github.com/wangyibin/CPhasing'
 )
 
+## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
+whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
 
 lock = Lock()
  
@@ -883,15 +886,19 @@ def plot_heatmap_core(matrix,
     matplotlib.use('Agg')       
     from matplotlib import colors
     import seaborn as sns 
+
+    if cmap == 'whitered':
+        colormap = whitered_cmap
+    else:
+        try:
+            """
+            https://pratiman-91.github.io/colormaps/
+            """
+            colormap = getattr(cmaps, cmap)
+        except:
+            colormap = cmap 
     
-    try:
-        """
-        https://pratiman-91.github.io/colormaps/
-        """
-        colormap = getattr(cmaps, cmap)
-    except:
-        colormap = cmap 
-    
+        
     # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
     # sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
     #                 norm=norm,

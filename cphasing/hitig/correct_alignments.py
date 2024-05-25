@@ -9,8 +9,10 @@ from joblib import Parallel, delayed
 import argparse
 from copy import deepcopy
 import collections
+import pandas as pd
+import polars as pl 
 
-from ..utilities import xopen
+from cphasing.utilities import xopen
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +70,13 @@ def minimap_mapping(fasta, reads, window, min_windows, threads, outPre, is_hifi=
 
     if len(readsLst) > 1:
         minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} -f {}\
-                            | minimap2 -t {} --qstrand -cx {} \
+                            | minimap2 -I 16g -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
                                 cat_cmd, ' '.join(readsLst), window, min_length, 
                                         file_type, threads, preset, fasta,  outPre)
     else:
         minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} -f {} \
-                            | minimap2 -t {} --qstrand -cx {} \
+                            | minimap2 -I 16g -t {} --qstrand -cx {} \
                             -p.3 {} - > {}.paf".format(
                                 readsLst[0], window, min_length, file_type, threads, preset, fasta,  outPre)
     
@@ -111,7 +113,30 @@ def read_paf(paf, minAS, nhap):
             if qi not in pafDic[originQn]:
                 pafDic[originQn][qi] = []
             pafDic[originQn][qi].append([int(qs),int(qe),s,tn,int(ts),int(te),int(ql),int(tl),int(al1),int(al2), int(mapq), int(AS)])
+    # os.environ['POLARS_MAX_THREADS'] = '4'
+    # df = pl.read_csv(paf, has_header=False, 
+    #                  separator='\t', columns=range(15))
+
+    # df = df.filter(df['column_1'].is_not_null())
+    # df = (df.with_columns(pl.col("column_1")
+    #                 .str.extract_groups(r"(.+)_(\d+)$")
+    #                 .struct.rename_fields(['originQn', 'qi'])
+    #                 .alias('fields')
+    #                 ).unnest('fields')).drop("column_1")
+    # df = df.with_columns([
+    #     df['originQn'].cast(pl.Categorical),
+    #     df['qi'].cast(pl.UInt32)
+    # ])
+
+    # df = df.with_columns(pl.col("column_15").str.splitn(":", 3).struct[2].cast(pl.Int32).alias('AS')).drop("column_15")
+    # df = df.with_columns(pl.col("column_13").str.splitn(":", 3).struct[2].cast(pl.Int32).alias('NM')).drop("column_13")
+    # df = df.filter(df['AS'] >= minAS)
+
+    # print(df)
+    
+    # print(df.group_by(['originQn', 'qi']).apply(lambda x: x.head(maxAlign)))
     ## sort pafDic
+    
     for qn in pafDic:
         qnDic = pafDic[qn]
         for qi in qnDic:
@@ -819,8 +844,8 @@ if __name__ == "__main__":
                         help='<filepath>  window fastq file.')
     parser.add_argument('-a', '--minAS', default=2000,
                         help='<int> minimun Alignment Score, default is 2000.')
-    parser.add_argument('-m', '--minMapq', default=30,
-                        help='<int> minimun Alignment Score, default is 10.')
+    parser.add_argument('-m', '--minMapq', default=1,
+                        help='<int> minimun Alignment Score, default is 1.')
     parser.add_argument('-n', '--nhap', default=4,
                         help='<int> maximum supplement aligment records.')
     parser.add_argument('-w', '--window', default=5000,
@@ -831,5 +856,5 @@ if __name__ == "__main__":
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # fastqFile, win, part, threads
-    workflow(args.fasta, args.fastq, args.threads, args.output, args.window, args.nhap, args.minAS, args.minMapq)
+    workflow(args.fasta, args.fastq, args.threads, args.output, args.window, 10, args.nhap, args.minAS, args.minMapq, hifi=False)
 

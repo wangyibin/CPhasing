@@ -531,6 +531,16 @@ def stat_contigsizes(contigsizes: pd.DataFrame) -> pd.DataFrame:
 
     return df 
     
+def parse_corrected_contig(contig):
+    try:
+        contig, ranges = contig.split(":")
+        start, end = ranges.split("-")
+        start, end = int(start), int(end)
+
+        return contig, start, end
+    
+    except:
+        return None 
 
 def check_platform():
     import platform

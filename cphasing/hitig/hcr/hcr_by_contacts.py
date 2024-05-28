@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from matplotlib.ticker import MaxNLocator
+from scipy.signal import find_peaks
 
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,14 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
 
     x = kdelines.lines[0].get_xdata()
     y = kdelines.lines[0].get_ydata()
-    max_idx = np.argmax(y)
-    
+
+
+    peak_ind = find_peaks(y, distance=10)[0]
+
+    median_value = np.quantile(data, .3)
+    peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+    max_idx = peak_ind[np.argmax(y[peak_ind])]
+  
     
     ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
                     0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')

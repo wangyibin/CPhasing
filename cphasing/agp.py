@@ -9,7 +9,7 @@ import sys
 
 import pandas as pd 
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from natsort import natsort_keygen
 from joblib import Parallel, delayed
 from pathlib import Path
@@ -139,7 +139,7 @@ def agp2cluster(agp, store=None):
 
     return cluster_df
 
-def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
+def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
     """
     Convert agp to chromosome-level fasta file.
 
@@ -186,23 +186,39 @@ def agp2fasta(agp, fasta, output=sys.stdout, threads=1):
    
     GAP = 'N' * gap_df.length[0]
 
-    cluster_df = agp_df.groupby('chrom')
-    for chrom, cluster in cluster_df:
-        seqs = []
-        id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
-    #outs = Parallel(n_jobs=threads, verbose=10)(delayed(get_seqs)(chrom, cluster) for chrom, cluster in cluster_df)
-    #print(outs)
-        for contig, orient in id_orient:
-            if orient == '+':
-                seqs.append(str(seq_db[contig]))
-            else:
-                seqs.append(str(seq_db[contig].reverse_complement()))
+    if not output_contig:
+        cluster_df = agp_df.groupby('chrom')
+        for chrom, cluster in cluster_df:
+            seqs = []
+            id_orient = cluster.loc[:, ['id', 'tig_start', 'tig_end', 'orientation']].values.tolist()
         
-        out_seq = GAP.join(seqs)
-        print(f'>{chrom}', file=output)
-        print(out_seq, file=output)
+            for contig, contig_start, contig_end, orient in id_orient:
+                if orient == '+':
+                    seqs.append(str(seq_db[contig][contig_start - 1: contig_end]))
+                else:
+                    seqs.append(str(seq_db[contig][contig_start - 1: contig_end].reverse_complement()))
+            
+            out_seq = GAP.join(seqs)
+            print(f'>{chrom}', file=output)
+            print(out_seq, file=output)
 
-    logger.info(f"Output chromosome-level fasta into `{output.name}`.")
+        logger.info(f"Output chromosome-level fasta into `{output.name}`.")
+    
+    else:
+        tmp_data = agp_df.reset_index()[['chrom', 'id', 'tig_start', 'tig_end']].values.tolist()
+        for record in tmp_data:
+            output_contig, raw_contig, start, end = record 
+            seq = seq_db[raw_contig]
+            if start == 1 and end == len(seq):
+                seq = str(seq)
+                output_contig = raw_contig
+            else:
+                seq = str(seq[start-1: end-1])
+                output_contig = f"{raw_contig}:{start}-{end}"
+            print(f'>{output_contig}', file=output)
+            print(seq, file=output)
+
+        logger.info(f"Output contig-level fasta into `{output.name}`.")
 
 def agp2tour(agp, outdir, force=False):
     """
@@ -353,3 +369,208 @@ def pseudo_agp(real_list, contigsizes, output):
                 print("\t".join(map(str, [chrom, start, end, idx, "U", 100, "contig", "yes", "map",])), file=output)
 
         
+def assembly2agp(assembly, fasta,
+                 max_chrom=8, sort_by_length=False,
+                 gap_len=100,
+                 phased=False, chrom_prefix="Chr",
+                 outprefix=None):
+    
+    logger.info(f"Converting assembly to agp ...")
+    if not outprefix:
+        outprefix = Path(assembly).absolute().stem 
+
+    contig_db = OrderedDict()
+    contig_idx_db = OrderedDict()
+    contig_idx_length_db = OrderedDict()
+    fragment_db = OrderedDict()
+    scaffolds = []
+    with open(assembly) as fp:
+        for line in fp:
+            if line.strip().startswith(">"):
+                contig, contig_idx, contig_len = line[1:].split()
+                contig_db[contig] = (int(contig_idx), int(contig_len))
+                contig_idx_db[int(contig_idx)] = contig 
+                contig_idx_length_db[int(contig_idx)] = int(contig_len)
+
+                if ":::" in contig:
+                    raw_contig_data = contig.split(":::")
+                    raw_contig = raw_contig_data[0]
+                    raw_fragment_idx = int(raw_contig_data[1].replace("fragment_", ""))
+        
+
+                    if raw_contig not in fragment_db:
+                        fragment_db[raw_contig] = []
+                    fragment_db[raw_contig].append((contig, raw_fragment_idx, int(contig_len)))
+            else:
+                scaffolds.append(line.strip().split())
+
+    
+    fragments_range = OrderedDict()
+    for raw_contig in fragment_db:
+        fragments = sorted(fragment_db[raw_contig], key=lambda x: x[1])
+        start = 1 
+        for fragment in fragments:
+            contig, fragment_idx, fragment_length = fragment 
+            fragments_range[contig] = (raw_contig, start, start + fragment_length)
+            start += fragment_length
+    
+    # print(sorted(fragments_range.items(), key=lambda x: x[1][1]))
+
+
+    scaffolds_length_db = defaultdict(int)
+    raw_agp_records = OrderedDict()
+    agp_records = OrderedDict()
+    for i, group in enumerate(scaffolds):
+        raw_record = []
+        record = []
+        record_num = 0
+        start = 1 
+        for idx in group:
+            if idx.startswith("-"):
+                orient = "-"
+                idx = int(idx[1:])
+            else:
+                orient = "+"
+                idx = int(idx )
+            
+            contig_length = contig_idx_length_db[idx]
+            scaffolds_length_db[i] += contig_length
+
+            contig = contig_idx_db[idx]
+            
+           
+    
+            if contig in fragments_range:
+                raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
+                # contig = f'{raw_contig}:{raw_contig_start}-{raw_contig_end}'
+
+            else:
+                raw_contig, raw_contig_start, raw_contig_end = contig, 1, contig_length
+        
+            record.append((i, start, start + contig_length, record_num,
+                            "W", contig, 1, contig_length, orient))
+            
+            raw_record.append((
+                i, start, start + contig_length, record_num,
+                "W", raw_contig, raw_contig_start, raw_contig_end - 1, orient,
+            ))
+    
+
+           
+            record_num += 1 
+            start += contig_length + gap_len
+        
+        agp_records[i] = record 
+        raw_agp_records[i] = raw_record
+        
+        
+    if sort_by_length:
+        scaffolds_idx = sorted(scaffolds_length_db.items(), key=lambda x: x[1], reverse=True)
+    else:
+        scaffolds_idx = list(scaffolds_length_db.keys())
+    
+
+    raw_agp = f"{outprefix}.raw.agp"
+    agp = f"{outprefix}.agp"
+
+    with open(raw_agp, "w") as raw_out, open(agp, "w") as out:
+        record_num = 1
+        for group_idx in scaffolds_idx:
+            records = agp_records[group_idx]
+            raw_records = raw_agp_records[group_idx]
+            unanchor_records = []
+            if max_chrom:
+                for i, (record, raw_record) in enumerate(zip(records, raw_records)):
+                    chrom_num = group_idx + 1
+                    if chrom_num > max_chrom:
+                        unanchor_records.append(record)
+                    else:
+                        _, start, end, _, _type, contig, contig_start, contig_end, orient = record
+
+                        if phased:
+                            chrom = f"{chrom_prefix}g{chrom_num}"
+                        else:
+                            chrom = f"{chrom_prefix}{chrom_num:0>2}"
+                        
+                        if contig in fragments_range:
+                            raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
+                            contig = f"{raw_contig}:{raw_contig_start}-{raw_contig_end-1}"
+                        
+                        print("\t".join(map(str, (chrom, start, end - 1, record_num, _type, 
+                                                    contig, contig_start, contig_end, orient))), file=out)
+
+                        _, raw_start, raw_end, _, _type, raw_contig, contig_start, contig_end, orient = raw_record
+
+                        print("\t".join(map(str, (chrom, raw_start, raw_end - 1, record_num, _type, 
+                                                    raw_contig, contig_start, contig_end, orient))), file=raw_out)
+                        
+                        if i < len(records) - 1:
+                            record_num += 1
+                            print("\t".join(map(str, (chrom, start + gap_len, end + gap_len, record_num, 
+                                                        "U", gap_len, "contig", "yes", "map" ))), file=out)
+                            print("\t".join(map(str, (chrom, raw_start + gap_len, raw_end + gap_len, record_num, 
+                                                        "U", gap_len, "contig", "yes", "map" ))), file=raw_out)
+                        record_num += 1
+                        
+                else:
+                    for record in unanchor_records:
+                        _, start, end, _, _type, contig, contig_start, contig_end, orient = record
+                        if contig in fragments_range:
+                            raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
+                            chrom = f"{raw_contig}:{raw_contig_start}-{raw_contig_end - 1}"
+                            contig = chrom
+                        else:
+                            chrom = contig
+                            raw_contig = contig
+                            raw_contig_start, raw_contig_end = contig_start, contig_end
+
+                        print("\t".join(map(str, (chrom, 1, raw_contig_end - raw_contig_start, record_num, _type, 
+                                                    contig, 1, raw_contig_end - raw_contig_start, '+'))), file=out)
+                        
+
+                        print("\t".join(map(str, (chrom, 1, raw_contig_end - raw_contig_start, record_num, _type, 
+                                                    raw_contig, raw_contig_start, raw_contig_end - 1, '+'))), file=raw_out)
+                        record_num += 1
+
+            else:
+                for i, (record, raw_record) in enumerate(zip(records, raw_records)):
+                    chrom_num = group_idx + 1
+                    _, start, end, _, _type, contig, contig_start, contig_end, orient = record
+
+                    if phased:
+                        chrom = f"{chrom_prefix}g{chrom_num}"
+                    else:
+                        chrom = f"{chrom_prefix}{chrom_num:0>2}"
+                    
+                    if contig in fragment_db:
+                        raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
+                        contig = f"{raw_contig}:{raw_contig_start}-{raw_contig_end}"
+
+                    print("\t".join(map(str, (chrom, 1, contig_end - contig_start, record_num, _type, 
+                                                contig, contig_start, contig_end, orient))), file=out)
+                    
+                    _, raw_start, raw_end, _, _type, raw_contig, contig_start, contig_end, orient = raw_record
+
+                    print("\t".join(map(str, (chrom, raw_start, raw_end, record_num, _type, 
+                                                raw_contig, contig_start, contig_end, orient))), file=raw_out)
+                    
+                    if i < len(records) - 1:
+                        record_num += 1
+                        print("\t".join(map(str, (chrom, start + 100, end + 100, record_num, 
+                                                    "U", 100, "contig", "yes", "map" ))), file=out)
+                        print("\t".join(map(str, (chrom, raw_start + 100, raw_end + 100, record_num, 
+                                                    "U", 100, "contig", "yes", "map" ))), file=raw_out)
+                    record_num += 1
+
+        logger.info(f"Successful output agp file `{agp}`.")
+        logger.info(f"Successful output agp file `{raw_agp}`.")
+
+    
+    # if len(fragments_range) > 1:
+        
+    #     output_corrected_fasta = f"{outprefix}.corrected.fasta"
+    #     with open(output_corrected_fasta, 'w') as output_fasta:
+    #         agp2fasta(raw_agp, fasta, output=output_fasta, output_contig=True)
+    # else:
+    #     logger.info(f"Fragmented contig not found, the `{raw_agp}` equale to `{agp}`, "
+    #                 f"and fasta can be used to subsequence analysis.")

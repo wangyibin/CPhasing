@@ -202,6 +202,7 @@ dependencies:
     - pandarallel==1.6.5
     - partd==1.4.1
     - polars==0.20.25
+    - portion==2.4.2
     - psutil==5.9.0
     - pyarrow==15.0.2
     - pyfaidx==0.8.1.1

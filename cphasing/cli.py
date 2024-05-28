@@ -10,6 +10,7 @@ import logging
 import sys 
 import os
 import os.path as op
+import re
 
 import numpy as np
 import pandas as pd
@@ -189,6 +190,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of Heatmap",
             "options": [
                         "--chromosomes", "--per-chromosomes",
+                        "--only-chr", "--chr-prefix",
                         "--chrom-per-row",
                         "--vmin", "--vmax", 
                         "--scale",
@@ -1864,6 +1866,14 @@ def prepare(fasta, pairs, min_mapq,
 
 @cli.command(cls=RichCommand, hidden=True)
 @click.option(
+    '-f',
+    '--fasta',
+    metavar="FASTA",
+    help="Path to draft assembly",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
     '-prs',
     '--pairs',
     metavar="Pairs",
@@ -1889,12 +1899,30 @@ def prepare(fasta, pairs, min_mapq,
     default=300,
     show_default=True,
 )
-def chimeric(pairs, depth, window_size):
-    from .chimeric import calculate_depth, correct
+@click.option(
+    '-o',
+    '--outprefix',
+    help='output prefix, if none use the prefix of fasta',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help="Number of threads. ",
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
+    from .chimeric import import_pairs, calculate_depth, correct
     assert any([pairs, depth]), "Pairs or Depth file must be input."
 
     if pairs:
-        depth_dict = calculate_depth(pairs)
+        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
+        depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
+                                        threads=threads)
     elif depth:
         df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
                         names=['contig', 'start', 'end', 'depth'])
@@ -1902,7 +1930,7 @@ def chimeric(pairs, depth, window_size):
     
         depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
 
-    break_point_res = correct(depth_dict)
+    break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
     print(break_point_res)
 
 
@@ -3305,6 +3333,13 @@ def hyperoptimize(hypergraph):
     type=click.Path(exists=True)
 )
 @click.option(
+    '--corrected',
+    is_flag=True,
+    help="Is corrected contigs in tours, which used when fasta and tour inconsistent",
+    default=False, 
+    hidden=True
+)
+@click.option(
     "-o",
     "--output",
     metavar="STR",
@@ -3329,14 +3364,14 @@ def hyperoptimize(hypergraph):
     default=False,
     show_default=True
 )
-def build(fasta, output, output_agp, only_agp):
+def build(fasta, corrected, output, output_agp, only_agp):
     """
     Build genome release.
 
     Fasta : contig-level fasta file
     """
     from .build import Build
-    Build(fasta, output, 
+    Build(fasta, output,  corrected=corrected,
             output_agp=output_agp, only_agp=only_agp)
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
@@ -3940,6 +3975,24 @@ def pairs2cool(pairs, chromsize, outcool,
     default=False
 )
 @click.option(
+    '-oc',
+    '--only-chr',
+    help='Only plot the chromosomes that ignore unanchored contigs.'
+         'When `--chromosomes` specifed, this parameter will be ignored.'
+         'The default use prefix of `Chr` to find the chromosomes. '
+        '`--chr-prefix` can be used to change this.',
+    is_flag=True,
+    default=False
+)
+@click.option(
+    '-cp',
+    '--chr-prefix',
+    metavar="STR",
+    help="Prefix of the chromosomes, only used for `--only-chr`",
+    default='Chr',
+    show_default=True
+)
+@click.option(
     '-cpr',
     '--chrom-per-row',
     'chrom_per_row',
@@ -4040,6 +4093,8 @@ def plot(matrix,
             vmax,
             chromosomes, 
             per_chromosomes,
+            only_chr,
+            chr_prefix,
             chrom_per_row, 
             dpi, 
             cmap,
@@ -4128,7 +4183,11 @@ def plot(matrix,
     else:
         
         chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
-        
+    
+    if not chromosomes and only_chr:
+        regex = re.compile(f"^{chr_prefix}")
+        chroms = cooler.Cooler(matrix).chromnames 
+        chromosomes = list(filter(lambda x: regex.findall(x), chroms))
 
     if no_ticks:
         xticks = False 
@@ -4296,6 +4355,13 @@ def agp2cluster(agpfile, output):
     default=sys.stdout
 )
 @click.option(
+    "-c",
+    "--contig",
+    help="Outptu contig-level fasta",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -4305,7 +4371,7 @@ def agp2cluster(agpfile, output):
     show_default=True,
 
 )
-def agp2fasta(agpfile, fasta, output, threads):
+def agp2fasta(agpfile, fasta, output, contig, threads):
     """
     Convert agp to fasta
 
@@ -4314,7 +4380,7 @@ def agp2fasta(agpfile, fasta, output, threads):
         FASTA: Path of draft assembly
     """
     from .agp import agp2fasta
-    agp2fasta(agpfile, fasta, output)
+    agp2fasta(agpfile, fasta, output, contig)
 
 @utils.command(cls=RichCommand)
 @click.argument(
@@ -4347,6 +4413,71 @@ def agp2tour(agp, outdir, force):
     from .agp import agp2tour
 
     agp2tour(agp, outdir, force)
+
+
+
+@utils.command(cls=RichCommand, short_help="Convert assembly to agp file and contigs file")
+@click.argument(
+    "assembly",
+    metavar="Assembly",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "fasta",
+    metavar="Fasta",
+    type=click.Path(exists=True)
+
+)
+@click.option(
+    "-m",
+    "--max-chrom",
+    metavar="INT",
+    help="maximum number of chromosome or scaffold, and remain scaffolds will output into contig-level",
+    type=int,
+    default=None,
+    show_default=True
+)
+@click.option(
+    "-cp",
+    "--chr-prefix",
+    help="The prefix of chromosome",
+    metavar="STR",
+    default="Chr",
+    show_default=True
+)
+@click.option(
+    "-p",
+    "--phased",
+    help="Output phased chromosome name, {prefix}g{num}.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
+    "-s",
+    "--sort",
+    "sort_by_length",
+    help="Sort scaffolds by scaffold-length",
+    default=False,
+    is_flag=True
+)
+@click.option(
+    '-o',
+    '--outprefix',
+    help='output prefix, if none use the prefix of assembly',
+    default=None,
+    show_default=True
+)
+def assembly2agp(assembly, fasta, max_chrom, 
+                chr_prefix, phased, sort_by_length, outprefix):
+    from .agp import assembly2agp 
+
+    assembly2agp(assembly, fasta, max_chrom=max_chrom, 
+                    chrom_prefix=chr_prefix, phased=phased,
+                    sort_by_length=sort_by_length, outprefix=outprefix)
+
+
+
+
 
 @utils.command(cls=RichCommand, short_help='Statistics of contigsizes')
 @click.argument(

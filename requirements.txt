@@ -17,6 +17,7 @@ matplotlib
 msgspec
 pandas >= 2.2.0
 pandarallel
+portion 
 polars >= 0.20
 pyarrow >= 8.0.0
 pyfaidx >= 0.7.0

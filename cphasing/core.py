@@ -32,7 +32,8 @@ from .utilities import (
     tail, 
     xopen, 
     gz_reader,
-    read_chrom_sizes
+    read_chrom_sizes,
+    parse_corrected_contig
 )
 
 logger = logging.getLogger(__name__)
@@ -1503,7 +1504,7 @@ class Tour:
         """
         self.data = list(map(lambda x: TourSingle(''.join(x)), tuples))
     
-    def to_agp(self, fasta, gap_length=100):
+    def to_agp(self, fasta, gap_length=100, corrected=False):
         """
         Convert tour to agp component.
 
@@ -1525,18 +1526,29 @@ class Tour:
         start = 1
         i = 1
         old_end = 0
+        corrected_contigs = []
         for contig, orient in self:
-            try:
-                length = fasta.faidx.index[contig].rlen
-                # length = len(fasta[contig])
-            except KeyError:
-                continue
-            
+            corrected_contig = parse_corrected_contig(contig)
+           
+            if corrected and corrected_contig:
+                contig, tig_start, tig_end = corrected_contig 
+                corrected_contigs.append(corrected_contig)
+                
+            else:
+                try:
+                    length = fasta.faidx.index[contig].rlen
+                    # length = len(fasta[contig])
+                except KeyError:
+                    continue
+                
+                tig_start = 1 
+                tig_end = length 
+
             start = old_end + 1
-            end = start + length - 1
+            end = start + (tig_end - tig_start + 1) - 1
             
             res.append((self.group, start, end, i, 'W', contig, 
-                    1, length, orient))
+                    tig_start, tig_end, orient))
             
             i += 1
             if i <= len(self) * 2 - 1:
@@ -1545,7 +1557,7 @@ class Tour:
                 old_end = end + gap_length
                 i += 1
             
-        return pd.DataFrame(res)
+        return corrected_contigs, pd.DataFrame(res)
 
     def get_fasta(self, fasta):
         """

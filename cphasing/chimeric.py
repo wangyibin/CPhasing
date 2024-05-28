@@ -32,7 +32,7 @@ def _calculate_depth(contig, contig_length, window_size, position_data):
 
     return contig, data 
 
-def calculate_depth(pairs, window_size=500, min_mapq=0):
+def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     dtype = dtype = {'chrom1': pl.Categorical, 
                      'pos1': pl.UInt32,
                      'chrom2': pl.Categorical, 
@@ -47,8 +47,7 @@ def calculate_depth(pairs, window_size=500, min_mapq=0):
     contigsizes_bed = contigsizes_bed[['index', 'start', 'length']]
     contigsizes_bed.columns = ['chrom', 'start', 'end']
     
-    
-
+    os.environ["POLARS_MAX_THREADS"] = str(threads)
     p = (pl.read_csv(pairs, separator='\t', has_header=False,
                            comment_prefix="#", columns=[1, 2, 3, 4, 7],
                            new_columns=['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'],
@@ -76,7 +75,11 @@ def calculate_depth(pairs, window_size=500, min_mapq=0):
     )
     
     p = p.drop('mapq').to_pandas()
-    
+
+    return p, contigsizes
+
+def calculate_depth(p, contigsizes, window_size=500, min_mapq=0, threads=4):
+
     args = []
     for contig, tmp_df in p.groupby('chrom1', as_index=True):
         args.append((contig, contigsizes[contig], window_size, tmp_df[['pos1', 'pos2']].values))
@@ -95,7 +98,7 @@ def calculate_depth(pairs, window_size=500, min_mapq=0):
     return res_db
     
 
-def correct(depth_dict, window_size=500, min_windows=10, threads=4):
+def correct(depth_dict, window_size=500, min_windows=50, threads=4):
     args = []
     for contig in depth_dict:
         b = depth_dict[contig]
@@ -130,7 +133,7 @@ def find_nearest(array, value):
 
     return idx, array[idx]
 
-def find_break_point(contig, b, min_windows=20):
+def find_break_point(contig, b, min_windows=50):
     a = np.arange(len(b))
     try:
         z1 = np.polyfit(a, b, 50)
@@ -140,11 +143,12 @@ def find_break_point(contig, b, min_windows=20):
     yvalues = p1(a)
 
     peak_ind = find_peaks(yvalues, distance=10)[0]
-    if len(peak_ind) == 1:
-        return None
 
     peak_ind = list(filter(lambda x: x >= min_windows and x <= (len(b)  - min_windows), list(peak_ind)))
-    
+
+    if len(peak_ind) <= 1:
+        return None
+
     
     trough_ind = find_peaks(-yvalues, distance=10)[0]
     peak_widths_result = peak_widths(yvalues, peak_ind, rel_height=0.4)
@@ -190,8 +194,8 @@ def find_break_point(contig, b, min_windows=20):
 
             peak_width_x1 = list(map(int, peak_widths_x[nearest_peak_idx]))
             peak_width_x2 = list(map(int, peak_widths_x[nearest_peak2_idx]))
-            peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
-            peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
+            # peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
+            # peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
             peak1_y = b[peak_width_x1[0]:peak_width_x1[1]].mean()
             peak2_y = b[peak_width_x2[0]: peak_width_x2[1]].mean()
 

@@ -225,6 +225,7 @@ dependencies:
     - multiprocess==0.70.16
     - ncls==0.0.68
     - polars==0.20.0
+    - portion==2.4.2
     - psutil==5.9.8
     - pyarrow==15.0.2
     - pynvml==11.5.0

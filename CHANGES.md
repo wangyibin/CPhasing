@@ -8,7 +8,7 @@ Date: 2024-05-17
 
 ## Bug fixes
 - `pipeline`, fixed bug of contacts generating
-
+- `hcr_from_contacts`, find error peak in low coverage regions
 
 ## [v0.1.8]
 Date: 2024-05-15

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
 
-import rich_click as click
-from rich_click import RichCommand
-from click_didyoumean import DYMGroup
-
 
 import logging
 import sys 
@@ -14,6 +10,10 @@ import re
 
 import numpy as np
 import pandas as pd
+
+import rich_click as click
+from rich_click import RichCommand
+from click_didyoumean import DYMGroup
 
 from collections import defaultdict
 from pathlib import Path
@@ -1889,14 +1889,15 @@ def prepare(fasta, pairs, min_mapq,
     help="Cis long-range counts.",
     type=click.Path(exists=True),
     default=None,
-    show_default=True
+    show_default=True,
+    hidden=True
 )
 @click.option(
     '-w',
     '--window-size',
     'window_size',
     metavar='INT',
-    default=300,
+    default=500,
     show_default=True,
 )
 @click.option(
@@ -1916,22 +1917,27 @@ def prepare(fasta, pairs, min_mapq,
     show_default=True,
 )
 def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
-    from .chimeric import import_pairs, calculate_depth, correct
+    from .chimeric import run, import_pairs, calculate_depth, correct, break_points_to_regions, write_fasta
     assert any([pairs, depth]), "Pairs or Depth file must be input."
 
+    
+
     if pairs:
-        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
-        depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
-                                        threads=threads)
+        run(fasta, pairs, window_size, outprefix, threads)
+        
     elif depth:
         df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
                         names=['contig', 'start', 'end', 'depth'])
         df = df.sort_values(['contig', 'start'])
     
         depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
+        break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
 
-    break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
-    print(break_point_res)
+        if not break_point_res.empty:
+            break_point_res = break_point_res.to_csv("output.breakPos.txt", 
+                                            sep='\t', index=None, header=None)
+
+    
 
 
 @cli.command(cls=RichCommand)

@@ -141,7 +141,7 @@ def hitig(ctx):
     metavar='INT',
     help='minimum depth of windows',
     type=int,
-    default=3,
+    default=1,
     show_default=True
 )
 @click.option(
@@ -151,7 +151,7 @@ def hitig(ctx):
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
     type=click.FloatRange(0, 1.0),
-    default=0.8,
+    default=0.75,
     show_default=True
 )
 @click.option(
@@ -398,6 +398,7 @@ def correct_alignments(
     metavar='PATH',
     help='the corrected UL-ONT reads/Hifi reads mapping result, must be .paf format.',
     required=True,
+    type=click.Path(exists=True),
 )
 @click.option(
     '-l', 
@@ -405,12 +406,14 @@ def correct_alignments(
     metavar='PATH',
     help='Corrected alignment result with mapping quality greater than thredshold (eg. outputmapq.LIS.gtf).',
     required=True,
+    type=click.Path(exists=True),
 )
 @click.option(
     '-f',
     '--fasta',
     metavar='PATH',
     help='the raw contigs file.',
+    type=click.Path(exists=True),
     required=True
 )
 @click.option(
@@ -422,12 +425,20 @@ def correct_alignments(
     type=int
 )
 @click.option(
+    '--step-size',
+    'step_size',
+    help='step size',
+    default=1000,
+    show_default=True,
+    type=int
+)
+@click.option(
     '-m',
     '--min-sa',
     'min_sa',
     metavar='INT',
     help='Number of minmum split alignments in a window.',
-    default=3,
+    default=5,
     type=int,
     show_default=True,
 )
@@ -447,7 +458,7 @@ def correct_alignments(
     metavar='INT',
     help='minimum depth of windows',
     type=int,
-    default=5,
+    default=3,
     show_default=True
 )
 @click.option(
@@ -457,7 +468,7 @@ def correct_alignments(
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
     type=click.FloatRange(0, 1.0),
-    default=0.8,
+    default=0.6,
     show_default=True
 )
 @click.option(
@@ -472,6 +483,7 @@ def find_chimeric(
     lis, 
     fasta, 
     window, 
+    step_size,
     min_sa, 
     edge,
     min_depth,
@@ -490,7 +502,7 @@ def find_chimeric(
  
     break_point_file = find_split_alignment.workflow(lis, window, min_sa, edge, output)
 
-    depth_file = paf2depth.workflow(corrected_paf, fasta, window, output)
+    depth_file = paf2depth.workflow(corrected_paf, fasta, window, step_size, outPre=output)
 
     break_pos_file = norm_merge_bp.workflow(break_point_file, depth_file, 
                                                 window, min_depth, cutoff, output)

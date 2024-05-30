@@ -99,12 +99,10 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
         unanchor_df = pd.DataFrame(unanchor_res)
     
     agp_df = pd.concat([agp_df, unanchor_df], axis=0)
+    agp_df.reset_index(drop=True, inplace=True)
     agp_df.to_csv(agp, sep='\t', header=False, index=False)
     
-    if corrected and corrected_contigs:
-        x = agp_df[agp_df[5].isin(corrected_contigs_id)].index
-        y = 1
-
+  
     if not only_agp:
         with xopen(output, 'w') as out:
             try:
@@ -112,4 +110,14 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
             except AttributeError:
                 agp2fasta(agp, fasta_file, out)
     
+    if corrected and corrected_contigs:
+        tmp_agp_df = agp_df
+        x = tmp_agp_df[(tmp_agp_df[4] == "W") & (tmp_agp_df[5].isin(corrected_contigs_id))].index
+
+        tmp_agp_df.loc[x, 5] = tmp_agp_df.loc[x, 5] + ":" + tmp_agp_df.loc[x, 6].astype(str) + "-" + tmp_agp_df.loc[x, 7].astype(str)
+        tmp_agp_df.loc[x, 7] = tmp_agp_df.loc[x, 7].astype(int) - tmp_agp_df.loc[x, 6].astype(int) + 1
+        tmp_agp_df.loc[x, 6] = 1
+        
+        tmp_agp_df.to_csv(agp.replace(".agp", ".corrected.agp"), sep='\t', 
+                            header=False, index=False)
     

@@ -21,6 +21,7 @@ from joblib import Parallel, delayed
 from scipy.signal import find_peaks, peak_widths
 
 from cphasing.core import PairHeader
+from cphasing.utilities import read_fasta, xopen
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,11 @@ def _calculate_depth(contig, contig_length, window_size, position_data):
     return contig, data 
 
 def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
-    dtype = dtype = {'chrom1': pl.Categorical, 
-                     'pos1': pl.UInt32,
-                     'chrom2': pl.Categorical, 
-                     'pos2': pl.UInt32,
-                     'mapq': pl.Int8}
+    dtype = {'chrom1': pl.Categorical, 
+            'pos1': pl.UInt32,
+            'chrom2': pl.Categorical, 
+            'pos2': pl.UInt32,
+            'mapq': pl.Int8}
     
     ph = PairHeader([])
     ph.from_file(pairs)
@@ -48,17 +49,26 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     contigsizes_bed.columns = ['chrom', 'start', 'end']
     
     os.environ["POLARS_MAX_THREADS"] = str(threads)
-    p = (pl.read_csv(pairs, separator='\t', has_header=False,
-                           comment_prefix="#", columns=[1, 2, 3, 4, 7],
-                           new_columns=['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'],
-                           dtypes=dtype
-                           ).filter(pl.col('chrom1') == pl.col('chrom2'))
-                            .drop('chrom2')
-                            )
-    
-    if min_mapq > 0:
-        p = p.filter(pl.col('mapq') >= min_mapq)
-    
+    try:
+        p = (pl.read_csv(pairs, separator='\t', has_header=False,
+                            comment_prefix="#", columns=[1, 2, 3, 4, 7],
+                            new_columns=['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'],
+                            dtypes=dtype
+                            ).filter(pl.col('chrom1') == pl.col('chrom2'))
+                                .drop('chrom2')
+                                )
+        
+        if min_mapq > 0:
+            p = p.filter(pl.col('mapq') >= min_mapq).drop('map1')
+
+    except pl.exceptions.OutOfBoundsError:
+        p = (pl.read_csv(pairs, separator='\t', has_header=False,
+                            comment_prefix="#", columns=[1, 2, 3, 4],
+                            new_columns=['chrom1', 'pos1', 'chrom2', 'pos2'],
+                            dtypes=dtype
+                            ).filter(pl.col('chrom1') == pl.col('chrom2'))
+                                .drop('chrom2')
+                                )
 
     p = p.with_columns(
         (pl.when(pl.col('pos1') > pl.col('pos2'))
@@ -74,7 +84,7 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
         (pl.col('pos2') - 1) // window_size,
     )
     
-    p = p.drop('mapq').to_pandas()
+    p = p.to_pandas()
 
     return p, contigsizes
 
@@ -118,9 +128,11 @@ def correct(depth_dict, window_size=500, min_windows=50, threads=4):
     break_res = []
     for contig, break_points in res:
         for break_point in break_points:
-            break_res.append((contig, break_point * window_size - window_size // 2))
+            break_res.append((contig, break_point * (window_size) - window_size))
     
-    return pd.DataFrame(break_res)
+    break_points_df =  pd.DataFrame(break_res)
+
+    return break_points_df
 
 
 
@@ -160,6 +172,7 @@ def find_break_point(contig, b, min_windows=50):
     peak_widths_y = list(peak_widths_result[1])
 
     new_trough_ind = []
+    suspicious_trough = []
     for idx, trough in enumerate(trough_ind):
         nearest_peak_idx, nearest_peak = find_nearest(peak_ind, trough)
 
@@ -194,10 +207,13 @@ def find_break_point(contig, b, min_windows=50):
 
             peak_width_x1 = list(map(int, peak_widths_x[nearest_peak_idx]))
             peak_width_x2 = list(map(int, peak_widths_x[nearest_peak2_idx]))
-            # peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
-            # peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
+            if ((peak_width_x1[1] - peak_width_x1[0]) < 50) or ((peak_width_x2[1] - peak_width_x2[0]) < 50):
+                continue
+            peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
+            peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
             peak1_y = b[peak_width_x1[0]:peak_width_x1[1]].mean()
             peak2_y = b[peak_width_x2[0]: peak_width_x2[1]].mean()
+
 
             if peak1_y < 10 or peak2_y < 10:
                 continue
@@ -213,14 +229,68 @@ def find_break_point(contig, b, min_windows=50):
             # print(new_trough, trough_y, peak1_y / 1.5, peak2_y / 1.5, peak1, peak2)
             if (trough_y < (peak1_y / 1.5)) and (trough_y < (peak2_y / 1.5)):
                 new_trough_ind.append(new_trough)
+            # elif (trough_y > (peak1_y / 1.2)) and (trough_y > (peak2_y / 1.2)):
+            #     suspicious_trough.append((new_trough, peak1, peak2))
     
+    # if suspicious_trough:
+    #     print(contig, suspicious_trough)
     if new_trough_ind:
         return contig, new_trough_ind
     else:
         return
 
+def break_points_to_regions(break_points_df, contigsizes):
+    correct_contig_list = []
+    for i, tmp_df in break_points_df.groupby(0):
+        length = contigsizes[i]
+        pos = tmp_df[1].values
+        start = np.r_[[1], pos + 1]
+        end = np.r_[pos, [length]]
+        pos_list = list(zip(start, end))
 
+        for start, end in pos_list:
+            correct_contig_list.append((i, start, end, f"{i}:{start}-{end}"))
 
+    correct_contig_list = pd.DataFrame(
+        correct_contig_list, columns=['chrom', 'start', 'end', 'name'])
+
+    return correct_contig_list
+
+def write_fasta(fasta, corrected_positions, output):
+    fasta_db = read_fasta(str(fasta))
+    output = xopen(output, 'w')
+    corrected_contigs = set(corrected_positions['chrom'].values.tolist())
+    corrected_positions.set_index('chrom', inplace=True)
+    for contig in fasta_db:
+        seq = fasta_db[contig]
+        if contig in corrected_contigs:
+            for _, item in corrected_positions.loc[contig].iterrows():
+                start, end, name = item
+                print(f'>{name}\n{str(seq[start - 1: end])}',
+                        file=output)
+
+        else:
+            print(f'>{contig}\n{str(seq)}', file=output)        
+
+def corrected_pairs(pairs):
+    pass 
+
+def run(fasta, pairs, window_size, outprefix="output", threads=4):
+    pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
+    depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
+                                        threads=threads)
+    break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
+
+    if len(break_point_res) > 0:
+        break_point_res.to_csv(f"{outprefix}.breakPos.txt", 
+                                        sep='\t', index=None, header=None)
+        corrected_positions = break_points_to_regions(break_point_res, contigsizes)
+        corrected_positions.to_csv(f"{outprefix}.chimeric.contigs.txt", 
+                                        header=None, index=None, sep='\t')
+        write_fasta(fasta, corrected_positions, f"{outprefix}.corrected.fasta")
+        logger.info(f"Output corrected fasta in `{outprefix}.corrected.fasta`")
+    else:
+        logger.info(f"There is not chimeric contigs in `{fasta}`")
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,

@@ -128,7 +128,8 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000)
     cmd = f"bedtools makewindows -g {contigsizes} -w {winsize} -s {step} 2>/dev/null > temp.{fasta_prefix}.w{winsize}.s{step}.bed"
     os.system(cmd)
 
-    cmd = f"cut -f 6,8,9 {paf} > temp.{output}.paf.bed"
+    cmd = "awk '$12>1{print $6,$8,$9}' OFS='\t' "
+    cmd += "{} > temp.{}.paf.bed".format(paf, output)
     os.system(cmd)
 
     cmd = f"bedtools intersect -f 0.5 -a temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"

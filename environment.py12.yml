@@ -209,6 +209,7 @@ dependencies:
     - pyranges==0.0.129
     - pyyaml==6.0.1
     - rich-click==1.7.4
+    - scikit-learn==1.2.1
     - simplejson==3.19.2
     - sorted-nearest==0.0.39
     - tabulate==0.9.0

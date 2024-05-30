@@ -18,10 +18,15 @@ import polars as pl
 import pyranges as pr  
 
 from joblib import Parallel, delayed
+from pathlib import Path
 from scipy.signal import find_peaks, peak_widths
+from sklearn.metrics import mean_squared_error
 
-from cphasing.core import PairHeader
-from cphasing.utilities import read_fasta, xopen
+try:
+    from .core import PairHeader
+    from .utilities import read_fasta, xopen, run_cmd
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +93,7 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
 
     return p, contigsizes
 
-def calculate_depth(p, contigsizes, window_size=500, min_mapq=0, threads=4):
+def calculate_depth(p, contigsizes, window_size=500, threads=4):
 
     args = []
     for contig, tmp_df in p.groupby('chrom1', as_index=True):
@@ -97,7 +102,7 @@ def calculate_depth(p, contigsizes, window_size=500, min_mapq=0, threads=4):
     del p
     gc.collect()
 
-    res = Parallel(n_jobs=4)(
+    res = Parallel(n_jobs=threads)(
         delayed(_calculate_depth)(i, j, k, l)
             for i, j, k, l in args
     )
@@ -131,6 +136,14 @@ def correct(depth_dict, window_size=500, min_windows=50, threads=4):
             break_res.append((contig, break_point * (window_size) - window_size))
     
     break_points_df =  pd.DataFrame(break_res)
+    try:
+        contig_num = len(set(break_points_df[0].values.tolist()))
+        break_points_df = break_points_df.sort_values(by=0)
+    except KeyError:
+        contig_num = 0
+
+    logger.info(f"Identified `{len(break_points_df)}` "
+                    f"break points in `{contig_num}` contigs.")
 
     return break_points_df
 
@@ -147,6 +160,11 @@ def find_nearest(array, value):
 
 def find_break_point(contig, b, min_windows=50):
     a = np.arange(len(b))
+
+    rmse = mean_squared_error(b, pd.DataFrame(b).shift(1).fillna(0))
+    if rmse < 1.0 :
+        return None
+    
     try:
         z1 = np.polyfit(a, b, 50)
         p1 = np.poly1d(z1)
@@ -272,10 +290,17 @@ def write_fasta(fasta, corrected_positions, output):
         else:
             print(f'>{contig}\n{str(seq)}', file=output)        
 
-def corrected_pairs(pairs):
-    pass 
+def corrected_pairs(pairs, break_bed, output):
+    cmd = ["cphasing-rs", "pairs-break", pairs, break_bed, "-o", output]
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    flag = run_cmd(cmd, log=f"logs/pairs-break.log")
+    assert flag == 0, "Failed to execute command, please check log."
 
-def run(fasta, pairs, window_size, outprefix="output", threads=4):
+
+def run(fasta, pairs, window_size=500, break_pairs=True, 
+        outprefix="output", threads=4):
+    logger.info("Running chimeric correction ...")
     pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
     depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
                                         threads=threads)
@@ -285,14 +310,32 @@ def run(fasta, pairs, window_size, outprefix="output", threads=4):
         break_point_res.to_csv(f"{outprefix}.breakPos.txt", 
                                         sep='\t', index=None, header=None)
         corrected_positions = break_points_to_regions(break_point_res, contigsizes)
-        corrected_positions.to_csv(f"{outprefix}.chimeric.contigs.txt", 
-                                        header=None, index=None, sep='\t')
+        output_break_bed = f"{outprefix}.chimeric.contigs.bed"
+        corrected_positions.to_csv(output_break_bed, 
+                                    header=None, index=None, sep='\t')
         write_fasta(fasta, corrected_positions, f"{outprefix}.corrected.fasta")
         logger.info(f"Output corrected fasta in `{outprefix}.corrected.fasta`")
+
+        if break_pairs:
+            output_pairs_prefix = Path(Path(pairs).stem).with_suffix('')
+            while output_pairs_prefix.suffix in {'.pairs', '.gz'}:
+                output_pairs_prefix = output_pairs_prefix.with_suffix('')
+            if_gz = ".gz" if "gz" in pairs else ""
+            output_pairs = f"{output_pairs_prefix}.corrected.pairs{if_gz}"
+            corrected_pairs(pairs, output_break_bed, output_pairs)
+
+        return output_break_bed, f"{outprefix}.corrected.fasta", output_pairs
+    
     else:
         logger.info(f"There is not chimeric contigs in `{fasta}`")
+        return 
+
+        
+
 
 def main(args):
+    from cphasing.core import PairHeader
+    from cphasing.utilities import read_fasta, xopen
     p = argparse.ArgumentParser(prog=__file__,
                         description=__doc__,
                         formatter_class=argparse.RawTextHelpFormatter,

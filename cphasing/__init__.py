@@ -24,9 +24,15 @@ warnings.simplefilter(action="ignore", category=PendingDeprecationWarning)
 warnings.simplefilter(action="ignore", category=DeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-__author__ = "Yibin Wang"
+__author__ = ("Yibin Wang", "Xingtan Zhang")
 __copyright__ = "Copyright (c) 2024, Yibin Wang"
-__email__ = "yibinwang96@outlook.com"
+__email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.1.8.r205"
+__version__ = "0.1.8.r206"
+__epilog__ =  f"""
+            \b
+            Version: {__version__} | \n
+            Author: tanger-lab | \n
+            Please check out the docs at: [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)
+            """

@@ -20,7 +20,7 @@ from pathlib import Path
 # from pytools import natsorted
 from shutil import which
 
-from . import __version__
+from . import __version__, __epilog__
 from .core import (
     ClusterTable, 
     CountRE, 
@@ -52,6 +52,7 @@ click.rich_click.STYLE_COMMANDS_TABLE_SHOW_LINES = False
 click.rich_click.STYLE_COMMANDS_TABLE_PAD_EDGE = True
 click.rich_click.STYLE_COMMANDS_TABLE_BOX = "SIMPLE"
 click.rich_click.STYLE_COMMANDS_TABLE_BORDER_STYLE = "red"
+click.rich_click.STYLE_USAGE_COMMAND = "bold red"
 # click.rich_click.STYLE_COMMANDS_TABLE_ROW_STYLES = ["yellow", "green", "cyan"]
 click.rich_click.MAX_WIDTH = 128
 
@@ -80,6 +81,10 @@ click.rich_click.OPTION_GROUPS = {
          {
             "name": "Options of Hi-C Mapper",
             "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
+        },
+        {   "name": "Options of chimeric correction",
+            "options": ["--chimeric-correct"]
+
         },
         {
             "name": "Options of HCR",
@@ -136,6 +141,10 @@ click.rich_click.OPTION_GROUPS = {
          {
             "name": "Options of Hi-C Mapper",
             "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
+        },
+        {   "name": "Options of chimeric correction",
+            "options": ["--chimeric-correct"]
+
         },
         {
             "name": "Options of HCR",
@@ -227,11 +236,7 @@ class CommandGroup(DYMGroup, RichCommand):
 @click.version_option(__version__, "-V", "--version")
 @click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
              cls=CommandGroup,
-             epilog=f"""
-            \b
-            Version: {__version__}\n
-            Please check out the docs at: [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)
-            """)
+             epilog=__epilog__)
 @click.option(
     "-v", 
     "--verbose", 
@@ -269,7 +274,7 @@ def cli(verbose, quiet):
 
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     '-f',
     '--fasta',
@@ -382,6 +387,13 @@ def cli(verbose, quiet):
     metavar="INT",
     help="window size for mapper",
     default=7,
+    show_default=True
+)
+@click.option(
+    "--chimeric-correct",
+    is_flag=True,
+    default=False,
+    help="Correct the chimeric contigs by contacts.",
     show_default=True
 )
 @click.option(
@@ -748,6 +760,7 @@ def pipeline(fasta,
             mapper_k,
             mapper_w,
             mapping_quality,
+            chimeric_correct,
             hic_mapper_k,
             hic_mapper_w,
             hcr,   
@@ -866,6 +879,7 @@ def pipeline(fasta,
         mapping_quality=mapping_quality,
         hic_mapper_k=hic_mapper_k,
         hic_mapper_w=hic_mapper_w,
+        chimeric_correct=chimeric_correct,
         hcr_flag=hcr,
         hcr_lower=hcr_lower,
         hcr_upper=hcr_upper,
@@ -907,7 +921,7 @@ def pipeline(fasta,
 ## Subcommand of UL ONT pipeline
 from .hitig.cli import hitig 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "reference",
     type=click.Path(exists=True)
@@ -1052,7 +1066,7 @@ def mapper(reference, fastq, enzyme, kmer_size,
     pcm.run()
 
 
-@cli.group(cls=CommandGroup, short_help='Process Pore-C alignments.')
+@cli.group(cls=CommandGroup, epilog=__epilog__, short_help='Process Pore-C alignments.')
 @click.pass_context
 def alignments(ctx):
     pass
@@ -1553,7 +1567,87 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         
     pct.to_pao_csv(output)
 
-@cli.command(cls=RichCommand, short_help='Only retain the HCRs from Pore-C/Hi-C data')
+@cli.command(cls=RichCommand, epilog=__epilog__)
+@click.option(
+    '-f',
+    '--fasta',
+    metavar="FASTA",
+    help="Path to draft assembly",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-prs',
+    '--pairs',
+    metavar="Pairs",
+    help="4DN pairs file, which generated from `cphasing mapper`, or `cphasing hic mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-d',
+    '--depth',
+    metavar="Depth",
+    help="Cis long-range counts.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    hidden=True
+)
+@click.option(
+    '-w',
+    '--window-size',
+    'window_size',
+    metavar='INT',
+    default=500,
+    show_default=True,
+)
+@click.option(
+    '-o',
+    '--outprefix',
+    help='output prefix, if none use the prefix of fasta',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help="Number of threads. ",
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
+    """
+    Correct chimeric contigs by contacts.
+    """
+    from .chimeric import run, correct
+    assert any([pairs, depth]), "Pairs or Depth file must be input."
+
+    if outprefix is None:
+        outprefix = Path(fasta).absolute().stem
+    
+
+    if pairs:
+        run(fasta, pairs, window_size, True, outprefix, threads)
+        
+    elif depth:
+        df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
+                        names=['contig', 'start', 'end', 'depth'])
+        df = df.sort_values(['contig', 'start'])
+    
+        depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
+        break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
+
+        if not break_point_res.empty:
+            break_point_res = break_point_res.to_csv("output.breakPos.txt", 
+                                            sep='\t', index=None, header=None)
+
+
+@cli.command(cls=RichCommand, epilog=__epilog__, 
+                short_help='Only retain the HCRs from Pore-C/Hi-C data')
 @click.option(
     '-pct',
     '--porectable',
@@ -1779,7 +1873,7 @@ def hcr(porectable, pairs, contigsize, binsize,
                     f'`{prefix}_hcr.pairs.gz`')
 
 
-@cli.command(cls=RichCommand, short_help='Prepare data for subsequence analysis.')
+@cli.command(cls=RichCommand, epilog=__epilog__, short_help='Prepare data for subsequence analysis.')
 @click.argument(
     "fasta",
     metavar="INPUT_FASTA_PATH",
@@ -1864,83 +1958,8 @@ def prepare(fasta, pairs, min_mapq,
          threads=threads, outprefix=outprefix)
     pass 
 
-@cli.command(cls=RichCommand, hidden=True)
-@click.option(
-    '-f',
-    '--fasta',
-    metavar="FASTA",
-    help="Path to draft assembly",
-    type=click.Path(exists=True),
-    required=True
-)
-@click.option(
-    '-prs',
-    '--pairs',
-    metavar="Pairs",
-    help="4DN pairs file, which generated from `cphasing mapper`, or `cphasing hic mapper`",
-    type=click.Path(exists=True),
-    default=None,
-    show_default=True
-)
-@click.option(
-    '-d',
-    '--depth',
-    metavar="Depth",
-    help="Cis long-range counts.",
-    type=click.Path(exists=True),
-    default=None,
-    show_default=True,
-    hidden=True
-)
-@click.option(
-    '-w',
-    '--window-size',
-    'window_size',
-    metavar='INT',
-    default=500,
-    show_default=True,
-)
-@click.option(
-    '-o',
-    '--outprefix',
-    help='output prefix, if none use the prefix of fasta',
-    default=None,
-    show_default=True
-)
-@click.option(
-    '-t',
-    '--threads',
-    help="Number of threads. ",
-    type=int,
-    default=4,
-    metavar='INT',
-    show_default=True,
-)
-def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
-    from .chimeric import run, import_pairs, calculate_depth, correct, break_points_to_regions, write_fasta
-    assert any([pairs, depth]), "Pairs or Depth file must be input."
 
-    
-
-    if pairs:
-        run(fasta, pairs, window_size, outprefix, threads)
-        
-    elif depth:
-        df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
-                        names=['contig', 'start', 'end', 'depth'])
-        df = df.sort_values(['contig', 'start'])
-    
-        depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
-        break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
-
-        if not break_point_res.empty:
-            break_point_res = break_point_res.to_csv("output.breakPos.txt", 
-                                            sep='\t', index=None, header=None)
-
-    
-
-
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     "-f",
     "--fasta",
@@ -2152,7 +2171,7 @@ def alleles2(fasta, ploidy, kmer, segment_length, block_length,
 
 
 
-@cli.command(cls=RichCommand, short_help="Generate the allelic contig and cross-allelic contig table.")
+@cli.command(cls=RichCommand, epilog=__epilog__, short_help="Generate the allelic contig and cross-allelic contig table.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -2285,7 +2304,7 @@ def kprune(alleletable, contacts,
     # kp.save_prune_list(output, symmetric)
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "contacts",
     metavar="Contacts",
@@ -2473,7 +2492,7 @@ def hypergraph(contacts,
             e.save(output)
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -3172,7 +3191,7 @@ def hyperpartition(hypergraph,
 
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "clustertable",
     metavar="ClusterTable",
@@ -3757,7 +3776,7 @@ def pairs2mnd(pairs, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -3855,7 +3874,7 @@ def pairs2cool(pairs, chromsize, outcool,
     # merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
 
 
-@cli.command(cls=RichCommand)
+@cli.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     '-m',
     '--matrix',
@@ -4283,7 +4302,7 @@ def allelic_error(cluster, alleletable, contigsizes):
 
 
 
-@cli.group(cls=CommandGroup, short_help='Misc tools.')
+@cli.group(cls=CommandGroup, short_help='Misc tools.', epilog=__epilog__)
 @click.pass_context
 def utils(ctx):
     pass

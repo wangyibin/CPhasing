@@ -23,6 +23,7 @@ from ..core import (
 )
 
 from ..utilities import run_cmd
+from .. import __epilog__
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ class CommandGroup(DYMGroup, RichCommand):
             pass 
         return super().get_command(ctx, cmd_name)
 
-@cli.group(cls=CommandGroup, short_help='Sub-command for the legacy Hi-C pipeline.')
+@cli.group(cls=CommandGroup, short_help='Sub-command for the legacy Hi-C pipeline.',
+           epilog=__epilog__)
 @click.pass_context
 def hic(ctx):
     """
@@ -52,7 +54,7 @@ def hic(ctx):
     """
     pass
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=CommandGroup, epilog=__epilog__)
 @click.option(
     '-f',
     '--fasta',

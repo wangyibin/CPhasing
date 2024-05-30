@@ -15,6 +15,7 @@ import sys
 # from ..cli import CommandGroup
 from ..cli import cli 
 from ..utilities import read_chrom_sizes
+from .. import __epilog__
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,8 @@ class CommandGroup(DYMGroup, RichCommand):
 
 @cli.group(cls=CommandGroup, 
            context_settings={"help_option_names": ["-h", "--help", "-help"]},
-           short_help='Get high-quality contigs by ONT/HiFi data')
+           short_help='Get high-quality contigs by ONT/HiFi data',
+           epilog=__epilog__)
 @click.pass_context
 def hitig(ctx):
     """
@@ -50,7 +52,7 @@ def hitig(ctx):
 
 
 
-@hitig.command(cls=RichCommand)
+@hitig.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     '-f',
     '--fasta',
@@ -458,7 +460,7 @@ def correct_alignments(
     metavar='INT',
     help='minimum depth of windows',
     type=int,
-    default=3,
+    default=1,
     show_default=True
 )
 @click.option(
@@ -468,7 +470,7 @@ def correct_alignments(
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
     type=click.FloatRange(0, 1.0),
-    default=0.6,
+    default=0.75,
     show_default=True
 )
 @click.option(

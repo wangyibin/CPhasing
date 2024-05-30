@@ -38,6 +38,7 @@ def run(fasta,
         mapping_quality=0,
         hic_mapper_k=17,
         hic_mapper_w=7,
+        chimeric_correct=False,
         hcr_flag=False,
         hcr_lower=0.1,
         hcr_upper=1.75,
@@ -88,6 +89,7 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
+    from ..chimeric import run as chimeric_run 
     # tracemalloc.start()
     start_time = time.time()
     logger.info(f"C-Phasing version: {__version__}")
@@ -219,6 +221,30 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
     
+    if chimeric_correct:
+        if porec_table:
+            corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
+                                           outprefix=fasta_prefix, threads=threads)
+            if corrected_items:
+                break_bed, fasta, pairs = corrected_items
+                cmd = ["cphasing-rs", "porec-break", porec_table, 
+                        break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
+                flag = run_cmd()
+
+        elif pairs:
+            corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
+                                            outprefix=fasta_prefix, threads=threads)
+            if corrected_items:
+                break_bed, fasta, pairs = corrected_items
+
+        fasta_prefix = Path(fasta).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+
+        pairs_prefix = Path(Path(pairs).stem).with_suffix('')
+        while pairs_prefix.suffix in {'.pairs', '.gz'}:
+            pairs_prefix = pairs_prefix.with_suffix('')
+
     contigsizes = f"{fasta_prefix}.contigsizes"
     if not Path(contigsizes).exists():
         
@@ -372,7 +398,7 @@ def run(fasta,
                 assert flag == 0, "Failed to execute command, please check log."
             else:
                 logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
-    
+
 
     if not Path(prepare_input).exists() and (hic1 is None ):
         logger.info("Generating pairs file ...")

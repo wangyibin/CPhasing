@@ -229,7 +229,20 @@ def run(fasta,
                 break_bed, fasta, pairs = corrected_items
                 cmd = ["cphasing-rs", "porec-break", porec_table, 
                         break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
-                flag = run_cmd()
+                flag = run_cmd(cmd, log="logs/porec-break.log")
+                assert flag == 0, "Failed to execute command, please check log."
+
+                fasta_prefix = Path(fasta).with_suffix("")
+                while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+                    fasta_prefix = fasta_prefix.with_suffix("")
+
+                pairs_prefix = Path(Path(pairs).stem).with_suffix('')
+                while pairs_prefix.suffix in {'.pairs', '.gz'}:
+                    pairs_prefix = pairs_prefix.with_suffix('')
+                
+                porec_prefix = Path(Path(porec_table).stem).with_suffix('')
+                while porec_prefix.suffix in {'.pairs', '.gz'}:
+                    porec_prefix = porec_prefix.with_suffix('')
 
         elif pairs:
             corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
@@ -237,13 +250,13 @@ def run(fasta,
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
 
-        fasta_prefix = Path(fasta).with_suffix("")
-        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
-            fasta_prefix = fasta_prefix.with_suffix("")
+                fasta_prefix = Path(fasta).with_suffix("")
+                while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+                    fasta_prefix = fasta_prefix.with_suffix("")
 
-        pairs_prefix = Path(Path(pairs).stem).with_suffix('')
-        while pairs_prefix.suffix in {'.pairs', '.gz'}:
-            pairs_prefix = pairs_prefix.with_suffix('')
+                pairs_prefix = Path(Path(pairs).stem).with_suffix('')
+                while pairs_prefix.suffix in {'.pairs', '.gz'}:
+                    pairs_prefix = pairs_prefix.with_suffix('')
 
     contigsizes = f"{fasta_prefix}.contigsizes"
     if not Path(contigsizes).exists():

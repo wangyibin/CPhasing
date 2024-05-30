@@ -252,8 +252,21 @@ def find_break_point(contig, b, min_windows=50):
     
     # if suspicious_trough:
     #     print(contig, suspicious_trough)
-    if new_trough_ind:
-        return contig, new_trough_ind
+
+    new_new_trough_ind = []
+    for new_trough in new_trough_ind:
+        left_b = b[: new_trough]
+        right_b = b[new_trough:]
+
+        left_rmse = mean_squared_error(left_b, pd.DataFrame(left_b).shift(1).fillna(0))
+        right_rmse = mean_squared_error(right_b, pd.DataFrame(right_b).shift(1).fillna(0))
+
+        if left_rmse < 1.0 or right_rmse < 1.0:
+            continue 
+        new_new_trough_ind.append(new_trough)
+
+    if new_new_trough_ind:
+        return contig, new_new_trough_ind
     else:
         return
 

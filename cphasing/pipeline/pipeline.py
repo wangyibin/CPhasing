@@ -241,7 +241,7 @@ def run(fasta,
                     pairs_prefix = pairs_prefix.with_suffix('')
                 
                 porec_prefix = Path(Path(porec_table).stem).with_suffix('')
-                while porec_prefix.suffix in {'.pairs', '.gz'}:
+                while porec_prefix.suffix in {'.porec', '.gz'}:
                     porec_prefix = porec_prefix.with_suffix('')
 
         elif pairs:

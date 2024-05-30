@@ -22,7 +22,7 @@ from pathlib import Path
 from scipy.signal import find_peaks, peak_widths
 from sklearn.metrics import mean_squared_error
 
-try:
+try: 
     from .core import PairHeader
     from .utilities import read_fasta, xopen, run_cmd
 except ImportError:

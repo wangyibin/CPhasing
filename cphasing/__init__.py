@@ -29,10 +29,10 @@ __copyright__ = "Copyright (c) 2024, Yibin Wang"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
+__version__ = "0.1.8.r208"
 __epilog__ =  f"""
             \b
             Version: {__version__} | \n
             Author: tanger-lab | \n
             Please check out the docs at: [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)
             """
-__version__ = "0.1.8.r207"

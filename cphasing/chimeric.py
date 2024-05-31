@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+import re
 import os
 import os.path as op
 import sys
@@ -17,8 +18,11 @@ import pandas as pd
 import polars as pl 
 import pyranges as pr  
 
+from Bio.Seq import Seq
+from collections import defaultdict
 from joblib import Parallel, delayed
 from pathlib import Path
+from pyfaidx import Fasta
 from scipy.signal import find_peaks, peak_widths
 from sklearn.metrics import mean_squared_error
 
@@ -48,10 +52,7 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     ph = PairHeader([])
     ph.from_file(pairs)
     contigsizes = ph.chromsize
-    contigsizes_bed = pd.DataFrame(contigsizes, index=['length']).T.reset_index()
-    contigsizes_bed['start'] = 0
-    contigsizes_bed = contigsizes_bed[['index', 'start', 'length']]
-    contigsizes_bed.columns = ['chrom', 'start', 'end']
+
     
     os.environ["POLARS_MAX_THREADS"] = str(threads)
     try:
@@ -93,7 +94,7 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
 
     return p, contigsizes
 
-def calculate_depth(p, contigsizes, window_size=500, threads=4):
+def calculate_depth(p, contigsizes, window_size=500, output_depth=False, threads=4):
 
     args = []
     for contig, tmp_df in p.groupby('chrom1', as_index=True):
@@ -147,7 +148,19 @@ def correct(depth_dict, window_size=500, min_windows=50, threads=4):
 
     return break_points_df
 
-
+def edge_index(pos, length):
+    """
+    ------|-^----
+    """
+    mid_point = length // 2 
+    if (length - pos) < mid_point:
+        ## right 
+        edge_index_value = (length - pos) / (length - mid_point)
+    else:
+        ## left 
+        edge_index_value =  (mid_point - pos) / (mid_point - 0)
+    
+    return edge_index_value
 
 def find_nearest(array, value):
     """
@@ -159,8 +172,8 @@ def find_nearest(array, value):
     return idx, array[idx]
 
 def find_break_point(contig, b, min_windows=50):
-    a = np.arange(len(b))
-
+    b_len = len(b)
+    a = np.arange(b_len)
     rmse = mean_squared_error(b, pd.DataFrame(b).shift(1).fillna(0))
     if rmse < 1.0 :
         return None
@@ -168,7 +181,7 @@ def find_break_point(contig, b, min_windows=50):
     try:
         z1 = np.polyfit(a, b, 50)
         p1 = np.poly1d(z1)
-    except:
+    except SystemError:
         return 
     yvalues = p1(a)
 
@@ -229,6 +242,8 @@ def find_break_point(contig, b, min_windows=50):
                 continue
             peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
             peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
+            peak1_edge = edge_index(peak1, b_len)
+            peak2_edge = edge_index(peak2, b_len)
             peak1_y = b[peak_width_x1[0]:peak_width_x1[1]].mean()
             peak2_y = b[peak_width_x2[0]: peak_width_x2[1]].mean()
 
@@ -244,31 +259,75 @@ def find_break_point(contig, b, min_windows=50):
             if trough_y < 10:
                 continue
 
-            # print(new_trough, trough_y, peak1_y / 1.5, peak2_y / 1.5, peak1, peak2)
-            if (trough_y < (peak1_y / 1.5)) and (trough_y < (peak2_y / 1.5)):
+            # print(new_trough, trough_y, peak1_y, peak2_y, peak1, peak2, peak1_edge, peak2_edge)
+            if (trough_y < (peak1_y / (1 + .5 * (peak1_edge )))) and (trough_y < (peak2_y / (1 + .5 * (peak2_edge)))):
                 new_trough_ind.append(new_trough)
             # elif (trough_y > (peak1_y / 1.2)) and (trough_y > (peak2_y / 1.2)):
             #     suspicious_trough.append((new_trough, peak1, peak2))
     
     # if suspicious_trough:
     #     print(contig, suspicious_trough)
-
+    
     new_new_trough_ind = []
     for new_trough in new_trough_ind:
         left_b = b[: new_trough]
         right_b = b[new_trough:]
-
+        
         left_rmse = mean_squared_error(left_b, pd.DataFrame(left_b).shift(1).fillna(0))
         right_rmse = mean_squared_error(right_b, pd.DataFrame(right_b).shift(1).fillna(0))
-
-        if left_rmse < 1.0 or right_rmse < 1.0:
+        # print(left_rmse, right_rmse)
+        if left_rmse < .95 or right_rmse < .95:
             continue 
         new_new_trough_ind.append(new_trough)
+
 
     if new_new_trough_ind:
         return contig, new_new_trough_ind
     else:
         return
+
+def is_telomere(seq, motif="CCCTAA", window=2000):
+
+    regex_right = re.compile(str(Seq(motif).complement()[::-1]))
+    res_right = regex_right.finditer(seq[-window:])
+    regex_left = re.compile(motif)
+    res_left = regex_left.finditer(seq[0: window])
+
+    res_left_pos = [x.start(0) for x in res_left]
+    res_right_pos = [x.start(0) for x in res_right]
+    
+    if len(res_right_pos) > 30 or len(res_left_pos) > 30:
+        return True
+    
+    else:
+        return False 
+    
+
+def split_contigs(previous_break_points, contigsizes, pairs_df, split_num=2):
+    split_contigsizes = {}
+    split_contig_fragment_sizes = {}
+    for contig in contigsizes:
+        if contig in set(previous_break_points[0].values.tolist()): 
+            continue 
+        split_contig_fragment_size = contigsizes[contig] // split_num 
+        split_contig_fragment_sizes[contig] = split_contig_fragment_size
+        for i in range(split_num):
+            new_contig = f"{contig}_{i}"
+            split_contigsizes[new_contig] = split_contig_fragment_size
+    
+    pairs_df['split_length'] = pairs_df['chrom1'].map(split_contig_fragment_sizes.get)
+
+    pairs_df['suffix_1'] = pairs_df['pos1'] // pairs_df['split_length']
+    pairs_df['suffix_2'] = pairs_df['pos2'] // pairs_df['split_length']
+    pairs_df = pairs_df.query('suffix_1 == suffix_2')
+    pairs_df['pos1'] = (pairs_df['pos1'] - pairs_df['split_length'] * pairs_df['suffix_1']).astype(int)
+    pairs_df['pos2'] = (pairs_df['pos2'] - pairs_df['split_length'] * pairs_df['suffix_2']).astype(int)
+    pairs_df['chrom1'] = pairs_df['chrom1'].astype(str) + "_" + pairs_df['suffix_1'].astype(int).astype(str)
+    pairs_df.drop(['split_length', 'suffix_1', 'suffix_2'], axis=1, inplace=True)
+    
+    
+    return split_contigsizes, pairs_df
+
 
 def break_points_to_regions(break_points_df, contigsizes):
     correct_contig_list = []
@@ -280,7 +339,7 @@ def break_points_to_regions(break_points_df, contigsizes):
         pos_list = list(zip(start, end))
 
         for start, end in pos_list:
-            correct_contig_list.append((i, start, end, f"{i}:{start}-{end}"))
+            correct_contig_list.append((i, int(start), int(end), f"{i}:{start}-{end}"))
 
     correct_contig_list = pd.DataFrame(
         correct_contig_list, columns=['chrom', 'start', 'end', 'name'])
@@ -311,18 +370,88 @@ def corrected_pairs(pairs, break_bed, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-def run(fasta, pairs, window_size=500, break_pairs=True, 
-        outprefix="output", threads=4):
+def run(fasta, pairs, window_size=500, 
+        correct_round=1, telo_motif="CCCTAA",
+        break_pairs=True, 
+        output_depth=False, outprefix="output", threads=4):
     logger.info("Running chimeric correction ...")
     pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
     depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
-                                        threads=threads)
+                                        output_depth=output_depth, threads=threads)
+    
+    if output_depth:
+        with open(f"{outprefix}.cis.w{window_size}.depth", 'w') as out:
+            for contig in depth_dict:
+                tmp_depths = depth_dict[contig]
+                for i, tmp_depth in enumerate(tmp_depths):
+                    print(f"{contig}\t{i*window_size}\t{(i+1)*window_size}\t{tmp_depth}", file=out)
+
     break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
+    
+    del depth_dict  
+    gc.collect()
+
+    i = 1
+    split_contigsizes = contigsizes.copy()
+    new_break_point_res_df_list = []
+    while correct_round - i:
+        split_contigsizes, split_pairs_df = split_contigs(
+                        break_point_res, split_contigsizes, pairs_df, split_num=2)
+        split_depth_dict = calculate_depth(
+                                split_pairs_df, split_contigsizes,
+                                window_size=window_size, threads=threads)
+        new_break_point_res = correct(
+                                split_depth_dict, window_size=window_size, threads=threads)
+
+        i += 1
+
+        if len(new_break_point_res) > 0:
+            # for i, tmp_df in new_break_point_res.iterrows():
+            #     pass 
+            new_break_point_res['length'] = new_break_point_res[0].map(split_contigsizes.get)
+            new_break_point_res[['contig', 'suffix']] = new_break_point_res[0].str.split("_", expand=True)
+            new_break_point_res[1] = new_break_point_res[1] + \
+                    new_break_point_res['suffix'].astype(int) * new_break_point_res['length']
+            new_break_point_res.drop(['length', 'suffix', 0], axis=1, inplace=True)
+            new_break_point_res = new_break_point_res.rename(columns={'contig': 0})
+            new_break_point_res_df_list.append(new_break_point_res)
+
+    if len(new_break_point_res_df_list) > 0:
+        break_point_res = pd.concat([break_point_res, 
+                                     pd.concat(new_break_point_res_df_list, axis=0)], axis=0)
+
+        del split_pairs_df, split_depth_dict
+    del pairs_df
+    gc.collect()
 
     if len(break_point_res) > 0:
+        fasta_db = Fasta(fasta)
+        corrected_positions = break_points_to_regions(break_point_res, contigsizes)
+        filtered_pos = defaultdict(list)
+        for i, tmp_df in corrected_positions.iterrows():
+            contig = tmp_df['chrom']
+            start = int(tmp_df['start'])
+            end = int(tmp_df['end'])
+            seq = str(fasta_db[contig][start: end])
+            if is_telomere(seq, telo_motif):
+                filtered_pos[contig].append((start, end))
+        
+        drop_idx = []
+        for i, tmp_df in break_point_res.iterrows():
+            contig = tmp_df[0]
+            pos = tmp_df[1]
+            filter_regions = filtered_pos[contig]
+            for region in filter_regions:
+                start, end = region
+                if pos <= end and pos >= start - 1:
+                    drop_idx.append(i)
+        logger.info(f"Filtered out {len(drop_idx)} break points, "
+                        "because they contain telomere tandem repeats.")
+        break_point_res.drop(drop_idx, axis=0, inplace=True) 
+        corrected_positions = break_points_to_regions(break_point_res, contigsizes)
         break_point_res.to_csv(f"{outprefix}.breakPos.txt", 
                                         sep='\t', index=None, header=None)
-        corrected_positions = break_points_to_regions(break_point_res, contigsizes)
+        
         output_break_bed = f"{outprefix}.chimeric.contigs.bed"
         corrected_positions.to_csv(output_break_bed, 
                                     header=None, index=None, sep='\t')
@@ -336,7 +465,8 @@ def run(fasta, pairs, window_size=500, break_pairs=True,
             if_gz = ".gz" if "gz" in pairs else ""
             output_pairs = f"{output_pairs_prefix}.corrected.pairs{if_gz}"
             corrected_pairs(pairs, output_break_bed, output_pairs)
-
+        else:
+            output_pairs = pairs 
         return output_break_bed, f"{outprefix}.corrected.fasta", output_pairs
     
     else:
@@ -344,8 +474,6 @@ def run(fasta, pairs, window_size=500, break_pairs=True,
         return 
 
         
-
-
 def main(args):
     from cphasing.core import PairHeader
     from cphasing.utilities import read_fasta, xopen
@@ -363,7 +491,6 @@ def main(args):
     args = p.parse_args(args)
     
     df = pd.read_csv(args.depth, sep='\t', index_col=None, header=None)
-    
     z1 = np.polyfit(df.index.values, df[3].values, 50)
     p1 = np.poly1d(z1)
     yvalues = p1(df.index.values)

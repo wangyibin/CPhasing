@@ -300,7 +300,8 @@ class HyperPartition:
             return
     
         logger.info(f"Total {len(remove_contigs)} contigs were removed,")
-        logger.info(f"\tbecause it's length too short (<{self.min_length}) or your specified.")
+        logger.info(f"\tbecause it's length too short (<{self.min_length}) "
+                        "or your specified in blacklist or not in whitelist.")
 
         self.HG.remove_rows(remove_contigs)
 

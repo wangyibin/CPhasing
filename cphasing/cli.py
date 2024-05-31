@@ -83,7 +83,7 @@ click.rich_click.OPTION_GROUPS = {
             "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
         },
         {   "name": "Options of chimeric correction",
-            "options": ["--chimeric-correct"]
+            "options": ["--chimeric-correct", "--chimeric-corrected"]
 
         },
         {
@@ -143,7 +143,7 @@ click.rich_click.OPTION_GROUPS = {
             "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
         },
         {   "name": "Options of chimeric correction",
-            "options": ["--chimeric-correct"]
+            "options": ["--chimeric-correct", "--chimeric-corrected"]
 
         },
         {
@@ -394,6 +394,13 @@ def cli(verbose, quiet):
     is_flag=True,
     default=False,
     help="Correct the chimeric contigs by contacts.",
+    show_default=True
+)
+@click.option(
+    "--chimeric-corrected",
+    is_flag=True,
+    default=False,
+    help="Use existed results of correction, overwrite of the `--chimeric-corrected`",
     show_default=True
 )
 @click.option(
@@ -761,6 +768,7 @@ def pipeline(fasta,
             mapper_w,
             mapping_quality,
             chimeric_correct,
+            chimeric_corrected,
             hic_mapper_k,
             hic_mapper_w,
             hcr,   
@@ -880,6 +888,7 @@ def pipeline(fasta,
         hic_mapper_k=hic_mapper_k,
         hic_mapper_w=hic_mapper_w,
         chimeric_correct=chimeric_correct,
+        chimeric_corrected=chimeric_corrected,
         hcr_flag=hcr,
         hcr_lower=hcr_lower,
         hcr_upper=hcr_upper,
@@ -1604,6 +1613,29 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True,
 )
 @click.option(
+    '-telo-m',
+    '--telo-motif',
+    metavar="STR",
+    help="5'-end of telomere motif. Filter out telomere fragment, avoid trim the telomere from a contig",
+    default="CCCTAA",
+    show_default=True 
+)
+@click.option(
+    '-bp',
+    '--break-pairs',
+    help="Convert raw pairs file into chimeric corrected pairs file.",
+    is_flag=True,
+    default=True, 
+
+)
+@click.option(
+    '-od',
+    '--output-depth',
+    help="Output cis depth file.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-o',
     '--outprefix',
     help='output prefix, if none use the prefix of fasta',
@@ -1619,7 +1651,9 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     metavar='INT',
     show_default=True,
 )
-def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
+def chimeric(fasta, pairs, depth, window_size, 
+             break_pairs, output_depth,
+             telo_motif, outprefix, threads):
     """
     Correct chimeric contigs by contacts.
     """
@@ -1631,7 +1665,11 @@ def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
     
 
     if pairs:
-        run(fasta, pairs, window_size, True, outprefix, threads)
+        run(fasta, pairs, window_size, 
+                break_pairs=break_pairs, outprefix=outprefix,
+                output_depth=output_depth, 
+                telo_motif=telo_motif,
+                threads=threads)
         
     elif depth:
         df = pd.read_csv(depth, sep='\t', header=None, index_col=None,
@@ -1641,7 +1679,7 @@ def chimeric(fasta, pairs, depth, window_size, outprefix, threads):
         depth_dict = df.groupby('contig')['depth'].apply(np.array).to_dict()
         break_point_res = correct(depth_dict, window_size=window_size, threads=threads)
 
-        if not break_point_res.empty:
+        if len(break_point_res) != 0:
             break_point_res = break_point_res.to_csv("output.breakPos.txt", 
                                             sep='\t', index=None, header=None)
 

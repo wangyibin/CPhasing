@@ -39,6 +39,7 @@ def run(fasta,
         hic_mapper_k=17,
         hic_mapper_w=7,
         chimeric_correct=False,
+        chimeric_corrected=False,
         hcr_flag=False,
         hcr_lower=0.1,
         hcr_upper=1.75,
@@ -221,32 +222,60 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
     
-    if chimeric_correct:
+    if chimeric_correct or chimeric_corrected:
         if porec_table:
-            corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
-                                           outprefix=fasta_prefix, threads=threads)
-            if corrected_items:
-                break_bed, fasta, pairs = corrected_items
-                cmd = ["cphasing-rs", "porec-break", porec_table, 
-                        break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
-                flag = run_cmd(cmd, log="logs/porec-break.log")
-                assert flag == 0, "Failed to execute command, please check log."
+            if chimeric_corrected:
 
-                fasta_prefix = Path(fasta).with_suffix("")
-                while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
-                    fasta_prefix = fasta_prefix.with_suffix("")
+                corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
+                                    f"{fasta_prefix}.corrected.fasta", 
+                                   f"{pairs_prefix}.corrected.pairs.gz")
+                if not all(map(lambda x: Path(x).exists, corrected_items)):
+                    corrected_items = ()
 
-                pairs_prefix = Path(Path(pairs).stem).with_suffix('')
-                while pairs_prefix.suffix in {'.pairs', '.gz'}:
-                    pairs_prefix = pairs_prefix.with_suffix('')
+                if corrected_items and not Path(f"{porec_prefix}.corrected.porec.gz").exists:
+                    break_bed, fasta, pairs = corrected_items
+                    cmd = ["cphasing-rs", "porec-break", porec_table, 
+                            break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
+                    flag = run_cmd(cmd, log="logs/porec-break.log")
+                    assert flag == 0, "Failed to execute command, please check log."
+
+            else:
+                corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
+                                            outprefix=fasta_prefix, threads=threads)
                 
-                porec_prefix = Path(Path(porec_table).stem).with_suffix('')
-                while porec_prefix.suffix in {'.porec', '.gz'}:
-                    porec_prefix = porec_prefix.with_suffix('')
+                if corrected_items:
+                    break_bed, fasta, pairs = corrected_items
+                    cmd = ["cphasing-rs", "porec-break", porec_table, 
+                            break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
+                    flag = run_cmd(cmd, log="logs/porec-break.log")
+                    assert flag == 0, "Failed to execute command, please check log."
+
+
+            fasta_prefix = Path(fasta).with_suffix("")
+            while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+                fasta_prefix = fasta_prefix.with_suffix("")
+
+            pairs_prefix = Path(Path(pairs).stem).with_suffix('')
+            while pairs_prefix.suffix in {'.pairs', '.gz'}:
+                pairs_prefix = pairs_prefix.with_suffix('')
+            
+            porec_prefix = Path(Path(porec_table).stem).with_suffix('')
+            while porec_prefix.suffix in {'.porec', '.gz'}:
+                porec_prefix = porec_prefix.with_suffix('')
 
         elif pairs:
-            corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
-                                            outprefix=fasta_prefix, threads=threads)
+            if chimeric_corrected:
+                corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
+                                    f"{fasta_prefix}.corrected.fasta", 
+                                   f"{pairs_prefix}.corrected.pairs.gz")
+                if not all(map(lambda x: Path(x).exists, corrected_items)):
+                    corrected_items = ()
+                
+            else:
+                corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
+                                                outprefix=fasta_prefix, threads=threads)
+          
+            
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
 

@@ -1200,6 +1200,8 @@ class HyperPartition:
     def rescue_collapsed(self, is_duplicate=True):
         """
         rescue collapsed contigs
+
+        
         """
         pass 
     # def remove_misassembly_hap(self):

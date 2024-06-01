@@ -193,6 +193,8 @@ class AllhicOptimize:
     @staticmethod
     def extract_count_re(group, contigs, count_re):
         tmp_df = count_re.data.reindex(contigs)
+        tmp_df.dropna(inplace=True, axis=0)
+        tmp_df = tmp_df.astype({'RECounts': int, 'Length': int})
         tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
 
         return f"{group}.txt"
@@ -356,6 +358,8 @@ class HapHiCSort:
     @staticmethod
     def extract_count_re(group, contigs, count_re):
         tmp_df = count_re.data.reindex(contigs)
+        tmp_df.dropna(inplace=True, axis=0)
+        tmp_df = tmp_df.astype({'RECounts': int, 'Length': int})
         tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
 
         return f"{group}.txt"

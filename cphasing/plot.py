@@ -505,13 +505,13 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, reorder the contig-level matrix, '
                 f' and output into `{outprefix}.ordered.cool`')
     
-    logger.info('Starting to collaspe contig bin to chromosome bin ...')
+    logger.info('Starting to convert contig bin to chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
     
     sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
                      f'{outprefix}.chrom.cool', dtypes=dtypes)#, metadata=HIC_METADATA)
-    logger.info('Successful, collasped the contact into chromosome-level'
+    logger.info('Successful, converted the contact into chromosome-level'
                 f' and output into `{outprefix}.chrom.cool`')
     
 

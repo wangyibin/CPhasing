@@ -169,11 +169,16 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
 
     peak_value, min_value, max_value = plot(sum_values_nonzero, lower_value, 
                                 upper_value, output=output.replace(".bed", ""))
-    #median = np.median(sum_values)
-    # max_value = np.percentile(sum_values_nonzero, percent)
-    # logger.debug(f"Percent{percent} value is {max_value}")
+   
     res = np.where((sum_values <= max_value) & (sum_values >= min_value))
     
+    bins['count'] = sum_values
+    contig_counts = bins.groupby('chrom')['count'].mean().to_frame()
+    contig_counts['CN'] = contig_counts['count'] / peak_value
+    collapsed_contigs = contig_counts.query('count > @max_value')
+    collapsed_contigs.to_csv(output.replace(".bed", ".collapsed.contigs.txt"), sep='\t',
+                             index=True, header=None)
+    contigsizes.loc[contig_counts.query('count > @max_value').index].sum()
 
     hcr_regions = bins.loc[res[0]]
     

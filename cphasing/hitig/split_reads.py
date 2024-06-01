@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
+Deprecated
 0. fastp split-window qc
 1. read fastq from gz
 2. store chunk into cache

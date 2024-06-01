@@ -8,6 +8,7 @@ Date: 2024-05-17
 
 ## Bug fixes
 - `pipeline`, fixed bug of contacts generating
+- `scaffolding`, fixed bug of countre extract not found contigs 
 - `hcr_from_contacts`, find error peak in low coverage regions
 
 ## [v0.1.8]

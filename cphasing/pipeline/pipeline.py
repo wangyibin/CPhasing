@@ -234,11 +234,16 @@ def run(fasta,
 
                 if corrected_items and not Path(f"{porec_prefix}.corrected.porec.gz").exists:
                     break_bed, fasta, pairs = corrected_items
+
                     cmd = ["cphasing-rs", "porec-break", porec_table, 
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
                     flag = run_cmd(cmd, log="logs/porec-break.log")
                     assert flag == 0, "Failed to execute command, please check log."
+                    porec_table = f"{porec_prefix}.corrected.porec.gz"
 
+                if corrected_items:
+                    break_bed, fasta, pairs = corrected_items
+                    porec_table = f"{porec_prefix}.corrected.porec.gz"
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
                                             outprefix=fasta_prefix, threads=threads)

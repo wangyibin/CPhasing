@@ -242,6 +242,7 @@ def run(fasta,
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
 
                 if corrected_items:
+                    logger.info("Using exists corrected results.")
                     break_bed, fasta, pairs = corrected_items
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
             else:
@@ -275,6 +276,8 @@ def run(fasta,
                                    f"{pairs_prefix}.corrected.pairs.gz")
                 if not all(map(lambda x: Path(x).exists, corrected_items)):
                     corrected_items = ()
+                else:
+                    logger.info("Using exists corrected results.")
                 
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 

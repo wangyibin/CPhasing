@@ -54,7 +54,7 @@ def hic(ctx):
     """
     pass
 
-@hic.command(cls=CommandGroup, epilog=__epilog__)
+@hic.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     '-f',
     '--fasta',

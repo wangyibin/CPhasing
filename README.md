@@ -168,5 +168,9 @@ cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
 cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```
+After curation
+```bash
+cphasing utils assembly2agp groups.review.assembly > groups.review.agp 
+```
 
 

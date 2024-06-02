@@ -53,16 +53,17 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     ph.from_file(pairs)
     contigsizes = ph.chromsize
 
+    new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
     
     os.environ["POLARS_MAX_THREADS"] = str(threads)
     try:
         p = (pl.read_csv(pairs, separator='\t', has_header=False,
                             comment_prefix="#", columns=[1, 2, 3, 4, 7],
-                            new_columns=['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'],
-                            dtypes=dtype
+                            new_columns=new_columns,
+                            dtypes=dtype, low_memory=True
                             ).filter(pl.col('chrom1') == pl.col('chrom2'))
-                                .drop('chrom2')
-                                )
+                            .drop('chrom2')
+                        )
         
         if min_mapq > 0:
             p = p.filter(pl.col('mapq') >= min_mapq).drop('map1')
@@ -134,7 +135,7 @@ def correct(depth_dict, window_size=500, min_windows=50, threads=4):
     break_res = []
     for contig, break_points in res:
         for break_point in break_points:
-            break_res.append((contig, break_point * (window_size) - window_size))
+            break_res.append((contig, break_point * (window_size) + window_size))
     
     break_points_df =  pd.DataFrame(break_res)
     try:
@@ -307,8 +308,9 @@ def split_contigs(previous_break_points, contigsizes, pairs_df, split_num=2):
     split_contigsizes = {}
     split_contig_fragment_sizes = {}
     for contig in contigsizes:
-        if contig in set(previous_break_points[0].values.tolist()): 
-            continue 
+        if len(previous_break_points) > 0:
+            if contig in set(previous_break_points[0].values.tolist()): 
+                continue 
         split_contig_fragment_size = contigsizes[contig] // split_num 
         split_contig_fragment_sizes[contig] = split_contig_fragment_size
         for i in range(split_num):
@@ -445,8 +447,9 @@ def run(fasta, pairs, window_size=500,
                 start, end = region
                 if pos <= end and pos >= start - 1:
                     drop_idx.append(i)
-        logger.info(f"Filtered out {len(drop_idx)} break points, "
-                        "because they contain telomere tandem repeats.")
+        if len(drop_idx) > 0:
+            logger.info(f"Filtered out {len(drop_idx)} break points, "
+                            "because they contain telomere tandem repeats.")
         break_point_res.drop(drop_idx, axis=0, inplace=True) 
         corrected_positions = break_points_to_regions(break_point_res, contigsizes)
         break_point_res.to_csv(f"{outprefix}.breakPos.txt", 

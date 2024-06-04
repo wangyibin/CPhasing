@@ -321,12 +321,13 @@ class GmapAllele:
             sys.exit()
         
     def build_index(self):
-        cmd = ['gmap_build', '-D', '.', '-db', 
+        cmd = ['gmap_build', '-D', '.', '-d', 
                 self.dbname,
                 self.fasta]
         
-        run_cmd(cmd, log=f'{str(self.log_dir)}/gmap_build.log', out2err=True)
-    
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/gmap_build.log', out2err=True)
+        assert flag == 0, "Failed to execute command, please check log."
+
     def gmap(self):
         cmd = [self.gmap_cmd, 
                 '-d', self.dbname,
@@ -341,7 +342,7 @@ class GmapAllele:
         out = open(f'{self.output_gff3}', 'w')
 
         logger.info("Running command:")
-        logger.info("\t" + " ".join(cmd))
+        logger.info("\t" + " ".join(cmd) + f"> {self.output_gff3}" )
         pipelines = []
         try:
             pipelines.append(

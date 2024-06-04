@@ -57,7 +57,11 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
 
     median_value = np.quantile(data, .3)
     peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-    max_idx = peak_ind[np.argmax(y[peak_ind])]
+    if len(peak_ind) == 0:
+        max_idx = np.argsort(x)[len(x)//2]
+    else:
+        max_idx = peak_ind[np.argmax(y[peak_ind])]
+    
   
     
     ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 

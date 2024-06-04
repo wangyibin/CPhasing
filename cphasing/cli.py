@@ -202,7 +202,7 @@ click.rich_click.OPTION_GROUPS = {
                         "--only-chr", "--chr-prefix",
                         "--chrom-per-row",
                         "--vmin", "--vmax", 
-                        "--scale",
+                        "--scale", "--fontsize",
                         "--dpi", "--cmap", 
                         "--no-lines", "--no-ticks", 
                         "--rotate-xticks", "--rotate-yticks"]
@@ -4065,6 +4065,14 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True
 )
 @click.option(
+    '--fontsize',
+    metavar="INT",
+    help="Fontsize of the ticks, default is auto",
+    type=int,
+    default=None,
+    show_default=True
+)
+@click.option(
     '-dpi',
     '--dpi',
     help='Resolution for the image.',
@@ -4159,6 +4167,7 @@ def plot(matrix,
             only_chr,
             chr_prefix,
             chrom_per_row, 
+            fontsize,
             dpi, 
             cmap,
             balance,
@@ -4274,6 +4283,7 @@ def plot(matrix,
                  chromosomes=chromosomes,
                  per_chromosomes=per_chromosomes,
                  chrom_per_row=chrom_per_row,
+                 fontsize=fontsize,
                  dpi=dpi,
                  cmap=cmap, 
                  scale=scale,

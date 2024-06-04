@@ -785,7 +785,7 @@ class HyperPartition:
     
             first_length_contents = pformat(list(zip(first_group_info, length_contents)))
 
-            logger.info(f"First hyperpartition resulted {len(self.K)} groups:\n"
+            logger.info(f"First hyperpartition resulted in {len(self.K)} groups:\n"
                         f"{first_length_contents}")
             mapq_filter = True
         else:
@@ -925,7 +925,7 @@ class HyperPartition:
                 exclude_group_init_idx += 1
 
         second_length_contents = pformat(second_length_contents)
-        logger.info(f"Second hyperpartition resulted {len(self.K)} groups: \n"
+        logger.info(f"Second hyperpartition resulted in {len(self.K)} groups: \n"
                     f"{second_length_contents}")
     
 

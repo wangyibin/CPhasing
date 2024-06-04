@@ -643,6 +643,7 @@ def plot_heatmap(matrix, output,
                     chromosomes=None, 
                     per_chromosomes=False,
                     chrom_per_row=4,
+                    fontsize=None,
                     dpi=1200, 
                     cmap="redp1_r",
                     balanced=False,
@@ -677,22 +678,34 @@ def plot_heatmap(matrix, output,
         bins = bins.set_index('chrom')
 
         chromnames = cool.chromnames
-       
-        matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
+
+        if len(chromosomes) == 1:
+            matrix = cool.matrix(balance=balanced, sparse=True).fetch(chromosomes[0]).tocsr()
+            
+        else:
+            matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
+        
+            
 
         if chromosomes:
-            new_idx = bins.loc[chromosomes]['index']
+            if len(chromosomes) == 1:
+                new_idx = cool.bins().fetch(chromosomes[0]).index.values.tolist()
+                chrom_offset = [0, len(new_idx)]
+                chromnames = chromosomes
+            else:
+                new_idx = bins.loc[chromosomes]['index']
+                
+                matrix = matrix[new_idx, :][:, new_idx]
+                chromnames = chromosomes
             
-            matrix = matrix[new_idx, :][:, new_idx]
-            chromnames = chromosomes
-            chrom_offset = np.r_[0, 
-                                np.cumsum(new_idx
-                                            .reset_index()
-                                            .groupby('chrom', sort=False)
-                                            .count()
-                                            .values
-                                            .flatten())
-                                                ].tolist()
+                chrom_offset = np.r_[0, 
+                                    np.cumsum(new_idx
+                                                .reset_index()
+                                                .groupby('chrom', sort=False)
+                                                .count()
+                                                .values
+                                                .flatten())
+                                                    ].tolist()
         else:
             if remove_short_bin:
                 logger.debug("Removing the short bin ...")
@@ -737,12 +750,13 @@ def plot_heatmap(matrix, output,
                 norm = None
 
         factor = round(matrix.shape[0] / 5000 + 1, 2)   
+        
         fig_width = round(7 * factor, 2) 
         fig_height = round(8 * factor, 2)
 
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
         
-        tick_fontsize = 15 / np.log10(len(chromnames))
+        tick_fontsize = 15 / np.log10(len(chromnames)) if not fontsize else fontsize
 
         logger.info("Plotting heatmap ...")
         ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
@@ -819,7 +833,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
     fig_height = 6 * num_rows
     fig_width = sum((np.array(width_ratios) + 0.05) * 6)
-
+    
 
     fig = plt.figure(figsize=(fig_width, fig_height))
 
@@ -938,11 +952,14 @@ def plot_heatmap_core(matrix,
     
     if chrom_offset:
         mid_tick_pos = list((np.array(chrom_offset)[:-1] + np.array(chrom_offset)[1:]) / 2)
-   
+    else:
+        mid_tick_pos = [0]
+
     ax.tick_params(width=0)
     if xticks and chromnames:
         ax.set_xticks(mid_tick_pos)
         rotation = "vertical" if rotate_xticks else "horizontal"
+        
         ax.set_xticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
     else:
         ax.set_xticks([])

@@ -72,12 +72,15 @@ def get_wave_vally(depth_df, outPre, Max=None):
     trough_ind = signal.find_peaks(-yvals, distance=10)
     
     trough_ind = trough_ind[0]
-    trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])]
-
+    
+    
+    trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])] + 1
+    # trough_widths = signal.peak_widths(-yvals, [trough], rel_height=0.3)
+   
     if len(peak_ind) == 0:
-        peak_ind = [0, trough * 1.75]
+        peak_ind = [trough * 0.25, trough * 1.75]
     else:
-        lower_value = peak_ind[peak_ind < trough][-1] if len(peak_ind[peak_ind < trough]) > 0 else 0
+        lower_value = peak_ind[peak_ind < trough][-1] if len(peak_ind[peak_ind < trough]) > 0 else trough * 0.25
         upper_value = peak_ind[peak_ind > trough][0] if len(peak_ind[peak_ind > trough]) > 0 else trough * 1.75
         peak_ind = [lower_value, upper_value]
 

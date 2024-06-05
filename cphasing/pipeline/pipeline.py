@@ -222,6 +222,7 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
     
+    corrected = False
     if chimeric_correct or chimeric_corrected:
         if porec_table:
             if chimeric_corrected:
@@ -234,7 +235,7 @@ def run(fasta,
 
                 if corrected_items and not Path(f"{porec_prefix}.corrected.porec.gz").exists:
                     break_bed, fasta, pairs = corrected_items
-
+                    corrected = True
                     cmd = ["cphasing-rs", "porec-break", porec_table, 
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
                     flag = run_cmd(cmd, log="logs/porec-break.log")
@@ -244,12 +245,15 @@ def run(fasta,
                 if corrected_items:
                     logger.info("Using exists corrected results.")
                     break_bed, fasta, pairs = corrected_items
+                    corrected = True
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
+                    
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
                                             outprefix=fasta_prefix, threads=threads)
                 
                 if corrected_items:
+                    corrected = True
                     break_bed, fasta, pairs = corrected_items
                     cmd = ["cphasing-rs", "porec-break", porec_table, 
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
@@ -286,7 +290,7 @@ def run(fasta,
             
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
-
+                corrected = True
                 fasta_prefix = Path(fasta).with_suffix("")
                 while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
                     fasta_prefix = fasta_prefix.with_suffix("")
@@ -634,24 +638,45 @@ def run(fasta,
 #    Running step 4. scaffolding   #
 #----------------------------------#""")
         try:
-            scaffolding.main(args=[
-                                output_cluster,
-                                count_re,
-                                clm,
-                                "-at",
-                                allele_table,
-                                "-sc",
-                                split_contacts,
-                                "-f",
-                                fasta,
-                                "-t",
-                                threads,
-                                "-o",
-                                out_agp,
-                                "-m",
-                                scaffolding_method
-                            ],
-                            prog_name='scaffolding')
+            if corrected:
+                scaffolding.main(args=[
+                                    output_cluster,
+                                    count_re,
+                                    clm,
+                                    "-at",
+                                    allele_table,
+                                    "-sc",
+                                    split_contacts,
+                                    "-f",
+                                    fasta,
+                                    "-t",
+                                    threads,
+                                    "-o",
+                                    out_agp,
+                                    "-m",
+                                    scaffolding_method,
+                                    "--corrected"
+                                ],
+                                prog_name='scaffolding')
+            else:
+                scaffolding.main(args=[
+                                    output_cluster,
+                                    count_re,
+                                    clm,
+                                    "-at",
+                                    allele_table,
+                                    "-sc",
+                                    split_contacts,
+                                    "-f",
+                                    fasta,
+                                    "-t",
+                                    threads,
+                                    "-o",
+                                    out_agp,
+                                    "-m",
+                                    scaffolding_method
+                                ],
+                                prog_name='scaffolding')
         except SystemExit as e:
             exc_info = sys.exc_info()
             exit_code = e.code

@@ -3355,6 +3355,12 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     type=click.Path(exists=True)
 )
 @click.option(
+    '--corrected',
+    is_flag=True,
+    default=False,
+    help="Contigs were corrected."
+)
+@click.option(
     "-m",
     "--method",
     "-scaf-method",
@@ -3407,7 +3413,9 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
 def scaffolding(clustertable, count_re, clm, 
                 split_contacts, 
                 allele_table,
-                fasta, method,
+                fasta,
+                corrected,
+                method,
                 keep_temp,
                 output, threads):
     """
@@ -3431,12 +3439,12 @@ def scaffolding(clustertable, count_re, clm,
         logger.warn("Will not generate the agp file, because the fasta not be specified")                               
 
     if method == "allhic":
-        ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table,
+        ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table, corrected=corrected,
                                 fasta=fasta, keep_temp=keep_temp, output=output, threads=threads)
         ao.run()
     elif method == "precision":
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
-        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
+        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, corrected=corrected,
                                 allele_table=allele_table, keep_temp=keep_temp,
                                 fasta=fasta, output=output, threads=threads)
         hs.run()

@@ -162,7 +162,9 @@ class AllhicOptimize:
 
     def __init__(self, clustertable, count_re, clm, 
                     allele_table=None,
-                    fasta=None, output="groups.agp", 
+                    fasta=None, 
+                    corrected=False,
+                    output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
                     keep_temp=False,
                     threads=4):
@@ -171,6 +173,7 @@ class AllhicOptimize:
         self.clm_file = str(Path(clm).absolute())
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
+        self.corrected = corrected
         self.output = output
         self.tmp_dir = tmp_dir 
         self.delete_temp = False if keep_temp else True 
@@ -292,7 +295,11 @@ class AllhicOptimize:
             os.system(f"cp *tour ../")
         else:
             try:
-                build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
+                if self.corrected:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output, "--corrected"], 
+                                prog_name='build')
+                else:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
             except SystemExit as e:
                 exc_info = sys.exc_info()
                 exit_code = e.code
@@ -320,7 +327,9 @@ class HapHiCSort:
                     split_contacts, 
                     skip_allhic=False,
                     allele_table=None,
-                    fasta=None, output="groups.agp", 
+                    fasta=None, 
+                    corrected=False,
+                    output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
                     keep_temp=False,
                     threads=4):
@@ -474,8 +483,12 @@ class HapHiCSort:
             os.system(f"cp *tour ../")
         else:
             try:
-                build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
-                            prog_name='build')
+                if self.corrected:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output, "--corrected"], 
+                                prog_name='build')
+                else:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
+                                prog_name='build')
             except SystemExit as e:
                 exc_info = sys.exc_info()
                 exit_code = e.code

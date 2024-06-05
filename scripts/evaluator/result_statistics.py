@@ -11,6 +11,7 @@ import argparse
 import collections
 import glob
 
+from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from cphasing.agp import import_agp
@@ -25,15 +26,16 @@ def parse_fasta(fasta):
                 continue
             if line.startswith('>'):
                 ID = line.split()[0][1:]
-                if 'collapsed' in line or 'chimeric' in line:
+                if 'chimeric' in line:
                     ignore = True
                     continue
                 else:
                     ignore = False
                     fa_len_dict[ID] = 0
+
             elif not ignore:
                 fa_len_dict[ID] += len(line.strip())
-
+            
     return fa_len_dict
 
 
@@ -56,7 +58,18 @@ def parse_groups(groups, fa_len_dict):
         chr4_8_excluded_group_len = 0
 
         nctgs = len(group)
-    
+
+        most_group_length_db = defaultdict(int)
+        for ctg in group:
+            if 'collapsed' in ctg or 'chimeric' in ctg:
+                continue 
+            length = fa_len_dict[ctg]
+            source_chr = ctg.split('.')[0]
+            
+            most_group_length_db[source_chr] += length 
+
+        most_group = max(most_group_length_db, key=lambda x: most_group_length_db[x])
+
 
         # one group should have at least two contigs inside
         if nctgs < 2:
@@ -66,14 +79,30 @@ def parse_groups(groups, fa_len_dict):
 
         for ctg in group:
             # collapsed and chimeric contigs are skipped
-            if 'collapsed' in ctg or 'chimeric' in ctg:
-
-                continue
-            
+          
+            if 'chimeric' in ctg:
+                    continue
+          
             length = fa_len_dict[ctg]
-            source_chr = ctg.split('.')[0]
+            if 'collapsed' in ctg:
+                ctg1 = ctg.split(":")[0]
+                ctg2 = ctg.split("|")[1].split(":")[0]
+                source_chr1 = ctg1.split('.')[0]
+                source_chr2 = ctg2.split('.')[0]
+
+                if source_chr1 == most_group:
+                    source_chr = source_chr1
+                elif source_chr2 == most_group:
+                    source_chr = source_chr2 
+               
+                anchored_len_dict[source_chr] += length
+
+            else:
+                source_chr = ctg.split('.')[0]
+                anchored_len_dict[source_chr] += length
+            
             source_chr_len_dict[source_chr] += length
-            anchored_len_dict[source_chr] += length
+           
             if source_chr.split('_')[0] not in {'Chr4', 'Chr8'}:
                 chr4_8_excluded_group_len += length
     
@@ -122,7 +151,7 @@ def main():
     contigsizes = contig_sizes.to_dict()['tig_end']
     fa_len_dict = {}
     for contig, length in contigsizes.items():
-        if 'chimeric' in contig or 'collapsed' in contig:
+        if 'chimeric' in contig:
             continue 
 
         fa_len_dict[contig] = length
@@ -131,7 +160,12 @@ def main():
 
     
 
-    total_ctg_len = sum(fa_len_dict.values())
+    total_ctg_len = 0
+    for ctg in fa_len_dict:
+        if 'collapsed' in ctg:
+            total_ctg_len += fa_len_dict[ctg] * 2
+        else:
+            total_ctg_len += fa_len_dict[ctg]
     
     n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict = parse_groups(cluster_df, fa_len_dict)
 

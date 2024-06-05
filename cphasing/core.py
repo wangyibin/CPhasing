@@ -990,6 +990,24 @@ class ClusterTable:
         
         return _stat
 
+    @property
+    def hap_groups(self):
+        db = OrderedDict()
+        for group in self.data:
+            try:
+                hap, idx = group.rsplit("g", 1)
+            except:
+                if group not in db:
+                    db[group] = []
+                db[group].append(self.data[group])
+            finally:
+                if hap not in db:
+                    db[hap] = []
+
+                db[hap].append(self.data[group])
+            
+        return db
+
     def from_frame(self, dataframe):
         """
         create clusterTable from DataFrame

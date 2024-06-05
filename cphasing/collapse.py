@@ -18,8 +18,11 @@ from collections import defaultdict
 from scipy.sparse import triu
 from pandarallel import pandarallel 
 
-from cphasing.plot import chrRangeID
-
+try:
+    from .algorithms.hypergraph import extract_incidence_matrix2 
+    from .utilities import run_cmd, list_flatten
+except ImportError:
+    from cphasing.utilities import run_cmd, list_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,102 @@ class CollapseContigs:
         
         pass 
 
+class CollapsedRescue:
+    """
+    Rescue the collapsed contigs into a group
+    """
+    def __init__(self, HG, clustertable, alleletable,
+                    collapsed_contigs, allelic_similarity: float=.85):
+        
+        self.HG = HG 
+        self.clustertable = clustertable
+        self.alleletable = alleletable 
+        self.alleletable.data = self.alleletable.data[self.alleletable.data['similarity'] >= allelic_similarity]
+    
+        self.collapsed_contigs = collapsed_contigs
+        self.allelic_similarity = allelic_similarity
+        
+        self.hap_groups = self.clustertable.hap_groups
+        self.H = HG.incidence_matrix()
+        self.vertices = self.HG.nodes 
+
+    @property
+    def vertices_idx(self):
+        return dict(zip(self.vertices, 
+                        range(len(self.vertices))))
+    
+    @property
+    def idx_to_vertices(self):
+        idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
+        
+        return idx_to_vertices
+
+    @staticmethod
+    def _rescue(A, ):
+        pass
+
+    def rescue(self):
+        vertices_idx = self.vertices_idx
+        new_cluster_data = {}
+        for k, hap_group in enumerate(self.hap_groups):
+            groups = self.hap_groups[hap_group]
+            if len(groups) < 2:
+                continue 
+            contigs = list_flatten(groups)
+            contigs_idx = list(map(vertices_idx.get, contigs))
+            sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
+            sub_alleletable = self.alleletable.data[
+                self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
+            sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
+            sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+            P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
+            sub_alleletable.set_index([1], inplace=True)
+
+            
+
+            sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
+            sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
+           
+            # sub_allelic = set(map(tuple, sub_alleletable[[1, 2]].values.tolist()))
+
+            groups_idx = list(map(lambda x: list(map(vertices_idx.get, x)), groups))
+            groups_new_idx = list(map(lambda x: list(map(sub_old2new_idx.get, x)), groups_idx))
+            groups_new_idx_db = {}
+            for i in range(len(groups_new_idx)):
+                groups_new_idx_db.update(dict(zip(groups_new_idx[i], [i] * len(groups_new_idx[i]))))
+            
+            sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(axis=0)
+            sub_collapsed_contigs_idx = list(map(vertices_idx.get, sub_collapsed_contigs.index.tolist()))
+            sub_collapsed_contigs_idx_new = list(map(sub_old2new_idx.get, sub_collapsed_contigs_idx))
+
+            res = []
+            for i in range(len(groups)):
+                tmp_res = []
+                for j in sub_collapsed_contigs_idx_new:
+                    if i == groups_new_idx_db[j]:
+                        tmp_res.append(0)
+                    else:
+                        try:
+                            tmp_allelic_table = sub_alleletable.loc[j]
+                            # print(tmp_allelic_table)
+                        except KeyError:
+                            pass
+
+                        tmp_res.append(sub_A[j, groups_new_idx[i]].sum())
+                
+                res.append(tmp_res)
+            
+            for collapsed_contig, values in list(zip(sub_collapsed_contigs.index, list(zip(*res)))):
+                groups[np.argmax(values)].append(collapsed_contig)
+
+            for k, group in enumerate(groups):
+                new_cluster_data[f'{hap_group}g{k+1}'] = group 
+            
+        
+        self.clustertable.data = new_cluster_data
+        self.clustertable.save("test.custerst.txt")
+
+    
 
 def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):
     """

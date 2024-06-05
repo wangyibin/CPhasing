@@ -116,7 +116,7 @@ def output(ouPre, depthDIc):
                 fout.write("{}\t{}\t{}\t{:.3f}\n".format(ctg, bini[0], bini[1], depthDIc[ctg][bini]))
     return ouPre + ".depth"
 
-def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000):
+def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000, min_mapq=2):
     
     fasta_prefix = Path(fastaFile).stem
     contigsizes = f"{fasta_prefix}.contigsizes"
@@ -128,7 +128,7 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000)
     cmd = f"bedtools makewindows -g {contigsizes} -w {winsize} -s {step} 2>/dev/null > temp.{fasta_prefix}.w{winsize}.s{step}.bed"
     os.system(cmd)
 
-    cmd = "awk '$12>1{print $6,$8,$9}' OFS='\t' "
+    cmd = "awk '$12>=%d {print $6,$8,$9}' OFS='\t' " % (min_mapq)
     cmd += "{} > temp.{}.paf.bed".format(paf, output)
     os.system(cmd)
 
@@ -139,9 +139,9 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000)
     os.remove(f"temp.{output}.paf.bed")
 
 
-def workflow(paf, fastaFile, win, step, outPre):
+def workflow(paf, fastaFile, win, step, outPre, min_mapq=2):
     ## 
-    # win = int(win)
+    win = int(win)
     # pafDic = read_paf(paf)
     # genomeSize = read_fasta(fastaFile)
     # binDic, winDic = build_windic(genomeSize, win)
@@ -153,7 +153,8 @@ def workflow(paf, fastaFile, win, step, outPre):
 
     # with Pool(processes=4) as p:
     #     depthDic = p.starmap(cal_depth, [(winDic,) for _ in range(p._processes)])
-    calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step)
+    # output(outPre, depthDic)
+    calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step, min_mapq=min_mapq)
 
     return f'{outPre}.depth'
 
@@ -167,9 +168,11 @@ if __name__ == "__main__":
                         help='<int> window size when calculating depth.')
     parser.add_argument('-s', '--step', default=1000,
                         help='<int> step size when calculating depth.')
+    parser.add_argument('-q', '--min-mapq', default=2, type=int,
+                        help='<int> min mapping quality of the alignments.')
     
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # paf, breakpointFile, fasta, win, outPre
-    workflow(args.paf, args.fasta, args.win, args.step, args.output)
+    workflow(args.paf, args.fasta, args.win, args.step, args.output, min_mapq=args.min_mapq)

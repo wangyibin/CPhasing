@@ -679,12 +679,14 @@ def plot_heatmap(matrix, output,
 
         chromnames = cool.chromnames
 
-        if len(chromosomes) == 1:
-            matrix = cool.matrix(balance=balanced, sparse=True).fetch(chromosomes[0]).tocsr()
-            
+        if chromosomes:
+            if len(chromosomes) == 1:
+                matrix = cool.matrix(balance=balanced, sparse=True).fetch(chromosomes[0]).tocsr()
+                
+            else:
+                matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
         else:
             matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
-        
             
 
         if chromosomes:

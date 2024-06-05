@@ -47,7 +47,6 @@ def get_wave_vally(depth_df, outPre, Max=None):
     depthHist = depth_df.groupby(['count'])['chrom'].count()
     depthHist = depthHist[depthHist.index > 0]
     max_values = round(depthHist.argmax()  * 2.5) if not Max else Max
-
     depthHist = depthHist[depthHist.index < max_values]
     depthHist = depthHist.to_dict()
     ## find wave vally
@@ -149,7 +148,7 @@ def output_coverage_region(coverage_region, outPre, low_or_high):
 
 def workflow(depthFile, win,  outPre,  Max=None):
     depth_df = read_depth(depthFile)
-    
+
     peak_ind, trough = get_wave_vally(depth_df, outPre, Max=Max)
 
     filterRegion= filter_depth(depth_df, peak_ind)

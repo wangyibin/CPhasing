@@ -187,7 +187,7 @@ click.rich_click.OPTION_GROUPS = {
     "cphasing plot": [
         {
             "name": "Options of Matrix Operation",
-            "options": ["--matrix", "--factor", 
+            "options": ["--matrix", "--factor", "--coarsen",
                         "--no-coarsen", "--only-coarsen",
                         "--balance", "--balanced"]
         },
@@ -2637,7 +2637,6 @@ def hypergraph(contacts,
     default=None,
     show_default=True,
     type=click.Path(exists=True),
-    hidden=True
 )
 @click.option(
     "-pt",
@@ -3227,6 +3226,85 @@ def hyperpartition(hypergraph,
     
     hp.to_cluster(output)
 
+@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@click.argument(
+    "hypergraph",
+    metavar="HyperGraph",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="ContigSizes",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "clustertable",
+    metavar="ClusterTable",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "collapsed_contigs",
+    metavar="Collapsed_Contigs_Table",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-n",
+    "--ploidy",
+    help="ploidy level of genome.",
+    metavar="INT",
+    default=1,
+    type=int
+)
+@click.option(
+    "-at",
+    "--alleletable",
+    metavar="PATH",
+    help="""
+    Path to allele table that is generated from `alleles`. 
+        Skip when prunetable parameter added. [default: None]
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-as",
+    "--allelic-similarity",
+    "allelic_similarity",
+    metavar="FLOAT",
+    help="The similarity of allelic, which used to merge clusters",
+    default=0.90,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+def collapsed_rescue(hypergraph, contigsizes, clustertable, 
+                    collapsed_contigs, ploidy,
+                    alleletable, allelic_similarity):
+    import msgspec
+    from .collapse import CollapsedRescue
+    from .core import AlleleTable, ClusterTable 
+    from .algorithms.hypergraph import HyperEdges, HyperGraph
+    
+    hyperedge = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+    hyperedge.to_numpy()
+    hypergraph = HyperGraph(hyperedge, min_quality=2)
+    
+    at = AlleleTable(alleletable, sort=False, fmt="allele2")
+    ct = ClusterTable(clustertable)
+    collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
+                                        names=["contig", "depth", "CN"])
+
+    cr = CollapsedRescue(
+        HG=hypergraph,
+        clustertable=ct,    
+        alleletable=at,
+        collapsed_contigs=collapsed_contigs,
+        allelic_similarity=allelic_similarity,
+    )
+
+    cr.rescue()
+
+    pass
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
@@ -3955,6 +4033,14 @@ def pairs2cool(pairs, chromsize, outcool,
     show_default=True,
 )
 @click.option(
+    '--coarsen',
+    'coarsen',
+    help='Need coarsen matrix to base bin size * k resolution.',
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '--no-coarsen',
     'no_coarsen',
     help='The resolution of matrix is already for plotting, no need coarsen.',
@@ -4154,6 +4240,7 @@ def plot(matrix,
             factor,
             no_adjust, 
             only_adjust, 
+            coarsen,
             no_coarsen,
             only_coarsen,
             only_plot, 
@@ -4229,7 +4316,7 @@ def plot(matrix,
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
     else:
-        if only_coarsen:
+        if only_coarsen or coarsen:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
 
     if balance:

@@ -1,6 +1,8 @@
 # Release notes #
 ## [v0.1.9]
-Date: 2024-05-17
+Date: 2024-06-05
+## New features
+- `collapsed-rescue`, init a collapsed contigs rescue function
 ## Enhancement
 - `higig`
     - upport for hifi data. Moreover, support for junk and collapsed identification

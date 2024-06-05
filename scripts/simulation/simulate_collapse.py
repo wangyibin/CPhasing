@@ -62,7 +62,7 @@ def main(args):
     
     paf = pd.read_csv(paf, usecols=range(11), sep='\t', index_col=None, header=None)
 
-    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 10000) & (paf[9] / paf[10] >= 0.95)]
+    paf = paf[(paf[0] < paf[5]) & (paf[9] >= 20000) & (paf[9] / paf[10] >= 0.95)]
     paf = paf[(paf[2] < 100) | ((paf[1] - paf[3]) < 100)]
     paf = paf[(paf[7] < 100) | ((paf[6] - paf[8]) < 100)]
 
@@ -117,7 +117,7 @@ def main(args):
         collapsed_contig = collapsed_contig_pair[idx]
         contig = collapsed_contig_pair[abs(idx-1)]
 
-        if len(fasta[collapsed_contig]) < 5000:
+        if len(fasta[collapsed_contig]) < 200000:
             continue
 
         if contig in exists_contig_list or collapsed_contig in exists_contig_list:

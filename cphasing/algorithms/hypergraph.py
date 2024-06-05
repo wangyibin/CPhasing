@@ -87,7 +87,7 @@ class HyperGraph:
         """
         initial assign row and edges
         """
-        if self.min_quality > 1 and self.edges.mapq.size:
+        if self.min_quality > 1 and len(self.edges.mapq) > 1:
             self.mapq = np.array(self.edges.mapq, dtype=np.int8)
 
             retain_idx = self.mapq >= self.min_quality

@@ -343,6 +343,7 @@ class HapHiCSort:
         self.skip_allhic = skip_allhic
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
+        self.corrected = corrected
         self.output = output
         self.delete_temp = False if keep_temp else True
         self.tmp_dir = tmp_dir 

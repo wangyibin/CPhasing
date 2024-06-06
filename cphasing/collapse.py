@@ -127,7 +127,7 @@ class CollapsedRescue:
             
         
         self.clustertable.data = new_cluster_data
-        self.clustertable.save("test.custerst.txt")
+        self.clustertable.save("test.clusters.txt")
 
     
 

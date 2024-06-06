@@ -3358,7 +3358,7 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     '--corrected',
     is_flag=True,
     default=False,
-    help="Contigs were corrected."
+    help="Contigs were corrected, used for building agp and fasta."
 )
 @click.option(
     "-m",

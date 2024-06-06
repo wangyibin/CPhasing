@@ -588,6 +588,14 @@ def find_chimeric(
     show_default=True,
     type=int
 )
+# @click.option(
+#     '--step-size',
+#     'step_size',
+#     help='step size',
+#     default=1000,
+#     show_default=True,
+#     type=int
+# )
 @click.option(
     '-M',
     '--max-depth',
@@ -606,7 +614,9 @@ def find_chimeric(
     show_default=True
 )
 def hcr(lis, split_align, depth, break_pos, 
-            contig_sizes, min_count, min_score, window, max_depth, output):
+            contig_sizes, min_count, min_score, window, 
+            # step_size,
+            max_depth, output):
     """
     Identify high confidence regions (HCRs).
 

@@ -241,12 +241,14 @@ def run(fasta,
                     flag = run_cmd(cmd, log="logs/porec-break.log")
                     assert flag == 0, "Failed to execute command, please check log."
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
+                    hg_input = porec_table
 
                 if corrected_items:
                     logger.info("Using exists corrected results.")
                     break_bed, fasta, pairs = corrected_items
                     corrected = True
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
+                    hg_input = porec_table
                     
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
@@ -255,6 +257,7 @@ def run(fasta,
                 if corrected_items:
                     corrected = True
                     break_bed, fasta, pairs = corrected_items
+                    hg_input = pairs
                     cmd = ["cphasing-rs", "porec-break", porec_table, 
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
                     flag = run_cmd(cmd, log="logs/porec-break.log")

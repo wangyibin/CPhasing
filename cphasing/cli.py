@@ -3252,7 +3252,7 @@ def hyperpartition(hypergraph,
     "--ploidy",
     help="ploidy level of genome.",
     metavar="INT",
-    default=1,
+    default=2,
     type=int
 )
 @click.option(
@@ -3273,7 +3273,7 @@ def hyperpartition(hypergraph,
     "allelic_similarity",
     metavar="FLOAT",
     help="The similarity of allelic, which used to merge clusters",
-    default=0.90,
+    default=0.85,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
@@ -3293,6 +3293,8 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     ct = ClusterTable(clustertable)
     collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
                                         names=["contig", "depth", "CN"])
+
+    collapsed_contigs = collapsed_contigs[collapsed_contigs["CN"] <= (ploidy)]
 
     cr = CollapsedRescue(
         HG=hypergraph,
@@ -3451,7 +3453,7 @@ def scaffolding(clustertable, count_re, clm,
 
     else:
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
-        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, skip_allhic=True,
+        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, skip_allhic=True, corrected=corrected,
                         allele_table=allele_table, fasta=fasta, output=output, threads=threads)
         hs.run()
 

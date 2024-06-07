@@ -181,8 +181,8 @@ def main():
 
     inter_nonhomo_error_rate = inter_nonhomo_err/anchored_len  if anchored_len else 0
     print('Contiguity\t{}'.format(contiguity))
-    print('Inter_homo_error_rate\t{}%'.format(inter_homo_error_rate))
-    print('Inter_nonhomo_error_rate\t{}%'.format(inter_nonhomo_error_rate))
+    print('Inter_homo_error_rate\t{}'.format(inter_homo_error_rate))
+    print('Inter_nonhomo_error_rate\t{}'.format(inter_nonhomo_error_rate))
     print('Ngroups\t{}'.format(n_groups))
     print('Anchoring rate\t{}%'.format(anchored_len/total_ctg_len*100))
 

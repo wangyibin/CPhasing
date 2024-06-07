@@ -216,11 +216,17 @@ def pipeline(fasta, fastq, min_as, min_mapq,
     ```
     > - Input HiFi data\n
     ```bash
-    $ hitig pipeline -f contigs.fasta -i hifi.fasta.gz -t 20 --hifi -w 2000 --step-size 500 -ms 2 -m 5
+    $ hitig pipeline -f contigs.fasta -i hifi.fasta.gz -t 20 --hifi -m 2
     ```
     
-    
     """
+    # """
+    # > - Input HiFi data\n
+    # ```bash
+    # $ hitig pipeline -f contigs.fasta -i hifi.fasta.gz -t 20 --hifi -w 2000 --step-size 500 -ms 2 -m 5
+    # ```
+    # """
+    
     from .pipeline import run 
 
     if steps:

@@ -44,7 +44,8 @@ class CollapsedRescue:
         self.HG = HG 
         self.clustertable = clustertable
         self.alleletable = alleletable 
-        self.alleletable.data = self.alleletable.data[self.alleletable.data['similarity'] >= allelic_similarity]
+        self.alleletable.data = self.alleletable.data[
+            self.alleletable.data['similarity'] >= allelic_similarity]
     
         self.collapsed_contigs = collapsed_contigs
         self.allelic_similarity = allelic_similarity
@@ -70,6 +71,7 @@ class CollapsedRescue:
 
     def rescue(self):
         vertices_idx = self.vertices_idx
+        idx_to_vertices = self.idx_to_vertices
         new_cluster_data = {}
         for k, hap_group in enumerate(self.hap_groups):
             groups = self.hap_groups[hap_group]
@@ -84,8 +86,6 @@ class CollapsedRescue:
             sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
             P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
             sub_alleletable.set_index([1], inplace=True)
-
-            
 
             sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
             sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
@@ -103,26 +103,52 @@ class CollapsedRescue:
             sub_collapsed_contigs_idx_new = list(map(sub_old2new_idx.get, sub_collapsed_contigs_idx))
 
             res = []
-            for i in range(len(groups)):
+           
+
+            for j in sub_collapsed_contigs_idx_new:
+                try:
+                    tmp_allelic_table = sub_alleletable.loc[j]
+                    try:
+                        tmp_allelic_table.set_index([2], inplace=True)
+                    except:
+                        tmp_allelic_table.to_frame().set_index([2], inplace=True)
+
+        
+                except KeyError:
+                    tmp_allelic_table = []
+                shared_similarity = np.zeros(len(groups))
                 tmp_res = []
-                for j in sub_collapsed_contigs_idx_new:
+                for i in range(len(groups)):
+                    
                     if i == groups_new_idx_db[j]:
                         tmp_res.append(0)
                     else:
-                        try:
-                            tmp_allelic_table = sub_alleletable.loc[j]
-                            # print(tmp_allelic_table)
-                        except KeyError:
-                            pass
+                        if len(tmp_allelic_table) > 1:
+                            tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
+                            if len(tmp) > 1:
+                                shared_similarity[i] = tmp['mzShared'].sum()
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].sum())
+
+                groups_new_idx[np.argmax(tmp_res)].append(j)
+
+                print(tmp_res, shared_similarity)
+                print()
                 
                 res.append(tmp_res)
             
-            for collapsed_contig, values in list(zip(sub_collapsed_contigs.index, list(zip(*res)))):
-                groups[np.argmax(values)].append(collapsed_contig)
+            
+            
 
-            for k, group in enumerate(groups):
+            # for collapsed_contig, values in list(zip(sub_collapsed_contigs.index, list(zip(*res)))):
+            #     groups[np.argmax(values)].append(collapsed_contig)
+            new_groups = []
+            for group_idx in groups_new_idx:
+                tmp = list(map(lambda x: contigs_idx[x], group_idx))
+                tmp = list(map(idx_to_vertices.get, tmp))
+                new_groups.append(tmp)
+                
+            for k, group in enumerate(new_groups):
                 new_cluster_data[f'{hap_group}g{k+1}'] = group 
             
         

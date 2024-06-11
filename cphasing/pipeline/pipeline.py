@@ -102,6 +102,7 @@ def run(fasta,
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
 
+    raw_fasta = fasta
     
     # if n:
     #     if len(re.split(":|x|\|", n)) <= 1:
@@ -651,7 +652,7 @@ def run(fasta,
                                     "-sc",
                                     split_contacts,
                                     "-f",
-                                    fasta,
+                                    raw_fasta,
                                     "-t",
                                     threads,
                                     "-o",

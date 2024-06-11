@@ -1,13 +1,13 @@
 # Release notes #
 ## [v0.1.9]
-Date: 2024-06-05
+Date: 2024-06-11
 ## New features
 - `collapsed-rescue`, init a collapsed contigs rescue function
 ## Enhancement
 - `higig`
-    - upport for hifi data. Moreover, support for junk and collapsed identification
+    - support for hifi data. Moreover, support for junk and collapsed identification
     - `correct-alignments`, increase performance by filtering low quality LIS
-
+- `plot`, add triangle plot 
 ## Bug fixes
 - `pipeline`, fixed bug of contacts generating
 - `scaffolding`, fixed bug of countre extract not found contigs 

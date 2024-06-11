@@ -5,6 +5,7 @@ import os
 import os.path as op
 import sys
 import time
+import tempfile
 import warnings
 
 try:
@@ -13,16 +14,17 @@ try:
 except ImportError:
     pass
 
-import tempfile
-from collections import OrderedDict
 
 import cooler
 import numpy as np
 import pandas as pd
 
+from collections import OrderedDict
 from math import ceil
+from itertools import product
 from intervaltree import Interval, IntervalTree
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.gridspec import GridSpec
 from multiprocessing import Lock, Pool
 from joblib import Parallel, delayed
 from pandarallel import pandarallel
@@ -635,6 +637,7 @@ def balance_matrix(cool, force=False, threads=4):
 def plot_heatmap(matrix, output, 
                     vmin=None, vmax=None,
                     scale="log1p", 
+                    triangle=False,
                     xlabel=None, ylabel=None, 
                     xticks=True, yticks=True,
                     rotate_xticks=False, rotate_yticks=False,
@@ -763,6 +766,7 @@ def plot_heatmap(matrix, output,
         logger.info("Plotting heatmap ...")
         ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
+                            triangle=triangle,
                             xticks=xticks, yticks=yticks, 
                             rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
                             vmin=vmin, vmax=vmax, 
@@ -868,7 +872,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             norm = None
 
 
-        plot_heatmap_core(chrom_matrix, ax, norm=norm, xlabel=chrom,
+        plot_heatmap_core(chrom_matrix, ax, norm=norm, xlabel=chrom, 
                             cmap=cmap, xticks=False, yticks=False)
     args = []
     for i, chrom in enumerate(chromosomes):
@@ -890,6 +894,7 @@ def plot_heatmap_core(matrix,
                         chromnames=None,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
+                        triangle=True,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
                         rotate_xticks=False, rotate_yticks=False,
@@ -914,7 +919,11 @@ def plot_heatmap_core(matrix,
         except:
             colormap = cmap 
     
-        
+    if norm is None:
+        if vmax is None:
+            vmax = np.percentile(np.array(matrix), 95)
+
+   
     # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
     # sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
     #                 norm=norm,
@@ -923,12 +932,38 @@ def plot_heatmap_core(matrix,
     
     # cbar = ax.collections[0].colorbar
     # cbar.ax.tick_params(labelsize=10)
-
-    fig = plt.gcf()
-    cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
-                    interpolation=None)
     
+    if triangle:
+        ## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
+        # fig = plt.figure(figsize=(7, 4.2))
+        # grid = GridSpec(1, 1, figure=fig, left=0.1, right=0.9,
+        #             bottom=0.1, top=0.9, hspace=0.04, height_ratios=[5])
+        # ax = fig.add_subplot(grid[0])
+        add_lines = False
+        fig, ax = plt.subplots(figsize=(7, 3.2))
+        n = matrix.shape[0]
+        t = np.array([[1, 0.5], [-1, 0.5]])
+        A = np.dot(np.array([(i[1], i[0]) for i in product(range(n, -1, -1),range(0, n+1, 1))]), t)
+
+        x = A[:, 1].reshape(n+1, n+1)
+        y = A[:, 0].reshape(n+1, n+1)
+        y[y<0] = -y[y<0]
+    
+        cax = ax.pcolormesh(x, y, np.flipud(np.array(matrix)), cmap=colormap, edgecolor='none',
+                            snap=True, linewidth=.001, rasterized=False)
+        
+        ax.axis('off')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        
+    else:
+        fig = plt.gcf()
+        cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
+                        interpolation=None)
+        
     cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
+
     ax.set_xlim(0, matrix.shape[0])
     ax.set_ylim(0, matrix.shape[1])
 
@@ -981,7 +1016,9 @@ def plot_heatmap_core(matrix,
     sns.despine(top=False, right=False)
 
 
-    # ax.axis([0, matrix.shape[0], 0, matrix.shape[1]])
-    ax.axis([0, matrix.shape[0], matrix.shape[1], 0])
+    if triangle:
+        ax.axis([0, matrix.shape[0], 0, matrix.shape[1]])
+    else:
+        ax.axis([0, matrix.shape[0], matrix.shape[1], 0])
 
     return ax

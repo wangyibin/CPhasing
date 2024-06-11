@@ -127,8 +127,9 @@ class CollapsedRescue:
                             tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
                             if len(tmp) > 1:
                                 shared_similarity[i] = tmp['mzShared'].sum()
+                                print(tmp)
 
-                        tmp_res.append(sub_A[j, groups_new_idx[i]].sum())
+                        tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
 
                 groups_new_idx[np.argmax(tmp_res)].append(j)
 
@@ -138,16 +139,12 @@ class CollapsedRescue:
                 res.append(tmp_res)
             
             
-            
-
-            # for collapsed_contig, values in list(zip(sub_collapsed_contigs.index, list(zip(*res)))):
-            #     groups[np.argmax(values)].append(collapsed_contig)
             new_groups = []
             for group_idx in groups_new_idx:
                 tmp = list(map(lambda x: contigs_idx[x], group_idx))
                 tmp = list(map(idx_to_vertices.get, tmp))
                 new_groups.append(tmp)
-                
+
             for k, group in enumerate(new_groups):
                 new_cluster_data[f'{hap_group}g{k+1}'] = group 
             

@@ -102,7 +102,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 
     > For Hi-C data please use `cphasing hic mapper`  
 
-    Note: If you mapping multiple pore-c datas, the multiple `pairs.gz` files should be merged by following steps:
+    Note: If you are mapping multiple pore-c data, the multiple `pairs.gz` files should be merged by following steps:
     ```bash
     zgrep "^#" sample-1.pairs.gz > header  
     cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz   

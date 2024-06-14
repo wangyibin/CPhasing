@@ -57,6 +57,7 @@ def run(fasta,
         alleles_diff_thres=0.1,
         scaffolding_method="haphic",
         n="",
+        use_pairs=False,
         resolution1=1,
         resolution2=1,
         init_resolution1=1,
@@ -330,11 +331,10 @@ def run(fasta,
     if hcr_flag or hcr_bed:
         hcr_invert_string = "-v" if hcr_invert else ""
 
-        if porec_table:
+        if porec_table and not use_pairs:
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}.pairs.gz"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
-                
                 try:
                     if hcr_invert_string:
                         hcr.main(
@@ -563,10 +563,17 @@ def run(fasta,
     
     hyperpartition_normalize = "-norm" if normalize else None
     disable_misassembly_remove = "--disable-misassembly-remove" if disable_misassembly_remove else None 
+
+
     if hg_flag == "--pairs":
         hyperpartition_contacts = contacts
     else:
         hyperpartition_contacts = None
+
+    if use_pairs and porec_table and not hcr_flag:
+        hg_input = pairs 
+        hg_flag == "--pairs"
+        input_param = "--pairs"
 
     if "3" not in skip_steps and "3" in steps:
         logger.info("""#----------------------------------#
@@ -623,6 +630,7 @@ def run(fasta,
             hyperpartition_args.append(disable_misassembly_remove)
         if hyperpartition_normalize:
             hyperpartition_args.append(hyperpartition_normalize)
+
         try:
             hyperpartition.main(args=hyperpartition_args,
                             prog_name='hyperpartition')

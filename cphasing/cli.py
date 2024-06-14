@@ -294,7 +294,7 @@ def cli(verbose, quiet):
     help="Pore-C data. Multiple files use multiple options, such as -pcd read1.fq.gz -pcd read2.fq.gz. "
     "However, the prefix of subsequence output files use the read1. "
     "If you want to run parallel of multi porec data, you can run `cphasing mapper` for each cell. "
-    "And then use `cphasing merge` to merge porec table into a single file",
+    "And then use `cphasing-rs porec-merge` to merge porec table into a single file",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -538,6 +538,15 @@ def cli(verbose, quiet):
     type=click.FloatRange(0, 1),
     default=.1,
     show_default=True
+)
+@click.option(
+    "--use-pairs",
+    "use_pairs",
+    help="""
+    Use pairs instead of porec table to construct the hypergraph/graph.
+    """,
+    default=False,
+    is_flag=True
 )
 @click.option(
     "-n",
@@ -788,6 +797,7 @@ def pipeline(fasta,
             alleles_minimum_similarity,
             alleles_diff_thres,
             n,
+            use_pairs,
             resolution1,
             resolution2, 
             init_resolution1,
@@ -907,6 +917,7 @@ def pipeline(fasta,
         alleles_diff_thres=alleles_diff_thres,
         scaffolding_method=scaffolding_method,
         n=n,
+        use_pairs=use_pairs,
         resolution1=resolution1,
         resolution2=resolution2,
         init_resolution1=init_resolution1,
@@ -1927,7 +1938,9 @@ def hcr(porectable, pairs, contigsize, binsize,
 @click.option(
     '-p',
     '--pattern',
-    help='Pattern of restrict enzyme. Commam separate for multiple pattern',
+    help='Pattern of restrict enzyme. Commam separate for multiple pattern.'
+    ' Suggest using the default parameter, different restrict enzymes do '
+    'not effect any results.',
     metavar="STR",
     default="AAGCTT",
     show_default=True,
@@ -2938,7 +2951,6 @@ def hyperpartition(hypergraph,
                     cross_allelic_factor,
                     allelic_similarity,
                     min_allelic_overlap,
-                    
                     incremental,
                     kprune_norm_method,
                     # ultra_complex,
@@ -3030,7 +3042,7 @@ def hyperpartition(hypergraph,
         if pairs:
             kprune_norm_method = "cis"
         elif porec:
-            kprune_norm_method = "none"
+            kprune_norm_method = "cis"
         else:
             kprune_norm_method = "none"
     
@@ -3526,6 +3538,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
     from .build import Build
     Build(fasta, output,  corrected=corrected,
             output_agp=output_agp, only_agp=only_agp)
+                                                      
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
 @click.argument(
@@ -3798,19 +3811,49 @@ def porec2pairs(porec, min_mapq,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to bam file. (hidden)")
+@click.argument(
+    "bam",
+    metavar="INPUT_BAM_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def bam2pairs(bam, min_quality, output):
+    cmd = ["cphasing-rs", "bam2pairs", f"{bam}",  
+           
+            "-q", f"{min_quality}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to bam file. (hidden)")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
     type=click.Path(exists=True)
 )
 @click.option(
-    '--min-contacts',
-    'min_contacts',
-    help='Minimum contacts for contig pair',
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
     default=1,
-    show_default=True,
-    type=int,
+    show_default=True
 )
 @click.option(
     '-t',
@@ -3828,9 +3871,91 @@ def porec2pairs(porec, min_mapq,
     default="-",
     show_default=True
 )
-def pairs2clm(pairs, min_contacts, threads, output):
+def pairs2bam(pairs, min_quality, threads, output):
+    cmd = ["cphasing-rs", "pairs2bam", f"{pairs}", "-t", f"{threads}",
+            "-q", f"{min_quality}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '--min-contacts',
+    'min_contacts',
+    help='Minimum contacts for contig pair',
+    default=1,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. (unused)',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs2clm(pairs, min_contacts, min_quality, threads, output):
     cmd = ["cphasing-rs", "pairs2clm", f"{pairs}", "-c", f"{min_contacts}", 
-            "-t", f"{threads}", "-o", f"{output}"]
+            "-q", f"{min_quality}", "-t", f"{threads}", "-o", f"{output}"]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-b',
+    '--binsize',
+    'binsize',
+    help='Binsize of the depth calculation',
+    default=10000,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-q',
+    '--min_quality',
+    help='Minimum quality of mapping [0, 255].',
+    metavar='INT',
+    type=click.IntRange(0, 255, clamp=True),
+    default=0,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs2depth(pairs, binsize, min_quality, output):
+    cmd = ["cphasing-rs", "pairs2depth", f"{pairs}", "-b", f"{binsize}", 
+            "-q", f"{min_quality}", "-o", f"{output}"]
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
@@ -4562,6 +4687,7 @@ def agp2fasta(agpfile, fasta, output, contig, threads):
     from .agp import agp2fasta
     agp2fasta(agpfile, fasta, output, contig)
 
+
 @utils.command(cls=RichCommand)
 @click.argument(
     "agp",
@@ -5083,4 +5209,6 @@ def filter_high_similarity_contigs(alleletable,
                                    contacts,
                                    min_values,
                                    output)
-    
+
+
+cli.add_command(statagp)

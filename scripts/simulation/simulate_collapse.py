@@ -48,7 +48,8 @@ def main(args):
             help='show help message and exit.')
     
     args = p.parse_args(args)
-    
+
+    print("[Warning]: Deprecated", file=sys.stderr)
     random.seed(args.seed)
     ratio = args.ratio 
 

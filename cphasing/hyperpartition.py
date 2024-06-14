@@ -1197,6 +1197,12 @@ class HyperPartition:
         """
         pass 
 
+    def recluster_contigs(self):
+        """
+        recluster contigs 
+        """
+        pass 
+
     def rescue_collapsed(self, is_duplicate=True):
         """
         rescue collapsed contigs

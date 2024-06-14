@@ -430,7 +430,7 @@ class HyperPartition:
         if self.alleletable and not self.prunetable:
             self.kprune(self.alleletable, contacts=self.contacts)
 
-
+        idx_to_vertices = self.idx_to_vertices
 
         if self.resolution1 == -1:
             result_K_length = 0
@@ -439,7 +439,7 @@ class HyperPartition:
                 logger.warn("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
                 logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
-                A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
+                raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,
@@ -456,7 +456,7 @@ class HyperPartition:
 
                 
         else:
-            A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
+            raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,
@@ -506,7 +506,7 @@ class HyperPartition:
                                             self.min_allelic_overlap)
 
         # self.remove_misassembly()
-
+        self.recluster_contigs(self.K, raw_A, idx_to_vertices,  self.prune_pair_df,  self.allelic_similarity)
         if sort_group:
             vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
             self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
@@ -597,7 +597,7 @@ class HyperPartition:
                 if tmp_resolution > 10.0 or auto_round > 50:
                     break
                 # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
-                A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
+                raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -618,7 +618,7 @@ class HyperPartition:
                 auto_round += 1
              
         else:
-            A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
+            raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -634,10 +634,24 @@ class HyperPartition:
     
         
         ## remove the scaffold that is too short
+        # before_filter_K = new_K.copy()
+        # new_K = list(map(list, new_K))
         new_K = list(map(list, filter(
                         lambda x: sub_vertices_new_idx_sizes.loc[list(x)].sum().values[0] \
                             >= min_scaffold_length, new_K)))
-      
+        # removed_idxes = set(list_flatten(before_filter_K)) - set(list_flatten(new_K))
+        # if removed_idxes:
+        #     raw_A = np.delete(raw_A, removed_idxes, axis=0)
+        #     raw_A = np.delete(raw_A, removed_idxes, axis=1)
+
+        #     A = np.delete(A, removed_idxes, axis=0)
+        #     A = np.delete(A, removed_idxes, axis=1)
+        #     new_K = [k for i, k in enumerate(new_K) if i not in removed_idxes]
+            # for idx in removed_idxes:
+            #     if idx in sub_vertices_new_idx_sizes:
+            #         del sub_vertices_new_idx_sizes[idx]
+
+            ## update A and raw_A and new_K and sub_vertices_new_idx_sizes and 
         if k and len(new_K) > k:
             new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
@@ -649,7 +663,7 @@ class HyperPartition:
             new_K = HyperPartition._remove_misassembly(new_K, sub_H, sub_prune_pair_df, 
                                                         allelic_similarity=allelic_similarity)
             
-        
+        # new_K = HyperPartition.recluster_contigs(new_K, raw_A, None, sub_prune_pair_df, allelic_similarity)
             
         # vertices_length = sub_vertices_new_idx_sizes['length']
         # new_K = raw_sort(new_K, A, vertices_length, threads=1)
@@ -750,7 +764,7 @@ class HyperPartition:
                     if tmp_resolution > 10.0 or auto_round > 50:
                         break
                     logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
-                    A, _, self.K = IRMM(self.H, self.NW, 
+                    _, A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, tmp_resolution, 
                                 self.min_weight, self.threshold, 
@@ -762,7 +776,7 @@ class HyperPartition:
                     tmp_resolution += 0.2
                     auto_round += 1
             else:
-                A, _, self.K = IRMM(self.H, self.NW, 
+                _, A, _, self.K = IRMM(self.H, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, self.resolution1, 
                                 self.min_weight, self.threshold, 
@@ -879,13 +893,14 @@ class HyperPartition:
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             
             
-            # results.append(HyperPartition._incremental_partition(sub_raw_k,
-            #              raw_A, raw_idx_to_vertices, sub_k, idx_to_vertices,
-            #                sub_group_number, prune_pair_df, 
+            # results.append(HyperPartition._incremental_partition( # sub_raw_k, raw_A, raw_idx_to_vertices, 
+            #              sub_k, 
+            #             #  idx_to_vertices, 
+            #              sub_group_number, prune_pair_df, 
             #              self.H, vertices_idx_sizes, self.NW, 
             #             self.resolution2, self.init_resolution2, self.min_weight, 
             #             self.allelic_similarity,  self.min_allelic_overlap, 
-            #             self.allelic_factor, self.cross_allelic_factor,
+            #             self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
             #             self.min_scaffold_length, self.threshold, self.max_round, num))
         
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
@@ -935,6 +950,17 @@ class HyperPartition:
                 min_allelic_overlap=0.1):
         if not k:
             return K 
+        
+        # if prune_pair_df is None:
+        #     return K
+        # tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) & 
+        #                         (prune_pair_df['similarity'] >= allelic_similarity)][['contig1', 'contig2']]
+        # P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        
+        # if P_allelic_idx:
+        #     A = A.tolil()
+        #     A[P_allelic_idx[0], P_allelic_idx[1]] = -1
+        #     A = A.tocsr()
         
         if prune_pair_df is not None:
             allelic_pair_df = prune_pair_df[prune_pair_df['type'] == 0]
@@ -987,7 +1013,7 @@ class HyperPartition:
                             if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
                                 flag = 0
                     
-                    value = A[group1, ][:,group2 ].sum() 
+                    value = A[group1, ][:,group2 ].mean() 
                     value_matrix[i, j] = value
                     flag_matrix[i, j] = flag
                     flag = 1
@@ -1197,11 +1223,64 @@ class HyperPartition:
         """
         pass 
 
-    def recluster_contigs(self):
+    @staticmethod
+    def recluster_contigs(K, raw_A, idx2vertices=None, prune_pair_df=None, allelic_similarity=0.85):
         """
         recluster contigs 
         """
-        pass 
+        if prune_pair_df is None:
+            return K
+        tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) & 
+                                (prune_pair_df['similarity'] >= allelic_similarity)][['contig1', 'contig2']]
+        P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
+        
+        raw_A = raw_A.tolil()
+        if P_allelic_idx:
+            raw_A = raw_A.tolil()
+            raw_A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+            raw_A = raw_A.tocsr()
+
+        old2new = dict(zip(list_flatten(K), range(len(list_flatten(K)))))
+        new2old = dict(zip(range(len(list_flatten(K))), list_flatten(K)))
+        graph = ig.Graph.Weighted_Adjacency(raw_A, mode='undirected', loops=False)
+        print(len(list_flatten(K)))
+        membership = np.zeros(len(list_flatten(K)), dtype=np.int32)
+        K = list(map(lambda x: list(map(old2new.get, x)), K))
+        print(len(list_flatten(K)))
+        for i, l in enumerate(K):
+            for j in l:
+                membership[j] = i
+        
+        print(len(membership))
+        init_membership = membership.copy()
+       
+        init_modularity = graph.modularity(init_membership)
+        logger.debug(f"Before recluster the modularity is :`{init_modularity:.4f}`")
+        for j, ori_i in enumerate(init_membership):
+            tmp_memberhip = init_membership.copy()
+            
+            for i in range(len(K)):
+                if i == ori_i:
+                    continue
+
+                tmp_memberhip[j] = i  
+                modularity = graph.modularity(tmp_memberhip)
+                is_recluster = True if modularity - init_modularity > 0.01 else False 
+                if is_recluster:
+                    if idx2vertices:
+                        logger.debug(f"Change `{idx2vertices[j]}` from {ori_i} to {i} group")
+                    else:
+                        logger.debug(f"Change `{j}` from {ori_i} to {i} group")
+                    membership[j] = i
+
+        final_modularity = graph.modularity(membership)
+        logger.debug(f"Final modularity is {final_modularity:.4f}")
+        
+        new_K = [[] for _ in range(max(membership) + 1)]
+        for i, j in enumerate(membership):
+            new_K[j].append(new2old[i])
+        
+        return new_K
 
     def rescue_collapsed(self, is_duplicate=True):
         """

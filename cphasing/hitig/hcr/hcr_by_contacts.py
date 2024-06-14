@@ -180,7 +180,7 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     contig_counts = bins.groupby('chrom')['count'].mean().to_frame()
     contig_counts['CN'] = contig_counts['count'] / peak_value
     collapsed_contigs = contig_counts.query('count > @max_value')
-    collapsed_contigs.to_csv(output.replace(".bed", ".collapsed.contigs.txt"), sep='\t',
+    collapsed_contigs.to_csv(output.replace(".bed", ".high_coverage.contigs.txt"), sep='\t',
                              index=True, header=None)
     contigsizes.loc[contig_counts.query('count > @max_value').index].sum()
 

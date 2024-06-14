@@ -481,6 +481,7 @@ def IRMM(H, NW=None,
         del W, D_e_num, D_e_inv
         gc.collect() 
 
+    raw_A = A.copy()
     if P_allelic_idx or P_weak_idx:
         # P_allelic_df = pd.concat(P_allelic_idx, axis=1)
         # P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
@@ -508,7 +509,6 @@ def IRMM(H, NW=None,
                 A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
             
         A = A.tocsr()
-        
 
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
@@ -607,4 +607,4 @@ def IRMM(H, NW=None,
         
         iter_round += 1
     
-    return A, cluster_assignments, cluster_results
+    return raw_A, A, cluster_assignments, cluster_results

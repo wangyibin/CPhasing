@@ -392,7 +392,7 @@ def run(fasta,
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"
             prepare_input = f"{pairs_prefix}.pairs.gz"
-    
+            input_param = "--pairs"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
                 
                 try:

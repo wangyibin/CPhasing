@@ -98,7 +98,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HyperPartition",
-            "options": ["-n", "--min-contacts",
+            "options": ["-n", "--use-pairs", "--min-contacts",
                         "--Nx", "--min-length", "--min-weight",
                         "--whitelist",
                         "--resolution1", "--resolution2",
@@ -158,7 +158,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HyperPartition",
-            "options": ["-n", "--min-contacts",
+            "options": ["-n", "--use-pairs", "--min-contacts", 
                         "--Nx", "--min-length", "--min-weight",
                         "--whitelist",
                         "--resolution1", "--resolution2",

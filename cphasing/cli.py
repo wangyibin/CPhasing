@@ -120,7 +120,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Global Options",
-            "options": ["--threads", "--help"]
+            "options": ["--low-memory", "--threads", "--help"]
         }
        
     ],
@@ -180,7 +180,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Global Options",
-            "options": ["--threads", "--help"]
+            "options": ["--low-memory", "--threads", "--help"]
         }
        
     ],
@@ -760,6 +760,12 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    '--low-memory',
+    help="Reduce memory usage. Only used in chimeric correct, depend on input data size.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -818,6 +824,7 @@ def pipeline(fasta,
             whitelist,
             scaffolding_method, 
             factor,
+            low_memory,
             threads):
     """
     A pipeline of diploid or polyploid phasing and scaffolding.\n
@@ -937,7 +944,8 @@ def pipeline(fasta,
         min_scaffold_length=min_scaffold_length,
         disable_misassembly_remove=disable_misassembly_remove,
         factor=factor,
-        threads=threads)
+        threads=threads,
+        low_memory=low_memory)
     
 
 ## Subcommand of UL ONT pipeline
@@ -1656,6 +1664,12 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 @click.option(
+    '--low-memory',
+    help="Reduce memory usage.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-t',
     '--threads',
     help="Number of threads. ",
@@ -1666,7 +1680,8 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
 )
 def chimeric(fasta, pairs, depth, window_size, 
              break_pairs, output_depth,
-             telo_motif, outprefix, threads):
+             telo_motif, outprefix, 
+             low_memory, threads):
     """
     Correct chimeric contigs by contacts.
     """
@@ -1682,6 +1697,7 @@ def chimeric(fasta, pairs, depth, window_size,
                 break_pairs=break_pairs, outprefix=outprefix,
                 output_depth=output_depth, 
                 telo_motif=telo_motif,
+                low_memory=low_memory,
                 threads=threads)
         
     elif depth:

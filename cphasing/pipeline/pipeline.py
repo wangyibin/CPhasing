@@ -78,6 +78,7 @@ def run(fasta,
         whitelist=None,
         blacklist=None,
         factor=50,
+        low_memory=False,
         threads=4):
     from ..cli import (mapper as porec_mapper,
                        hcr,
@@ -149,7 +150,7 @@ def run(fasta,
         if "0" in steps:
             steps = steps - set("0")
             if "0" not in skip_steps:
-                logger.warning("Mapping step will not be run, because the porec data is not specified")
+                logger.warning("Mapping step will not be run")
         if porec_table:
             porec_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]

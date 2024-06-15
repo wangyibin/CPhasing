@@ -789,6 +789,7 @@ class HyperPartition:
                 self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0])
 
             self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
+            assert len(self.K) > 0, "Couldn't run first cluster."
             self.to_cluster(f'first.clusters.txt')
             first_cluster_file = f'first.clusters.txt'
 

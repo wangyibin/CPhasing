@@ -42,6 +42,52 @@ def _calculate_depth(contig, contig_length, window_size, position_data):
 
     return contig, data 
 
+def import_pairs_chunks(pairs, window_size=500, min_mapq=0, chunksize=1e8):
+    dtype = {
+            # 'chrom1': 'category', 
+             'pos1': np.uint32,
+            #  'chrom2': 'category',
+             'pos2': np.uint32,
+             'mapq': np.uint8}
+    
+    ph = PairHeader([])
+    ph.from_file(pairs)
+    contigsizes = ph.chromsize
+
+    columns = [1, 2, 3, 4, 7] if min_mapq > 0 else [1, 2, 3, 4]
+    new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
+
+   
+    chunks = (pd.read_csv(pairs, sep='\t', header=None, index_col=None,
+                        comment="#", usecols=columns,
+                        names=new_columns,
+                        dtype=dtype, 
+                        chunksize=chunksize)
+        )
+    
+    res = []
+    for df in chunks:
+        df = df[df['chrom1'] == df['chrom2']]
+        df.drop('chrom2', axis=1, inplace=True)
+        if min_mapq > 0:
+            df = df.query('mapq > @min_mapq').drop('mapq')
+        
+        # df['pos1'], df['pos2'] = np.where(df['pos1'] > df['pos2'], 
+        #                                   [df['pos2'], df['pos1']], [df['pos1'], df['pos2']])
+        mask = df['pos1'] > df['pos2']
+        df['pos1'].mask(mask, df['pos2'], inplace=True)
+        df['pos2'].mask(mask, df['pos1'], inplace=True)
+        df['pos1'] = (df['pos1'] - 1) // window_size
+        df['pos2'] = (df['pos2'] - 1) // window_size
+
+        res.append(df)
+    
+    p = pd.concat(res, axis=0)
+
+    return p, contigsizes
+    
+    
+
 def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     dtype = {'chrom1': pl.Categorical, 
             'pos1': pl.UInt32,
@@ -53,12 +99,13 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     ph.from_file(pairs)
     contigsizes = ph.chromsize
 
+    columns = [1, 2, 3, 4, 7] if min_mapq > 0 else [1, 2, 3, 4]
     new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
     
     os.environ["POLARS_MAX_THREADS"] = str(threads)
     try:
         p = (pl.read_csv(pairs, separator='\t', has_header=False,
-                            comment_prefix="#", columns=[1, 2, 3, 4, 7],
+                            comment_prefix="#", columns=columns,
                             new_columns=new_columns,
                             dtypes=dtype, low_memory=True
                             ).filter(pl.col('chrom1') == pl.col('chrom2'))
@@ -372,12 +419,17 @@ def corrected_pairs(pairs, break_bed, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-def run(fasta, pairs, window_size=500, 
+def run(fasta, pairs, window_size=500, min_mapq=0,
         correct_round=1, telo_motif="CCCTAA",
         break_pairs=True, 
-        output_depth=False, outprefix="output", threads=4):
+        output_depth=False, outprefix="output", 
+        low_memory=False, threads=4):
     logger.info("Running chimeric correction ...")
-    pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, threads=threads)
+    if low_memory:
+        print(1)
+        pairs_df, contigsizes = import_pairs_chunks(pairs, window_size=window_size, min_mapq=min_mapq)
+    else:
+        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, min_mapq=min_mapq, threads=threads)
     depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
                                         output_depth=output_depth, threads=threads)
     

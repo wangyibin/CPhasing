@@ -21,6 +21,7 @@ import pyranges as pr
 from Bio.Seq import Seq
 from collections import defaultdict
 from joblib import Parallel, delayed
+from multiprocessing import Pool
 from pathlib import Path
 from pyfaidx import Fasta
 from scipy.signal import find_peaks, peak_widths
@@ -34,6 +35,31 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+def process_chunk(args):
+        df, min_mapq, window_size, contigsizes = args
+        df = df[df['chrom1'] == df['chrom2']]
+        df.drop('chrom2', axis=1, inplace=True)
+        if min_mapq > 0:
+            df = df.query('mapq > @min_mapq').drop('mapq')
+        
+        df['chrom1'] = df['chrom1'].astype('category')
+        mask = df['pos1'] > df['pos2']
+        df['pos1'].mask(mask, df['pos2'], inplace=True)
+        df['pos2'].mask(mask, df['pos1'], inplace=True)
+        df['pos1'] = (df['pos1'] - 1) // window_size
+        df['pos2'] = (df['pos2'] - 1) // window_size
+
+        depth_dict = {}
+        for contig, tmp_df in df.groupby('chrom1', as_index=True):
+            contig_length = contigsizes[contig]
+            if contig not in depth_dict:
+                depth_dict[contig] = np.zeros(contig_length//window_size, dtype=np.uint32)
+            
+            for pos1, pos2 in tmp_df[['pos1', 'pos2']].values:
+                depth_dict[contig][pos1: pos2+1] +=1
+        
+        return depth_dict
+
 def _calculate_depth(contig, contig_length, window_size, position_data):
 
     data = np.zeros(contig_length // window_size, dtype=np.int32)
@@ -42,7 +68,8 @@ def _calculate_depth(contig, contig_length, window_size, position_data):
 
     return contig, data 
 
-def import_pairs_chunks(pairs, window_size=500, min_mapq=0, chunksize=1e8):
+def import_pairs_chunks(pairs, window_size=500, min_mapq=0, 
+                        chunksize=1e7, threads=4):
     dtype = {
             # 'chrom1': 'category', 
              'pos1': np.uint32,
@@ -54,6 +81,7 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0, chunksize=1e8):
     ph.from_file(pairs)
     contigsizes = ph.chromsize
 
+    category = pd.CategoricalDtype(contigsizes.keys())
     columns = [1, 2, 3, 4, 7] if min_mapq > 0 else [1, 2, 3, 4]
     new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
 
@@ -65,28 +93,50 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0, chunksize=1e8):
                         chunksize=chunksize)
         )
     
-    res = []
-    for df in chunks:
-        df = df[df['chrom1'] == df['chrom2']]
-        df.drop('chrom2', axis=1, inplace=True)
-        if min_mapq > 0:
-            df = df.query('mapq > @min_mapq').drop('mapq')
+    
+    # depth_dict = {}
+    # for df in chunks:
+    #     df = df[df['chrom1'] == df['chrom2']]
+    #     df.drop('chrom2', axis=1, inplace=True)
+    #     if min_mapq > 0:
+    #         df = df.query('mapq > @min_mapq').drop('mapq')
         
-        # df['pos1'], df['pos2'] = np.where(df['pos1'] > df['pos2'], 
-        #                                   [df['pos2'], df['pos1']], [df['pos1'], df['pos2']])
-        mask = df['pos1'] > df['pos2']
-        df['pos1'].mask(mask, df['pos2'], inplace=True)
-        df['pos2'].mask(mask, df['pos1'], inplace=True)
-        df['pos1'] = (df['pos1'] - 1) // window_size
-        df['pos2'] = (df['pos2'] - 1) // window_size
+    #     df['chrom1'] = df['chrom1'].astype(category)
+    #     # df['pos1'], df['pos2'] = np.where(df['pos1'] > df['pos2'], 
+    #     #                                   [df['pos2'], df['pos1']], [df['pos1'], df['pos2']])
+    #     mask = df['pos1'] > df['pos2']
+    #     df['pos1'].mask(mask, df['pos2'], inplace=True)
+    #     df['pos2'].mask(mask, df['pos1'], inplace=True)
+    #     df['pos1'] = (df['pos1'] - 1) // window_size
+    #     df['pos2'] = (df['pos2'] - 1) // window_size
 
-        res.append(df)
-    
-    p = pd.concat(res, axis=0)
+    #     for contig, tmp_df in df.groupby('chrom1', as_index=True):
+    #         contig_length = contigsizes[contig]
+    #         if contig not in depth_dict:
+    #             depth_dict[contig] = np.zeros(contig_length//window_size, dtype=np.uint32)
+            
+    #         for pos1, pos2 in tmp_df[['pos1', 'pos2']].values:
+    #             depth_dict[contig][pos1: pos2+1] +=1
 
-    return p, contigsizes
+    # return depth_dict, contigsizes
+
+    def _args():
+        for chunk in chunks:
+            yield chunk, min_mapq, window_size, contigsizes
+    args = _args()
+    with Pool(processes=threads) as pool:
+        results = pool.map(process_chunk, args)
     
+    final_depth_dict = {}
+    for depth_dict in results:
+        for contig, depth in depth_dict.items():
+            if contig not in final_depth_dict:
+                final_depth_dict[contig] = depth
+            else:
+                final_depth_dict[contig] += depth
+        
     
+    return final_depth_dict, contigsizes
 
 def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     dtype = {'chrom1': pl.Categorical, 
@@ -426,12 +476,14 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
         low_memory=False, threads=4):
     logger.info("Running chimeric correction ...")
     if low_memory:
-        print(1)
-        pairs_df, contigsizes = import_pairs_chunks(pairs, window_size=window_size, min_mapq=min_mapq)
+        depth_dict, contigsizes = import_pairs_chunks(pairs, window_size=window_size, 
+                                                      min_mapq=min_mapq, threads=threads)
+        pairs_df = None
     else:
-        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, min_mapq=min_mapq, threads=threads)
-    depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
-                                        output_depth=output_depth, threads=threads)
+        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, min_mapq=min_mapq, 
+                                             threads=threads)
+        depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
+                                            output_depth=output_depth, threads=threads)
     
     if output_depth:
         with open(f"{outprefix}.cis.w{window_size}.depth", 'w') as out:
@@ -448,7 +500,7 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
     i = 1
     split_contigsizes = contigsizes.copy()
     new_break_point_res_df_list = []
-    while correct_round - i:
+    while correct_round - i and pair_df:
         split_contigsizes, split_pairs_df = split_contigs(
                         break_point_res, split_contigsizes, pairs_df, split_num=2)
         split_depth_dict = calculate_depth(

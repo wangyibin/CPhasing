@@ -36,29 +36,29 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 def process_chunk(args):
-        df, min_mapq, window_size, contigsizes = args
-        df = df[df['chrom1'] == df['chrom2']]
-        df.drop('chrom2', axis=1, inplace=True)
-        if min_mapq > 0:
-            df = df.query('mapq > @min_mapq').drop('mapq')
-        
-        df['chrom1'] = df['chrom1'].astype('category')
-        mask = df['pos1'] > df['pos2']
-        df['pos1'].mask(mask, df['pos2'], inplace=True)
-        df['pos2'].mask(mask, df['pos1'], inplace=True)
-        df['pos1'] = (df['pos1'] - 1) // window_size
-        df['pos2'] = (df['pos2'] - 1) // window_size
+    df, min_mapq, window_size, contigsizes = args
+    df = df[df['chrom1'] == df['chrom2']]
+    df.drop('chrom2', axis=1, inplace=True)
+    if min_mapq > 0:
+        df = df.query('mapq > @min_mapq').drop('mapq')
+    
+    df['chrom1'] = df['chrom1'].astype('category')
+    mask = df['pos1'] > df['pos2']
+    df['pos1'].mask(mask, df['pos2'], inplace=True)
+    df['pos2'].mask(mask, df['pos1'], inplace=True)
+    df['pos1'] = (df['pos1'] - 1) // window_size
+    df['pos2'] = (df['pos2'] - 1) // window_size
 
-        depth_dict = {}
-        for contig, tmp_df in df.groupby('chrom1', as_index=True):
-            contig_length = contigsizes[contig]
-            if contig not in depth_dict:
-                depth_dict[contig] = np.zeros(contig_length//window_size, dtype=np.uint32)
-            
-            for pos1, pos2 in tmp_df[['pos1', 'pos2']].values:
-                depth_dict[contig][pos1: pos2+1] +=1
+    depth_dict = {}
+    for contig, tmp_df in df.groupby('chrom1', as_index=True):
+        contig_length = contigsizes[contig]
+        if contig not in depth_dict:
+            depth_dict[contig] = np.zeros(contig_length//window_size, dtype=np.uint32)
         
-        return depth_dict
+        for pos1, pos2 in tmp_df[['pos1', 'pos2']].values:
+            depth_dict[contig][pos1: pos2+1] +=1
+    
+    return depth_dict
 
 def _calculate_depth(contig, contig_length, window_size, position_data):
 

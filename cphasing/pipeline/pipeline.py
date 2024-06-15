@@ -255,7 +255,8 @@ def run(fasta,
                     
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
-                                            outprefix=fasta_prefix, threads=threads)
+                                            outprefix=fasta_prefix, 
+                                            low_memory=low_memory, threads=threads)
                 
                 if corrected_items:
                     corrected = True
@@ -291,7 +292,8 @@ def run(fasta,
                 
             else:
                 corrected_items = chimeric_run(fasta, pairs, break_pairs=True, 
-                                                outprefix=fasta_prefix, threads=threads)
+                                                outprefix=fasta_prefix, 
+                                                low_memory=low_memory, threads=threads)
           
             
             if corrected_items:

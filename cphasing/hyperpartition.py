@@ -538,6 +538,10 @@ class HyperPartition:
         """
         single function for incremental_partition.
         """
+        if NW is not None:
+            merge_method = "sum"
+        else:
+            merge_method = "mean"
         K = np.array(list(K))
         
         sub_H, _ = extract_incidence_matrix2(H, K)
@@ -656,7 +660,7 @@ class HyperPartition:
             new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
-                                            min_allelic_overlap)
+                                            min_allelic_overlap, method=merge_method)
         
 
         if prune_pair_df is not None and is_remove_misassembly:
@@ -949,7 +953,7 @@ class HyperPartition:
     @staticmethod
     def _merge(A, K, vertices_idx_sizes, k=None, 
                 prune_pair_df=None, allelic_similarity=0.85,
-                min_allelic_overlap=0.1):
+                min_allelic_overlap=0.1, method='mean'):
         if not k:
             return K 
         
@@ -1015,7 +1019,10 @@ class HyperPartition:
                             if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
                                 flag = 0
                     
-                    value = A[group1, ][:,group2 ].mean() 
+                    if method == "mean":
+                        value = A[group1, ][:,group2 ].mean() 
+                    else:
+                        value = A[group1, ][:,group2 ].sum() 
                     value_matrix[i, j] = value
                     flag_matrix[i, j] = flag
                     flag = 1

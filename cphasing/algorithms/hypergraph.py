@@ -469,7 +469,12 @@ def IRMM(H, NW=None,
         A = A.multiply(mask)
     # normalization
     if NW is not None:
-        A = A.toarray() * NW
+        A = A.toarray()
+        diag_A = np.diagonal(A)
+        NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
+        np.fill_diagonal(NW, 1)
+
+        A = A * NW
         row, col = np.nonzero(A)
         values = A[row, col]
         A = csr_matrix((values, (row, col)), shape=A.shape, dtype=np.float32)

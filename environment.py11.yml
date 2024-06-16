@@ -172,7 +172,7 @@ dependencies:
   - readline=8.2=h5eee18b_0
   - rich=13.7.1=pyhd8ed1ab_0
   - scipy=1.9.3=py311h69910c8_2
-  - seaborn=0.12.2=py311h06a4308_0
+  - seaborn=0.13.2=py311h06a4308_0
   - seqkit=2.8.1=h9ee0642_0
   - setuptools=68.2.2=py311h06a4308_0
   - sip=6.7.12=py311hb755f60_0

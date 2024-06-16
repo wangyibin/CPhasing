@@ -310,6 +310,9 @@ class AllhicOptimize:
                     raise e
                 
             os.system(f"cp {self.output} ../")
+            if self.corrected:
+                if Path(self.output.replace("agp", "corrected.agp")).exists():
+                    os.system(f"cp {self.output.replace('agp', 'corrected.agp')} ../")
              
         os.chdir("../")
         if self.delete_temp is True:
@@ -500,10 +503,12 @@ class HapHiCSort:
                     raise e
                 
             os.system(f"cp {self.output} ../")
+            if self.corrected:
+                if Path(self.output.replace("agp", "corrected.agp")).exists():
+                    os.system(f"cp {self.output.replace('agp', 'corrected.agp')} ../")
     
         os.chdir("../")
 
-               
         if self.delete_temp:
 
             shutil.rmtree(tmpDir)

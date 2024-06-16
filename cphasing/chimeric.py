@@ -81,19 +81,15 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0,
     ph.from_file(pairs)
     contigsizes = ph.chromsize
 
-    category = pd.CategoricalDtype(contigsizes.keys())
     columns = [1, 2, 3, 4, 7] if min_mapq > 0 else [1, 2, 3, 4]
-    new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
+    new_columns = (['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] 
+                        if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2'])
 
-   
     chunks = (pd.read_csv(pairs, sep='\t', header=None, index_col=None,
-                        comment="#", usecols=columns,
-                        names=new_columns,
-                        dtype=dtype, 
-                        chunksize=chunksize)
-        )
+                        comment="#", usecols=columns, names=new_columns,
+                        dtype=dtype, chunksize=chunksize))
     
-    
+    # category = pd.CategoricalDtype(contigsizes.keys())
     # depth_dict = {}
     # for df in chunks:
     #     df = df[df['chrom1'] == df['chrom2']]
@@ -123,6 +119,7 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0,
     def _args():
         for chunk in chunks:
             yield chunk, min_mapq, window_size, contigsizes
+            
     args = _args()
     with Pool(processes=threads) as pool:
         results = pool.map(process_chunk, args)
@@ -135,8 +132,8 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0,
             else:
                 final_depth_dict[contig] += depth
         
-    
     return final_depth_dict, contigsizes
+
 
 def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     dtype = {'chrom1': pl.Categorical, 
@@ -599,7 +596,7 @@ def main(args):
     
     df = pd.read_csv(args.depth, sep='\t', index_col=None, header=None)
     z1 = np.polyfit(df.index.values, df[3].values, 50)
-    p1 = np.poly1d(z1)
+    p1 = np.poly1d(z1)   
     yvalues = p1(df.index.values)
     peak_ind = find_peaks(yvalues, distance=10)[0]
     trough_ind = find_peaks(-yvalues, distance=10)[0]

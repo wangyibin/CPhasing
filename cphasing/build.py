@@ -97,11 +97,11 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
                                          tig_start, tig_end, '+'])
                       
         unanchor_df = pd.DataFrame(unanchor_res)
-    
+
     agp_df = pd.concat([agp_df, unanchor_df], axis=0)
     agp_df.reset_index(drop=True, inplace=True)
     agp_df.to_csv(agp, sep='\t', header=False, index=False)
-    
+    logger.info(f"Output agp file `{agp}`")
   
     if not only_agp:
         with xopen(output, 'w') as out:
@@ -118,6 +118,10 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
         tmp_agp_df.loc[x, 7] = tmp_agp_df.loc[x, 7].astype(int) - tmp_agp_df.loc[x, 6].astype(int) + 1
         tmp_agp_df.loc[x, 6] = 1
         
+
         tmp_agp_df.to_csv(agp.replace(".agp", ".corrected.agp"), sep='\t', 
                             header=False, index=False)
+        logger.info(f"Output chimeric corrected agp file `{agp.replace('.agp', '.corrected.agp')}`")
+  
+
     

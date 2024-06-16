@@ -10,7 +10,7 @@ import logging
 import os
 import os.path as op
 import sys
-
+import gc
 import pandas as pd 
 
 import matplotlib as mpl
@@ -23,7 +23,7 @@ from matplotlib.ticker import MaxNLocator
 
 
 def read_csv(data):
-    df = pd.read_csv(data, sep='\t', header=0, index_col=None)
+    df = pd.read_csv(data, sep='\t', header=0, index_col=None, )
     return df
 
 
@@ -61,7 +61,8 @@ def main(args):
     pOpt.add_argument('--x-label',
             default=None,
             help='y label text [default: %(default)s]')
-    pOpt.add_argument('--kde', default=True, help="plot kde line [default: %(default)s]")
+    pOpt.add_argument('--kde', default=True, action='store_false', 
+                        help="plot kde line [default: %(default)s]")
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -70,9 +71,15 @@ def main(args):
     fig, ax = plt.subplots(figsize=(5.7, 5))
 
     df = read_csv(args.data[0])
+    res = []
     if args.x_min is not None and args.x_max is not None:
         for group in df.columns:
-            df[group] = df[(df[group] <= args.x_max)]
+            tmp_df = df[(df[group] <= args.x_max)]
+            res.append(tmp_df)
+
+        df = pd.concat(res, axis=0)
+        del res, tmp_df
+        gc.collect()
 
     plt.rcParams['font.family'] = 'Arial'
     

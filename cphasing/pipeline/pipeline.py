@@ -307,6 +307,7 @@ def run(fasta,
                 while pairs_prefix.suffix in {'.pairs', '.gz'}:
                     pairs_prefix = pairs_prefix.with_suffix('')
 
+
     contigsizes = f"{fasta_prefix}.contigsizes"
     if not Path(contigsizes).exists():
         
@@ -546,7 +547,7 @@ def run(fasta,
         else:
             if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
                 cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-                        "-q", str(min_quality1), "-c", 
+                        "-q", str(min_quality1),
                     "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
                 flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
                 assert flag == 0, "Failed to execute command, please check log."
@@ -645,9 +646,11 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
-    
-    
+
     out_agp = "groups.agp"
+    if corrected:
+        corrected_agp = out_agp.replace("agp", "corrected.agp")
+    
     if "4" not in skip_steps and "4" in steps:
         logger.info("""#----------------------------------#
 #    Running step 4. scaffolding   #
@@ -701,7 +704,7 @@ def run(fasta,
             if exit_code != 0:
                 raise e
     
-    out_small_cool = f"{pairs_prefix}.10000.cool"
+    out_small_cool = f"{pairs_prefix}.q{min_quality1}.10000.cool"
 
 
     if "5" not in skip_steps and "5" in steps:
@@ -715,7 +718,9 @@ def run(fasta,
                 pairs2cool.main(args=[
                                     pairs,
                                     contigsizes,
-                                    out_small_cool
+                                    out_small_cool,
+                                    "-q", 
+                                    min_quality1
                                 ],
                                 prog_name='pairs2cool')
             except SystemExit as e:
@@ -728,9 +733,16 @@ def run(fasta,
                     raise e
                 
         try:
+            if corrected:
+                if Path(corrected_agp).exists():
+                    input_agp = corrected_agp
+                else:
+                    input_agp = out_agp
+            else:
+                input_agp = out_agp
             plot.main(args=[
                             "-a",
-                            out_agp,
+                            input_agp,
                             "-m",
                             out_small_cool,
                             "-o",

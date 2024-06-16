@@ -1336,8 +1336,7 @@ def porec_chrom2contig(
     Output : Path of output.
     """
     from .core import PoreCTable
-    df = pd.read_parquet(pore_c_table)
-    #df = df.query('pass_filter == "True"')
+    # df = pd.read_parquet(pore_c_table)
 
     contig_df = pd.read_csv(contig_bed, 
                             sep='\t', 
@@ -2025,7 +2024,6 @@ def prepare(fasta, pairs, min_mapq,
          min_contacts, skip_pairs2clm=skip_pairs2clm,
          skip_pairs2contacts=skip_pairs2contacts,
          threads=threads, outprefix=outprefix)
-    pass 
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
@@ -3336,8 +3334,6 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
 
     cr.rescue()
 
-    pass
-
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
@@ -3518,7 +3514,6 @@ def hyperoptimize(hypergraph):
     is_flag=True,
     help="Is corrected contigs in tours, which used when fasta and tour inconsistent",
     default=False, 
-    hidden=True
 )
 @click.option(
     "-o",
@@ -3575,7 +3570,6 @@ def chromsizes(fasta, output):
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
     
-
 
 @cli.command(hidden=HIDDEN, short_help="Convert paf to pairs. (hidden)")
 @click.argument(
@@ -3827,6 +3821,7 @@ def porec2pairs(porec, min_mapq,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
+
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to bam file. (hidden)")
 @click.argument(
     "bam",
@@ -4025,6 +4020,7 @@ def pairs2contacts(pairs, min_contacts, split_num,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
+
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to mnd file. (hidden)")
 @click.argument(
     "pairs",
@@ -4069,6 +4065,17 @@ def pairs2mnd(pairs, output):
     show_default=True
 )
 @click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=0,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+    hidden=True
+)
+@click.option(
     '--fofn',
     help="""
     If this flag is set then the pairs is a file of
@@ -4080,7 +4087,7 @@ def pairs2mnd(pairs, output):
     show_default=True
 )
 def pairs2cool(pairs, chromsize, outcool,
-               binsize, fofn):
+               binsize, min_mapq, fofn):
     """
     Convert pairs file into a specified resolution cool file.
 
@@ -4090,7 +4097,7 @@ def pairs2cool(pairs, chromsize, outcool,
 
         OUT_COOL_PATH : Output path of cool file.
     """
-
+    from subprocess import PIPE, Popen
     from cooler.cli.cload import pairs as cload_pairs
     from .utilities import merge_matrix
 
@@ -4114,25 +4121,59 @@ def pairs2cool(pairs, chromsize, outcool,
             os.remove(f'temp1.{pid}.pairs')
         pairs = f'temp.{pid}.pairs'
 
-    try:
-        cload_pairs.main(args=[
-                         f"{chromsize}:{binsize}",
-                         pairs, 
-                         outcool, 
-                         "-c1", 2,
-                         "-p1", 3,
-                         "-c2", 4,
-                         "-p2", 5],
-                         prog_name='cload')
-    except SystemExit as e:
-        exc_info = sys.exc_info()
-        exit_code = e.code
-        if exit_code is None:
-            exit_code = 0
+    if min_mapq == 0:
+        try:
+            cload_pairs.main(args=[
+                            f"{chromsize}:{binsize}",
+                            pairs, 
+                            outcool, 
+                            "-c1", 2,
+                            "-p1", 3,
+                            "-c2", 4,
+                            "-p2", 5],
+                            prog_name='cload')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+    else:
+        logger.info(f"Only load pair that minimum quality >= {min_mapq}.")
+        cmd1 = ["cphasing-rs", "pairs-filter", 
+                pairs, "-q", f"{min_mapq}"]
         
-        if exit_code != 0:
-            raise e
-    
+        cmd2 = ["cooler", "cload", "pairs", 
+                f"{chromsize}:{binsize}", 
+                "-", outcool, 
+                "-c1", "2", "-c2", "4",
+                "-p1", "3", "-p2", "5"]
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd1, stdout=PIPE, 
+                        stderr=open(f'logs/pairs-filter.log', "w"),
+                        bufsize=-1)
+            )
+
+            pipelines.append(
+                Popen(cmd2, stdin=pipelines[-1].stdout, 
+                      stderr=open("logs/pairs2cool.log", 'w'),
+                      bufsize=-1)
+            )
+            pipelines[-1].wait()
+        
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                        p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+
+        
     logger.info(f'Output binning contact matrix into `{outcool}`')
     if fofn:
         if op.exists(f'temp.{pid}.pairs'):
@@ -4547,8 +4588,6 @@ def plot(matrix,
 
 
 
-
-
 ALIASES = {
     "allele": alleles,
     "pipe": pipeline,
@@ -4594,8 +4633,6 @@ def evaluate(ctx):
 def allelic_error(cluster, alleletable, contigsizes):
     from .evaluate import allelic_error
     allelic_error(cluster, alleletable, contigsizes)
-    pass 
-
 
 
 @cli.group(cls=CommandGroup, short_help='Misc tools.', epilog=__epilog__)
@@ -4655,6 +4692,7 @@ def agp2cluster(agpfile, output):
     """
     from .agp import agp2cluster
     agp2cluster(agpfile, output)
+
 
 @utils.command(cls=RichCommand, short_help='Convert agp to fasta file.')
 @click.argument(
@@ -4737,7 +4775,6 @@ def agp2tour(agp, outdir, force):
     agp2tour(agp, outdir, force)
 
 
-
 @utils.command(cls=RichCommand, short_help="Convert assembly to agp file and contigs file")
 @click.argument(
     "assembly",
@@ -4796,9 +4833,6 @@ def assembly2agp(assembly, fasta, max_chrom,
     assembly2agp(assembly, fasta, max_chrom=max_chrom, 
                     chrom_prefix=chr_prefix, phased=phased,
                     sort_by_length=sort_by_length, outprefix=outprefix)
-
-
-
 
 
 @utils.command(cls=RichCommand, short_help='Statistics of contigsizes')

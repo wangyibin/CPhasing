@@ -438,7 +438,7 @@ class HyperPartition:
             if not k:
                 logger.warn("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
-                logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
+                # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
                 raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
@@ -506,7 +506,7 @@ class HyperPartition:
                                             self.min_allelic_overlap)
 
         # self.remove_misassembly()
-        self.recluster_contigs(self.K, raw_A, idx_to_vertices,  self.prune_pair_df,  self.allelic_similarity)
+        # self.recluster_contigs(self.K, raw_A, idx_to_vertices,  self.prune_pair_df,  self.allelic_similarity)
         if sort_group:
             vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
             self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
@@ -773,6 +773,7 @@ class HyperPartition:
                     self.K = list(map(list, self.K))
                     self.K = self.filter_cluster(verbose=0)
                     result_K_length = len(self.K)
+                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution}`.")
                     tmp_resolution += 0.2
                     auto_round += 1
             else:

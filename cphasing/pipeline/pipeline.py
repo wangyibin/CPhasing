@@ -266,6 +266,7 @@ def run(fasta,
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
                     flag = run_cmd(cmd, log="logs/porec-break.log")
                     assert flag == 0, "Failed to execute command, please check log."
+                    porec_table = f"{porec_prefix}.corrected.porec.gz"
 
 
             fasta_prefix = Path(fasta).with_suffix("")

@@ -204,28 +204,32 @@ class AllhicOptimize:
 
     @staticmethod
     def extract_clm(group, contigs, clm):
-        
-        contig_pairs = list(permutations(contigs, 2))
-        contig_with_orientation_pairs = set(
-            f"{pair[0]}{strand1} {pair[1]}{strand2}"
-            for pair in contig_pairs
-            for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
-        )
-        # clm = (pl.scan_csv(clm_file, separator='\t', 
-        #                             has_header=False, low_memory=True,
-        #                             dtypes={"column_2": pl.datatypes.UInt32})
-        #                     .filter(pl.col("column_1")
-        #                     .is_in(contig_with_orientation_pairs)).collect()
-        #                     .write_csv(f"{group}.clm", separator='\t', include_header=False)   
-        #                 )
+        if len(contigs) > 1:
+            contig_pairs = list(permutations(contigs, 2))
+            contig_with_orientation_pairs = set(
+                f"{pair[0]}{strand1} {pair[1]}{strand2}"
+                for pair in contig_pairs
+                for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
+            )
+            # clm = (pl.scan_csv(clm_file, separator='\t', 
+            #                             has_header=False, low_memory=True,
+            #                             dtypes={"column_2": pl.datatypes.UInt32})
+            #                     .filter(pl.col("column_1")
+            #                     .is_in(contig_with_orientation_pairs)).collect()
+            #                     .write_csv(f"{group}.clm", separator='\t', include_header=False)   
+            #                 )
 
-        # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-        # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
-        # left_df = pl.DataFrame(pl.Series("column_1", contig_with_orientation_pairs))
-        # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls()
-        tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
-        tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
-        
+            # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+            # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+            # left_df = pl.DataFrame(pl.Series("column_1", contig_with_orientation_pairs))
+            # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls()
+
+            tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
+            tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
+        else:
+            with open(f"{group}.clm", 'w') as out:
+                pass 
+
         return f"{group}.clm"
 
     @staticmethod
@@ -379,21 +383,24 @@ class HapHiCSort:
 
     @staticmethod
     def extract_clm(group, contigs, clm):
-        
-        contig_pairs = list(permutations(contigs, 2))
-        contig_with_orientation_pairs = set(
-                f"{pair[0]}{strand1} {pair[1]}{strand2}"
-                for pair in contig_pairs
-                for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
-            )
-        # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-        # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
-        # left_df = pl.LazyFrame(pl.Series("column_1", contig_with_orientation_pairs))
-        # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls().collect()
-        tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
+        if len(contigs) > 1:
+            contig_pairs = list(permutations(contigs, 2))
+            contig_with_orientation_pairs = set(
+                    f"{pair[0]}{strand1} {pair[1]}{strand2}"
+                    for pair in contig_pairs
+                    for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
+                )
+            # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
+            # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
+            # left_df = pl.LazyFrame(pl.Series("column_1", contig_with_orientation_pairs))
+            # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls().collect()
+            tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
 
 
-        tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
+            tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
+        else:
+            with open(f"{group}.clm", 'w') as out:
+                pass 
 
         return f"{group}.clm"
 

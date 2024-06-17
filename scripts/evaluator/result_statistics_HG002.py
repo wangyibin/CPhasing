@@ -173,12 +173,12 @@ def main():
     excluded_inter_homo_err_rate = excluded_inter_homo_err / excluded_anchored_len  if excluded_anchored_len else 0
     excluded_inter_nonhomo_err_rate = excluded_inter_nonhomo_err / excluded_anchored_len if excluded_anchored_len else 0
 
-    print('Contiguity\t{}'.format(contiguity))
-    print('Inter_homo_error_rate\t{}'.format(inter_homo_error_rate))
-    print('Inter_nonhomo_error_rate\t{}'.format(inter_nonhomo_error_rate))
-    print('Excluded_contiguity\t{}'.format(excluded_contiguity))
-    print('Excluded_inter_homo_error_rate\t{}'.format(excluded_inter_homo_err_rate))
-    print('Excluded_inter_nonhomo_error_rate\t{}'.format(excluded_inter_nonhomo_err_rate))
+    print('Contiguity\t{}'.format(contiguity * 100))
+    print('Inter_homo_error_rate\t{}'.format(inter_homo_error_rate * 100))
+    print('Inter_nonhomo_error_rate\t{}'.format(inter_nonhomo_error_rate * 100))
+    print('Excluded_contiguity\t{}'.format(excluded_contiguity * 100))
+    print('Excluded_inter_homo_error_rate\t{}'.format(excluded_inter_homo_err_rate * 100))
+    print('Excluded_inter_nonhomo_error_rate\t{}'.format(excluded_inter_nonhomo_err_rate * 100))
     print('Ngroups\t{}'.format(n_groups))
     print('Anchoring rate\t{}'.format(anchored_len/total_ctg_len*100))
 

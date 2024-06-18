@@ -24,10 +24,10 @@ dependencies:
   - cloudpickle=2.2.1=py311h06a4308_0
   - contourpy=1.2.1=py311h9547e67_0
   - cycler=0.12.1=pyhd8ed1ab_0
-  - dask=2.10.1=py_0
-  - dask-core=2.10.1=py_0
+  - dask=2024.6.0=py_0
+  - dask-core=2024.6.0=py_0
   - dbus=1.13.6=h5008d03_3
-  - distributed=2.10.0=py_0
+  - distributed=2024.6.0=py_0
   - expat=2.6.2=h59595ed_0
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
   - font-ttf-inconsolata=3.000=h77eed37_0

@@ -1995,6 +1995,12 @@ def hcr(porectable, pairs, contigsize, binsize,
     is_flag=True,
 )
 @click.option(
+    '--low-memory',
+    help="Reduce memory usage.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-t',
     '--threads',
     help="Number of threads. ",
@@ -2013,7 +2019,7 @@ def hcr(porectable, pairs, contigsize, binsize,
 def prepare(fasta, pairs, min_mapq,
             min_contacts, pattern,
             skip_pairs2contacts, skip_pairs2clm,
-              threads, outprefix):
+            low_memory, threads, outprefix):
     """
 
     """
@@ -2023,6 +2029,7 @@ def prepare(fasta, pairs, min_mapq,
          min_mapq,
          min_contacts, skip_pairs2clm=skip_pairs2clm,
          skip_pairs2contacts=skip_pairs2contacts,
+         low_memory=low_memory,
          threads=threads, outprefix=outprefix)
 
 

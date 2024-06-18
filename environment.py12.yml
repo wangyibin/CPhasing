@@ -186,9 +186,9 @@ dependencies:
     - cloudpickle==3.0.0
     - colormaps==0.4.1
     - cooler==0.9.3
-    - dask==2.10.1
+    - dask==2024.6.0
     - dill==0.3.8
-    - distributed==2.10.0
+    - distributed==2024.6.0
     - fsspec==2024.3.1
     - h5py==3.11.0
     - jinja2==3.1.3

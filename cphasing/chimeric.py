@@ -497,7 +497,7 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
     i = 1
     split_contigsizes = contigsizes.copy()
     new_break_point_res_df_list = []
-    while correct_round - i and pair_df:
+    while correct_round - i and pairs_df:
         split_contigsizes, split_pairs_df = split_contigs(
                         break_point_res, split_contigsizes, pairs_df, split_num=2)
         split_depth_dict = calculate_depth(
@@ -524,11 +524,14 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
                                      pd.concat(new_break_point_res_df_list, axis=0)], axis=0)
 
         del split_pairs_df, split_depth_dict
-    del pairs_df
-    gc.collect()
+    
+    if pairs_df is not None:
+        del pairs_df
+        gc.collect()
 
     if len(break_point_res) > 0:
         fasta_db = Fasta(fasta)
+        break_point_res = break_point_res.sort_values(by=[0, 1])
         corrected_positions = break_points_to_regions(break_point_res, contigsizes)
         filtered_pos = defaultdict(list)
         for i, tmp_df in corrected_positions.iterrows():

@@ -72,7 +72,8 @@ def split_contacts_to_contacts(split_contacts, output):
     df.group_by(['contig1', 'contig2']).sum().write_csv(output, separator='\t', has_header=False)
 
 def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3, 
-            threads=4, outprefix=None, skip_pairs2clm=False,
+            threads=4, low_memory=False,
+            outprefix=None, skip_pairs2clm=False,
             skip_pairs2contacts=False, log_dir="logs"):
 
     log_dir = Path(log_dir)
@@ -95,6 +96,9 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
     if not skip_pairs2clm:
         cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
                 "-t", str(threads), "-o", f"{outprefix}.clm", "-q", str(min_mapq)]
+        if low_memory:
+            cmd.append("--low-memory")
+            
         flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
         assert flag == 0, "Failed to execute command, please check log."
 

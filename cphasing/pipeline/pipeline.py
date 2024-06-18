@@ -506,22 +506,28 @@ def run(fasta,
 #----------------------------------#""")
         try:
             if porec_table:
-                prepare.main(args=[fasta,
+                args = [fasta,
                                 prepare_input, 
                                 "-p",
                                 pattern, 
                                 "-q",
                                 mapping_quality,
-                                "--skip-pairs2contacts"],
+                                "--skip-pairs2contacts"]
+                if low_memory:
+                    args.append("--low-memory")
+                prepare.main(args=args,
                                 prog_name='prepare')
             else:
-                 prepare.main(args=[fasta,
-                                prepare_input, 
-                                "-p",
-                                pattern,
-                                "-q",
-                                mapping_quality,
-                                "--skip-pairs2contacts"],
+                args = [fasta,
+                        prepare_input, 
+                        "-p",
+                        pattern,
+                        "-q",
+                        mapping_quality,
+                        "--skip-pairs2contacts"]
+                if low_memory:
+                    args.append("--low-memory")
+                 prepare.main(args=args,
                                 prog_name='prepare')
                  
         except SystemExit as e:

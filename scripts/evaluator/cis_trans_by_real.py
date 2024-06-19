@@ -19,8 +19,9 @@ import seaborn as sns
 import pandas as pd
 import numpy as np 
 
-from itertools import combinations
+from itertools import combinations, groupby
 from math import sqrt
+from statannotations.Annotator import Annotator
 
 def wi_test(data1, data2):
     """
@@ -56,6 +57,10 @@ def main(args):
             required=True)
     pOpt.add_argument("--labels", nargs="*", default=None,
                       help="labels of different cool data, the number of labels must equal to cool")
+    pOpt.add_argument("--color_index", nargs="*", default=None, 
+                      help="color index used for each labels")
+    pOpt.add_argument("--group", nargs="*", default=None,
+                      help="group different input sample")
     pOpt.add_argument('--wi_test', action="store_true", default=False,
                       help="plot the wi-test, only support two cool file")
     pOpt.add_argument("--rotation", default=0, type=int, 
@@ -100,21 +105,16 @@ def main(args):
     res_df = pd.DataFrame(results).T
     if args.labels:
         res_df.columns = args.labels
-    res_df.to_csv(args.output.replace(".png", "") + ".csv", sep='\t', index=True, header=True)
+    
 
     plt.rcParams['font.family'] = 'Arial'
-    fig, ax = plt.subplots(figsize=(4, 5))
+    fig, ax = plt.subplots(figsize=(5, 7))
     boxprops_r = dict(facecolor='#a83836',color='black', linewidth=1.5)
     boxprops_b = dict(facecolor='#265e8a',color='black', linewidth=1.5)
     boxprops = dict(color='black', linewidth=1.5)
     medianprops=dict(color='black', linewidth=2.5)
     whiskerprops = dict(linestyle='--')
 
-    if args.wi_test:
-        if len(args.cool) != 2:
-            print("wi test only support for two datas", file=sys.stderr)
-            sys.exit(-1)
-        pvalue = wi_test(results[0], results[1])
     
     # a = ax.boxplot(results[0], showfliers=False, patch_artist=True, notch=True, widths=0.4,
     #            boxprops=boxprops_r, medianprops=medianprops, whiskerprops=whiskerprops)
@@ -143,19 +143,48 @@ def main(args):
 
     # ax.plot([1,1,2,2], [y1, max_upper + h, max_upper + h, y2], linewidth=1.0, color='black')
     # ax.text((1 + 2)*.5, max_upper + max_upper/4.5, r'$P = {0:s}$'.format(as_si(pvalue, 2)), ha='center', va='bottom' )
-    colors = ['#df8384', '#8dc0ed']
+    colors = ['#df8384', '#8dc0ed', '#a83836',  "#253761",]
     # colors = ['#a83836', '#a83836', '#a83836', '#a83836',  
     #             '#df8384', '#df8384', '#df8384', '#df8384', 
     #             "#253761", '#8dc0ed',]
-    # colors = ['#a83836',  '#df8384', "#253761", '#8dc0ed',]
+    # colors = ['#df8384',  '#8dc0ed',]
     # colors = ['#df8384']
-    ax = sns.violinplot(data=results, ax=ax, palette=colors, alpha=1)
-    ax.set_xticks([0, 1])
+
+    pairs = list(combinations(args.labels, 2))
+    
+    res_df = res_df.melt()
+    if args.group:
+        res_df['group'] = np.nan
+        for group, label in zip(args.group, args.labels):
+            
+            res_df.loc[res_df['variable'] == label, 'group'] = group 
+
+    if args.color_index:
+        new_color = []
+        for i in args.color_index:
+            new_color.append(colors[int(i)])
+    else:
+        new_color = colors
+
+    if args.group:
+        hue_order = 'group'
+    else:
+        hue_order = None
+
+    res_df.to_csv(args.output.replace(".png", "") + ".csv", sep='\t', index=True, header=True)
+    ax = sns.violinplot(data=res_df, x='variable', y='value', hue_order=hue_order, ax=ax, palette=new_color, alpha=1)
+    if args.wi_test:
+        annotator = Annotator(ax, pairs, data=res_df, x='variable', y='value')
+        annotator.configure(test="Mann-Whitney", text_format='full', show_test_name=False, loc='inside')
+        annotator.apply_and_annotate()
+
+    ax.set_xticks(range(len(args.cool)))
     # ax.set_xticklabels(['MAPQ>=1', "MAPQ>=2"])
     # ax.set_xticklabels(['Raw', 'Removed \n$\mathit{trans}$'])
-    ax.set_xticklabels(args.labels, rotation=args.rotation)
+    ax.set_xticklabels(args.labels, fontsize=8, rotation=args.rotation, ha='right')
+    ax.set_xlabel("")
     max_y = max(max(results)) * 1.5
-    plt.ylim(-0.001, max_y)
+    # plt.ylim(-0.001, max_y)
     # ax.set_xticklabels(["Before\n realign", "After\n realign", ], fontsize=20)
     
     # ax.set_xticks([0, 1, 2])
@@ -174,12 +203,14 @@ def main(args):
     # ax.set_xticklabels(["Pore-C", "Hi-C", ], fontsize=20)
     # max_y = max(max(results)) * 1.3
     # plt.ylim(-0.1, max_y)
-    if args.wi_test:
-        plt.text(0.5, max_y * 0.95,f'Wilcox test p-value < {pvalue:.1e}', ha='center', fontsize=12)
+ 
     
 
     # ax.set_xticks([0, 1, 2, 3])
     # ax.set_xticklabels(["Pore-C\n$\it{Hin}$dIII", "Pore-C\n$\it{Dpn}$II", "Hi-C\n$\it{Dpn}$II", "Hi-C\nArima"], fontsize=20)
+    ylim = ax.get_ylim()
+
+    plt.text(0, ylim[1] * 0.05, f"n={len(homo_chroms)}", fontsize=18)
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=16)
     ax.set_ylabel("Normalized contacts", fontsize=20)

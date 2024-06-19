@@ -167,8 +167,11 @@ class AllhicOptimize:
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
                     keep_temp=False,
+                    log_dir="logs",
                     threads=4):
+        self.clusterfile = str(Path(clustertable).absolute())
         self.clustertable = ClusterTable(clustertable)
+        
         self.count_re = CountRE(count_re, minRE=1)
         self.clm_file = str(Path(clm).absolute())
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
@@ -177,7 +180,8 @@ class AllhicOptimize:
         self.output = output
         self.tmp_dir = tmp_dir 
         self.delete_temp = False if keep_temp else True 
-  
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
         self.threads = threads 
 
         self.allhic_path = choose_software_by_platform("allhic")
@@ -201,6 +205,14 @@ class AllhicOptimize:
         tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
 
         return f"{group}.txt"
+
+    @staticmethod
+    def extract_clm_rust(clm_file, cluster_file, log_dir):
+        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+        assert flag == 0, "Failed to execute command, please check log."
+
 
     @staticmethod
     def extract_clm(group, contigs, clm):
@@ -248,10 +260,9 @@ class AllhicOptimize:
 
     @staticmethod
     def _process_group(args):
-        group, contigs, clm, count_re, allhic_path, workdir = args
-        tmp_clm = AllhicOptimize.extract_clm(group, contigs, clm)
+        group, contigs, count_re, allhic_path, workdir = args
         tmp_count_re = AllhicOptimize.extract_count_re(group, contigs, count_re)
-
+        tmp_clm = f"{group}.clm"
         return (allhic_path, tmp_count_re, tmp_clm, workdir)
 
     def run(self):
@@ -262,8 +273,6 @@ class AllhicOptimize:
         os.chdir(tmpDir)
         workdir = os.getcwd()
         args = []
-        clm = self.clm
-
 
         groups = list(self.clustertable.data.keys())
         args = []
@@ -277,15 +286,14 @@ class AllhicOptimize:
         args = []
         for group in groups:
             contigs = self.clustertable.data[group]
-            args.append((group, contigs, clm, self.count_re, self.allhic_path, workdir))
+            args.append((group, contigs, self.count_re, self.allhic_path, workdir))
         
         with multiprocessing.get_context('spawn').Pool(processes=min(10, self.threads)) as pool:
             args = pool.map(AllhicOptimize._process_group, args)
  
-        del clm
-        gc.collect()
+        AllhicOptimize.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
         
-        
+        logger.info("Running scaffolding in each group ...")
         tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
                         self._run)(i, j, k, l) for i, j, k, l in args)
         
@@ -339,8 +347,10 @@ class HapHiCSort:
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
                     keep_temp=False,
+                    log_dir="logs",
                     threads=4):
         
+        self.clusterfile = str(Path(clustertable).absolute())
         self.clustertable = ClusterTable(clustertable)
         self.count_re_path = Path(count_re).absolute()
         self.count_re = CountRE(count_re, minRE=1)
@@ -354,6 +364,8 @@ class HapHiCSort:
         self.output = output
         self.delete_temp = False if keep_temp else True
         self.tmp_dir = tmp_dir 
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
         self.threads = threads 
 
         self.log_dir = "logs"
@@ -380,6 +392,13 @@ class HapHiCSort:
         tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
 
         return f"{group}.txt"
+
+    @staticmethod
+    def extract_clm_rust(clm_file, cluster_file, log_dir):
+        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+        assert flag == 0, "Failed to execute command, please check log."
 
     @staticmethod
     def extract_clm(group, contigs, clm):
@@ -440,9 +459,10 @@ class HapHiCSort:
     
     @staticmethod
     def _process_group(args):
-        group, contigs, clm, count_re, allhic_path, workdir = args
-        tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
+        group, contigs, count_re, allhic_path, workdir = args
         tmp_count_re = HapHiCSort.extract_count_re(group, contigs, count_re)
+        tmp_clm = f"{group}.clm"
+
         return (allhic_path, tmp_count_re, tmp_clm, workdir)
     
     def run(self):
@@ -451,14 +471,11 @@ class HapHiCSort:
         logger.info('Working on temporary directory: {}'.format(tmpDir))
         os.chdir(tmpDir)
         workdir = os.getcwd()
-
-        clm = self.clm
-
       
         args = []
         for group in self.clustertable.data.keys():
             contigs = self.clustertable.data[group]
-            args.append((group, contigs, clm, self.count_re, self.allhic_path, workdir))
+            args.append((group, contigs, self.count_re, self.allhic_path, workdir))
         
         with multiprocessing.get_context('spawn').Pool(processes=min(4, self.threads)) as pool:
             pool.map(HapHiCSort._process_group, args)
@@ -468,9 +485,8 @@ class HapHiCSort:
         #     tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
         #     args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
         
-        del clm
-        gc.collect()
-        
+        HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
+
         HapHiCSort._run(self.count_re_path, self.split_contacts, "./", 
                             skip_allhic=self.skip_allhic, threads=self.threads,
                             log_dir=self.log_dir)

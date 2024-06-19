@@ -527,7 +527,8 @@ def run(fasta,
                         "--skip-pairs2contacts"]
                 if low_memory:
                     args.append("--low-memory")
-                 prepare.main(args=args,
+                
+                prepare.main(args=args,
                                 prog_name='prepare')
                  
         except SystemExit as e:

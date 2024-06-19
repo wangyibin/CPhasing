@@ -7,9 +7,13 @@ Date: 2024-06-11
 - `higig`
     - support for hifi data. Moreover, support for junk and collapsed identification
     - `correct-alignments`, increase performance by filtering low quality LIS
+- `pairs2cool`, add min_mapq filtering
 - `plot`, add triangle plot 
+- `scaffolding`, speed up split clm by `cphasing-rs splitclm`
 ## Bug fixes
-- `pipeline`, fixed bug of contacts generating
+- `pipeline` 
+    - fixed bug of contacts generating
+    - fixed bug of the `corrected.agp` not output when chimeric correct mode
 - `scaffolding`, fixed bug of countre extract not found contigs 
 - `hcr_from_contacts`, find error peak in low coverage regions
 

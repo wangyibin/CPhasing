@@ -212,8 +212,9 @@ class HyperGraph:
             values = A[row, col]
             A = csr_matrix((values, (row, col)), shape=A.shape)
 
-        mask = A >= min_weight
-        A.multiply(mask)
+        if min_weight > 0:
+            mask = A >= min_weight
+            A.multiply(mask)
 
         
         if P_allelic_idx or P_weak_idx:

@@ -91,7 +91,7 @@ def main(args):
     res_df = pd.concat([homo_df, nonhomo_df], axis=0).melt()
     res_df.dropna(axis=0, inplace=True)
 
-
+    plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(3.5, 5))
 
     colors = ['#df8384', '#8dc0ed', '#a83836',  "#253761",]

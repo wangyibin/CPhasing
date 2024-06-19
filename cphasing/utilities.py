@@ -689,6 +689,18 @@ def to_humanized(size):
 
     return label
 
+def cool2depth(coolfile, output):
+    cool = cooler.Cooler(coolfile)
+    binsize = cool.binsize
+    bins = cool.bins()[:]
+    
+    contigsizes = cool.chromsizes
+    matrix = cool.matrix(balance=False, sparse=True)[:]
+    sum_values = np.array(matrix.sum(axis=1).T[0])
+
+    bins['values'] = sum_values[0]
+    bins.to_csv(output, sep='\t', header=None, index=None)
+    
 
 def merge_matrix(coolfile, 
                 outcool, 

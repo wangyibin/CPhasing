@@ -5062,7 +5062,23 @@ def countRE2cluster(count_re, output, fofn):
     for group_name, cr in zip(group_name, countREs):
         print(f"{group_name}\t{cr.ncontigs}\t{' '.join(cr.contigs)}", 
                 file=output) 
-        
+
+@utils.command(cls=RichCommand)
+@click.argument(
+    "coolfile",
+    metavar="INPUT_COOL_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def cool2depth(coolfile, output):
+    from .utilities import cool2depth
+    cool2depth(coolfile, output)     
 
 
 @utils.command(cls=RichCommand)

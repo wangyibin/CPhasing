@@ -27,8 +27,10 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
     if fasta_file[-3:] == ".gz":
         handle = xopen(fasta_file)
         fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+
     else:
         fasta = Fasta(fasta_file)
+
     p = Path('./')
 
     tour_list = list(p.glob('*.tour'))
@@ -60,6 +62,11 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
                     contig_length = fasta.faidx.index[contig].rlen
                 except KeyError:
                     logger.warning(f"Skip contig `{contig}`")
+                except AttributeError:
+                    try:
+                        length = len(fasta[contig])
+                    except KeyError:
+                        continue 
                 contig_range = portion.closed(1, contig_length)
                 contig_ranges[contig] = contig_range 
           
@@ -80,7 +87,14 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
             try:
                 length = fasta.faidx.index[unanchor_tig].rlen
             except KeyError:
-                logger.warning(f"Skip contig `{contig}`")
+                logger.warning(f"Skip contig `{unanchor_tig}`")
+                continue 
+            except AttributeError:
+                try:
+                    length = len(fasta[unanchor_tig])
+                except KeyError:
+                    logger.warning(f"Skip contig `{unanchor_tig}`")
+                    continue 
             unanchor_res.append([unanchor_tig, 1, length, 1, 'W', unanchor_tig, 
                 1, length, '+'])
         

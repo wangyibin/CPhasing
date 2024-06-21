@@ -138,6 +138,8 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000,
     os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
     os.remove(f"temp.{output}.paf.bed")
 
+    return contigsizes
+
 
 def workflow(paf, fastaFile, win, step, outPre, min_mapq=2):
     ## 
@@ -154,9 +156,9 @@ def workflow(paf, fastaFile, win, step, outPre, min_mapq=2):
     # with Pool(processes=4) as p:
     #     depthDic = p.starmap(cal_depth, [(winDic,) for _ in range(p._processes)])
     # output(outPre, depthDic)
-    calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step, min_mapq=min_mapq)
+    contigsizes = calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step, min_mapq=min_mapq)
 
-    return f'{outPre}.depth'
+    return contigsizes, f'{outPre}.depth'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")

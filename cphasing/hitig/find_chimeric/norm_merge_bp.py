@@ -23,7 +23,6 @@ read LIS paf
 pafDic[originQn][qi].append([qs,qe,s,tn,ts,te,ql,tl,al1,al2,AS])
 """
 ## return pafDic
-
 def read_mergeBP(mergeBP):
     bpDic = {}
     with open(mergeBP, 'r') as fin:
@@ -48,6 +47,11 @@ def read_depth(depthFile):
 
     return depthDic
 
+def read_contigsizes(contigsizes):
+    df = pd.read_csv(contigsizes, sep='\t', header=None, index_col=0, names=['contig', 'length'])
+    
+    return df.to_dict()['length']
+
 def find_region_depth(subDepthDic, subBpRegion, win, minDepth):
     """
     subDepthDic[(1,2)] = 19
@@ -70,13 +74,13 @@ def find_region_depth(subDepthDic, subBpRegion, win, minDepth):
 ## return depthDic
             
 
-def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
+def normaliz_split_alignment(depthDic, bpDic, contigsizesDict, win, minDepth, cutoff, edge):
     normBpDic = {}
     minDepth = float(minDepth)
     win = int(win)
     cutoff = float(cutoff)
     for ctg in bpDic:
-   
+        ctg_size = contigsizesDict[ctg]
         if ctg not in normBpDic:
             normBpDic[ctg] = {}
         subDepth = depthDic[ctg]
@@ -109,6 +113,10 @@ def normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff):
                 normBpRatio = 0
                 avaDepth = 0
             chimericType = "chimeric" if normBpRatio >= cutoff else "Non-chimeric"
+            bpPos = int(float(sum(bini))/float(2))
+            if ((ctg_size - bpPos) < edge ) or (bpPos < edge):
+                chimericType = "Non-chimeric"
+
             normBpDic[ctg][bini] = (chimericType, bpCount, avaDepth, normBpRatio)
 
     return normBpDic
@@ -137,14 +145,15 @@ def outputFile(normBpDic, outPre):
     return outPre + ".breakPos.txt"
 
 
-def workflow(mergeBP, depthFile, win, minDepth, cutoff, outPre):
+def workflow(mergeBP, depthFile, contigsizes, win, minDepth, cutoff, edge, outPre):
     win = int(win)
     bpDic = read_mergeBP(mergeBP)
     depthDic = read_depth(depthFile)
+    contigsizesDict = read_contigsizes(contigsizes)
     # for ctg in depthDic:
     #     print(len(list(depthDic[ctg].keys())))
  
-    normBpDic = normaliz_split_alignment(depthDic, bpDic, win, minDepth, cutoff)
+    normBpDic = normaliz_split_alignment(depthDic, bpDic, contigsizesDict, win, minDepth, cutoff, edge)
  
     #mergeBpDic, bpDic = check_breakpoint(normSaDic, cutoff, edges)
     return outputFile(normBpDic, outPre)
@@ -157,14 +166,18 @@ if __name__ == "__main__":
                         help='<filepath>  the merged breakpoint file.')
     parser.add_argument('-d', '--depth', required=True,
                         help='<filepath>  depth file.')
+    parser.add_argument('-s', '--contigsizes', required=True,
+                        help="<filepath> contigsizes file")
     parser.add_argument('-min', '--minDepth', default=3,
                         help='<int>  minimum depth of windows.')
     parser.add_argument('-c', '--cutoff', default=0.5,
                         help='<float>  cutoff of identifying chimeric contigs, which equal (count of splited alignment reads)/(avarage depth in chimeric region).')
+    parser.add_argument('-e', '--edge', default=20000,
+                        help='<int> Number of minimum split alignment in windows, default is 20000.')
     parser.add_argument('-w', '--win', default=5000,
                         help='<int> window size when calculating depth.')
     parser.add_argument('-o', '--output', default="output",
                         help='<str> output file prefix, default is output')
     args = parser.parse_args()
     # paf, breakpointFile, fasta, win, outPre
-    workflow(args.breakpoint, args.depth, args.win, args.minDepth, args.cutoff, args.output)
+    workflow(args.breakpoint, args.depth, args.contigsizes, args.win, args.minDepth, args.cutoff, int(args.edge), args.output)

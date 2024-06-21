@@ -4080,7 +4080,6 @@ def pairs2mnd(pairs, output):
     help="Minimum mapping quality of alignments",
     type=click.IntRange(0, 60),
     show_default=True,
-    hidden=True
 )
 @click.option(
     '--fofn',
@@ -4333,8 +4332,8 @@ def pairs2cool(pairs, chromsize, outcool,
 @click.option(
     '-oc',
     '--only-chr',
-    help='Only plot the chromosomes that ignore unanchored contigs.'
-         'When `--chromosomes` specifed, this parameter will be ignored.'
+    help='Only plot the chromosomes that ignore unanchored contigs. '
+         'When `--chromosomes` specifed, this parameter will be ignored. '
          'The default use prefix of `Chr` to find the chromosomes. '
         '`--chr-prefix` can be used to change this.',
     is_flag=True,

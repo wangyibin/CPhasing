@@ -1558,6 +1558,11 @@ class Tour:
                     # length = len(fasta[contig])
                 except KeyError:
                     continue
+                except AttributeError:
+                    try:
+                        length = len(fasta[contig])
+                    except KeyError:
+                        continue 
                 
                 tig_start = 1 
                 tig_end = length 

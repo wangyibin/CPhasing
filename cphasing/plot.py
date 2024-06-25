@@ -25,13 +25,14 @@ from itertools import product
 from intervaltree import Interval, IntervalTree
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import MaxNLocator
 from multiprocessing import Lock, Pool
 from joblib import Parallel, delayed
 from pandarallel import pandarallel
 from scipy.sparse import triu
 
 from .agp import import_agp
-from .utilities import to_humanized
+from .utilities import to_humanized, chrom_ticks_convert
 
 logger = logging.getLogger(__name__)
 
@@ -694,12 +695,14 @@ def plot_heatmap(matrix, output,
 
         if chromosomes:
             if len(chromosomes) == 1:
-                new_idx = cool.bins().fetch(chromosomes[0]).index.values.tolist()
+                bins = cool.bins().fetch(chromosomes[0])
+                new_idx = bins.index.values.tolist()
+
                 chrom_offset = [0, len(new_idx)]
                 chromnames = chromosomes
             else:
-                new_idx = bins.loc[chromosomes]['index']
-                
+                bins = bins.loc[chromosomes]
+                new_idx = bins['index']
                 matrix = matrix[new_idx, :][:, new_idx]
                 chromnames = chromosomes
             
@@ -716,13 +719,15 @@ def plot_heatmap(matrix, output,
                 logger.debug("Removing the short bin ...")
                 retain_chroms = chromsizes[chromsizes >= binsize].index.values
                 if len(retain_chroms) < len(chromsizes): 
-                    new_idx = bins.loc[retain_chroms]['index']
+                    bins = bins.loc[retain_chroms]
+                    new_idx = bins['index']
                     matrix = matrix[new_idx, :][:, new_idx]
                     chromnames = retain_chroms.tolist()
                     grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
                     chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
                 else:
                     chrom_offset = chrom_offset.tolist()
+
         matrix = matrix.todense()
 
         if log1p or log:
@@ -762,9 +767,9 @@ def plot_heatmap(matrix, output,
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
         
         tick_fontsize = 15 / np.log10(len(chromnames)) if not fontsize else fontsize
-
+        
         logger.info("Plotting heatmap ...")
-        ax = plot_heatmap_core(matrix, ax, chromnames=chromnames, 
+        ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,
                             xticks=xticks, yticks=yticks, 
@@ -774,12 +779,15 @@ def plot_heatmap(matrix, output,
                             tick_fontsize=tick_fontsize)
     
     else: 
-        plot_per_chromosome_heatmap(cool, chromosomes, chrom_per_row=chrom_per_row,
+        ax = plot_per_chromosome_heatmap(cool, chromosomes,
+                                         chrom_per_row=chrom_per_row,
                                         cmap=cmap, balanced=balanced, threads=threads)
 
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
 
     logger.info(f'Successful, plotted the heatmap into `{output}`')
+
+    return ax
 
 
 def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, 
@@ -807,8 +815,8 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
 
     if chromosomes:
-        new_idx = bins.loc[chromosomes]['index']
-    
+        bins = bins.loc[chromosomes]
+        new_idx = bins['index']
         matrix = matrix[new_idx, :][:, new_idx]
         chrom_offset = np.r_[0, 
                             np.cumsum(new_idx
@@ -821,6 +829,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     else:
         if remove_short_bin:
             retain_chroms = chromsizes[chromsizes >= binsize].index.values
+            bins = bins.loc[retain_chroms]
             new_idx = bins.loc[retain_chroms]['index']
             matrix = matrix[new_idx, :][:, new_idx]
             chromosomes = retain_chroms.tolist()
@@ -872,7 +881,8 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             norm = None
 
 
-        plot_heatmap_core(chrom_matrix, ax, norm=norm, xlabel=chrom, 
+        plot_heatmap_core(chrom_matrix, ax, bins=bins, chrom_offset=chrom_offset,
+                          norm=norm, xlabel=chrom, 
                             cmap=cmap, xticks=False, yticks=False)
     args = []
     for i, chrom in enumerate(chromosomes):
@@ -891,6 +901,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
 def plot_heatmap_core(matrix, 
                         ax,
+                        bins=None,
                         chromnames=None,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
@@ -951,16 +962,20 @@ def plot_heatmap_core(matrix,
     
         cax = ax.pcolormesh(x, y, np.flipud(np.array(matrix)), cmap=colormap, edgecolor='none',
                             snap=True, linewidth=.001, rasterized=False)
-        
-        ax.axis('off')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-
+        fig = plt.gcf()
+        # ax.plot(100, 3, marker='v', markersize=2, linestyle=None, color='blue')
+        # ax.axis('off')
         
     else:
         fig = plt.gcf()
         cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
                         interpolation=None)
+    
+    binsize = (bins['end'] - bins['start']).median()
+    tmp_chrom_offset = np.array(chrom_offset.copy())
+    tmp_chrom_range = list(zip(bins.iloc[tmp_chrom_offset[:-1]]['start'].values, bins.iloc[(tmp_chrom_offset - 1)[1:]]['end'].values))
+    tmp_chrom_start = tmp_chrom_range[0][0]
+    tmp_chrom_size = tmp_chrom_range[0][0] + sum(list(map(lambda x:(x[1] - x[0]), tmp_chrom_range)))
         
     cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
 
@@ -994,16 +1009,19 @@ def plot_heatmap_core(matrix,
 
     ax.tick_params(width=0)
     if xticks and chromnames:
-        ax.set_xticks(mid_tick_pos)
-        rotation = "vertical" if rotate_xticks else "horizontal"
-        
-        ax.set_xticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
+        # ax.set_xticks(mid_tick_pos)
+        rotation = "horizontal" if rotate_xticks else "vertical" 
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
+        ax.tick_params(axis='x', length=5, width=2)
+        xticklabels = chrom_ticks_convert(ax.get_xticks()[:-1] * binsize)
+        ax.set_xticklabels(xticklabels, fontsize=tick_fontsize, rotation=rotation)
+
     else:
         ax.set_xticks([])
     if yticks and chromnames:
         ax.set_yticks(mid_tick_pos)
         rotation = "vertical" if rotate_yticks else "horizontal"
-        ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotate_yticks)
+        ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
     else:
         ax.set_yticks([])
 

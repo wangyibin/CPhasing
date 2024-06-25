@@ -431,7 +431,9 @@ class HyperPartition:
             self.kprune(self.alleletable, contacts=self.contacts)
 
         idx_to_vertices = self.idx_to_vertices
-
+        A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
+                                          self.NW,
+                                          self.allelic_factor, self.min_weight)
         if self.resolution1 == -1:
             result_K_length = 0
             tmp_resolution = self.init_resolution1
@@ -439,7 +441,8 @@ class HyperPartition:
                 logger.warn("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
                 # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
-                raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
+                raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, 
+                                                                  A, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,
@@ -456,7 +459,7 @@ class HyperPartition:
 
                 
         else:
-            raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, self.NW, 
+            raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, A, self.NW, 
                                                         self.P_allelic_idx,
                                                         self.P_weak_idx,
                                                         self.allelic_factor,
@@ -591,7 +594,9 @@ class HyperPartition:
         #             ] = sub_allelic_factor_df['factor']
 
         # sub_allelic_factor = csr_matrix(_sub_allelic_factor)
-
+        A = HyperGraph.clique_expansion_init(sub_H, sub_P_allelic_idx, sub_P_weak_idx, 
+                                          sub_NW,
+                                          allelic_factor, min_weight)
         if resolution < 0.0 and k != 0:
             tmp_resolution = init_resolution
             result_K_length = 0
@@ -601,7 +606,7 @@ class HyperPartition:
                 if tmp_resolution > 10.0 or auto_round > 50:
                     break
                 # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
-                raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
+                raw_A, A, cluster_assignments, new_K = IRMM(sub_H, A, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -622,7 +627,7 @@ class HyperPartition:
                 auto_round += 1
              
         else:
-            raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_NW, 
+            raw_A, A, cluster_assignments, new_K = IRMM(sub_H, A, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
                                                     allelic_factor,
@@ -757,7 +762,11 @@ class HyperPartition:
         
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
-
+        
+        A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
+                                          self.NW,
+                                          self.allelic_factor, self.min_weight)
+        
         if not first_cluster:
             
             if self.resolution1 < 0 :
@@ -768,7 +777,7 @@ class HyperPartition:
                     if tmp_resolution > 10.0 or auto_round > 50:
                         break
                     logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
-                    _, A, _, self.K = IRMM(self.H, self.NW, 
+                    _, A, _, self.K = IRMM(self.H, A, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, tmp_resolution, 
                                 self.min_weight, self.threshold, 
@@ -781,7 +790,7 @@ class HyperPartition:
                     tmp_resolution += 0.2
                     auto_round += 1
             else:
-                _, A, _, self.K = IRMM(self.H, self.NW, 
+                _, A, _, self.K = IRMM(self.H, A, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, self.resolution1, 
                                 self.min_weight, self.threshold, 

@@ -391,7 +391,8 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
-def IRMM(H, NW=None, 
+def IRMM(H, A=None,
+            NW=None, 
             P_allelic_idx=None,
             P_weak_idx=None,
             allelic_factor=-1,
@@ -443,83 +444,74 @@ def IRMM(H, NW=None,
     #     _P = P.T @ H
     #     remove_idx = (_P.toarray() == 2).any(axis=0)
     #     H = H[:, ~remove_idx]
-       
-    m = H.shape[1]
     
-    ## diagonal matrix of weights
-    W = identity(m, dtype=np.float32)
-    
-    ## D_e - I 
-    D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
-    
-    ## inverse diagonal matrix D_e
-    D_e_inv = 1/D_e_num
-    D_e_inv[D_e_inv == -np.inf] = 0
-    D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                            W.shape, dtype=np.float32)
-
-    if max_round <= 1:
-        A = H @ W @ D_e_inv @ H.T
-
-    else:
-        H_T = H.T
-        A = H @ W @ D_e_inv @ H_T
-    
-    if min_weight > 0:
-        mask = A >= min_weight
-        A = A.multiply(mask)
-    # normalization
-    if NW is not None:
-        A = A.toarray()
-        diag_A = np.diagonal(A)
-        NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
-        np.fill_diagonal(NW, 1)
-
-        A = A * NW
-        row, col = np.nonzero(A)
-        values = A[row, col]
-        A = csr_matrix((values, (row, col)), shape=A.shape, dtype=np.float32)
-
-    A.setdiag(0)
-    A.prune()
-
-    if max_round <= 1:
-        del W, D_e_num, D_e_inv
-        gc.collect() 
-
-    raw_A = A.copy()
-    if P_allelic_idx or P_weak_idx:
-        # P_allelic_df = pd.concat(P_allelic_idx, axis=1)
-        # P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
-        #                 (P_allelic_df['contig1'], P_allelic_df['contig2'])), 
-        #                 shape=([A.shape[0], len(P_allelic_df)]))
+    if A is None or max_round > 1:
+        m = H.shape[1]
         
-        # print(A.shape, allelic_factor.shape)
-        # A = A.multiply(allelic_factor)
+        ## diagonal matrix of weights
+        W = identity(m, dtype=np.float32)
+        
+        ## D_e - I 
+        D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+        
+        ## inverse diagonal matrix D_e
+        D_e_inv = 1/D_e_num
+        D_e_inv[D_e_inv == -np.inf] = 0
+        D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
+                                W.shape, dtype=np.float32)
 
-        # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
-        # P[np.diag_indices_from(P)] = 0
-        # P[P_idx[0], P_idx[1]] = 0
-        # A = A * P 
-        A = A.tolil()
-        if P_allelic_idx:
-     
-            if allelic_factor == 0: 
-                A[P_allelic_idx[0], P_allelic_idx[1]] = 0
-            else:
-                A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
-        if P_weak_idx:
-            if cross_allelic_factor == 0:
-                A[P_weak_idx[0], P_weak_idx[1]] = 0
-            else:
-                A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
-            
-        A = A.tocsr()
+        if max_round <= 1:
+            A = H @ W @ D_e_inv @ H.T
+
+        else:
+            H_T = H.T
+            A = H @ W @ D_e_inv @ H_T
+        
+        if min_weight > 0:
+            mask = A >= min_weight
+            A = A.multiply(mask)
+        # normalization
+        if NW is not None:
+            A = A.toarray()
+            diag_A = np.diagonal(A)
+            NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
+            np.fill_diagonal(NW, 1)
+
+            A = A * NW
+            row, col = np.nonzero(A)
+            values = A[row, col]
+            A = csr_matrix((values, (row, col)), shape=A.shape, dtype=np.float32)
+
+        A.setdiag(0)
+        A.prune()
+
+        if max_round <= 1:
+            del W, D_e_num, D_e_inv
+            gc.collect() 
+
+        raw_A = A.copy()
+        if P_allelic_idx or P_weak_idx:
+            A = A.tolil()
+            if P_allelic_idx:
+        
+                if allelic_factor == 0: 
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+                else:
+                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+            if P_weak_idx:
+                if cross_allelic_factor == 0:
+                    A[P_weak_idx[0], P_weak_idx[1]] = 0
+                else:
+                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
+                
+            A = A.tocsr()
+    else:
+        raw_A = A
 
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
     except ValueError:
-        return A, None, []
+        return raw_A, A, None, []
 
     cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
     # cluster_assignments = G.community_leiden(weights='weight', resolution=resolution)

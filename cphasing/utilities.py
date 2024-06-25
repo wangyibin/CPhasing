@@ -689,6 +689,28 @@ def to_humanized(size):
 
     return label
 
+def chrom_ticks_convert(ticks):
+    """
+    Convert a list of  chromosome size to suitable unit.
+    >>> ticks = [10000, 20000, 30000]
+    >>> chrom_ticks_convert(ticks)
+    ['10', '20', '30Kbp']
+    """
+    if ticks[-1]  - ticks[1] <= 1e3:
+        labels = ["{:,.0f}".format((x)) 
+                  for x in ticks] 
+        labels[-1] += " bp"
+    elif ticks[-1]  - ticks[1] <= 4e5:
+        labels = ["{:,.0f}".format((x / 1e3)) 
+                  for x in ticks]
+        labels[-1] += 'Kbp'
+    else:
+        labels = ["{:,.1f}".format((x / 1e6)) 
+                  for x in ticks]
+        labels[-1] += " Mbp"
+    
+    return labels
+
 def cool2depth(coolfile, output):
     cool = cooler.Cooler(coolfile)
     binsize = cool.binsize

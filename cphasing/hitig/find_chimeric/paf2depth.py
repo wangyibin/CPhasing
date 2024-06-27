@@ -132,7 +132,7 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000,
     cmd += "{} > temp.{}.paf.bed".format(paf, output)
     os.system(cmd)
 
-    cmd = f"bedtools intersect -f 0.5 -a temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.depth"
+    cmd = f"bedtools intersect -f 0.5 -a temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.q{min_mapq}.depth"
     os.system(cmd)
 
     os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
@@ -158,7 +158,7 @@ def workflow(paf, fastaFile, win, step, outPre, min_mapq=2):
     # output(outPre, depthDic)
     contigsizes = calculate_depth_by_bedtools(paf, fastaFile, outPre, win, step, min_mapq=min_mapq)
 
-    return contigsizes, f'{outPre}.depth'
+    return contigsizes, f'{outPre}.q{min_mapq}.depth'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")

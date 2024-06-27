@@ -520,6 +520,14 @@ def find_chimeric(
 
 @hitig.command(cls=RichCommand)
 @click.option(
+    '-f',
+    '--fasta',
+    metavar='PATH',
+    help='the raw contigs file.',
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
     '-l',
     '--lis',
     metavar='PATH',
@@ -538,12 +546,20 @@ def find_chimeric(
     type=click.Path(exists=True)
 )
 @click.option(
+    '-p',
+    '--paf',
+    required=True,
+    metavar='PATH',
+    help='Ul-ONT/HiFi raw mapping results in paf format.',
+    type=click.Path(exists=True),
+)
+@click.option(
     '-d',
     '--depth',
     metavar='PATH',
     help='Ul-ONT/HiFi reads depth file, 4 cols: <chr> <start> <end> <depth>.',
-    required=True,
-    type=click.Path(exists=True)
+    type=click.Path(exists=True),
+    hidden=True,
 )
 @click.option(
     '-b',
@@ -553,17 +569,28 @@ def find_chimeric(
     help="use break positions to correct HCRs.",
     type=click.Path(exists=True),
     default=None,
-    show_default=True
+    show_default=True,
+    hidden=True,
 )
+# @click.option(
+#     '-c',
+#     '--contig-sizes',
+#     'contig_sizes',
+#     metavar='PATH',
+#     help="contig sizes file for HCRs correct by break positions.",
+#     type=click.Path(exists=True),
+#     default=None,
+#     show_default=True
+# )
 @click.option(
-    '-c',
-    '--contig-sizes',
-    'contig_sizes',
-    metavar='PATH',
-    help="contig sizes file for HCRs correct by break positions.",
-    type=click.Path(exists=True),
-    default=None,
-    show_default=True
+    '-q',
+    '--min-mapq',
+    'min_mapq',
+    metavar='INT',
+    help='minimum mapping quality',
+    default=0,
+    show_default=True,
+    type=int
 )
 @click.option(
     '-mc',
@@ -594,14 +621,14 @@ def find_chimeric(
     show_default=True,
     type=int
 )
-# @click.option(
-#     '--step-size',
-#     'step_size',
-#     help='step size',
-#     default=1000,
-#     show_default=True,
-#     type=int
-# )
+@click.option(
+    '--step-size',
+    'step_size',
+    help='step size',
+    default=1000,
+    show_default=True,
+    type=int
+)
 @click.option(
     '-M',
     '--max-depth',
@@ -619,9 +646,10 @@ def find_chimeric(
     default='output',
     show_default=True
 )
-def hcr(lis, split_align, depth, break_pos, 
-            contig_sizes, min_count, min_score, window, 
-            # step_size,
+def hcr(fasta, lis, split_align, paf, 
+            depth, break_pos, min_mapq,
+            min_count, min_score, window, 
+            step_size,
             max_depth, output):
     """
     Identify high confidence regions (HCRs).
@@ -630,16 +658,18 @@ def hcr(lis, split_align, depth, break_pos,
 
     """
     from .hcr import hcr, bed2depth
+    from .find_chimeric import paf2depth 
 
-    if contig_sizes:
-        contig_sizes_df = read_chrom_sizes(contig_sizes)
+    contigsizes, depth_file = paf2depth.workflow(paf, fasta, window, step_size, output)
+    if contigsizes:
+        contig_sizes_df = read_chrom_sizes(contigsizes)
         contig_sizes_db = contig_sizes_df.to_dict()['length']
 
         hcr_from_depth_file = bed2depth.workflow(depth, window, output, max_depth)
     
-    if break_pos and contig_sizes:
+    if break_pos and contigsizes:
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
-                        min_count, min_score, output, break_pos, contig_sizes)
+                        min_count, min_score, output, break_pos, contigsizes)
     else:
         if break_pos:
             logger.warning("The file of break position and contig sizes should be input at the same time.")

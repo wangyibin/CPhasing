@@ -660,7 +660,7 @@ def hcr(fasta, lis, split_align, paf,
     from .hcr import hcr, bed2depth
     from .find_chimeric import paf2depth 
 
-    contigsizes, depth_file = paf2depth.workflow(paf, fasta, window, step_size, output)
+    contigsizes, depth_file = paf2depth.workflow(paf, fasta, window, step_size, output, min_mapq=min_mapq)
     if contigsizes:
         contig_sizes_df = read_chrom_sizes(contigsizes)
         contig_sizes_db = contig_sizes_df.to_dict()['length']

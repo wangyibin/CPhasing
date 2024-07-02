@@ -215,7 +215,7 @@ class PartigAllele:
                     output='Allele.ctg.table',
                     log_dir='logs'):
         self.fasta = fasta
-        fasta_prefix = Path(fasta).with_suffix("")
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
         self.prefix = fasta_prefix

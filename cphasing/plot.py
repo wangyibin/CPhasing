@@ -1013,7 +1013,9 @@ def plot_heatmap_core(matrix,
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
         ax.tick_params(axis='x', length=5, width=2)
-        xticklabels = chrom_ticks_convert(ax.get_xticks()[:-1] * binsize)
+        _xticks = np.r_[ax.get_xticks()[:-1], ax.get_xlim()[1]]
+        ax.set_xticks(_xticks)
+        xticklabels = chrom_ticks_convert(_xticks * binsize)
         ax.set_xticklabels(xticklabels, fontsize=tick_fontsize, rotation=rotation)
 
     else:

@@ -758,7 +758,7 @@ class HyperPartition:
         incremental partition for autopolyploid.
         """
         if not first_cluster:
-            logger.info("Starting first partition ...")
+            logger.info("Starting first round partition ...")
         
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
@@ -833,7 +833,7 @@ class HyperPartition:
                 if i > len(self.K):
                     logger.warn(f"Exclude group `{i}` exceed the numbers of first cluster. skipped")
 
-        logger.info("Starting second hyperpartition ...")
+        logger.info("Starting second round hyperpartition ...")
 
         # raw_A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx=self.P_allelic_idx, allelic_factor=0)
         # raw_K = self.K.copy()

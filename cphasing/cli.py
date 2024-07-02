@@ -1688,7 +1688,7 @@ def chimeric(fasta, pairs, depth, window_size,
     assert any([pairs, depth]), "Pairs or Depth file must be input."
 
     if outprefix is None:
-        outprefix = Path(fasta).absolute().stem
+        outprefix = Path(Path(fasta).absolute().stem).name
     
 
     if pairs:
@@ -2124,7 +2124,7 @@ def alleles(fasta, output,
     from .alleles import PartigAllele
 
     if not output:
-        fasta_prefix = Path(fasta).with_suffix("")
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
             fasta_prefix = fasta_prefix.with_suffix("")
     
@@ -4787,21 +4787,36 @@ def agp2tour(agp, outdir, force):
     metavar="Assembly",
     type=click.Path(exists=True)
 )
-@click.argument(
-    "fasta",
-    metavar="Fasta",
-    type=click.Path(exists=True)
+# @click.argument(
+#     "fasta",
+#     metavar="Fasta",
+#     type=click.Path(exists=True)
 
-)
+# )
 @click.option(
-    "-m",
-    "--max-chrom",
-    metavar="INT",
-    help="maximum number of chromosome or scaffold, and remain scaffolds will output into contig-level",
-    type=int,
+    "-n",
+    help="""
+    Number of groups. If set to 0 or None, the partition will be run automatically.
+    If in phasing mode, you can set to n1:n2, 
+    which meaning that generate n1 groups in the first round partition
+    and generate n2 groups in the second round partition. 
+    Also, you can set `-n 8:0` to set the second round partition to automatical mode.
+     The n2 parameter also can be set a file, which containing two columns, 
+      the firse column repersent the group index from `first.clusters.txt`, and the 
+       second column repersent the n2 groups in each n1 group. [default: 0]
+    """,
     default=None,
-    show_default=True
+    show_default=True,
 )
+# @click.option(
+#     "-m",
+#     "--max-chrom",
+#     metavar="INT",
+#     help="maximum number of chromosome or scaffold, and remain scaffolds will output into contig-level",
+#     type=int,
+#     default=None,
+#     show_default=True
+# )
 @click.option(
     "-cp",
     "--chr-prefix",
@@ -4832,11 +4847,18 @@ def agp2tour(agp, outdir, force):
     default=None,
     show_default=True
 )
-def assembly2agp(assembly, fasta, max_chrom, 
+def assembly2agp(assembly, n, 
                 chr_prefix, phased, sort_by_length, outprefix):
     from .agp import assembly2agp 
 
-    assembly2agp(assembly, fasta, max_chrom=max_chrom, 
+    n = re.split(":|x|\|", n) if n else None
+    if n is not None:
+        if len(n) == 1:
+            n = [int(n[0])]
+        elif len(n) >= 2:
+            n = list(map(int, n))
+        print(n)
+    assembly2agp(assembly, n, 
                     chrom_prefix=chr_prefix, phased=phased,
                     sort_by_length=sort_by_length, outprefix=outprefix)
 

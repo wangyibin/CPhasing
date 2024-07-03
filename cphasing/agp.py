@@ -475,8 +475,8 @@ def assembly2agp(assembly,
         scaffolds_idx = list(scaffolds_length_db.keys())
     
 
-    raw_agp = f"{outprefix}.raw.agp"
-    agp = f"{outprefix}.agp"
+    raw_agp = f"{outprefix}.agp"
+    agp = f"{outprefix}.corrected.agp"
 
     with open(raw_agp, "w") as raw_out, open(agp, "w") as out:
         record_num = 1

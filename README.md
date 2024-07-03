@@ -177,9 +177,9 @@ cphasing utils assembly2agp groups.review.assembly -n 8:4
 ## or haploid or a homologous group
 cphasing utils assembly2agp groups.review.assembly -n 8
 ## extract contigs from agp 
-cphasing utils agp2fasta groups.review.raw.agp draft.asm.fasta --contigs > contigs.fasta
+cphasing utils agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
 ## extract chromosome-level fasta from agp
-cphasing utils agp2fasta groups.review.raw.agp draft.asm.fasta > groups.review.asm.fasta
+cphasing utils agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
 ```
 
 

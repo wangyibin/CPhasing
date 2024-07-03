@@ -4857,7 +4857,7 @@ def assembly2agp(assembly, n,
             n = [int(n[0])]
         elif len(n) >= 2:
             n = list(map(int, n))
-        print(n)
+    
     assembly2agp(assembly, n, 
                     chrom_prefix=chr_prefix, phased=phased,
                     sort_by_length=sort_by_length, outprefix=outprefix)

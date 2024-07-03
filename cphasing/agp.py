@@ -214,7 +214,7 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
                 seq = str(seq)
                 output_contig = raw_contig
             else:
-                seq = str(seq[start-1: end-1])
+                seq = str(seq[start-1: end])
                 output_contig = f"{raw_contig}:{start}-{end}"
 
             print(f'>{output_contig}', file=output)
@@ -503,26 +503,28 @@ def assembly2agp(assembly,
                         else:
                             n1 = (num - 1) // chrom_num[1] + 1
                             n2 = (num - 1) % chrom_num[1] + 1
-                            print(n1, n2, chrom_num[1])
+                           
                             chrom = f"{chrom_prefix}{n1:0>2}g{n2}"
                         
                         if contig in fragments_range:
                             raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
                             contig = f"{raw_contig}:{raw_contig_start}-{raw_contig_end-1}"
-                        
+                            raw_contig_end = raw_contig_end - 1
+                            
                         print("\t".join(map(str, (chrom, start, end - 1, record_num, _type, 
                                                     contig, contig_start, contig_end, orient))), file=out)
 
                         _, raw_start, raw_end, _, _type, raw_contig, contig_start, contig_end, orient = raw_record
-
+                        if raw_contig in fragment_db:
+                            contig_end = contig_end - 1
                         print("\t".join(map(str, (chrom, raw_start, raw_end, record_num, _type, 
                                                     raw_contig, contig_start, contig_end, orient))), file=raw_out)
                         
                         if i < len(records) - 1:
                             record_num += 1
-                            print("\t".join(map(str, (chrom, start + gap_len, end + gap_len, record_num, 
+                            print("\t".join(map(str, (chrom, end, end + gap_len - 1, record_num, 
                                                         "U", gap_len, "contig", "yes", "map" ))), file=out)
-                            print("\t".join(map(str, (chrom, raw_start + gap_len, raw_end + gap_len, record_num, 
+                            print("\t".join(map(str, (chrom, raw_end + 1, raw_end+ gap_len, record_num, 
                                                         "U", gap_len, "contig", "yes", "map" ))), file=raw_out)
                         record_num += 1
                         
@@ -533,6 +535,7 @@ def assembly2agp(assembly,
                             raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
                             chrom = f"{raw_contig}:{raw_contig_start}-{raw_contig_end - 1}"
                             contig = chrom
+                            raw_contig_end = raw_contig_end - 1
                         else:
                             chrom = contig
                             raw_contig = contig
@@ -559,7 +562,7 @@ def assembly2agp(assembly,
                     if contig in fragment_db:
                         raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
                         contig = f"{raw_contig}:{raw_contig_start}-{raw_contig_end}"
-
+                        print(raw_contig, raw_contig_start, raw_contig_end)
                     print("\t".join(map(str, (chrom, 1, contig_end - contig_start + 1, record_num, _type, 
                                                 contig, contig_start, contig_end, orient))), file=out)
                     
@@ -570,9 +573,9 @@ def assembly2agp(assembly,
                     
                     if i < len(records) - 1:
                         record_num += 1
-                        print("\t".join(map(str, (chrom, start + 100, end + 100, record_num, 
+                        print("\t".join(map(str, (chrom, end + 1, end + gap_len, record_num, 
                                                     "U", 100, "contig", "yes", "map" ))), file=out)
-                        print("\t".join(map(str, (chrom, raw_start + 100, raw_end + 100, record_num, 
+                        print("\t".join(map(str, (chrom, raw_end +  1, raw_end + gap_len, record_num, 
                                                     "U", 100, "contig", "yes", "map" ))), file=raw_out)
                     record_num += 1
 

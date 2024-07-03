@@ -163,14 +163,23 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 
 
 ### Curation by Juicebox
+- generate `.assembly` and `.hic`
+
 ```bash
 cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
 cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```
-After curation
+- After curation
 ```bash
-cphasing utils assembly2agp groups.review.assembly > groups.review.agp 
+## convert assembly to agp
+cphasing utils assembly2agp groups.review.assembly -n 8:4 
+## or haploid or a homologous group
+cphasing utils assembly2agp groups.review.assembly -n 8
+## extract contigs from agp 
+cphasing utils agp2fasta groups.review.raw.agp draft.asm.fasta --contigs > contigs.fasta
+## extract chromosome-level fasta from agp
+cphasing utils agp2fasta groups.review.raw.agp draft.asm.fasta > groups.review.asm.fasta
 ```
 
 

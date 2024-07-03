@@ -50,7 +50,7 @@ class CommandGroup(DYMGroup, RichCommand):
 @click.pass_context
 def hic(ctx):
     """
-    These functions were developed for ALLHiC2 but deprecated.
+    These functions were developed for ALLHiC2 but **deprecated**.
     """
     pass
 

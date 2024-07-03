@@ -756,7 +756,8 @@ def run(fasta,
                             "-o",
                             "groups.wg.png",
                             "--factor",
-                            factor
+                            factor,
+                            "-oc",
                             ],
                             prog_name='plot')
         except SystemExit as e:

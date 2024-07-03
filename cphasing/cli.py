@@ -222,7 +222,6 @@ class CommandGroup(DYMGroup, RichCommand):
     List subcommand in the order there were added.
     """
     def list_commands(self, ctx):
-    
         return list(self.commands)
 
     def get_command(self, ctx, cmd_name):
@@ -234,6 +233,8 @@ class CommandGroup(DYMGroup, RichCommand):
         except KeyError:
             pass 
         return super().get_command(ctx, cmd_name)
+
+
 
 @click.version_option(__version__, "-V", "--version")
 @click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
@@ -272,7 +273,6 @@ def cli(verbose, quiet):
         logger.setLevel(LOG_LEVELS[idx])
     else:
         logger.setLevel(logging.INFO)
-
 
 
 

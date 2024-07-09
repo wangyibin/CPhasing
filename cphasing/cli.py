@@ -61,7 +61,7 @@ click.rich_click.APPEND_METAVARS_HELP = True
 click.rich_click.SHOW_METAVARS_COLUMN = False
 click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
 click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
-click.rich_click.ERRORS_EPILOGUE = "To find out more, visit [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)"
+click.rich_click.ERRORS_EPILOGUE = f"Version: {__version__} | To find out more, visit [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)"
 
 click.rich_click.OPTION_GROUPS = {
     "cphasing pipeline": [
@@ -73,6 +73,10 @@ click.rich_click.OPTION_GROUPS = {
         {
             "name": "Advance Options of Pipeline",
             "options": ["--mode", "--steps", "--skip-steps"]
+        },
+        {
+            "name": "Options of Hitig",
+            "options": ["--ul-data"]
         },
         {
             "name": "Options of Pore-C Mapper",
@@ -284,6 +288,15 @@ def cli(verbose, quiet):
     help="Path to draft assembly",
     type=click.Path(exists=True),
     required=True
+)
+@click.option(
+    '-ul',
+    '--ul-data',
+    '-ul-data',
+    metavar="Ul Data",
+    help="Provide UL or HiFi data to run hitig",
+    default=None,
+    show_default=True
 )
 @click.option(
     '-pcd',
@@ -775,6 +788,7 @@ def cli(verbose, quiet):
     show_default=True,
 )
 def pipeline(fasta, 
+             ul_data,
             porec_data, 
             porectable, 
             pairs, 
@@ -896,7 +910,9 @@ def pipeline(fasta,
     else:
         skip_steps = set()
     
-    run(fasta, porec_data,
+    run(fasta, 
+        ul_data,
+        porec_data,
         porectable, pairs, 
         hic1=hic1,
         hic2=hic2,
@@ -1998,7 +2014,8 @@ def hcr(porectable, pairs, contigsize, binsize,
     '--low-memory',
     help="Reduce memory usage.",
     is_flag=True,
-    default=False,
+    default=True,
+    hidden=True
 )
 @click.option(
     '-t',
@@ -2073,7 +2090,7 @@ def prepare(fasta, pairs, min_mapq,
     help="max occurance of allelic pairs",
     metavar="INT",
     type=int,
-    default=100,
+    default=60,
     show_default=True
 )
 @click.option(
@@ -2111,11 +2128,20 @@ def prepare(fasta, pairs, min_mapq,
     show_default=True,
     hidden=True
 )
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
 def alleles(fasta, output, 
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
                 minimum_similarity, diff_thres,
-                min_length):
+                min_length, threads):
     """
     Build allele table by kmer similarity.
 
@@ -2132,7 +2158,7 @@ def alleles(fasta, output,
     
     pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
                         min_cnt, minimum_similarity, diff_thres,
-                         filter_value=min_length, output=output)
+                         filter_value=min_length, output=output, threads=threads)
     pa.run()
 
 
@@ -2218,7 +2244,7 @@ def alleles(fasta, output,
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads. Only use for gmap method.',
+    help='Number of threads.',
     type=int,
     default=4,
     metavar='INT',
@@ -3109,15 +3135,15 @@ def hyperpartition(hypergraph,
 
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if not Path(f"{prefix}.hg").exists():
+        if not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
             he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
-            he.save(f"{prefix}.hg")
+            he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warn(f"Load raw hypergraph from existed file of `{prefix}.hg`")
-            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
+            logger.warn(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`")
+            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
 
         
 
@@ -3126,14 +3152,14 @@ def hyperpartition(hypergraph,
         contigs = list(map(str, contigs))
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if not Path(f"{prefix}.hg").exists():
+        if not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
             he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
-            he.save(f"{prefix}.hg")
+            he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.hg`")
-            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.hg", 'rb').read(), type=HyperEdges)
+            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`")
+            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
         
         
     else:

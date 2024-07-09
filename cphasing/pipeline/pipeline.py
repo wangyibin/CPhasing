@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def run(fasta,
+        ul_data,
         porec_data,
         porec_table,
         pairs, 
@@ -92,6 +93,7 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
+    from ..hitig.pipeline import run  as hitig_run
     from ..chimeric import run as chimeric_run 
     # tracemalloc.start()
     start_time = time.time()
@@ -116,9 +118,21 @@ def run(fasta,
         skip_steps.add("1")
         allele_table = None
 
+   
+    if ul_data:
+        input_fasta = str(Path(fasta).absolute())
+        input_ul_data =   str(Path(ul_data).absolute)              
+        Path("hitig").mkdir(exist_ok=True)
+        os.chdir("hitig")
+        hitig_run(input_fasta, input_ul_data)
+        os.chdir("..")
+
+    
+
     fasta_prefix = Path(fasta).with_suffix("")
     while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
         fasta_prefix = fasta_prefix.with_suffix("")
+
 
     if porec_data:
         porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
@@ -486,6 +500,8 @@ def run(fasta,
                                 alleles_minimum_similarity,
                                 "-d",
                                 alleles_diff_thres,
+                                "-t",
+                                threads
                                 ],
                             prog_name='alleles')
         except SystemExit as e:
@@ -512,9 +528,11 @@ def run(fasta,
                                 pattern, 
                                 "-q",
                                 mapping_quality,
+                                "-t",
+                                threads,
                                 "--skip-pairs2contacts"]
-                if low_memory:
-                    args.append("--low-memory")
+                # if low_memory:
+                #     args.append("--low-memory")
                 prepare.main(args=args,
                                 prog_name='prepare')
             else:
@@ -524,9 +542,11 @@ def run(fasta,
                         pattern,
                         "-q",
                         mapping_quality,
+                        "-t",
+                        threads,
                         "--skip-pairs2contacts"]
-                if low_memory:
-                    args.append("--low-memory")
+                # if low_memory:
+                #     args.append("--low-memory")
                 
                 prepare.main(args=args,
                                 prog_name='prepare')

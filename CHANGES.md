@@ -1,6 +1,6 @@
 # Release notes #
 ## [v0.1.9]
-Date: 2024-06-11
+Date: 2024-07-09
 ## New features
 - `collapsed-rescue`, init a collapsed contigs rescue function
 ## Enhancement
@@ -10,6 +10,7 @@ Date: 2024-06-11
 - `pairs2cool`, add min_mapq filtering
 - `plot`, add triangle plot 
 - `scaffolding`, speed up split clm by `cphasing-rs splitclm`
+- `alleles`, speed up
 ## Bug fixes
 - `pipeline` 
     - fixed bug of contacts generating

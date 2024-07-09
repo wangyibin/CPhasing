@@ -213,6 +213,7 @@ class PartigAllele:
                     d=0.2,
                     filter_value=1000,
                     output='Allele.ctg.table',
+                    threads=4,
                     log_dir='logs'):
         self.fasta = fasta
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
@@ -231,6 +232,7 @@ class PartigAllele:
         self.filter_value = filter_value
 
         self.output = output
+        self.threads = threads
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -245,7 +247,7 @@ class PartigAllele:
         """
         cmd = [self.path, f'-k{self.k}', f'-w{self.w}',
                 f'-m{self.m}', f'-c{self.c}', f'-n{self.n}',
-                f'-d{self.d}', self.fasta]
+                f'-d{self.d}', f'-t{self.threads}', self.fasta]
         
         logger.info('Calculating the similarity of sequences ...')
         pipelines = []

@@ -167,7 +167,7 @@ def workflow(depthFile, win,  outPre,  Max=None):
     low_coverage_df.to_csv(f'{outPre}.lowcoverage.contigs', sep='\t', header=None, index=True)
 
     
-    return output(filterRegion, outPre)
+    return contig_depth, high_coverage_df, low_coverage_df, output(filterRegion, outPre)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is the script for filter genome region.")

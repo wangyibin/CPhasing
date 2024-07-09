@@ -202,7 +202,7 @@ def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
         all_df = hcrs_df
     
     all_df.to_csv(output, sep='\t', index=None, header=None)
-    
+
 
 def workflow(LisFile, SA, depthFile, minCount, minMapqCount, 
                 outPre, break_pos=None, contig_sizes=None):

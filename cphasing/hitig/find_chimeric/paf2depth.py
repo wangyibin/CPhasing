@@ -120,10 +120,12 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000,
     
     fasta_prefix = Path(fastaFile).stem
     contigsizes = f"{fasta_prefix}.contigsizes"
-    cmd = ["cphasing-rs", "chromsizes", fastaFile, 
-                "-o", str(contigsizes)]
-    flag = run_cmd(cmd)
-    assert flag == 0, "Failed to execute command, please check log."
+    if not Path(contigsizes).exists():
+        cmd = ["cphasing-rs", "chromsizes", fastaFile, 
+                    "-o", str(contigsizes)]
+        flag = run_cmd(cmd)
+        assert flag == 0, "Failed to execute command, please check log."
+    
 
     cmd = f"bedtools makewindows -g {contigsizes} -w {winsize} -s {step} 2>/dev/null > temp.{fasta_prefix}.w{winsize}.s{step}.bed"
     os.system(cmd)

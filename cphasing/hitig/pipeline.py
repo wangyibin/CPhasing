@@ -24,18 +24,19 @@ logger.setLevel(logging.INFO)
 
 def run(
     fasta, fastq,
-    min_as, min_mapq,
-    nhap, window, min_windows,
-    step,
-    min_sa, edge, min_depth,
-    cutoff, hifi,
-    threads, output, 
-    steps, skip_steps
+    min_as=2000, min_mapq=2,
+    nhap=4, window=5000, min_windows=10,
+    step=1000,
+    min_sa=5, edge=2000, min_depth=1,
+    cutoff=0.75, hifi=False,
+    threads=10, output="output", 
+    steps=("1", "2", "3"), skip_steps=[]
 ):
     from .correct_alignments import workflow 
     from .find_chimeric import ( 
         find_split_alignment, paf2depth, 
         norm_merge_bp, correct_fasta)
+    from .cli import hcr 
     
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -44,8 +45,10 @@ def run(
         logger.info("""#-------------------------------------#
 #  Running step 1. correct alignments #
 #-------------------------------------#""")
-        workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq, hifi)
-    
+        pafFile = workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq, hifi)
+    else:
+        pafFile = output + ".paf"
+
     if "2" not in skip_steps and "2" in steps:
         logger.info("""#----------------------------------#
 #  Running step 2. find chimeric   #
@@ -61,3 +64,27 @@ def run(
 
         correct_fasta.workflow(fasta, break_pos_file, output)
 
+    else:
+        lis = output + ".mapq.LIS.gtf"
+        break_point_file = "output" + ".mergedSplitAlign.txt"
+
+    if "3" not in skip_steps and "3" in steps:
+        logger.info("""#----------------------------------#
+#  Running step 3. hcr   #
+#----------------------------------#""")
+        try:
+            hcr.main(args=["-f", fasta, 
+                           "-l", lis, 
+                           "-sa", break_point_file,  
+                           "-p", pafFile
+                           ])
+
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+        pass 

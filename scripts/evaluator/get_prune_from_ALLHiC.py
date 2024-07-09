@@ -48,8 +48,8 @@ def main(args):
             for line in fp:
                 line_list = line.strip().split()
                 contig_pair = (line_list[0], line_list[1])
-                # if int(line_list[2]) < 3:
-                #     continue
+                if int(line_list[2]) < 3:
+                    continue
                 contacts_dict[contig_pair] = line_list[2]
                 
     contigs_df = pd.read_csv(contigs, sep='\t', usecols=(0,), header=None, index_col=None)

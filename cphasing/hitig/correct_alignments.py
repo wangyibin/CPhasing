@@ -832,7 +832,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     
     outputLIS(corLISDic, pafDic, outPre)
 
-
+    return pafFile
 
 
 

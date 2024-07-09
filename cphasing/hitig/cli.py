@@ -184,7 +184,7 @@ def hitig(ctx):
     '--steps',
     metavar='STR',
     help="steps",
-    default="1,2",
+    default="1,2,3",
     show_default=True
 )
 @click.option(
@@ -658,6 +658,7 @@ def hcr(fasta, lis, split_align, paf,
 
     """
     from .hcr import hcr, bed2depth
+    from .hcr.clean import clean
     from .find_chimeric import paf2depth 
 
     contigsizes, depth = paf2depth.workflow(paf, fasta, window, step_size, output, min_mapq=min_mapq)
@@ -665,8 +666,12 @@ def hcr(fasta, lis, split_align, paf,
         contig_sizes_df = read_chrom_sizes(contigsizes)
         contig_sizes_db = contig_sizes_df.to_dict()['length']
 
-        hcr_from_depth_file = bed2depth.workflow(depth, window, output, max_depth)
-    
+        all_contig_depth_df, high_coverage_df, low_coverage_df, hcr_from_depth_file =\
+              bed2depth.workflow(depth, window, output, max_depth)
+        
+        clean(fasta, low_coverage_df, f"{output}.cleaned.fasta")
+
+
     if break_pos and contigsizes:
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
                         min_count, min_score, output, break_pos, contigsizes)

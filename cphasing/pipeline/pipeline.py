@@ -52,6 +52,7 @@ def run(fasta,
         hic=False,
         steps=set([0, 1, 2, 3, 4, 5]),
         skip_steps=set(),
+        use_existed_hitig=False,
         alleles_kmer_size=19,
         alleles_window_size=19,
         alleles_minimum_similarity=0.2,
@@ -122,14 +123,29 @@ def run(fasta,
     if ul_data:
         input_fasta = str(Path(fasta).absolute())
         input_ul_data =   str(Path(ul_data).absolute)              
-        Path("hitig").mkdir(exist_ok=True)
-        os.chdir("hitig")
-        hitig_run(input_fasta, input_ul_data)
-        os.chdir("..")
+        if not use_existed_hitig:
+            Path("hitig").mkdir(exist_ok=True)
+            os.chdir("hitig")
+            hitig_run(input_fasta, input_ul_data)
+            os.chdir("..")
+
+            hcr_bed = "hitig/output.all_hcr.bed"
+            clean_fasta = "hitig/output.clean.fasta"
+        else:
+            logger.warning("Use existed hitig results.")
+            hcr_bed = "hitig/output.hcr_all.bed"
+            clean_fasta = "hitig/output.cleaned.fasta"
+
+        if Path(hcr_bed).exists() and Path(clean_fasta).exists():
+            fasta = clean_fasta
+        else:
+            logger.warning("Skip hitig.")
+
+            
 
     
 
-    fasta_prefix = Path(fasta).with_suffix("")
+    fasta_prefix = Path(Path(fasta).name).with_suffix("")
     while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
         fasta_prefix = fasta_prefix.with_suffix("")
 
@@ -512,7 +528,8 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
-        
+
+
     allele_table = None if mode == "basal" else f"{fasta_prefix}.allele.table" 
 
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]

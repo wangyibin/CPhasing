@@ -43,7 +43,7 @@ def run(
 
     if "1" not in skip_steps and "1" in steps:
         logger.info("""#-------------------------------------#
-#  Running step 1. correct alignments #
+#  Running `hitig` step 1. correct alignments #
 #-------------------------------------#""")
         pafFile = workflow(fasta, fastq, threads, output, window, min_windows, nhap, min_as, min_mapq, hifi)
     else:
@@ -51,7 +51,7 @@ def run(
 
     if "2" not in skip_steps and "2" in steps:
         logger.info("""#----------------------------------#
-#  Running step 2. find chimeric   #
+#  Running `hitig` step 2. find chimeric   #
 #----------------------------------#""")
         lis = f"{output}.mapq.LIS.gtf"
         corrected_paf = f"{output}.corrected.paf"
@@ -70,7 +70,7 @@ def run(
 
     if "3" not in skip_steps and "3" in steps:
         logger.info("""#----------------------------------#
-#  Running step 3. hcr   #
+#  Running `hitig` step 3. hcr   #
 #----------------------------------#""")
         try:
             hcr.main(args=["-f", fasta, 

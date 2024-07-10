@@ -76,7 +76,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Hitig",
-            "options": ["--ul-data"]
+            "options": ["--ul-data", "--use-existed-hitig"]
         },
         {
             "name": "Options of Pore-C Mapper",
@@ -137,6 +137,10 @@ click.rich_click.OPTION_GROUPS = {
         {
             "name": "Advance Options of Pipeline",
             "options": ["--mode", "--steps", "--skip-steps"]
+        },     
+        {
+            "name": "Options of Hitig",
+            "options": ["--ul-data", "--use-existed-hitig"]
         },
         {
             "name": "Options of Pore-C Mapper",
@@ -513,6 +517,13 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    '--use-existed-hitig',
+    help="Use existed hitig results.",
+    is_flag=True,
+    default=False,
+    show_default=True 
+)
+@click.option(
     '-alleles-k',
     '--alleles-k',
     '--alleles-kmer-size',
@@ -812,6 +823,7 @@ def pipeline(fasta,
             mode, 
             steps,
             skip_steps,
+            use_existed_hitig,
             alleles_kmer_size,
             alleles_window_size,
             alleles_minimum_similarity,
@@ -934,6 +946,7 @@ def pipeline(fasta,
         mode=mode, 
         steps=steps,
         skip_steps=skip_steps,
+        use_existed_hitig=use_existed_hitig,
         alleles_kmer_size=alleles_kmer_size,
         alleles_window_size=alleles_window_size,
         alleles_minimum_similarity=alleles_minimum_similarity,

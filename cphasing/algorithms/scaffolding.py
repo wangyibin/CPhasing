@@ -331,7 +331,7 @@ class AllhicOptimize:
             shutil.rmtree(tmpDir)
             logger.info("Removed temporary directory.")
 
-        logger.info("Done")
+        logger.info("Scaffolding done.")
 
 
 class HapHiCSort:
@@ -537,7 +537,7 @@ class HapHiCSort:
             shutil.rmtree(tmpDir)
             logger.info("Removed temporary directory.")
 
-        logger.info("Done")
+        logger.info("Scaffolding done.")
 
 ##Deprecated
 class OldOptimize0:

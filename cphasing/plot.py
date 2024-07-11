@@ -169,8 +169,9 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
         else:
             tmp_chrom_bins = get_bins(bin_size,  [(row.name, int(row.end))],
                                     start=row.start, orientation=row.orientation)
+            tig_start = row.tig_start - row.tig_start % bin_size
             tmp_contig_bins = get_bins(
-                bin_size, [(row.id, int(row.tig_end))], start=0,
+                bin_size, [(row.id, int(row.tig_end))], start=tig_start,
                 reverse=False if row.orientation == "+" else True)
 
             rows = []
@@ -426,7 +427,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     contig_bins = cool.bins()
     # contig_idx_db = dict(zip(cool.chromnames, range(len(cool.chromnames))))
     new_agp = splitAGPByBinSize(agp_df, bin_size=bin_size)
-    
+
     split_contig_on_chrom_df = getContigOnChromBins(
         chrom_bin_interval_df, new_agp.drop(['number', 'type'], axis=1))
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
@@ -474,7 +475,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                                    'chrom_region', 'contig_region'],
                                   inplace=True, axis=1)
 
-    
+
     logger.info('Starting to reorder matrix ...')
 
     matrix = cool.matrix(balance=False, sparse=True)
@@ -521,7 +522,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
     logger.info(f'Removed `{order_cool_path}`')
-    os.remove(order_cool_path)
+    # os.remove(order_cool_path)
     
     return f'{outprefix}.chrom.cool'
 

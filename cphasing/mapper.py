@@ -257,7 +257,7 @@ class ChromapMapper:
             raise ValueError(f"pigz: command not found")
 
         self.prefix = Path(self.read1.stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
             self.prefix = self.prefix.with_suffix('')
         self.prefix = Path(str(self.prefix).replace('_R1', ''))
 
@@ -348,7 +348,7 @@ class PoreCMapper:
 
 
         self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta"}:
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa'}:
             self.prefix = self.prefix.with_suffix('')
        
         self.prefix = Path(str(self.prefix)) if not outprefix else outprefix

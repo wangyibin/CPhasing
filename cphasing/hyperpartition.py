@@ -1036,10 +1036,11 @@ class HyperPartition:
                     flag_matrix[i, j] = flag
                     flag = 1
 
-            total_value = value_matrix.sum()
-        
+            
+         
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
-           
+            total_value = value_matrix.sum()
+
             for i in range(current_group_number):
                 i_value = value_matrix[i].sum()
                 for j in range(i+1, current_group_number):

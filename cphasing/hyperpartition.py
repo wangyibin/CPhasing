@@ -619,7 +619,7 @@ class HyperPartition:
                                                     threads=1, 
                                                     outprefix=num)
                 new_K = list(filter(
-                                lambda x: sub_vertices_new_idx_sizes.loc[x].sum().values[0] \
+                                lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
                                     >= min_scaffold_length, new_K)
                 )
                 new_K = list(map(list, new_K))

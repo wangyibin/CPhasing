@@ -785,7 +785,7 @@ def cli(verbose, quiet):
 )
 @click.option(
     '--low-memory',
-    help="Reduce memory usage. Only used in chimeric correct, depend on input data size.",
+    help="Reduce memory usage. Only used in chimeric correct and hyperpartition, depend on input data size.",
     is_flag=True,
     default=False,
 )
@@ -3118,6 +3118,11 @@ def hyperpartition(hypergraph,
     if (n[0] is None or n[0] == '0') and resolution1 < 0:
         logger.info(f"The group number of first cluster was not be specified, set the resolution1 from {resolution1} to 1.0.")
         resolution1 = 1.0 
+
+    if (len(n) == 2):
+        if (n[1] is None or n[1] == '0') and resolution2 < 0:
+            logger.info(f"The group number of second cluster was not be specified, set the resolution1 from {resolution2} to 1.0.")
+            resolution2 = 1.0
 
     for i, v in enumerate(n):
         if v:

@@ -3,6 +3,7 @@
 ## [v0.2.0]
 Date: 2024-07-30
 ## Enhancement
+- `pipeline`, change the normalization method of the hic pipeline
 - `hyperpartition`, improve the performance of cluster merge
 ## Bug fixes
 - `plot`, fixed bug of split contigs

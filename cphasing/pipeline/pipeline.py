@@ -483,14 +483,15 @@ def run(fasta,
     else:
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
-            hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
-            if not Path(hg_input).exists():
-                cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
-                    "-o", hg_input , "-q", str(min_quality1)]
-                flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
-                assert flag == 0, "Failed to execute command, please check log."
-            else:
-                logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
+            if low_memory:
+                hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
+                if not Path(hg_input).exists():
+                    cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
+                        "-o", hg_input , "-q", str(min_quality1)]
+                    flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
+                    assert flag == 0, "Failed to execute command, please check log."
+                else:
+                    logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
 
 
     if not Path(prepare_input).exists() and (hic1 is None ):
@@ -576,29 +577,30 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
-        
-    if not porec_table:
-        if mode == 'phasing' or mode == 'basal_withprune':
-            if not Path(f"{prepare_prefix}.q{min_quality2}.contacts").exists():
-                cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-                        "-q", str(min_quality2), 
-                    "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
-                flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-                assert flag == 0, "Failed to execute command, please check log."
-            else:
-                logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
+    
+    
+    # if not porec_table:
+    #     if mode == 'phasing' or mode == 'basal_withprune':
+    #         if not Path(f"{prepare_prefix}.q{min_quality2}.contacts").exists():
+    #             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
+    #                     "-q", str(min_quality2), 
+    #                 "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
+    #             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+    #             assert flag == 0, "Failed to execute command, please check log."
+    #         else:
+    #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
 
-            contacts = f"{prepare_prefix}.q{min_quality2}.contacts"
-        else:
-            if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
-                cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-                        "-q", str(min_quality1),
-                    "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
-                flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-                assert flag == 0, "Failed to execute command, please check log."
-            else:
-                logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
-            contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
+    #         contacts = f"{prepare_prefix}.q{min_quality2}.contacts"
+    #     else:
+    #         if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
+    #             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
+    #                     "-q", str(min_quality1),
+    #                 "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
+    #             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
+    #             assert flag == 0, "Failed to execute command, please check log."
+    #         else:
+    #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
+    #         contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
    
 
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
@@ -615,7 +617,8 @@ def run(fasta,
 
 
     if hg_flag == "--pairs":
-        hyperpartition_contacts = contacts
+        # hyperpartition_contacts = contacts
+        hyperpartition_contacts = None
     else:
         hyperpartition_contacts = None
 

@@ -58,10 +58,10 @@ def main(args):
     # colors = ['#a83836', '#253761',  '#df8384', '#8dc0ed',]
     # colors = ["#B3CDE3", "#B3CDE3", "#FBB4AE", "#FBB4AE", "#FBB4AE"]
     # colors = ['#253761', '#253761',  '#a83836', '#a83836', '#a83836']
-    colors = ['#8dc0ed', '#8dc0ed', '#df8384', '#df8384', '#df8384', '#df8384', ]
+    colors = ['#8dc0ed', '#8dc0ed', '#8dc0ed', '#df8384', '#df8384', '#df8384', '#df8384', ]
 
-    markers = ["D", "^", "p", "s", 'v', '*']
-    markers = ["^", "^", '*', '*', '*', '*']
+#     markers = ["D", "^", "p", "s", 'v', '*']
+    markers = ["^", "^", '^', '*', '*', '*', '*']
     bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluered_12)))
     ax = sns.pointplot(data=hist_df, x='order', y='proportion', markers=markers, palette=bluered_12, hue='sample', ax=ax, 
                   alpha=0.7, errorbar=None, dodge=0.3, color='k')

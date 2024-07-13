@@ -46,7 +46,7 @@ def main(args):
     for i in ax.containers:
         ax.bar_label(i, fmt="{:.2f}")
 
-    plt.ylim(0, 60)
+    plt.ylim(0, 120)
     sns.despine()
     ax.spines['bottom'].set_linewidth(1.5)
     ax.spines['left'].set_linewidth(1.5)

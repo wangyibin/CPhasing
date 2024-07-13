@@ -1,4 +1,12 @@
 # Release notes #
+
+## [v0.2.0]
+Date: 2024-07-30
+## Enhancement
+- `hyperpartition`, improve the performance of cluster merge
+## Bug fixes
+- `plot`, fixed bug of split contigs
+
 ## [v0.1.9]
 Date: 2024-07-09
 ## New features

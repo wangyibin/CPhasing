@@ -452,7 +452,8 @@ class HyperPartition:
                                                         self.threshold, 
                                                         self.max_round,
                                                         threads=self.threads)
-                self.filter_cluster(verbose=0)
+                self.K = list(map(list, self.K))
+                self.K = self.filter_cluster(verbose=0)
                 result_K_length = len(self.K)
                 logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution}`.")
                 tmp_resolution += 0.2
@@ -501,7 +502,7 @@ class HyperPartition:
             _results.extend(_results2)
 
             self.K = _results 
-
+        
         if k and len(self.K) > k:  
             logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
@@ -663,6 +664,7 @@ class HyperPartition:
             ## update A and raw_A and new_K and sub_vertices_new_idx_sizes and 
         if k and len(new_K) > k:
             new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
+            logger.info(f"Merging {len(new_K)} groups into {k} groups ...")
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap, method=merge_method)
@@ -1037,7 +1039,7 @@ class HyperPartition:
                     flag = 1
 
             
-         
+            
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
             total_value = value_matrix.sum()
 
@@ -1058,7 +1060,7 @@ class HyperPartition:
 
             if max(res) == 0 or max(res) == 2**64:
                 continue
-            
+                
             group1 = K[i1]
             group2 = K[i2]
     
@@ -1447,7 +1449,7 @@ class HyperPartition:
                         x, self.contigsizes, self.idx_to_vertices) \
                             >= self.min_scaffold_length, 
                         self.K))
-     
+            
         return _K 
         
     def to_cluster(self, output):

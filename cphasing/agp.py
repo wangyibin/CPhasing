@@ -484,7 +484,8 @@ def assembly2agp(assembly,
             records = agp_records[group_idx]
             raw_records = raw_agp_records[group_idx]
             unanchor_records = []
-            if chrom_num:
+            
+            if chrom_num and isinstance(chrom_num, list):
                 total_chrom_num = chrom_num[0] if len(chrom_num) == 1 else chrom_num[0] * chrom_num[1]
 
                 for i, (record, raw_record) in enumerate(zip(records, raw_records)):

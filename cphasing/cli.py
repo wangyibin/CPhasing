@@ -3104,7 +3104,7 @@ def hyperpartition(hypergraph,
         elif porec:
             kprune_norm_method = "cis"
         else:
-            kprune_norm_method = "none"
+            kprune_norm_method = "cis"
     
     if n is not None:
         # n = re.split(":|x|\|", n) 

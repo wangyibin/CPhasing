@@ -90,8 +90,8 @@ def main(args):
     #             remove_contacts += contact
     #         total_inter_contacts += contact 
 
-    print(remove_contacts / total_inter_contacts)
-    print(retain_contacts / total_intra_contacts)
+    print(f"Removed h-trans error contacts: {remove_contacts / total_inter_contacts:.4f}" )
+    print(f"Retain cis contacts: {retain_contacts / total_intra_contacts:.4f}")
 
 
 

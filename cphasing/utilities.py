@@ -124,9 +124,7 @@ def run_cmd(command, log=sys.stderr, out2err=False):
         for p in pipelines:
             if p.poll() is None:
                 p.terminate()
-        else:
-            return p.returncode
-        
+    
     return 0
 
 

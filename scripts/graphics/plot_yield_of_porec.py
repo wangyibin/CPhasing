@@ -53,7 +53,7 @@ def main(args):
     ax.spines['bottom'].set_linewidth(1.5)
     ax.spines['left'].set_linewidth(1.5)
     plt.tick_params(which='both', width=1.5, length=5)
-
+    
     sns.despine()
     plt.xticks(fontsize=14, rotation=45)
     plt.yticks(fontsize=14,)

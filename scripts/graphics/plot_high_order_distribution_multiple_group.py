@@ -61,7 +61,8 @@ def main(args):
     colors = ['#8dc0ed', '#8dc0ed', '#8dc0ed', '#df8384', '#df8384', '#df8384', '#df8384', ]
 
 #     markers = ["D", "^", "p", "s", 'v', '*']
-    markers = ["^", "^", '^', '*', '*', '*', '*']
+    markers = ["^", "^", '^', 'D', 'D', 'D', 'D']
+    # markers = ['D', 'D', 'D', 'D']
     bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluered_12)))
     ax = sns.pointplot(data=hist_df, x='order', y='proportion', markers=markers, palette=bluered_12, hue='sample', ax=ax, 
                   alpha=0.7, errorbar=None, dodge=0.3, color='k')
@@ -72,7 +73,7 @@ def main(args):
     ax.add_artist(second_legend)
     legend_items = [mlines.Line2D([], [], color="k", label="Pore-C", marker=markers[0], linewidth=0),
                     mlines.Line2D([], [], color="k", label="ePore-C", marker=markers[-1], linewidth=0)]
-    second_legend = ax.legend(handles=legend_items, fontsize=12, loc='upper center')
+    second_legend = ax.legend(handles=legend_items, fontsize=12, loc='center right')
     ax.add_artist(second_legend)
 
     

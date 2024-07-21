@@ -125,7 +125,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 2. **prepare**  
     > Prepare some data for subsequence analysis  
     ```bash  
-    ## results are `sample.counts_AAGCTT.txt`, `sample.clm`, `sample.split.contacts`, `sample.contacts`
+    ## results are `sample.counts_AAGCTT.txt`, `sample.clm.gz`, `sample.split.contacts`, `sample.contacts`
     cphasing prepare draft.asm.fasta sample.pairs.gz 
     ```  
 
@@ -147,7 +147,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 4. **scaffolding**  
     ```bash  
     ## result is `groups.agp`
-    cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -sc sample.split.contacts -f draft.asm.fasta -t 4
+    cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm.gz -sc sample.split.contacts -f draft.asm.fasta -t 4
 
     ## for polyploid can specified allele table to adjust the orientation of different haplotypes
     cphasing scaffolding output.clusters.txt sample.counts_AAGCTT.txt sample.clm -at draft.asm.allele.table -sc sample.split.contacts -f draft.asm.fasta 

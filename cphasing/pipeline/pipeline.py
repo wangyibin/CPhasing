@@ -605,7 +605,7 @@ def run(fasta,
 
     count_re = f"{prepare_prefix}.counts_{pattern}.txt"
 
-    clm = f"{prepare_prefix}.clm"
+    clm = f"{prepare_prefix}.clm.gz"
     
     
     split_contacts = f"{prepare_prefix}.split.contacts"

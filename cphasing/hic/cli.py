@@ -340,6 +340,7 @@ def correct(
     type=click.Path(exists=True)
 )
 @click.option(
+    "-n",
     "-p",
     "--ploidy",
     help="ploidy of genome.",

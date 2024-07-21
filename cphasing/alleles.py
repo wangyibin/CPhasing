@@ -461,7 +461,7 @@ class AlignmentAlleles:
                 #  "-Y", "#", "-s", f"{self.s}", "-p", f"{self.p}" ]
         cmd = ["wfmash", self.fasta, "-m", "-t", str(self.threads),
                "-H", f"{self.H}", "-n", f"{self.n}", "-l", f"{self.l}",
-                "-k", f"{self.k}",
+                "-k", f"{self.k}", 
                   "-Y", "#", "-s", f"{self.s}", "-p", f"{self.p}" ]
         
         logger.info("Self mapping ...")

@@ -2216,7 +2216,7 @@ def alleles(fasta, output,
     "block_length",
     help="keep merged mappings supported by homologies of this total length for wfmash",
     metavar="STR",
-    default="10k",
+    default="25k",
     show_default=True,
 )
 @click.option(
@@ -2235,7 +2235,7 @@ def alleles(fasta, output,
     help="Ignore the top % most-frequent kmers for wfmash",
     metavar="FLOAT",
     type=click.FloatRange(0.0, 100.0),
-    default=1.0,
+    default=0.001,
     show_default=True,
 )
 @click.option(

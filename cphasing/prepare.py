@@ -95,7 +95,7 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
     ## pairs2clm
     if not skip_pairs2clm:
         cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
-                "-t", str(threads), "-o", f"{outprefix}.clm", "-q", str(min_mapq)]
+                "-t", str(threads), "-o", f"{outprefix}.clm.gz", "-q", str(min_mapq)]
         # if low_memory:
         #     cmd.append("--low-memory")
             

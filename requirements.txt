@@ -22,6 +22,7 @@ polars >= 0.20.29
 pyarrow >= 8.0.0
 pyfaidx >= 0.7.0
 pyranges
+pysam >= 0.22.1
 pytools
 seaborn
 ray

@@ -2175,7 +2175,7 @@ def alleles(fasta, output,
     pa.run()
 
 
-@cli.command(cls=RichCommand, short_help="Build allele table by self mapping.", hidden=True)
+@cli.command(cls=RichCommand, short_help="Build allele table by self mapping, lower memory usage, but higher errors.")
 @click.option(
     "-f",
     "--fasta",
@@ -2259,14 +2259,16 @@ def alleles(fasta, output,
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=8,
     metavar='INT',
     show_default=True,
 )
 def alleles2(fasta, ploidy, kmer, segment_length, block_length,
                 identity, kmer_threshold, output_raw_table, output, threads):
     """
-    Identify the allelic contigs by self-mapping.
+    Identify the allelic contigs by self-mapping, lower memory usage than alleles but more errors.
+        
+        And, `-mao` of `hyperpartition` should be set to `0.8` and `-as` set to `0.95`.
 
     """
     from .alleles import AlignmentAlleles
@@ -2543,7 +2545,7 @@ def hypergraph(contacts,
             whitelist,
             threads):
     """
-    Construct hypergraph from contacts.
+    Construct hypergraph from 4DN pairs or porec table.
 
     The hypergraph or graph of pore-c or hic enabled extract from pore-c table or 4DN pairs. 
 
@@ -2951,11 +2953,11 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
-    "--disable-misassembly-remove",
-    "disable_misassembly_remove",
-    help="disable misassembly after second round partition.",
+    "--enable-misassembly-remove",
+    "enable_misassembly_remove",
+    help="ensable misassembly after second round partition.",
     is_flag=True,
-    default=False,
+    default=True,
     show_default=True
 )
 @click.option(
@@ -3029,7 +3031,7 @@ def hyperpartition(hypergraph,
                     min_quality1,
                     min_quality2,
                     min_scaffold_length,
-                    disable_misassembly_remove,
+                    enable_misassembly_remove,
                     threshold, 
                     max_round, 
                     threads,
@@ -3243,7 +3245,7 @@ def hyperpartition(hypergraph,
     if not prunetable and not alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
-    is_remove_misassembly = False if disable_misassembly_remove else True
+    is_remove_misassembly = False if enable_missassembly_remove else True
     mapq_filter_1_to_2 = True if first_cluster else False
     hp = HyperPartition(hypergraph, 
                             contigsizes,

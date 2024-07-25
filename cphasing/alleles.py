@@ -496,6 +496,8 @@ class AlignmentAlleles:
         df2 = df[df['contig1'] > df['contig2']]
         df2.columns = self.PAF_HADER2
         df = pd.concat([df1, df2], axis=0)
+
+        # df = df[df['matches'] >= 50000]
         df = df.sort_values(['contig1', 'start1', 'contig2', 'start2'])
         self.paf_df = df 
 

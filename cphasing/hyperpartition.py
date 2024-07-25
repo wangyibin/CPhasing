@@ -546,6 +546,7 @@ class HyperPartition:
             merge_method = "sum"
         else:
             merge_method = "mean"
+
         K = np.array(list(K))
         
         sub_H, _ = extract_incidence_matrix2(H, K)

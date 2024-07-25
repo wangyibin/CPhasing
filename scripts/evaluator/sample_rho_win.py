@@ -112,9 +112,9 @@ def main(args):
         
         ax.tick_params(axis='y', length=5, width=2)
         yticklabels = ax.get_yticks()[1:] * winsize / 1e6
+        ax.set_xticklabels([], fontsize=16)
+        ax.set_yticklabels([], fontsize=16)
         
-        ax.set_xticklabels(xticklabels, fontsize=16)
-        ax.set_yticklabels(yticklabels, fontsize=16)
         #print(yticklabels)
         ax.set_xlim(0)
         ax.set_ylim(0)
@@ -129,12 +129,26 @@ def main(args):
         else:
             plt.text(0.92 * max_value, 1 * max_value, r'$\rho = {0:.2f}$'.format(rho), fontsize=16, ha='right')
 
-        plt.xlabel(f'Assembly: {(chrom_sizes/1e6):.2f} Mb',labelpad=15, fontsize=20)
+        
+        
+        plt.savefig(f'{chr}_no_xy_dotplot.png', dpi=600, bbox_inches='tight')
+        
         plt.ylabel(f'{chr}: {(chrom_sizes/1e6):.2f} Mb', labelpad=15, fontsize=20)
+        ax.set_yticklabels(yticklabels, fontsize=16)
 
-        plt.savefig(f'{chr}_dotplot.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{chr}_no_x_dotplot.png', dpi=600, bbox_inches='tight')
+        plt.ylabel("")
+        ax.set_yticklabels([])
+
+        ax.set_xticklabels(xticklabels, fontsize=16)
+        plt.xlabel(f'Assembly: {(chrom_sizes/1e6):.2f} Mb',labelpad=15, fontsize=20)
+        plt.savefig(f'{chr}_no_y_dotplot.png', dpi=600, bbox_inches='tight')
+        plt.ylabel(f'{chr}: {(chrom_sizes/1e6):.2f} Mb', labelpad=15, fontsize=20)
+        ax.set_yticklabels(yticklabels, fontsize=16)
+        plt.savefig(f'{chr}_dotplot.png', dpi=600, bbox_inches='tight')
         plt.savefig(f'{chr}_dotplot.pdf', dpi=300, bbox_inches='tight')
-        plt.close()
+        
+
 
     with open(f"{'.'.join(qurry.split('.')[:-1])}_rho.txt",'w') as output:
 

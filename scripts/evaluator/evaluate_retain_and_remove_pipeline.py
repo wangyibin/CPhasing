@@ -75,9 +75,13 @@ def get_remove_retain(prunelist, contacts, contigs):
 
 
 def downsample(pairs, percent):
-    cmd = ["cphasing-rs", "pairs-downsample", pairs,
-           "-p", f"{percent}", "-o", f"{percent:.2f}.pairs.gz"]
-    run_cmd(cmd)
+    if percent == 1.0:
+        os.link(pairs, f"{percent:.2f}.pairs.gz")
+    else:
+        cmd = ["cphasing-rs", "pairs-downsample", pairs,
+            "-p", f"{percent}", "-o", f"{percent:.2f}.pairs.gz"]
+        run_cmd(cmd)
+
     cmd = ["cphasing-rs", "pairs2contacts", f"{percent:.2f}.pairs.gz",
            "-o", f"{percent:.2f}.contacts"]
     run_cmd(cmd)
@@ -106,9 +110,9 @@ def evaluate_ALLHiC(allhic_alleletable, bam, fasta):
     allhic_alleletable = Path(allhic_alleletable).absolute()
     
     os.chdir(tmpDir)
-    os.link(fasta_absolute, fasta)
+    os.link(fasta_absolute, Path(fasta).name)
     os.link(bam_absolute, bam)
-    cmd = ["allhic", "extract", f"{bam}", f"{fasta}",
+    cmd = ["allhic", "extract", f"{bam}", f"{Path(fasta).name}",
            "--RE", "AAGCTT", "--minLinks", "1"]
     run_cmd(cmd)
     os.remove(f"{name}.clm")
@@ -119,7 +123,7 @@ def evaluate_ALLHiC(allhic_alleletable, bam, fasta):
 
     os.rename("prunning.bam", f"{name}.prune.bam")
 
-    cmd = ["allhic", "extract", f"{name}.prune.bam", f"{fasta}",
+    cmd = ["allhic", "extract", f"{name}.prune.bam", f"{Path(fasta).name}",
            "--RE", "AAGCTT", "--minLinks", "1"]
     run_cmd(cmd)
 
@@ -159,9 +163,9 @@ def evaluate_HapHiC(fasta, bam, ploidy, n, contigs):
     fasta_absolute = Path(fasta).absolute()
   
     os.chdir(tmpDir)
-    os.link(fasta_absolute, fasta)
+    os.link(fasta_absolute, Path(fasta).name)
     os.link(bam_absolute, bam)
-    cmd = f"conda run -n haphic ~/software/HapHiC-main/haphic pipeline {fasta} {bam} {n} --remove_allelic {ploidy} --steps 1"
+    cmd = f"conda run -n haphic ~/software/HapHiC/HapHiC/haphic pipeline {fasta_absolute} {bam} {n} --remove_allelic {ploidy} --steps 1"
     os.system(cmd)
 
     data = pickle.load(open("01.cluster/full_links.pkl", 'rb'))

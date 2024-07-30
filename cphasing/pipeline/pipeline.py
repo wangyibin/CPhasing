@@ -76,7 +76,7 @@ def run(fasta,
         min_length=10000,
         Nx=100,
         min_scaffold_length=5e6,
-        disable_misassembly_remove=False,
+        enable_misassembly_remove=False,
         whitelist=None,
         blacklist=None,
         factor=50,
@@ -613,7 +613,7 @@ def run(fasta,
     output_cluster = "output.clusters.txt"
     
     hyperpartition_normalize = "-norm" if normalize else None
-    disable_misassembly_remove = "--disable-misassembly-remove" if disable_misassembly_remove else None 
+    enable_misassembly_remove = "--enable-misassembly-remove" if enable_misassembly_remove else None 
 
 
     if hg_flag == "--pairs":
@@ -678,8 +678,8 @@ def run(fasta,
                                 "-t",
                                 threads
                             ]
-        if disable_misassembly_remove:
-            hyperpartition_args.append(disable_misassembly_remove)
+        if enable_misassembly_remove:
+            hyperpartition_args.append(enable_misassembly_remove)
         if hyperpartition_normalize:
             hyperpartition_args.append(hyperpartition_normalize)
 

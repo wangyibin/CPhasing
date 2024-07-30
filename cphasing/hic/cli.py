@@ -51,6 +51,9 @@ class CommandGroup(DYMGroup, RichCommand):
 def hic(ctx):
     """
     These functions were developed for ALLHiC2 but **deprecated**.
+
+
+        Only mapper used, please don't use these functions.
     """
     pass
 
@@ -410,7 +413,7 @@ def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
 )
 def extract(infile, fastafile, enzyme, minLinks):
     """
-    Extract countRE and pair table from 4DN pairs file.
+    Extract countRE and pair table from 4DN pairs file by allhic.
 
     InFile : Path of 4DN pairs  file (Accepts compressed files).
 
@@ -622,13 +625,14 @@ def partition(
     minREs_step,
     threads):
     """
-    Separate contigs into k groups.
+    Separate contigs into k groups by allhic.
         
+    
         CountRE : Path to countRE file.
 
         PairTable : Path to pair table.
 
-        K : Number or partitions. 
+        k : Number or partitions. 
 
     """
     from .partition import Partitioner, AdaptivePartitioner

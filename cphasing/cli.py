@@ -63,6 +63,19 @@ click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
 click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
 click.rich_click.ERRORS_EPILOGUE = f"Version: {__version__} | To find out more, visit [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)"
 
+click.rich_click.COMMAND_GROUPS = {
+    "cphasing": [
+        {
+            "name": "Main Commands",
+            "commands": ["pipeline"],
+            "table_styles": {
+                "row_styles": ["yellow"],
+            },
+        },
+    ],
+}
+
+
 click.rich_click.OPTION_GROUPS = {
     "cphasing pipeline": [
         {
@@ -111,7 +124,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
-                          "--exclude-group-to-second", "--disable-misassembly-remove"
+                          "--exclude-group-to-second", "--enable-misassembly-remove"
                           ]
         },
         {
@@ -175,7 +188,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
-                          "--exclude-group-to-second", "--disable-misassembly-remove"
+                          "--exclude-group-to-second", "--enable-misassembly-remove"
                           ]
         },
         {
@@ -740,9 +753,9 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
-    "--disable-misassembly-remove",
-    "disable_misassembly_remove",
-    help="disable misassembly after second round partition.",
+    "--enable-misassembly-remove",
+    "enable_misassembly_remove",
+    help="enable misassembly after second round partition.",
     is_flag=True,
     default=False,
     show_default=True
@@ -846,7 +859,7 @@ def pipeline(fasta,
             min_length,
             nx,
             min_scaffold_length,
-            disable_misassembly_remove,
+            enable_misassembly_remove,
             whitelist,
             scaffolding_method, 
             factor,
@@ -971,7 +984,7 @@ def pipeline(fasta,
         min_length=min_length,
         Nx=nx,
         min_scaffold_length=min_scaffold_length,
-        disable_misassembly_remove=disable_misassembly_remove,
+        enable_misassembly_remove=enable_misassembly_remove,
         factor=factor,
         threads=threads,
         low_memory=low_memory)
@@ -3245,7 +3258,7 @@ def hyperpartition(hypergraph,
     if not prunetable and not alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
-    is_remove_misassembly = False if enable_missassembly_remove else True
+    is_remove_misassembly = False if enable_misassembly_remove else True
     mapq_filter_1_to_2 = True if first_cluster else False
     hp = HyperPartition(hypergraph, 
                             contigsizes,
@@ -3595,14 +3608,81 @@ def hyperoptimize(hypergraph):
 )
 def build(fasta, corrected, output, output_agp, only_agp):
     """
-    Build genome release.
+    Build genome release from tour files.
 
     Fasta : contig-level fasta file
     """
     from .build import Build
     Build(fasta, output,  corrected=corrected,
             output_agp=output_agp, only_agp=only_agp)
-                                                      
+
+
+@cli.command(cls=RichCommand, short_help="Rename and orient the groups according to a refernce.")
+@click.option(
+    '-r',
+    '--ref',
+    metavar="REFERENCE FASTA",
+    help="Genome of monoploid or closely related species.",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-f',
+    '--fasta',
+    metavar="DRAFT FASTA",
+    help="Path to draft assembly",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-a',
+    '--agp',
+    help="agp file.",
+    metavar='AGP',
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '--unphased',
+    help="Haplotypes are not parallel align.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
+    '-o',
+    '--output',
+    metavar="OUTPUT_AGP",
+    default="groups.renamed.agp",
+    help="Output path of renamed agp file"
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads. (unused)',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def rename(ref, fasta, agp, 
+                unphased, output, threads):
+    """
+    Rename and orientation the groups according to a refernce.
+
+        To speed up this function, we only align the first haplotype to reference, 
+            because the orientation among different haplotypes has been paralleled in `scaffolding`. 
+        If you want to orient all of the haplotypes you can specify the `--unphased` parameters.
+    """
+    
+    from .algorithms.scaffolding import Rename 
+
+    r = Rename(ref=ref,
+                    fasta=fasta,
+                    agp=agp,
+                    hap_aligned=False if unphased else True,
+                    output=output,
+                    threads=threads)
+    r.run()
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the size of all contigs. (hidden)")
 @click.argument(
@@ -4984,7 +5064,7 @@ def statcluster(cluster, contigsizes, output):
         _contigs = ct.data[group]
         print(group, df.loc[_contigs]['length'].sum(), file=output)
 
-@utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.')
+@utils.command(cls=RichCommand)
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -5004,7 +5084,8 @@ def statcluster(cluster, contigsizes, output):
 )
 def cluster2agp(cluster, contigsizes, output):
     """
-    Convert cluster table to a pseudo agp file, 
+    Convert cluster table to a pseudo agp file
+
         which the order and orientation of contig are pseudo
 
         Cluster: Path of the cluster table
@@ -5144,6 +5225,9 @@ def countRE2cluster(count_re, output, fofn):
     default=sys.stdout
 )
 def cool2depth(coolfile, output):
+    """
+    Calculate the depth from the cool file.
+    """
     from .utilities import cool2depth
     cool2depth(coolfile, output)     
 

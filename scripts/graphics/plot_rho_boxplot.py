@@ -63,7 +63,7 @@ def main(args):
     
     sns.despine()
 
-    plt.xticks(fontsize=16, rotation=90, ha='right')
+    plt.xticks(fontsize=16, rotation=90)
     ax.set_xticklabels(list(colors.keys()))
     plt.yticks(fontsize=16)
     plt.ylabel(r'$\rho$', fontsize=20)

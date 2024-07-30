@@ -14,12 +14,15 @@ import gc
 import pandas as pd 
 
 import matplotlib as mpl
+
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from matplotlib.ticker import MaxNLocator
+import colormaps as cmaps
 
+bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluered_12)))
 
 
 def read_csv(data):
@@ -83,9 +86,17 @@ def main(args):
 
     plt.rcParams['font.family'] = 'Arial'
     
-    ax = sns.histplot(df, kde=args.kde, color='r', alpha=0.3, stat=args.stat, #linewidth=0,
+    for i in range(len(df.columns)):
+        data = df.iloc[:, i]
+
+        ax = sns.histplot(data, kde=args.kde, color=bluered_12[i], alpha=0.3, stat=args.stat, #linewidth=0,
                       bins=args.bins)
     
+    legend_items = [mlines.Line2D([], [], color=color, marker=None, linewidth=2.5,
+                               markersize=10, label=f'{sample}') for sample, (color, marker) in list(zip(df.columns, zip(bluered_12, range(len(df.columns)))))]
+    second_legend = ax.legend(handles=legend_items, fontsize=12, loc='best')
+    ax.add_artist(second_legend)
+
     if args.x_label:
         ax.set_xlabel(args.x_label.capitalize(), fontsize=20)
     ax.set_ylabel(args.stat.capitalize(), fontsize=20)

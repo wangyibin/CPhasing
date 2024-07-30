@@ -15,7 +15,6 @@ import tempfile
 import warnings
 warnings.simplefilter('ignore')
 
-
 import cooler
 import random
 import igraph as ig
@@ -30,24 +29,29 @@ import polars as pl
 import scipy
 import shutil
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from joblib import Parallel, delayed
 from itertools import combinations, permutations, product
 from pathlib import Path
 from pytools import natsorted
 from scipy.sparse import tril, coo_matrix
+from subprocess import Popen
 
-
+from ..agp import agp2fasta, agp2tour
 from ..algorithms.hypergraph import IRMM
 from .._config import *
 from ..core import (
                 AlleleTable, 
                 CountRE, 
                 ClusterTable, 
-                Clm, 
                 Tour
                 )
-from ..utilities import choose_software_by_platform, run_cmd
+from ..utilities import (
+    cmd_exists,
+    choose_software_by_platform, 
+    run_cmd,
+    read_fasta
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -92,7 +96,7 @@ class HaplotypeAlign:
 
 
     @staticmethod
-    def align(tour1: Tour, tour2: dict, data: pd.DataFrame, workdir: str):
+    def align(tour1: Tour, tour2: Tour, data: pd.DataFrame, workdir: str):
         """
         align two haplotype contigs by allele table data
 
@@ -123,8 +127,10 @@ class HaplotypeAlign:
         contig_pairs_df.columns = [0, "value"]
         contig_pairs_df[[1, 2]] = pd.DataFrame(contig_pairs_df[0].tolist())
         contig_pairs_df = contig_pairs_df.drop(0, axis=1).set_index([1, 2])
-
+        
         tmp_df = data.reindex(list(contig_pairs.keys())).dropna()
+
+        tmp_df = tmp_df[tmp_df['similarity'] > 0.85]
         tmp_df['strand'] = tmp_df['strand'].astype(int)
         tmp_df['mzShared'] = tmp_df['mzShared'].astype(int)
 
@@ -156,7 +162,200 @@ class HaplotypeAlign:
             )
         except ValueError:
             logger.warning("Failed to run HaplotypeAlign. skipped")
-  
+
+class Rename:
+    PAF_HADER = ["contig1", "length1", "start1", "end1", "strand",
+                 "contig2", "length2", "start2", "end2", "mismatch",
+                 "matches", "mapq", "identity"]
+
+    def __init__(self, ref, fasta, agp, 
+                    hap_aligned=True,
+                    output="groups.renamed.agp",
+                    threads=4, log_dir="logs",
+                    tmp_dir="rename_tmp"):
+        
+
+        self.ref = Path(ref).absolute()
+        self.fasta = Path(fasta).absolute()
+        self.agp = Path(agp).absolute()
+        self.paf = "ref.align.paf"
+        self.hap_aligned = hap_aligned
+        self.output = Path(output).absolute()
+        
+        self.threads = threads 
+        self.tmp_dir = tmp_dir
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        if not cmd_exists("wfmash"):
+            logger.error(f'No such command of `wfmash`.')
+            sys.exit()
+    
+    def get_contigs(self):
+        agp_df = agp2tour(self.agp, "raw_tour")
+        fasta_db = read_fasta(self.fasta)
+        agp_df = agp_df.loc[agp_df['chrom'] != agp_df['id']]
+        
+        hap_db = OrderedDict()
+
+        contigs_db = OrderedDict()
+        for chrom, cluster in agp_df.groupby('chrom'):
+            if cluster.empty:
+                continue
+            if chrom == cluster['id'].values[0]:
+                continue
+            
+            try:
+                if self.hap_aligned:
+                    hap = chrom.rsplit("g", 1)
+                else:
+                    raise AssertionError
+            except:
+                hap = [chrom]
+            
+            if hap[0] not in hap_db:
+                hap_db[hap[0]] = []
+            
+            hap_db[hap[0]].append(chrom)
+            contigs_db[chrom] = cluster['id'].values.tolist()
+
+
+        first_contigs = OrderedDict()
+        first_chrom_to_other_chroms = OrderedDict()
+        with open("tmp.first.contigs.fasta", "w") as out:
+            for hap in hap_db:
+                chroms = hap_db[hap]
+                chrom = chroms[0]
+                first_chrom_to_other_chroms[chrom] = chroms
+                first_contigs[chrom] = contigs_db[chrom]
+                
+                for contig in first_contigs[chrom]:
+                    print(f">{contig}\n{fasta_db[contig]}", file=out)
+        
+        self.first_contig = "tmp.first.contigs.fasta"
+        
+        return "tmp.first.contigs.fasta", first_contigs, first_chrom_to_other_chroms
+
+    def read_paf(self, first_contigs_db):
+        logger.info(f"Load alignments results `{self.paf}`")
+        df = pd.read_csv(self.paf, sep='\t', header=None, usecols=range(13),
+                         names=self.PAF_HADER, index_col=None)
+        df['identity'] = df['identity'].map(lambda x: x.replace("id:f:", ""))
+    
+        df = df.sort_values(['contig2', 'start2'])
+
+        contig_to_chrom_db = dict()
+        for chrom, contigs in first_contigs_db.items():
+            for contig in contigs:
+                contig_to_chrom_db[contig] = chrom
+        
+        df['group'] = df['contig1'].map(contig_to_chrom_db.get)
+        df['strand'] = df['strand'].map(lambda x: 1 if x == "+" else -1)
+        self.paf_df = df 
+
+        return df 
+
+    def global_align(self):
+        logger.info("Self mapping ...")
+        cmd = ["wfmash", str(self.ref), self.first_contig, 
+                    "-m", "-s", "50k", "-l", "250k", 
+                    "-t", str(self.threads) ]
+        
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.paf, "w"),
+                      stderr=open(f"../{self.log_dir}/ref.align.log", "w"),
+                      bufsize=-1)
+            )
+            pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{cmd}.')
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}.')
+
+    def align(self, paf, first_chrom_to_other_chroms, workdir):
+        res = OrderedDict()
+        for group, tmp_df in paf.groupby('group'):
+            assign_ref_group = tmp_df.groupby('contig2')['matches'].sum().idxmax()
+            tmp_df2 = tmp_df[tmp_df['contig2'] == assign_ref_group]
+
+            res[group] = (assign_ref_group, tmp_df2[['contig1', 'strand', 'matches']])
+
+        chrom_to_first_chrom = {}
+        for chrom in first_chrom_to_other_chroms:
+            for chrom2 in first_chrom_to_other_chroms[chrom]:
+                chrom_to_first_chrom[chrom2] = chrom 
+
+        tours = glob.glob("raw_tour/*.tour")
+        tours = list(map(Tour, tours))
+
+        for chrom1 in first_chrom_to_other_chroms:
+            
+            tmp_res = res[chrom1]
+            tour = Tour(f"raw_tour/{chrom1}.tour")
+
+            tour_dict = tour.to_dict()
+            tmp_df = tmp_res[1]
+            tmp_df['tour_strand'] = tmp_df['contig1'].map(tour_dict.get)
+            tmp_df['tour_strand'] = tmp_df['tour_strand'].map(lambda x: 1 if x == "+" else -1)
+
+            v = tmp_df.eval('strand * matches * tour_strand').sum()
+
+            for chrom2 in first_chrom_to_other_chroms[chrom1]:
+                tour = Tour(f"raw_tour/{chrom2}.tour")
+                if v < 0:
+                    logger.debug(f"Reverse {tour.group}")
+                    tour.reverse()
+                hap = tour.group.rsplit("g", 1)
+                if len(hap) > 1:
+                    tour.save(f"{workdir}/{tmp_res[0]}g{hap[1]}.tour")
+                    logger.debug(f"Rename {tour.group} to {tmp_res[0]}g{hap[1]}.tour")
+                else:
+                    tour.save(f"{workdir}/{tmp_res[0]}.tour")
+                    logger.debug(f"Rename {tour.group} to {tmp_res[0]}.tour")
+
+    def run(self):
+        from ..cli import build
+        tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
+        logger.info('Working on temporary directory: {}'.format(tmpDir))
+    
+        os.chdir(tmpDir)
+        workdir = os.getcwd()
+        
+        _, first_contigs_db, first_chrom_to_other_chroms = self.get_contigs()
+        self.global_align()
+
+        ref_align_df = self.read_paf(first_contigs_db)
+
+        self.align(ref_align_df, first_chrom_to_other_chroms, workdir)
+
+        try:
+            build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
+                        prog_name="build")
+            
+        except SystemExit as e:
+            exc_info = sys.exc_info() 
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+
+        os.chdir("../")
+
+        shutil.rmtree(tmpDir)
+
 
 class AllhicOptimize:
 

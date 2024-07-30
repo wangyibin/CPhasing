@@ -269,9 +269,11 @@ def agp2tour(agp, outdir, force=False):
         tour.from_tuples(cluster[['id', 'orientation']].values.tolist())
         with open(f'{str(outdir)}/{group}.tour', 'w') as out:
             print(' '.join(map(str, tour.data)), file=out)
-            logger.info(f'Output tour: `{out.name}`')
+            logger.debug(f'Output tour: `{out.name}`')
 
     logger.info('ALL done.')
+
+    return agp_df
 
 def statagp(agp, output):
     """

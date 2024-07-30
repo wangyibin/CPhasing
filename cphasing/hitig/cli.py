@@ -19,6 +19,18 @@ from .. import __epilog__
 
 logger = logging.getLogger(__name__)
 
+click.rich_click.COMMAND_GROUPS = {
+    "hitig": [
+        {
+            "name": "Main Commands",
+            "commands": ["pipeline"],
+            "table_styles": {
+                "row_styles": ["yellow"],
+            },
+        },
+    ]
+}
+
 class CommandGroup(DYMGroup, RichCommand):
     """
     List subcommand in the order there were added.

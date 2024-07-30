@@ -41,6 +41,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
+    - [wfmash](https://github.com/waveygang/wfmash)
 2. For Pore-C pipeline
     - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)
 3. For Hi-C pipeline

@@ -4361,7 +4361,7 @@ def pairs2cool(pairs, chromsize, outcool,
 @click.option(
     '--coarsen',
     'coarsen',
-    help='Need coarsen matrix to base bin size * k resolution.',
+    help='Need coarsen matrix to base bin size * k resolution, when only plot mode (agp not specified).',
     default=False,
     is_flag=True,
     show_default=True
@@ -4369,7 +4369,7 @@ def pairs2cool(pairs, chromsize, outcool,
 @click.option(
     '--no-coarsen',
     'no_coarsen',
-    help='The resolution of matrix is already for plotting, no need coarsen.',
+    help='The resolution of matrix is already for plotting, no need coarsen, when after adjust mode (agp specified).',
     default=False,
     is_flag=True,
     show_default=True

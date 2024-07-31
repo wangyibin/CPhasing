@@ -18,7 +18,7 @@ The advantages of `C-Phasing`:
 ## Download C-Phasing and install all dependencies
 git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
-conda env create -f environment.py12.yml
+conda env create -f environment.yml
 conda activate cphasing
 
 ## Add these command into .bash_profile or .bashrc

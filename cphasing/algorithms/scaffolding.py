@@ -195,7 +195,9 @@ class Rename:
         agp_df = agp2tour(self.agp, "raw_tour")
         fasta_db = read_fasta(self.fasta)
         agp_df = agp_df.loc[agp_df['chrom'] != agp_df['id']]
-        
+        agp_df = agp_df.reset_index()
+        agp_df['chrom'] = agp_df['chrom'].astype('object')
+
         hap_db = OrderedDict()
 
         contigs_db = OrderedDict()

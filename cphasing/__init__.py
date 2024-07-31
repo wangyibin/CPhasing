@@ -29,7 +29,7 @@ __copyright__ = "Copyright (c) 2024, Yibin Wang"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.1.9.r242"
+__version__ = "0.1.9.r243"
 __epilog__ =  f"""
             \b
             Version: {__version__} | \n

@@ -37,12 +37,20 @@ from .utilities import to_humanized, chrom_ticks_convert
 logger = logging.getLogger(__name__)
 
 HIC_METADATA = {}
-HIC_METADATA['matrix-generated-by'] = np.string_(
-    'CPhasing'
-)
-HIC_METADATA['matrix-generated-by-url'] = np.string_(
-    'https://github.com/wangyibin/CPhasing'
-)
+try:
+    HIC_METADATA['matrix-generated-by'] = np.string_(
+        'CPhasing'
+    )
+    HIC_METADATA['matrix-generated-by-url'] = np.string_(
+        'https://github.com/wangyibin/CPhasing'
+    )
+except AttributeError:
+    HIC_METADATA['matrix-generated-by'] = np.bytes_(
+        'CPhasing'
+    )
+    HIC_METADATA['matrix-generated-by-url'] = np.bytes_(
+        'https://github.com/wangyibin/CPhasing'
+    )
 
 ## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
 whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])

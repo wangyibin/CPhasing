@@ -98,7 +98,7 @@ def main(args):
 
     patches = []
     colors = []
-    cmap = cm.get_cmap('bwr')
+    cmap = cm.get_cmap('bwr_r')
   
     norm = plt.Normalize(-1.0, 1.0)
     chroms = []
@@ -112,10 +112,27 @@ def main(args):
             else:
                 hap = None
                 idx = int(group_idx[0])
+        
+        elif "PATERNALgroup" in group or "MATERNALgroup" in group:
+            group_idx = group.split("_")
+            try:
+                idx = int(group_idx[0][3:])
+            except ValueError:
+                if group_idx[0][3:] == "X":
+                    idx = 23
+                elif group_idx[0][3:] == "Y":
+                    idx = 24
+
+            if group_idx[1][:8] == "PATERNAL":
+                hap = 1
+            else:
+                hap = 2
+
+        
         elif "group" in group:
             idx = int(group[5:])
             hap = None
-        
+
         elif "chr" in group:
             
             group_idx = group.split("_")
@@ -136,11 +153,11 @@ def main(args):
 
         for i, row in tmp_df.iterrows():
             patches.append(Rectangle((row.start, idx + hap/3 if hap is not None else idx), 
-                                   row.end - row.start, 0.2, edgecolor='k', linewidth=0))
+                                   row.end - row.start, 0.2, edgecolor='k', linewidth=0.05))
     
             colors.append(cmap(norm(row['phasing_density'])))
 
-    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='k', linewidth=0))
+    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='k', linewidth=0.05))
     patch_collection.set_facecolor(colors)
     ax.autoscale()
     ax.invert_yaxis()

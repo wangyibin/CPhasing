@@ -459,7 +459,8 @@ def read_chrom_sizes(chrom_size):
     >>> df = read_chrom_sizes("sample.chromsizes")
     """
     # logger.info(f"Loading contig sizes `{chrom_size}`...")
-    df = pd.read_csv(chrom_size, sep='\t', header=None, index_col=0, names=['chrom', 'length'])
+    df = pd.read_csv(chrom_size, sep='\t', header=None, index_col=0, names=['chrom', 'length'],
+                     usecols=[0, 1])
 
     return df 
 

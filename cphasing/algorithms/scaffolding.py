@@ -258,10 +258,10 @@ class Rename:
         return df 
 
     def global_align(self):
-        logger.info("Self mapping ...")
+        logger.info("Mapping ...")
         cmd = ["wfmash", str(self.ref), self.first_contig, 
                     "-m", "-s", "50k", "-l", "250k", 
-                    "-t", str(self.threads) ]
+                    "-t", str(self.threads)]
         
         pipelines = []
         try:
@@ -301,6 +301,7 @@ class Rename:
         tours = glob.glob("raw_tour/*.tour")
         tours = list(map(Tour, tours))
 
+        renamed_chrom = []
         for chrom1 in first_chrom_to_other_chroms:
             
             tmp_res = res[chrom1]
@@ -319,13 +320,19 @@ class Rename:
                     logger.debug(f"Reverse {tour.group}")
                     tour.reverse()
                 hap = tour.group.rsplit("g", 1)
-                if len(hap) > 1:
+                if len(hap) > 1 and self.hap_aligned:
                     tour.save(f"{workdir}/{tmp_res[0]}g{hap[1]}.tour")
                     logger.debug(f"Rename {tour.group} to {tmp_res[0]}g{hap[1]}.tour")
+                    renamed_chrom.append(f"{tmp_res[0]}g{hap[1]}")
                 else:
-                    tour.save(f"{workdir}/{tmp_res[0]}.tour")
-                    logger.debug(f"Rename {tour.group} to {tmp_res[0]}.tour")
-
+                    if f"{tmp_res[0]}" not in renamed_chrom:
+                        tour.save(f"{workdir}/{tmp_res[0]}.tour")
+                        
+                        logger.debug(f"Rename {tour.group} to {tmp_res[0]}.tour")
+                        renamed_chrom.append(f"{tmp_res[0]}")
+                    else:
+                        tour.save(f"{workdir}/{tmp_res[0]}_{tour.group}.tour")
+                
     def run(self):
         from ..cli import build
         tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')

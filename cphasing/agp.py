@@ -307,7 +307,7 @@ def statagp(agp, output):
     
     ## get length of each contigs
     agp_df['length'] = agp_df['tig_end'] - agp_df['tig_start'] + 1
-    
+
     ## remove contig
     rm_tig_agp_df = agp_df.reset_index()
     rm_tig_agp_df = rm_tig_agp_df[rm_tig_agp_df['chrom'] != rm_tig_agp_df['id']]
@@ -315,6 +315,7 @@ def statagp(agp, output):
     
     ## get anchored contigs dataframe
     tig_agp_df = agp_df.reset_index()
+    tig_agp_df['chrom'] = tig_agp_df['chrom'].astype('object')
     tig_agp_df = tig_agp_df[tig_agp_df['chrom'] == tig_agp_df['id']]
     tig_agp_df['chrom'] = tig_agp_df['chrom'].astype('object')
 

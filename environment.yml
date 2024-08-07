@@ -1,4 +1,4 @@
-name: cphasing
+name: cphasing_new
 channels:
   - bioconda
   - conda-forge
@@ -187,8 +187,8 @@ dependencies:
   - lzo=2.10=hd590300_1001
   - markdown-it-py=3.0.0=pyhd8ed1ab_0
   - markupsafe=2.1.5=py312h98912ed_0
-  - matplotlib=3.9.1=py312h7900ff3_0
-  - matplotlib-base=3.9.1=py312h9201f00_0
+  - matplotlib=3.8.0=py312h7900ff3_2
+  - matplotlib-base=3.8.0=py312he5832f3_2
   - mdurl=0.1.2=pyhd8ed1ab_0
   - minimap2=2.24=h7132678_1
   - mpg123=1.32.6=h59595ed_0
@@ -333,3 +333,4 @@ dependencies:
   - zlib-ng=2.2.1=he02047a_0
   - zstandard=0.23.0=py312h3483029_0
   - zstd=1.5.6=ha6fb4c9_0
+prefix: /data0/agis_wangyb/anaconda3/envs/cphasing_new

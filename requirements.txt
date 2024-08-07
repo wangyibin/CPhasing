@@ -13,7 +13,7 @@ natsort
 ncls
 networkx
 numpy >= 1.22.0
-matplotlib
+matplotlib == 3.8.0
 msgspec
 pandas >= 2.2.0
 pandarallel

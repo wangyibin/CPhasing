@@ -138,8 +138,14 @@ def main(args):
         tmp_df['position'] = tmp_df['id'].map(contig_position_db.get)
         tmp_x_data = []
         tmp_y_data = []
+        if len(tmp_df) == 0:
+            continue
+
+
         for chrom, row in tmp_df.iterrows():
             tmp_data = row['position']
+            if tmp_data is None:
+                continue
             tmp_chrom, tmp_range = tmp_data.split(":")
             tmp_start, tmp_end = tmp_range.split("-")
             tmp_start, tmp_end = int(tmp_start), int(tmp_end)

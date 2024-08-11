@@ -1557,6 +1557,7 @@ class Tour:
                     length = fasta.faidx.index[contig].rlen
                     # length = len(fasta[contig])
                 except KeyError:
+                    logger.warning(f"Could not find `{contig}` in `{fasta.filename}`, if corrected you should add `--corrected` parameter for `build`, skipped.")
                     continue
                 except AttributeError:
                     try:

@@ -249,6 +249,8 @@ def agp2tour(agp, outdir, force=False):
     agp_df.reset_index(inplace=True)
     agp_df = agp_df[agp_df['chrom'] != agp_df['id']]
     agp_df['chrom'] = agp_df['chrom'].astype('category')
+    duplicated_df = agp_df[agp_df.duplicated(subset=['id'], keep=False)]
+    duplicated_contigs = set(duplicated_df['id'].values.tolist())
 
     cluster_df = agp_df.groupby('chrom')
     tour = Tour
@@ -261,12 +263,22 @@ def agp2tour(agp, outdir, force=False):
         else:
             logger.warn(f'The output directory of `{outdir}` exists.')
     outdir.mkdir(parents=True, exist_ok=True)
-
+    
     for group, cluster in cluster_df:
+
         if cluster.empty is True:
             continue
         
-        tour.from_tuples(cluster[['id', 'orientation']].values.tolist())
+        data = []
+
+        for i, row in cluster.iterrows():
+            if row['id'] in duplicated_contigs: 
+                data.append((f"{row.id}:{row.tig_start}-{row.tig_end}", row.orientation))
+            else:
+                data.append((row.id, row.orientation))
+        
+        
+        tour.from_tuples(data)
         with open(f'{str(outdir)}/{group}.tour', 'w') as out:
             print(' '.join(map(str, tour.data)), file=out)
             logger.debug(f'Output tour: `{out.name}`')

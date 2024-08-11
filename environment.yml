@@ -1,4 +1,4 @@
-name: cphasing_new
+name: cphasing
 channels:
   - bioconda
   - conda-forge
@@ -333,4 +333,3 @@ dependencies:
   - zlib-ng=2.2.1=he02047a_0
   - zstandard=0.23.0=py312h3483029_0
   - zstd=1.5.6=ha6fb4c9_0
-prefix: /data0/agis_wangyb/anaconda3/envs/cphasing_new

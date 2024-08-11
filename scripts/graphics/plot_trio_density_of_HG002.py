@@ -153,11 +153,11 @@ def main(args):
 
         for i, row in tmp_df.iterrows():
             patches.append(Rectangle((row.start, idx + hap/3 if hap is not None else idx), 
-                                   row.end - row.start, 0.2, edgecolor='k', linewidth=0.05))
+                                   row.end - row.start, 0.2, edgecolor='none', linewidth=0.0))
     
             colors.append(cmap(norm(row['phasing_density'])))
 
-    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='k', linewidth=0.05))
+    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='none', linewidth=0.0))
     patch_collection.set_facecolor(colors)
     ax.autoscale()
     ax.invert_yaxis()

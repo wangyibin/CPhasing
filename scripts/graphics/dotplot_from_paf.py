@@ -96,7 +96,7 @@ def main(args):
         if row.strand == "+":
             line_list.append([(row.start1, row.end1), (row.start2, row.end2)])
         else:
-            line_list.append([(row.end1, row.start1), (row.end2, row.start2)])
+            line_list.append([(row.start1, row.end1, ), (row.end2, row.start2)])
 
     plt.rcParams['font.family'] = 'Arial'
 

@@ -18,6 +18,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+import shutil 
 
 from natsort import natsort_keygen
 from subprocess import Popen, PIPE
@@ -31,11 +32,11 @@ PAF_HADER = ["contig1", "length1", "start1", "end1", "strand",
                  "matches", "mapq", "identity"]
 
 
-def align(ref, qry, threads=20, paf='wfmash.paf'):
+def align(ref, qry, threads=40, paf='wfmash.paf'):
     Path("logs").mkdir(parents=True, exist_ok=True)
     cmd = ["wfmash", ref, qry, 
-                    "-m", 
-                    "-4", 
+                    "-m", "-s", "50k", "-l", "250k",
+                    # "-4",
                      "-t", str(threads)]
     pipelines = []
     try:
@@ -62,11 +63,12 @@ def align(ref, qry, threads=20, paf='wfmash.paf'):
     return paf
 
 
-def align2(ref, qry, threads=20, paf='wfmash.paf2'):
+def align2(ref, qry, threads=40, paf='wfmash.paf2'):
     Path("logs").mkdir(parents=True, exist_ok=True)
     cmd = ["wfmash", ref, qry, 
-                    "-m", "-s", "50k", "-l", "250k", 
-                    "-4", "-N",
+                    "-m", 
+                    "-N",
+                    "-s", "50k", "-l", "250k", 
                      "-t", str(threads)]
     pipelines = []
     try:
@@ -104,6 +106,8 @@ def main(args):
             help='ref')
     pReq.add_argument('qry', help='qry')
     pOpt.add_argument('--hap', help="haplotype resolved assembly containing the trio information")
+    pOpt.add_argument('-t', '--threads', type=int, default=8,
+            help='number of program threads [default:%(default)s]')
     pOpt.add_argument('-o', '--output', type=str,
             default=None, help='output file [default: %(default)s]')
     
@@ -113,7 +117,7 @@ def main(args):
     args = p.parse_args(args)
     
     if not Path("wfmash.paf").exists():
-        paf = align(args.ref, args.qry)
+        paf = align(args.ref, args.qry, threads=args.threads)
     else:
         paf = "wfmash.paf"
 
@@ -124,7 +128,7 @@ def main(args):
                          names=PAF_HADER, index_col=None)
     
     df['identity'] = df['identity'].map(lambda x: x.replace("id:f:", "")).astype(float)
-    df = df.loc[df['identity'] >= 0.90]
+    df = df.loc[df['identity'] >= 0.99]
     df = df.sort_values(by=['contig2', 'start2'], key=natsort_keygen())
 
     df = df.loc[~df['contig1'].str.startswith('utg')]
@@ -150,12 +154,20 @@ def main(args):
     qry_chromsizes_db = dict(zip(qry_chromsizes.index, qry_cumsum[:-1]))
 
     if args.hap:
-        with open("tmp.contigs.fasta", 'w') as out:
-            fasta = Fasta(args.qry)
-            for i, row in df.iterrows():
-                print(f">{i}\n{fasta[row.contig1][row.start1:row.end1]}", file=out)
 
-        paf2 = align2(args.hap, "tmp.contigs.fasta")
+        if not Path("wfmash.paf2").exists():
+            try:
+                os.remove("tmp.contigs.fasta.fai")
+            except FileNotFoundError:
+                pass 
+            with open("tmp.contigs.fasta", 'w') as out:
+                fasta = Fasta(args.qry)
+                for i, row in df.iterrows():
+                    print(f">{i}\n{fasta[row.contig1][row.start1:row.end1]}", file=out)
+
+            paf2 = align2(args.hap, "tmp.contigs.fasta", threads=args.threads)
+            os.remove("tmp.contigs.fasta")
+
         paf2 = pd.read_csv("wfmash.paf2", sep='\t', header=None, usecols=range(13),
                          names=PAF_HADER, index_col=None)
         
@@ -185,7 +197,7 @@ def main(args):
         if row.strand == "+":
             line_list.append([(row.start1, row.end1), (row.start2, row.end2)])
         else:
-            line_list.append([(row.end1, row.start1), (row.end2, row.start2)])
+            line_list.append([(row.start1, row.end1), (row.end2, row.start2)])
 
         if args.hap:
             try:

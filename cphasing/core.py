@@ -1557,7 +1557,9 @@ class Tour:
                     length = fasta.faidx.index[contig].rlen
                     # length = len(fasta[contig])
                 except KeyError:
-                    logger.warning(f"Could not find `{contig}` in `{fasta.filename}`, if corrected you should add `--corrected` parameter for `build`, skipped.")
+                    logger.warning(f"Could not find `{contig}` in `{fasta.filename}`, "
+                                   "if corrected you should add `--corrected` parameter for `build`, skipped.")
+                    
                     continue
                 except AttributeError:
                     try:
@@ -1571,17 +1573,25 @@ class Tour:
             start = old_end + 1
             end = start + (tig_end - tig_start + 1) - 1
             
-            res.append((self.group, start, end, i, 'W', contig, 
-                    tig_start, tig_end, orient))
+            res.append([self.group, start, end, i, 'W', contig, 
+                    tig_start, tig_end, orient])
+            
             
             i += 1
-            if i <= len(self) * 2 - 1:
-                res.append((self.group, end + 1, end + gap_length,
-                        i, 'U', gap_length, 'contig', 'yes', 'map'))
+
+        j = 1
+        res2 = []
+        for i, tmp_res in enumerate(res, 1):
+            tmp_res[3] = j
+            res2.append(tmp_res)
+            j += 1
+            if i != 1 or i != len(res):
+                res2.append([self.group, end + 1, end + gap_length,
+                        j, 'U', gap_length, 'contig', 'yes', 'map'])
                 old_end = end + gap_length
-                i += 1
+                j += 1
             
-        return corrected_contigs, pd.DataFrame(res)
+        return corrected_contigs, pd.DataFrame(res2)
 
     def get_fasta(self, fasta):
         """

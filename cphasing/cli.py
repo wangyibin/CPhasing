@@ -66,13 +66,44 @@ click.rich_click.ERRORS_EPILOGUE = f"Version: {__version__} | To find out more, 
 click.rich_click.COMMAND_GROUPS = {
     "cphasing": [
         {
-            "name": "Main Commands",
+            "name": "Pipe (Recommended)",
             "commands": ["pipeline"],
             "table_styles": {
                 "row_styles": ["yellow"],
-            },
+            }
         },
+        {
+            "name": "Main Commands",
+            "commands": ["hitig", "mapper", "chimeric", "prepare",
+                         "alleles", "hyperpartition", "scaffolding",
+                         "build", "rename", "pairs2cool", "plot"]
+        },
+        {
+            "name": "Other Useful Commands",
+            "commands": ["hic", "alignments", "hcr", "alleles2", 
+                         "kprune", "hypergraph", "statagp", 
+                         "agp2fasta", "utils"]
+        }
     ],
+
+    "cphasing hitig": [
+        {
+           "name": "Main Commands",
+            "commands": ["pipeline"],
+            "table_styles": {
+                "row_styles": ["yellow"],
+            } 
+        }
+    ],
+    "hitig": [
+        {
+           "name": "Main Commands",
+            "commands": ["pipeline"],
+            "table_styles": {
+                "row_styles": ["yellow"],
+            } 
+        }
+    ]
 }
 
 
@@ -238,7 +269,7 @@ click.rich_click.OPTION_GROUPS = {
     ]
 }
 
-class CommandGroup(DYMGroup, RichCommand):
+class CommandGroup(click.RichGroup, RichCommand):
     """
     List subcommand in the order there were added.
     """
@@ -803,6 +834,18 @@ def cli(verbose, quiet):
     default=False,
 )
 @click.option(
+    '-o',
+    '--output',
+    '--outdir',
+    'outdir',
+    hidden=True,
+    help="Output directory of the pipeline",
+    metavar="STR",
+    default="cphasing_output",
+    type=str,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -864,9 +907,10 @@ def pipeline(fasta,
             scaffolding_method, 
             factor,
             low_memory,
+            outdir,
             threads):
     """
-    A pipeline of diploid or polyploid phasing and scaffolding.\n
+    A pipeline of diploid or polyploid phasing and scaffolding (a: pipe).\n
     Also support for haploid scaffolding.
     > **Steps:**\n
         0. mapper : mapping sequencing data to reference\n
@@ -986,6 +1030,7 @@ def pipeline(fasta,
         min_scaffold_length=min_scaffold_length,
         enable_misassembly_remove=enable_misassembly_remove,
         factor=factor,
+        outdir=outdir,
         threads=threads,
         low_memory=low_memory)
     
@@ -1185,7 +1230,8 @@ def alignments(ctx):
     help='Minimum length of fragments.',
     metavar='INT',
     default=10,
-    show_default=True
+    show_default=True,
+    type=int,
 )
 def paf2pairs(paf, chromsize, output, 
                 min_quality, min_identity, min_length):
@@ -1239,7 +1285,8 @@ def paf2pairs(paf, chromsize, output,
     help='Minimum length of fragments.',
     metavar='INT',
     default=10,
-    show_default=True
+    show_default=True,
+    type=int,
 )
 @click.option(
     '-cs',
@@ -2558,7 +2605,7 @@ def hypergraph(contacts,
             whitelist,
             threads):
     """
-    Construct hypergraph from 4DN pairs or porec table.
+    Construct hypergraph from 4DN pairs or porec table (a: hg).
 
     The hypergraph or graph of pore-c or hic enabled extract from pore-c table or 4DN pairs. 
 
@@ -3051,7 +3098,7 @@ def hyperpartition(hypergraph,
                     # chunksize
                     ):
     """
-    Separate contigs into groups based on hypergraph.
+    Separate contigs into groups based on hypergraph (a: hp).
 
         Hypergraph : Path of the hypergraph.
 
@@ -3513,7 +3560,7 @@ def scaffolding(clustertable, count_re, clm,
                 keep_temp,
                 output, threads):
     """
-    Ordering and orientation the contigs.
+    Ordering and orientation the contigs (a: sf).
 
         ClusterTable: Path of cluster table from hyperpartition.
 
@@ -4736,6 +4783,8 @@ ALIASES = {
     "scaffolds": scaffolding,
     "contigsizes": chromsizes,
     "pairs2contact": pairs2contacts,
+    "pair2cool": pairs2cool,
+    "p2c": pairs2cool,
 }
 
 ## hic subcommand
@@ -5436,3 +5485,4 @@ def filter_high_similarity_contigs(alleletable,
 
 
 cli.add_command(statagp)
+cli.add_command(agp2fasta)

@@ -52,8 +52,7 @@ def hic(ctx):
     """
     These functions were developed for ALLHiC2 but **deprecated**.
 
-
-        Only mapper used, please don't use these functions.
+        Only `mapper` used for processing hic data, please don't use these functions.
     """
     pass
 
@@ -311,7 +310,8 @@ def correct(
     c.run()
 
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True, 
+             short_help="Build allele table by gmap (**Deprecated**)")
 @click.option(
     "-f",
     "--fasta",
@@ -370,7 +370,7 @@ def correct(
 )
 def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
     """
-    Build allele table by gmap
+    Build allele table by gmap.
     """
     from ..alleles import GmapAllele 
 
@@ -382,7 +382,8 @@ def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
     
 
     
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True,
+              short_help="Extract countRE and pair table from 4DN pairs file by allhic (**Deprecated**).")
 @click.argument(
     'infile',
     metavar='InFile',
@@ -426,7 +427,8 @@ def extract(infile, fastafile, enzyme, minLinks):
     print(restriction_site(enzyme))
     run_cmd(cmd)
 
-@hic.command(cls=RichCommand, deprecated=True)
+@hic.command(cls=RichCommand, deprecated=True,
+             short_help="Pregroup countRE and pairs by homologous groups (**Deprecated**).")
 @click.argument(
     'alleletable',
     type=click.Path(exists=True),
@@ -486,7 +488,8 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
     pt = PairTable(pairtable)
     pregroup(at, cr, pt, fasta, outdir, threads)
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True,
+             short_help="Prune allelic signal by allele table (**Deprecated**).")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -536,7 +539,8 @@ def prune(
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True,
+             short_help="Separate contigs into k groups by allhic (**Deprecated**).")
 @click.argument(
     'count_re',
     metavar='CountRE',
@@ -589,7 +593,7 @@ def prune(
 @click.option(
     '--maxLinkDensity_step',
     'maxLinkDensity_step',
-    metavar=True,
+    metavar="Bool",
     help='The step of maxLinkDensity, only for adaptive mode.',
     type=int,
     default=2,
@@ -598,7 +602,7 @@ def prune(
 @click.option(
     '--minREs_step',
     'minREs_step',
-    metavar=True,
+    metavar="Bool",
     help='The step of minREs, only for adaptive mode.',
     type=int,
     default=2,
@@ -636,7 +640,7 @@ def partition(
 
     """
     from .partition import Partitioner, AdaptivePartitioner
-    
+    k = int(k)
     if adaptive is False:
         
         Partitioner.partition(count_re, 
@@ -672,7 +676,8 @@ def partition(
                                 threads=threads)
         ap.run()
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True,
+             short_help="Recluster partition results by allele table (**Deprecated**).")
 @click.argument(
     'clustertable',
     metavar='ClusterTable',
@@ -737,7 +742,8 @@ def recluster(
     rc.run(method=method)
 
 
-@hic.command(cls=RichCommand)
+@hic.command(cls=RichCommand, deprecated=True,
+             short_help="Rescue uncluster contigs into already groups (**Deprecated**).")
 @click.argument(
     'clustertable',
     metavar='ClusterTable',

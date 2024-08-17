@@ -106,9 +106,14 @@ def main(args):
 
     plt.xticks(fontsize=18, rotation=45)
     plt.yticks(fontsize=18)
-    plt.xlabel('Contact order', fontsize=24)
-    plt.ylabel('Proportion (%)', fontsize=24)
+    plt.xlabel('Contact order', fontsize=20)
+    plt.ylabel('Proportion (%)', fontsize=20)
 
+
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    plt.tick_params(which='both', width=1.5, length=5)
+    sns.despine()
 
     output = args.output
     hist.to_csv(output.replace("png", "mean.hist"), sep='\t', header=True, index=False)

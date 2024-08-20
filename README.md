@@ -183,4 +183,9 @@ cphasing utils agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.f
 cphasing utils agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
 ```
 
+### Rename and orient chromosome to a reference
+```bash
+cphasing rename -r mono.fasta -f draft.asm.fasta -a groups.review.agp -t 20
+```
+
 

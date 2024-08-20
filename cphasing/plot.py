@@ -772,7 +772,8 @@ def plot_heatmap(matrix, output,
         
         fig_width = round(7 * factor, 2) 
         fig_height = round(8 * factor, 2)
-
+        
+        plt.rcParams['font.family'] = 'Arial'
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
         
         tick_fontsize = 15 / np.log10(len(chromnames)) if not fontsize else fontsize
@@ -1022,7 +1023,7 @@ def plot_heatmap_core(matrix,
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
         ax.tick_params(axis='x', length=5, width=2)
-        _xticks = np.r_[ax.get_xticks()[:-1], ax.get_xlim()[1]]
+        _xticks = np.r_[ax.get_xticks()[:-2], ax.get_xlim()[1]]
         ax.set_xticks(_xticks)
         xticklabels = chrom_ticks_convert(_xticks * binsize)
         ax.set_xticklabels(xticklabels, fontsize=tick_fontsize, rotation=rotation)

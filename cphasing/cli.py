@@ -2458,6 +2458,8 @@ def kprune(alleletable, contacts,
     """
     Generate the allelic contig and cross-allelic contig pairs by sequences similarity.
 
+        Note: it is already intergated in `hyperpartition`.
+
         AlleleTable : allele table from cphasing allele in allele2 format.
 
         INPUT_CONTACTS_PATH : path of whole contigs contacts from `prepare`.
@@ -3705,7 +3707,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads. (unused)',
+    help='Number of threads.',
     type=int,
     default=4,
     metavar='INT',

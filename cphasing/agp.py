@@ -184,7 +184,10 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
     seq_db = read_fasta(fasta)
     agp_df, gap_df = import_agp(agp)
    
-    GAP = 'N' * gap_df.length[0]
+    try:
+        GAP = 'N' * gap_df.length[0]
+    except IndexError:
+        GAP = 'N' * 100
 
     if not output_contig:
         cluster_df = agp_df.groupby('chrom')

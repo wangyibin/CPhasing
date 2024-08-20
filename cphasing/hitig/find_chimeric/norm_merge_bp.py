@@ -5,6 +5,7 @@ import math
 import argparse
 import sys
 
+import numpy as np
 import pandas as pd
 
 """
@@ -121,8 +122,24 @@ def normaliz_split_alignment(depthDic, bpDic, contigsizesDict, win, minDepth, cu
 
     return normBpDic
 
+def break_points_to_regions(break_points_df, contigsizes):
+    correct_contig_list = []
+    for i, tmp_df in break_points_df.groupby(0):
+        length = contigsizes[i]
+        pos = tmp_df[1].values
+        start = np.r_[[1], pos + 1]
+        end = np.r_[pos, [length]]
+        pos_list = list(zip(start, end))
 
-def outputFile(normBpDic, outPre):
+        for start, end in pos_list:
+            correct_contig_list.append((i, int(start), int(end), f"{i}:{start}-{end}"))
+
+    correct_contig_list = pd.DataFrame(
+        correct_contig_list, columns=['chrom', 'start', 'end', 'name'])
+
+    return correct_contig_list
+
+def outputFile(normBpDic, contigsizesDict, outPre):
     chimericDic = {}
     ## output norm file
     with open(outPre + ".norm.result", 'w') as fout0:
@@ -137,10 +154,21 @@ def outputFile(normBpDic, outPre):
                         chimericDic[ctg] = []
                     bpPos = int(float(sum(bini))/float(2))
                     chimericDic[ctg].append(bpPos)
+    break_pos_list = []
     with open(outPre + ".breakPos.txt", 'w') as fout1:
         for ctg in chimericDic:
-            posLst = list(map(str, chimericDic[ctg]))
-            fout1.write("{}\t{}\n".format(ctg, ",".join(posLst)))
+            posLst = list(map(int, chimericDic[ctg]))
+            for pos in posLst:
+                break_pos_list.append((ctg, pos))
+            
+
+            fout1.write("{}\t{}\n".format(ctg, ",".join(map(str, posLst))))
+
+    break_pos_df = pd.DataFrame(break_pos_list)
+    corrected_positions = break_points_to_regions(break_pos_df, contigsizesDict)
+    output_break_bed = f"{outPre}.chimeric.contigs.bed"
+    corrected_positions.to_csv(output_break_bed, 
+                                    header=None, index=None, sep='\t')
 
     return outPre + ".breakPos.txt"
 
@@ -156,7 +184,7 @@ def workflow(mergeBP, depthFile, contigsizes, win, minDepth, cutoff, edge, outPr
     normBpDic = normaliz_split_alignment(depthDic, bpDic, contigsizesDict, win, minDepth, cutoff, edge)
  
     #mergeBpDic, bpDic = check_breakpoint(normSaDic, cutoff, edges)
-    return outputFile(normBpDic, outPre)
+    return outputFile(normBpDic, contigsizesDict,  outPre)
 
     
 

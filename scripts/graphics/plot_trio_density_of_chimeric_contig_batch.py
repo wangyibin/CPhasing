@@ -100,13 +100,13 @@ def main(args):
     break_pos_df.columns = ['contig', 'pos', 'software']
     
 
-    break_contigs = set(break_pos_df['contig'].values.tolist())
+    break_contigs = sorted(list(set(break_pos_df['contig'].values.tolist())))
     break_contigs_with_length = dict(zip(break_contigs, map(contigsizes.get, break_contigs)))
-    break_contigs = sorted(break_contigs_with_length, key=lambda x: break_contigs_with_length[x], reverse=True)
+    # break_contigs = sorted(break_contigs_with_length, key=lambda x: break_contigs_with_length[x], reverse=True)
     
 
     plt.rcParams['font.family'] = 'Arial'
-    fig = plt.figure(figsize=(8, len(break_contigs) / 10))
+    fig = plt.figure(figsize=(8, len(break_contigs) / 5))
 
     ax = fig.add_subplot(111)
 
@@ -180,7 +180,7 @@ def main(args):
             pos = int(pos) 
             
             marker = marker_db[software_idx]
-            ax.plot(pos, y_pos, marker=marker, markersize=1, 
+            ax.plot(pos, y_pos, marker=marker, markersize=4, 
             linewidth=0.01, alpha=1,
             linestyle='none', color=color_db[software_idx],
             fillstyle='none', label=software)
@@ -188,10 +188,11 @@ def main(args):
 
     # plt.legend(fontsize=8, bbox_to_anchor=(1.1, 1.05))
 
-    ax.set_yticks(list(range(len(break_contigs))))
-    ax.set_yticklabels(break_contigs, fontsize=4)
-
-    # plt.ylim(-1)
+    ax.set_yticks(np.array(list(range(len(break_contigs)))) + 0.2)
+    ax.set_yticklabels(break_contigs, fontsize=8)
+    ax.tick_params(axis='y', width=0, length=0)
+    plt.xlim(0)
+    
     
     cax = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), 
                     #    orientation='horizontal',

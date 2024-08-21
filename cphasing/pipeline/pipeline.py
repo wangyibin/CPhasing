@@ -129,16 +129,16 @@ def run(fasta,
             os.chdir("..")
 
             hcr_bed = "hitig/output.all_hcr.bed"
-            clean_fasta = "hitig/output.clean.fasta"
+            # clean_fasta = "hitig/output.cleaned.fasta"
         else:
             logger.warning("Use existed hitig results.")
             hcr_bed = "hitig/output.hcr_all.bed"
-            clean_fasta = "hitig/output.cleaned.fasta"
+            # clean_fasta = "hitig/output.cleaned.fasta"
 
-        if Path(hcr_bed).exists() and Path(clean_fasta).exists():
-            fasta = clean_fasta
-        else:
-            logger.warning("Skip hitig.")
+        # if Path(hcr_bed).exists() and Path(clean_fasta).exists():
+        #     fasta = clean_fasta
+        # else:
+        #     logger.warning("Skipped hitig.")
 
             
 

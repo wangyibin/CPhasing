@@ -662,14 +662,23 @@ def hcr(fasta, lis, split_align, paf,
     from .find_chimeric import paf2depth 
 
     contigsizes, depth = paf2depth.workflow(paf, fasta, window, step_size, output, min_mapq=min_mapq)
-    if contigsizes:
+    if contigsizes and not break_pos:
         contig_sizes_df = read_chrom_sizes(contigsizes)
         contig_sizes_db = contig_sizes_df.to_dict()['length']
 
         all_contig_depth_df, high_coverage_df, low_coverage_df, hcr_from_depth_file =\
               bed2depth.workflow(depth, window, output, max_depth)
         
-        clean(fasta, low_coverage_df, f"{output}.cleaned.fasta")
+        # clean(fasta, low_coverage_df, f"{output}.cleaned.fasta")
+
+    elif contigsizes and break_pos:
+        contig_sizes_df = read_chrom_sizes(contigsizes)
+        contig_sizes_db = contig_sizes_df.to_dict()['length']
+
+        all_contig_depth_df, high_coverage_df, low_coverage_df, hcr_from_depth_file =\
+              bed2depth.workflow(depth, window, output, max_depth)
+        
+        # clean(fasta, low_coverage_df, f"{output}.cleaned.fasta", break_pos)
 
 
     if break_pos and contigsizes:

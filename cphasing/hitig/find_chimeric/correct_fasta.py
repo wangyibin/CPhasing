@@ -59,10 +59,14 @@ def break_contig(bpDic2, fa, outPre):
             else:
                 fout.write(">{}\n{}\n".format(faName, faDic[faName]))
 
+    return outPre + ".corrected.fasta"
+
 def workflow(fastaFile, bpFile, outPre):
     #fastaDic = read_fa(fastaFile)
     bpDic = read_bp(bpFile)
-    break_contig(bpDic, fastaFile, outPre)
+    breaked_fasta = break_contig(bpDic, fastaFile, outPre)
+    
+    return breaked_fasta
 
 
 if __name__ == "__main__":

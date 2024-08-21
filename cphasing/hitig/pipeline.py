@@ -55,18 +55,23 @@ def run(
 #----------------------------------#""")
         lis = f"{output}.mapq.LIS.gtf"
         corrected_paf = f"{output}.corrected.paf"
-        break_point_file = find_split_alignment.workflow(lis, window, min_sa, edge, output)
+        split_alignments_file = find_split_alignment.workflow(lis, window, min_sa, edge, output)
 
         contigsizes, depth_file = paf2depth.workflow(corrected_paf, fasta, window, step, output)
 
-        break_pos_file = norm_merge_bp.workflow(break_point_file, depth_file, contigsizes,
+        break_pos_file = norm_merge_bp.workflow(split_alignments_file, depth_file, contigsizes,
                                                     window, min_depth, cutoff, edge, output)
 
-        correct_fasta.workflow(fasta, break_pos_file, output)
+        corrected_fasta = correct_fasta.workflow(fasta, break_pos_file, output)
 
     else:
         lis = output + ".mapq.LIS.gtf"
-        break_point_file = "output" + ".mergedSplitAlign.txt"
+        split_alignments_file = output + ".mergedSplitAlign.txt"
+        corrected_fasta = output + ".corrected.fasta"
+        break_pos_file = output + ".breakPos.txt"
+        # if Path(_fasta).exists():
+        #     fasta = _fasta 
+
 
     if "3" not in skip_steps and "3" in steps:
         logger.info("""#----------------------------------#
@@ -75,7 +80,8 @@ def run(
         try:
             hcr.main(args=["-f", fasta, 
                            "-l", lis, 
-                           "-sa", break_point_file,  
+                           "-sa", split_alignments_file,  
+                           "-b", break_pos_file,
                            "-p", pafFile
                            ])
 
@@ -87,4 +93,3 @@ def run(
             
             if exit_code != 0:
                 raise e
-        pass 

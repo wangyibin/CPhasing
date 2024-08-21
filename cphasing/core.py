@@ -1585,7 +1585,7 @@ class Tour:
             tmp_res[3] = j
             res2.append(tmp_res)
             j += 1
-            if i != 1 or i != len(res):
+            if i != len(res):
                 res2.append([self.group, end + 1, end + gap_length,
                         j, 'U', gap_length, 'contig', 'yes', 'map'])
                 old_end = end + gap_length

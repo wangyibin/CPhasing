@@ -1571,18 +1571,25 @@ class Tour:
                 tig_end = length 
 
             start = old_end + 1
-            end = start + (tig_end - tig_start + 1) - 1
+            end = (tig_end - tig_start + 1)
             
             res.append([self.group, start, end, i, 'W', contig, 
                     tig_start, tig_end, orient])
             
-            
+
             i += 1
 
         j = 1
         res2 = []
+        start = 1
+        old_end = 0
+
         for i, tmp_res in enumerate(res, 1):
             tmp_res[3] = j
+            start = old_end + tmp_res[1]
+            end = start + tmp_res[2] - 1
+            tmp_res[1] = start 
+            tmp_res[2] = end
             res2.append(tmp_res)
             j += 1
             if i != len(res):

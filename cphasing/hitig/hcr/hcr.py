@@ -189,7 +189,7 @@ def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
         corrected_hcrs = []
         drop_idx = []
         for i, row in overlapped.iterrows():
-            new_contig_id = f"{row.Chromosome}_{row.Start_b}_{row.End_b}"
+            new_contig_id = f"{row.Chromosome}:{row.Start_b}-{row.End_b}"
             new_start = row.Start - row.Start_b 
             new_end = row.End - row.Start_b 
             corrected_hcrs.append((new_contig_id, new_start, new_end))

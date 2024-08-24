@@ -205,23 +205,25 @@ def correct_hcr_by_break_pos(hcrs, break_pos, contig_sizes, output):
 
 
 def workflow(LisFile, SA, depthFile, minCount, minMapqCount, 
-                outPre, break_pos=None, contig_sizes=None):
+                outPre, break_pos=None, contig_sizes=None, 
+                use_continous_regions=False):
     
     SAreads = read_SAreads(SA)
     logger.info(f"Load `{depthFile}`.")
     depth_df = read_depth(depthFile)
     depth_gr = pr.PyRanges(depth_df)
-    depth_gr = depth_gr.merge()
-    logger.info(f"Identified `{len(depth_gr)}` normal depth regions.")
-    sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
-    logger.info("Identifing continuous regions ...")
+    overlap_gr = depth_gr.merge()
+    logger.info(f"Identified `{len(overlap_gr)}` normal depth regions.")
 
-    sequential_gr = pr.PyRanges(range_dict2frame(sequential_LIS))
-    sequential_gr = sequential_gr.merge()
-    logger.info(f"Identified `{len(sequential_gr)}` continous regions.")
-    logger.info("Overlapping ...")
-    overlap_gr = sequential_gr.overlap(depth_gr).merge()
-    
+    if use_continous_regions:
+        sequential_LIS = read_LIS(LisFile, SAreads, minCount, minMapqCount)
+        logger.info("Identifing continuous regions ...")
+        sequential_gr = pr.PyRanges(range_dict2frame(sequential_LIS))
+        sequential_gr = sequential_gr.merge()
+        logger.info(f"Identified `{len(sequential_gr)}` continous regions.")
+        logger.info("Overlapping ...")
+        overlap_gr = sequential_gr.overlap(depth_gr).merge()
+
     ## output
     output = outPre + ".hcr_all.bed"
     if break_pos and contig_sizes:

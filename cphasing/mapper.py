@@ -426,7 +426,7 @@ class PoreCMapper:
                     str(self.reads[0])]
             cmd.extend(list(self.additional_arguments))
 
-            cmd2 = ["pigz", "-c", "-p", "4"]
+            cmd2 = ["pigz", "-c", "-p", "8"]
 
             logger.info('Running command:')
             logger.info('\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)

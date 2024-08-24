@@ -598,7 +598,7 @@ def find_chimeric(
     'min_count',
     metavar='INT',
     help='minimum count of windows in LIS',
-    default=5,
+    default=3,
     type=int,
     show_default=True,
 )
@@ -640,6 +640,15 @@ def find_chimeric(
     show_default=True
 )
 @click.option(
+    '-ucr',
+    '--use-continous-regions',
+    '--use-continous-region',
+    "use_continous_region",
+    help="only retain contious mapping regions of min count window to generate hcr",
+    default=False,
+    is_flag=True,
+)
+@click.option(
     '-o',
     '--output',
     help='output file prefix',
@@ -649,8 +658,8 @@ def find_chimeric(
 def hcr(fasta, lis, split_align, paf, 
             depth, break_pos, min_mapq,
             min_count, min_score, window, 
-            step_size,
-            max_depth, output):
+            step_size, max_depth, 
+            use_continous_region, output):
     """
     Identify high confidence regions (HCRs).
 
@@ -683,12 +692,13 @@ def hcr(fasta, lis, split_align, paf,
 
     if break_pos and contigsizes:
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
-                        min_count, min_score, output, break_pos, contigsizes)
+                        min_count, min_score, output, break_pos, contigsizes, 
+                        use_continous_regions=use_continous_region)
     else:
         if break_pos:
             logger.warning("The file of break position and contig sizes should be input at the same time.")
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
-                        min_count, min_score, output)
+                        min_count, min_score, output, use_continous_regions=use_continous_region)
 
 
 

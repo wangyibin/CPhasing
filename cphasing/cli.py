@@ -4282,6 +4282,8 @@ def pairs2cool(pairs, chromsize, outcool,
     from cooler.cli.cload import pairs as cload_pairs
     from .utilities import merge_matrix
 
+    Path("logs").mkdir(exist_ok=True)
+
     logger.info(f"Load pairs: `{pairs}`.")
     logger.info(f"Bin size: {binsize}")
     binsize = humanized2numeric(binsize)
@@ -4899,6 +4901,7 @@ def agp2cluster(agpfile, output):
 @click.option(
     "-c",
     "--contig",
+    "--contigs",
     help="Outptu contig-level fasta",
     is_flag=True,
     default=False,
@@ -4911,6 +4914,7 @@ def agp2cluster(agpfile, output):
     default=4,
     metavar='INT',
     show_default=True,
+    hidden=True
 
 )
 def agp2fasta(agpfile, fasta, output, contig, threads):

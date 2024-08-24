@@ -33,7 +33,8 @@ hitig hcr \
     -l output.mapq.LIS.gtf \
     -sa output.mergedSplitAlign.txt \
     -d output.depth -b output.breakPos.txt \
-    -c draft.contig.contigsizes
+    -f draft.contig.fasta \ 
+    -p output.paf
 ```
 
 ## How to use hitig results in phasing steps

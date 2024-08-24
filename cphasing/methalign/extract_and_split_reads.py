@@ -124,7 +124,7 @@ def get_header(bam_reads):
 def parse_bam(bam_alignments, bam_reads, split_len, min_len, threads):
     
     out_bam = 'split_{}_{}_'.format(min_len, split_len) + os.path.basename(bam_alignments)
-    with pysam.AlignmentFile(bam_alignments, mode='rb', format_options=[b'filter=!flag.unmap'], threads=threads) as fin:
+    with pysam.AlignmentFile(bam_alignments, mode='rb', format_options=[b'filter=!flag.unmap'], check_sq=False, threads=threads) as fin:
         header = get_header(bam_reads)
         with pysam.AlignmentFile(out_bam, mode='wb', header=header, threads=threads) as fout:
             for aln in fin:

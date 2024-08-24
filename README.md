@@ -41,7 +41,6 @@ export PATH=/path/to/CPhasing/bin:$PATH
     - [bedtools](https://bedtools.readthedocs.io/en/latest/)
     - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
-    - [wfmash](https://github.com/waveygang/wfmash)
 2. For Pore-C pipeline
     - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)
 3. For Hi-C pipeline
@@ -164,7 +163,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 
 
 ### Curation by Juicebox
-- generate `.assembly` and `.hic`
+- generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)
 
 ```bash
 cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
@@ -178,9 +177,9 @@ cphasing utils assembly2agp groups.review.assembly -n 8:4
 ## or haploid or a homologous group
 cphasing utils assembly2agp groups.review.assembly -n 8
 ## extract contigs from agp 
-cphasing utils agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
+cphasing agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
 ## extract chromosome-level fasta from agp
-cphasing utils agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
+cphasing agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
 ```
 
 ### Rename and orient chromosome to a reference

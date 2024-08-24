@@ -38,23 +38,31 @@ def main(args):
     args = p.parse_args(args)
     
 
-    df = pd.read_csv(args.txt, sep='\s+', header=None, index_col=None, 
+    df = pd.read_csv(args.txt, sep=r'\s+', header=None, index_col=None, 
                         comment="C", usecols=range(9), engine="python",
-                        names=["type", "seq_name", "pat_kmer", "mat_kmer", "pat_pat", "mat_pat", "mat_mat", "seq_len"])
+                        names=["type", "seq_name", "pat_kmer", "mat_kmer", "pat_pat", "pat_mat", "mat_pat", "mat_mat",  "seq_len"])
 
     df = df[df["type"] == "S"]
     df = df.drop("type", axis=1)
 
     # df.columns = ["seq_name", "pat_kmer", "mat_kmer", "pat_pat", "mat_pat"] #, "mat_mat", "seq_len"]
-    df["pat_kmer"] = df["pat_kmer"] / 1000
-    df["mat_kmer"] = df["mat_kmer"] / 1000
-    
+    df['Total k-mers'] = df['pat_kmer'] + df['mat_kmer']
+    df["pat_pat"] = df["pat_pat"] / 1000
+    df["mat_mat"] = df["mat_mat"] / 1000
+    # df['Total k-mers'] = df['pat_kmer'] + df['mat_kmer'] * 1000
+    df['Length (kb)'] = df['seq_len'] / 1000
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(5, 5))
-    sns.scatterplot(x="pat_kmer", y="mat_kmer", data=df, ax=ax, size="seq_len")
-    plt.legend([])
+
+    sns.scatterplot(x="pat_kmer", y="mat_kmer", data=df, ax=ax, 
+                    size='seq_len', sizes=(10, 200), color="#B3CDE3")
+#     plt.legend([])
     ax.tick_params(axis="x", labelsize=14)
     ax.tick_params(axis="y", labelsize=14)
+    sns.despine()
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    plt.tick_params(which='both', width=1.5, length=5)
     # plt.xscale("log")
     # plt.yscale("log")
     plt.xlabel("# paternal k-mers (x$10^3$)", fontsize=16)

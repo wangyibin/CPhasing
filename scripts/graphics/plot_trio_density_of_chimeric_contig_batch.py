@@ -96,7 +96,7 @@ def main(args):
     contigsizes = df2.groupby('contig_source')['end'].max().to_dict()
 
 
-    break_pos_df = pd.read_csv(args.break_pos, sep='\t', header=None, index_col=None)
+    break_pos_df = pd.read_csv(args.break_pos, sep=r'\s+', header=None, index_col=None)
     break_pos_df.columns = ['contig', 'pos', 'software']
     
 

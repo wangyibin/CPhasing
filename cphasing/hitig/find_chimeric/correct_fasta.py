@@ -36,10 +36,10 @@ def break_contig(bpDic2, fa, outPre):
     for ctg in bpDic2:
         bpLst = bpDic2[ctg]
         if len(bpLst) == 1:
-            bpRegion = [(0, bpLst[0]), (bpLst[0], len(faDic[ctg]))]
+            bpRegion = [(1, bpLst[0]), (bpLst[0] + 1, len(faDic[ctg]))]
             regionDic[ctg] = bpRegion
             continue
-        bpRegion = [(0, bpLst[0])]
+        bpRegion = [(1, bpLst[0])]
         for bpi in range(0, len(bpLst)-1):
             bpRegion.append((bpLst[bpi], bpLst[bpi+1]))
         bpRegion.append((bpLst[-1], len(faDic[ctg])))

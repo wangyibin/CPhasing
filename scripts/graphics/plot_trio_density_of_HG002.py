@@ -148,6 +148,8 @@ def main(args):
                 hap = 1
             else:
                 hap = 2
+
+            
         if idx not in chroms:
             chroms.append(idx)
 

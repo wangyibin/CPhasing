@@ -11,11 +11,20 @@ from click_didyoumean import DYMGroup
 import logging
 import sys
 
+from rich.logging import Console, RichHandler
 
 # from ..cli import CommandGroup
 from ..cli import cli 
 from ..utilities import read_chrom_sizes
 from .. import __epilog__
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(console=Console(stderr=True))]
+)
+
 
 logger = logging.getLogger(__name__)
 

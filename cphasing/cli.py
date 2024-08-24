@@ -1124,7 +1124,8 @@ from .hitig.cli import hitig
     help="realign to rescue multiple alignments, only support for contig-level",
     is_flag=True,
     default=False,
-    show_default=True
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     '-f',

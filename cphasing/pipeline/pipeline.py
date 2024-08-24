@@ -369,6 +369,7 @@ def run(fasta,
             hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}.pairs.gz"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
+                Path(hg_input).unlink(missing_ok=True)
                 try:
                     if hcr_invert_string:
                         hcr.main(
@@ -428,7 +429,7 @@ def run(fasta,
             prepare_input = f"{pairs_prefix}.pairs.gz"
             input_param = "--pairs"
             if not Path(hg_input).exists() or not Path(prepare_input).exists():
-                
+                Path(hg_input).unlink(missing_ok=True)
                 try:
                     if hcr_invert_string:
                         hcr.main(

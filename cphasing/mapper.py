@@ -487,7 +487,7 @@ class PoreCMapper:
             logger.info('Running command:')
             logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
                         + ' > ' + str(self.outpaf))
-            #run_cmd(cmd)
+
             pipelines = []
             try:
                 
@@ -495,12 +495,12 @@ class PoreCMapper:
                     Popen(cmd0, stdout=PIPE,
                     stderr=open(f'{self.log_dir}/{self.prefix}'
                     '.mapping.log', 'w'),
-                    bufsize=-1)
+                    bufsize=-1, shell=True)
                 )
 
                 pipelines.append(
                     Popen(cmd, stdin=pipelines[-1].stdout,
-                          stdout=PIPE,
+                          stdout=PIPE, shell=True,
                     stderr=open(f'{self.log_dir}/{self.prefix}'
                     '.mapping.log', 'w'),
                     bufsize=-1)
@@ -508,7 +508,7 @@ class PoreCMapper:
 
                 pipelines.append(
                     Popen(cmd2, stdin=pipelines[-1].stdout,
-                        stdout=open(self.outpaf, 'wb'),
+                        stdout=open(self.outpaf, 'wb'), 
                         stderr=open(f'{self.log_dir}/{self.prefix}'
                     '.mapping.log', 'w'),
                     bufsize=-1)

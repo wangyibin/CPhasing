@@ -113,7 +113,6 @@ class CollapsedRescue:
                     except:
                         tmp_allelic_table.to_frame().set_index([2], inplace=True)
 
-        
                 except KeyError:
                     tmp_allelic_table = []
                 shared_similarity = np.zeros(len(groups))
@@ -127,14 +126,10 @@ class CollapsedRescue:
                             tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
                             if len(tmp) > 1:
                                 shared_similarity[i] = tmp['mzShared'].sum()
-                                print(tmp)
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
 
                 groups_new_idx[np.argmax(tmp_res)].append(j)
-
-                print(tmp_res, shared_similarity)
-                print()
                 
                 res.append(tmp_res)
             

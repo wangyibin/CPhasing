@@ -1068,7 +1068,7 @@ class ClusterTable:
             _idx = list(map(lambda x: int(x)+1, _idx))
             print(" ".join(map(str, _idx)), file=output)
     
-    def to_agp(self, contigsizes, output):
+    def to_agp(self, contigsizes, output, orientation_db=None):
         """
         Convert cluster to a pseudo agp 
         """
@@ -1085,8 +1085,12 @@ class ClusterTable:
                 contig_length = contigsizes_db[contig]
                 chrom_start = chrom_end if i != 0 else 1
                 chrom_end = chrom_start + contig_length 
+                if orientation_db:
+                    orientation = orientation_db[contig]
+                else:
+                    orientation = "+"
                 tmp_res = [group, chrom_start, chrom_end, idx, 
-                           "W", contig, 1, contig_length, "+"]
+                           "W", contig, 1, contig_length, orientation]
                 agp_res.append(tmp_res)
 
                 chrom_start = chrom_end + 1 

@@ -5132,13 +5132,20 @@ def statcluster(cluster, contigsizes, output):
     type=click.Path(exists=True),
 )
 @click.option(
+    "--init-agp",
+    metavar="STR",
+    help="input a init agp to set the contig orientation, default set all to +",
+    default=None,
+    show_default=True,
+)
+@click.option(
     "-o",
     "--output",
     help="Output of results",
     type=click.File('w'),
     default=sys.stdout
 )
-def cluster2agp(cluster, contigsizes, output):
+def cluster2agp(cluster, contigsizes, init_agp, output):
     """
     Convert cluster table to a pseudo agp file
 
@@ -5150,8 +5157,16 @@ def cluster2agp(cluster, contigsizes, output):
 
     """
     from .core import ClusterTable
+    from .agp import import_agp 
+    orientation_db = {}
     ct = ClusterTable(cluster)
-    ct.to_agp(contigsizes=contigsizes, output=output)
+    if init_agp:
+        agp_df, _ = import_agp(init_agp)
+        tmp_df = agp_df[['id', 'orientation']]
+        tmp_df.set_index('id', inplace=True)
+        orientation_db = tmp_df.to_dict()['orientation']
+    
+    ct.to_agp(contigsizes=contigsizes, output=output, orientation_db=orientation_db)
 
 
 @utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.')

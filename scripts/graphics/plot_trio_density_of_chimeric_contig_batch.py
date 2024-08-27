@@ -146,7 +146,7 @@ def main(args):
             seq_len = _seq_len
 
     
-    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='#bcbcbc', linewidth=0.01))
+    patch_collection = ax.add_collection(PatchCollection(patches, edgecolor='#bcbcbc', linewidth=0.02))
     patch_collection.set_facecolor(colors)
     ax.autoscale()
     ax.invert_yaxis()

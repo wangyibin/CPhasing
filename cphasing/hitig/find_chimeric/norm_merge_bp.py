@@ -165,10 +165,15 @@ def outputFile(normBpDic, contigsizesDict, outPre):
             fout1.write("{}\t{}\n".format(ctg, ",".join(map(str, posLst))))
 
     break_pos_df = pd.DataFrame(break_pos_list)
-    corrected_positions = break_points_to_regions(break_pos_df, contigsizesDict)
-    output_break_bed = f"{outPre}.chimeric.contigs.bed"
-    corrected_positions.to_csv(output_break_bed, 
-                                    header=None, index=None, sep='\t')
+    if break_pos_df.empty:
+        output_break_bed = f"{outPre}.chimeric.contigs.bed"
+        with open(output_break_bed, "w") as out:
+            pass  
+    else:
+        corrected_positions = break_points_to_regions(break_pos_df, contigsizesDict)
+        output_break_bed = f"{outPre}.chimeric.contigs.bed"
+        corrected_positions.to_csv(output_break_bed, 
+                                        header=None, index=None, sep='\t')
 
     return outPre + ".breakPos.txt"
 

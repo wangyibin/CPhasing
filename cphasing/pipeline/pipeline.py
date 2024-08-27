@@ -483,7 +483,7 @@ def run(fasta,
     else:
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
-            if low_memory:
+            if low_memory or mapping_quality > 0:
                 hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
                 if not Path(hg_input).exists():
                     cmd = ["cphasing-rs", "pairs-filter", prepare_input, 

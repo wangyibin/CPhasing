@@ -78,7 +78,8 @@ class CollapsedRescue:
             if len(groups) < 2:
                 continue 
             contigs = list_flatten(groups)
-            contigs_idx = list(map(vertices_idx.get, contigs))
+            contigs_idx = list(filter(lambda x: x is not None, map(vertices_idx.get, contigs)))
+            
             sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
             sub_alleletable = self.alleletable.data[
                 self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
@@ -86,13 +87,14 @@ class CollapsedRescue:
             sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
             P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
             sub_alleletable.set_index([1], inplace=True)
-
+            
             sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
             sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
            
             # sub_allelic = set(map(tuple, sub_alleletable[[1, 2]].values.tolist()))
 
-            groups_idx = list(map(lambda x: list(map(vertices_idx.get, x)), groups))
+            groups_idx = list(map(lambda x: list(filter(lambda x: x is not None, map(vertices_idx.get, x))), groups))
+
             groups_new_idx = list(map(lambda x: list(map(sub_old2new_idx.get, x)), groups_idx))
             groups_new_idx_db = {}
             for i in range(len(groups_new_idx)):
@@ -128,6 +130,7 @@ class CollapsedRescue:
                                 shared_similarity[i] = tmp['mzShared'].sum()
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
+                     
 
                 groups_new_idx[np.argmax(tmp_res)].append(j)
                 

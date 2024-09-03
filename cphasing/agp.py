@@ -209,6 +209,9 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
     
     else:
         tmp_data = agp_df.reset_index()[['chrom', 'id', 'tig_start', 'tig_end']].values.tolist()
+        contig_idx = defaultdict(int)
+        collapsed_rescue_flag = False 
+        collapsed_rescued_contigs = []
         for record in tmp_data:
             output_contig, raw_contig, start, end = record 
             seq = seq_db[raw_contig]
@@ -216,16 +219,31 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
             if start == 1 and end == seq_length:
                 seq = str(seq)
                 output_contig = raw_contig
+                contig_idx[output_contig] += 1
             else:
                 seq = str(seq[start-1: end])
                 output_contig = f"{raw_contig}:{start}-{end}"
+                contig_idx[output_contig]
+
+            if contig_idx[output_contig] > 1:
+                logger.info(f"Duplicated contig `{output_contig}` find in agp records, suggest it is a collapsed contig, rename it to `{output_contig}_d{contig_idx[output_contig]}`")
+                raw_contig = output_contig
+                output_contig = f"{output_contig}_d{contig_idx[output_contig]}"
+                collapsed_rescue_flag = True
+                collapsed_rescued_contigs.append((raw_contig, output_contig))
 
             print(f'>{output_contig}', file=output)
             print(seq, file=output)
 
         logger.info(f"Output contig-level fasta into `{output.name}`.")
 
-def agp2tour(agp, outdir, force=False):
+        if collapsed_rescue_flag:
+            with open(f"{output.name.replace(".fasta", ".collapsed.contig.list")}", "w") as out:
+                for raw_contig, output_contig in collapsed_rescued_contigs:
+                    out.write(f"{raw_contig}\t{output_contig}\n")
+            logger.info(f"Output collapsed contigs: `{output.name.replace(".fasta", ".collapsed.contig.list")}`")
+
+def agp2tour(agp, outdir="tour", force=False, store=True):
     """
     Convert agp to several tour files.
 
@@ -237,10 +255,12 @@ def agp2tour(agp, outdir, force=False):
         output directory of tour results.
     force: bool
         whether remove exists directory.
-    
+    store: bool
+        whether to store to files
+
     Returns:
     --------
-    None
+    dict
 
     Examples:
     --------
@@ -258,6 +278,21 @@ def agp2tour(agp, outdir, force=False):
     cluster_df = agp_df.groupby('chrom')
     tour = Tour
     
+    
+    db = OrderedDict()
+    for group, cluster in cluster_df:
+
+        if cluster.empty is True:
+            continue
+        data = []
+        for i, row in cluster.iterrows():
+            if row['id'] in duplicated_contigs: 
+                data.append((f"{row.id}:{row.tig_start}-{row.tig_end}", row.orientation))
+            else:
+                data.append((row.id, row.orientation))
+
+        db[group] = data
+            
     outdir = Path(outdir)
     if outdir.exists():
         if force:
@@ -266,20 +301,8 @@ def agp2tour(agp, outdir, force=False):
         else:
             logger.warn(f'The output directory of `{outdir}` exists.')
     outdir.mkdir(parents=True, exist_ok=True)
-    
-    for group, cluster in cluster_df:
-
-        if cluster.empty is True:
-            continue
         
-        data = []
-
-        for i, row in cluster.iterrows():
-            if row['id'] in duplicated_contigs: 
-                data.append((f"{row.id}:{row.tig_start}-{row.tig_end}", row.orientation))
-            else:
-                data.append((row.id, row.orientation))
-        
+    for group, data in db.items():  
         
         tour.from_tuples(data)
         with open(f'{str(outdir)}/{group}.tour', 'w') as out:
@@ -288,7 +311,7 @@ def agp2tour(agp, outdir, force=False):
 
     logger.info('ALL done.')
 
-    return agp_df
+    return db
 
 def statagp(agp, output):
     """
@@ -610,3 +633,49 @@ def assembly2agp(assembly,
     # else:
     #     logger.info(f"Fragmented contig not found, the `{raw_agp}` equale to `{agp}`, "
     #                 f"and fasta can be used to subsequence analysis.")
+
+
+def agp_dup(agp, output):
+    """
+    rename duplicated contigs to other name in agp file
+    """
+
+    # collapsed_contigs = {}
+    # with open(collapsed_list) as fp:
+    #     for line in fp:
+    #         if not line.strip():
+    #             continue
+    #         line_list = line.strip().split()
+    #         if len(line_list) < 2:
+    #             continue
+
+    #         contig1, contig2 = line_list 
+
+    #         if contig1 not in collapsed_contigs:
+    #             collapsed_contigs[contig1] = [contig1]
+            
+    #         collapsed_contigs[contig1].append(contig2)
+
+    
+
+    agp_df, _ = import_agp(agp)
+    agp_df.reset_index(inplace=True)
+    duplicated_df = agp_df[agp_df.duplicated('id')]
+
+    duplicated_contigs = defaultdict(lambda :1)
+    for idx, row in duplicated_df.iterrows():
+        duplicated_contigs[row.id] += 1
+        suffix = duplicated_contigs[row.id]
+        if row['chrom'] == row['id']:
+            agp_df.loc[idx, 'chrom'] = f"{row.id}_d{suffix}"
+
+        agp_df.loc[idx, 'id'] = f"{row.id}_d{suffix}"
+
+    
+    agp_df.to_csv(output, sep='\t', header=None, index=None)
+
+        
+    
+    
+            
+

@@ -15,6 +15,8 @@ import pyranges as pr
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
+import seaborn as sns
 from cphasing.utilities import read_chrom_sizes
 
 """
@@ -72,8 +74,9 @@ def get_wave_vally(depth_df, outPre, Max=None):
     
     trough_ind = trough_ind[0]
     
-    
-    trough = trough_ind[np.argmin(np.array(yvals)[trough_ind])] + 1
+
+    trough = xxx[trough_ind[np.argmin(np.array(yvals)[trough_ind])]] + 1
+
     # trough_widths = signal.peak_widths(-yvals, [trough], rel_height=0.3)
    
     if len(peak_ind) == 0:
@@ -84,8 +87,8 @@ def get_wave_vally(depth_df, outPre, Max=None):
         peak_ind = [lower_value, upper_value]
 
     # draw picture
-    width = 7
-    height = 6
+    width = 5.7
+    height = 5
     filepath = outPre + "_dist.pdf"
     filepath_png = outPre + "_dist.png"
     plt.figure(num=None, figsize=(width, height))
@@ -111,8 +114,20 @@ def get_wave_vally(depth_df, outPre, Max=None):
 
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
-    plt.ylabel("Counts", fontsize=14)
-    plt.xlabel("Depth", fontsize=14)
+    plt.ylabel("Frequency", fontsize=20)
+    plt.xlabel("Coverage", fontsize=20)
+    ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+
+    plt.tick_params(which='both', width=1.5, length=5)
+    sns.despine()
+
     plt.savefig(filepath, bbox_inches='tight', dpi=600)
     plt.savefig(filepath_png, bbox_inches='tight', dpi=600)
 

@@ -12,17 +12,23 @@ import warnings
 import cooler 
 import numpy as np
 import pandas as pd
+import polars as pl
 
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
+from itertools import product
 from scipy.sparse import triu
 from pandarallel import pandarallel 
+from pathlib import Path
 
 try:
     from .algorithms.hypergraph import extract_incidence_matrix2 
+    from .core import Tour
     from .utilities import run_cmd, list_flatten
+    from .agp import agp2cluster, import_agp, agp2tour
 except ImportError:
     from cphasing.utilities import run_cmd, list_flatten
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +56,11 @@ class CollapsedRescue:
         self.collapsed_contigs = collapsed_contigs
         self.allelic_similarity = allelic_similarity
         
-        self.hap_groups = self.clustertable.hap_groups
+        self.hap_groups = self.hap_groups
         self.H = HG.incidence_matrix()
         self.vertices = self.HG.nodes 
+
+    
 
     @property
     def vertices_idx(self):
@@ -150,7 +158,300 @@ class CollapsedRescue:
         self.clustertable.data = new_cluster_data
         self.clustertable.save("test.clusters.txt")
 
+
+class CollapsedRescue2:
+    """
+    Rescue the collapsed contigs into a ordered and oriented group
+    """
+    def __init__(self, HG, agp, contigsizes,
+                 alleletable, split_contacts, 
+                    collapsed_contigs, allelic_similarity: float=.85):
+        
+        self.HG = HG 
+        self.agp_file = agp
+
+        self.cluster_df = agp2cluster(self.agp_file, store=False)
+        self.cluster_df = self.cluster_df.reset_index()
+        self.cluster_df = self.cluster_df[self.cluster_df['id'].apply(lambda x: len(x) > 0)]
+        self.cluster_df.set_index('chrom', inplace=True)
+        self.cluster_data = self.cluster_df.to_dict()['id']
+
+
+        self.contigsizes = contigsizes
+        self.alleletable = alleletable 
+        self.alleletable.data = self.alleletable.data[
+            self.alleletable.data['similarity'] >= allelic_similarity]
+
+        self.split_contacts = split_contacts
+
+        if self.split_contacts:
+            self.split_link_df  = pl.read_csv(self.split_contacts, separator='\t', has_header=False,
+                            dtypes={"column_1": pl.Categorical, 
+                                    "column_2": pl.Categorical,
+                                    "column_3": pl.UInt32}).to_pandas()
+            self.split_link_df.columns = [0, 1, 2]
+
+        else:
+            self.split_link_df = None
+
+        self.collapsed_contigs = collapsed_contigs
+        self.allelic_similarity = allelic_similarity
+
+        self.H = HG.incidence_matrix()
+        self.vertices = self.HG.nodes 
+
+    @property
+    def hap_groups(self):
+        db = OrderedDict()
+        for group in self.cluster_data:
+            try:
+                hap, idx = group.rsplit("g", 1)
+            except:
+                if group not in db:
+                    db[group] = []
+                db[group].append(self.cluster_data[group])
+                continue
+            finally:
+                try:
+                    if hap not in db:
+                        db[hap] = []
+
+                    db[hap].append(self.cluster_data[group])
+                except UnboundLocalError:
+                    logger.warning("Unexpect group name `{group}`, must be Chr[\d+]g[\d+]")
+            
+        return db
+
+    @property
+    def vertices_idx(self):
+        return dict(zip(self.vertices, 
+                        range(len(self.vertices))))
     
+    @property
+    def idx_to_vertices(self):
+        idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
+        
+        return idx_to_vertices
+
+    def get_group_with_orientation(self):
+        
+        db = agp2tour(self.agp_file, store=False)
+        for group in db:
+            db[group] = OrderedDict(db[group])
+
+        return db 
+    
+    @staticmethod
+    def _rescue(A, ):
+        pass
+
+    def rescue(self):
+        vertices_idx = self.vertices_idx
+        idx_to_vertices = self.idx_to_vertices
+        new_cluster_data = {}
+        rescued_data = OrderedDict()
+        for k, hap_group in enumerate(self.hap_groups):
+            groups = self.hap_groups[hap_group]
+            if len(groups) < 2:
+                continue 
+            contigs = list_flatten(groups)
+            contigs_idx = list(filter(lambda x: x is not None, map(vertices_idx.get, contigs)))
+            
+            sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
+            sub_alleletable = self.alleletable.data[
+                self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
+            sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
+            sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+            P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
+            sub_alleletable.set_index([1], inplace=True)
+            
+            sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
+            sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
+           
+            # sub_allelic = set(map(tuple, sub_alleletable[[1, 2]].values.tolist()))
+
+            groups_idx = list(map(lambda x: list(filter(lambda x: x is not None, map(vertices_idx.get, x))), groups))
+
+            groups_new_idx = list(map(lambda x: list(map(sub_old2new_idx.get, x)), groups_idx))
+            groups_new_idx_db = {}
+            rescued_new_idx_db = OrderedDict()
+            for i in range(len(groups_new_idx)):
+                groups_new_idx_db.update(dict(zip(groups_new_idx[i], [i] * len(groups_new_idx[i]))))
+                
+            sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(axis=0)
+            sub_collapsed_contigs_idx = list(map(vertices_idx.get, sub_collapsed_contigs.index.tolist()))
+            sub_collapsed_contigs_idx_new = list(map(sub_old2new_idx.get, sub_collapsed_contigs_idx))
+
+            res = []
+           
+
+            for j in sub_collapsed_contigs_idx_new:
+                try:
+                    tmp_allelic_table = sub_alleletable.loc[j]
+                    try:
+                        tmp_allelic_table.set_index([2], inplace=True)
+                    except:
+                        tmp_allelic_table.to_frame().set_index([2], inplace=True)
+
+                except KeyError:
+                    tmp_allelic_table = []
+                shared_similarity = np.zeros(len(groups))
+                tmp_res = []
+                for i in range(len(groups)):
+                    
+                    if i == groups_new_idx_db[j]:
+                        tmp_res.append(0)
+                    else:
+                        if len(tmp_allelic_table) > 1:
+                            tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
+                            if len(tmp) > 1:
+                                shared_similarity[i] = tmp['mzShared'].sum()
+
+                        tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
+                     
+                
+                max_idx = np.argmax(tmp_res)
+                groups_new_idx[max_idx].append(j)
+                if max_idx not in rescued_new_idx_db:
+                    rescued_new_idx_db[max_idx] = []
+                rescued_new_idx_db[max_idx].append(j)
+                res.append(tmp_res)
+            
+            new_rescued_groups = []
+            new_groups = []
+            for n, group_idx in enumerate(groups_new_idx):
+                tmp = list(map(lambda x: contigs_idx[x], group_idx))
+                tmp = list(map(idx_to_vertices.get, tmp))
+                new_groups.append(tmp)
+            
+                tmp = list(map(lambda x: contigs_idx[x], rescued_new_idx_db[n]))
+                tmp = list(map(idx_to_vertices.get, tmp))
+                new_rescued_groups.append(tmp)
+            
+
+            for k, group in enumerate(new_rescued_groups):
+                rescued_data[f'{hap_group}g{k+1}'] = group 
+
+
+            for k, group in enumerate(new_groups):
+                new_cluster_data[f'{hap_group}g{k+1}'] = group 
+            
+        self.rescued_data = rescued_data
+
+    def assign(self):
+        """
+        assign rescue collapsed contigs into correct position and orientation
+        """
+        split_contig_size_df = self.contigsizes // 2
+        split_contig_size_db = split_contig_size_df.to_dict()['length']
+
+        
+        self.split_link_df['contig1'] = self.split_link_df[0].str.rsplit('_', n=1).str[0]
+        self.split_link_df['contig2'] = self.split_link_df[1].str.rsplit('_', n=1).str[0]
+
+        self.split_link_df['length1'] = self.split_link_df['contig1'].map(split_contig_size_db.get)
+        self.split_link_df['length2'] = self.split_link_df['contig2'].map(split_contig_size_db.get)
+
+        self.split_link_df[2] = self.split_link_df[2] / (self.split_link_df['length1'] * self.split_link_df['length2'])
+        
+        self.split_link_df.drop(['contig1', 'contig2', 'length1', 'length2'], inplace=True, axis=1)
+        split_link_df2 = self.split_link_df.copy()
+        split_link_df2.columns = [1, 0, 2]
+        self.split_link_df = pd.concat([self.split_link_df, split_link_df2], axis=0)
+        self.split_link_df = self.split_link_df.drop_duplicates(subset=[0, 1], keep='first')
+        self.split_link_df.set_index([0, 1], inplace=True)
+
+
+        assign_result = OrderedDict()
+        for group in self.rescued_data:
+            contigs = self.cluster_data[group]
+            split_contigs = list_flatten([list(map(lambda x: f"{x}_0", contigs)), 
+                                          list(map(lambda x: f"{x}_1", contigs))])
+            res = []
+            for contig in self.rescued_data[group]:
+                contig1 = f"{contig}_0"
+                contig2 = f"{contig}_1"
+                tmp_data = self.split_link_df.reindex(list(set(list(product([contig1, contig2], split_contigs))))).dropna()
+                tmp_data = tmp_data.reset_index()
+                tmp_data = tmp_data.loc[tmp_data[0].str.rsplit("_", n=1).str[0] != tmp_data[1].str.rsplit("_", n=1).str[0]]
+                tmp_data = tmp_data.sort_values(2, ascending=False)
+                
+                if tmp_data.empty:
+                    continue
+                split_contigs.append(contig1)
+                split_contigs.append(contig2)
+
+               
+                res.append(tmp_data.loc[tmp_data[2].idxmax()][[0, 1]].values.tolist())
+                
+            assign_result[group] = res
+        
+        
+        db = self.get_group_with_orientation()
+        for group in assign_result:
+            tmp_orientations = db[group]
+    
+            for pair in assign_result[group]:
+                contig1, contig2 = pair
+                contig1, suffix1 = contig1.rsplit("_", 1)
+                contig2, suffix2 = contig2.rsplit("_", 1)
+
+                
+                strand2 = tmp_orientations[contig2]
+                tmp_orientations = list(tmp_orientations.items())
+                idx = tmp_orientations.index((contig2, strand2))
+                if strand2 == "+":
+                    if suffix2 == "1":
+                        idx = idx + 1
+                        if suffix1 == "0":
+                            strand1 = "+"
+                        else:
+                            strand1 = "-"
+                    else:
+                        idx = idx
+                        if suffix1 == "0":
+                            strand1 = "-"
+                        else:
+                            strand1 = "+"
+                else:
+                    if suffix2 == "1":
+                        idx = idx
+                        if suffix1 == "0":
+                            strand1 = "-"
+                        else:
+                            strand1 = "+"
+                    else:
+                        idx = idx + 1 
+                        if suffix1 == "0":
+                            strand1 = "+"
+                        else:
+                            strand1 = "-"
+
+                
+                
+                tmp_orientations.insert(idx, (contig1, strand1))
+                tmp_orientations = OrderedDict(tmp_orientations)
+            db[group] = tmp_orientations
+
+        outdir = "tour"
+        Path(outdir).mkdir(exist_ok=True)
+        tour = Tour
+        for group in db:
+            db[group] = list(db[group].items())
+
+            tour.from_tuples(db[group])
+            with open(f'{str(outdir)}/{group}.tour', 'w') as out:
+                print(' '.join(map(str, tour.data)), file=out)
+                logger.debug(f'Output tour: `{out.name}`')
+        
+            
+
+    def run(self):
+        self.rescue()
+        if self.split_link_df is not None:
+            self.assign()
+
+
 
 def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):
     """

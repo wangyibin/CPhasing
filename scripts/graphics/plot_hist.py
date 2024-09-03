@@ -67,12 +67,15 @@ def main(args):
             help='y label text [default: %(default)s]')
     pOpt.add_argument('--kde', default=True, action='store_false', 
                         help="plot kde line [default: %(default)s]")
+    pOpt.add_argument('-o', '--output', type=str,
+                default=None, help='output file [default: suffix of input file]')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
     args = p.parse_args(args)
 
     fig, ax = plt.subplots(figsize=(5.7, 5))
+    # fig, ax = plt.subplots(figsize=(3, 5))
 
     df = read_csv(args.data[0])
     res = []
@@ -110,6 +113,7 @@ def main(args):
         plt.xlim(args.x_min, args.x_max)
 
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
     plt.xticks(fontsize=18, rotation=45, ha='right')
 
     plt.yticks(fontsize=18)
@@ -117,9 +121,9 @@ def main(args):
     # plt.legend(fontsize=16)
     
 
-
-    plt.savefig(f'{args.data[0]}.hist.plot.png', dpi=600, bbox_inches='tight')
-    plt.savefig(f'{args.data[0]}.hist.plot.pdf', dpi=600, bbox_inches='tight')
+    output = args.output if args.output else args.data[0]
+    plt.savefig(f'{output}.hist.plot.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{output}.hist.plot.pdf', dpi=600, bbox_inches='tight')
 
 if __name__ == "__main__":
     main(sys.argv[1:])

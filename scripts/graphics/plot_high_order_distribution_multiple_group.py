@@ -61,7 +61,7 @@ def main(args):
     # colors = ['#8dc0ed', '#8dc0ed', '#8dc0ed', '#df8384', '#df8384', '#df8384', '#df8384', ]
 
 #     markers = ["D", "^", "p", "s", 'v', '*']
-    # markers = ["^", "^", '^', 'D', 'D', 'D', 'D']
+    # markers = ["o", "o", 'o', 'D', 'D', 'D', 'D']
     # markers = ['D', 'D', 'D', 'D']
     bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluered_12)))
     ax = sns.pointplot(data=hist_df, x='order', y='proportion', 

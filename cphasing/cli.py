@@ -3451,6 +3451,102 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     cr.rescue()
 
 
+@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@click.argument(
+    "hypergraph",
+    metavar="HyperGraph",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="ContigSizes",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "agp_file",
+    metavar="AGP",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "collapsed_contigs",
+    metavar="Collapsed_Contigs_Table",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-n",
+    "--ploidy",
+    help="ploidy level of genome.",
+    metavar="INT",
+    default=2,
+    type=int
+)
+@click.option(
+    "-at",
+    "--alleletable",
+    metavar="PATH",
+    help="""
+    Path to allele table that is generated from `alleles`. 
+        Skip when prunetable parameter added. [default: None]
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-c",
+    "-s",
+    "-sc",
+    "--split-contacts",
+    "split_contacts",
+    metavar="SPLIT_CONTACTS",
+    help="Split contacts from `cphasing-rs pairs2clm`, only used in `precision` or `fast` mode.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    "-as",
+    "--allelic-similarity",
+    "allelic_similarity",
+    metavar="FLOAT",
+    help="The similarity of allelic, which used to merge clusters",
+    default=0.85,
+    type=click.FloatRange(0.0, 1.0),
+    show_default=True
+)
+def collapsed_rescue2(hypergraph, contigsizes, agp_file, 
+                    collapsed_contigs, ploidy,
+                    alleletable, split_contacts, allelic_similarity):
+    import msgspec
+    from .agp import import_agp
+    from .collapse import CollapsedRescue2
+    from .core import AlleleTable, ClusterTable 
+    from .algorithms.hypergraph import HyperEdges, HyperGraph
+    from .utilities import read_chrom_sizes
+    hyperedge = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+    hyperedge.to_numpy()
+    hypergraph = HyperGraph(hyperedge, min_quality=2)
+    
+    at = AlleleTable(alleletable, sort=False, fmt="allele2")
+    
+    contigsizes = read_chrom_sizes(contigsizes)
+    collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
+                                        names=["contig", "depth", "CN"])
+
+    collapsed_contigs = collapsed_contigs[collapsed_contigs["CN"] <= (ploidy)]
+
+    cr = CollapsedRescue2(
+        HG=hypergraph,
+        agp=agp_file,    
+        contigsizes=contigsizes,
+        alleletable=at,
+        split_contacts=split_contacts,
+        collapsed_contigs=collapsed_contigs,
+        allelic_similarity=allelic_similarity,
+    )
+
+    cr.run()
+
 @cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
     "clustertable",
@@ -4961,6 +5057,28 @@ def agp2tour(agp, outdir, force):
     from .agp import agp2tour
 
     agp2tour(agp, outdir, force)
+
+@utils.command(cls=RichCommand, short_help='Rename dupliacted contig in agp file')
+@click.argument(
+    "agp",
+    metavar="AGP",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def agp_dup(agp, output):
+    """
+    Rename duplicated contig to another name.
+    Note: this function conflict with break contig with raw name, which mean breaked contig name should be renamed.
+    """
+
+    from .agp import agp_dup
+    agp_dup(agp=agp, output=output)
 
 
 @utils.command(cls=RichCommand, short_help="Convert assembly to agp file and contigs file")

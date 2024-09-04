@@ -3458,8 +3458,8 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     type=click.Path(exists=True)
 )
 @click.argument(
-    "contigsizes",
-    metavar="ContigSizes",
+    "fasta",
+    metavar="Fasta",
     type=click.Path(exists=True),
 )
 @click.argument(
@@ -3514,7 +3514,7 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
-def collapsed_rescue2(hypergraph, contigsizes, agp_file, 
+def collapsed_rescue2(hypergraph, fasta, agp_file, 
                     collapsed_contigs, ploidy,
                     alleletable, split_contacts, allelic_similarity):
     import msgspec
@@ -3529,7 +3529,7 @@ def collapsed_rescue2(hypergraph, contigsizes, agp_file,
     
     at = AlleleTable(alleletable, sort=False, fmt="allele2")
     
-    contigsizes = read_chrom_sizes(contigsizes)
+    
     collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
                                         names=["contig", "depth", "CN"])
 
@@ -3538,7 +3538,7 @@ def collapsed_rescue2(hypergraph, contigsizes, agp_file,
     cr = CollapsedRescue2(
         HG=hypergraph,
         agp=agp_file,    
-        contigsizes=contigsizes,
+        fasta=fasta,
         alleletable=at,
         split_contacts=split_contacts,
         collapsed_contigs=collapsed_contigs,
@@ -4347,7 +4347,7 @@ def pairs2mnd(pairs, output):
     "-q",
     "--min-mapq",
     "min_mapq",
-    default=0,
+    default=1,
     metavar="INT",
     help="Minimum mapping quality of alignments",
     type=click.IntRange(0, 60),

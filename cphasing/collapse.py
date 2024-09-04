@@ -6,6 +6,7 @@ import logging
 import gc
 import os
 import os.path as op
+import shutil
 import sys
 import warnings
 
@@ -24,8 +25,12 @@ from pathlib import Path
 try:
     from .algorithms.hypergraph import extract_incidence_matrix2 
     from .core import Tour
-    from .utilities import run_cmd, list_flatten
+    from .utilities import run_cmd, list_flatten, get_contig_size_from_fasta, read_chrom_sizes
     from .agp import agp2cluster, import_agp, agp2tour
+    from .cli import build
+    from .cli import utils
+    agp2fasta = utils.get_command(utils, cmd_name='agp2fasta')
+    agp_dup = utils.get_command(utils, cmd_name='agp-dup')
 except ImportError:
     from cphasing.utilities import run_cmd, list_flatten
 
@@ -163,7 +168,7 @@ class CollapsedRescue2:
     """
     Rescue the collapsed contigs into a ordered and oriented group
     """
-    def __init__(self, HG, agp, contigsizes,
+    def __init__(self, HG, agp, fasta,
                  alleletable, split_contacts, 
                     collapsed_contigs, allelic_similarity: float=.85):
         
@@ -176,8 +181,10 @@ class CollapsedRescue2:
         self.cluster_df.set_index('chrom', inplace=True)
         self.cluster_data = self.cluster_df.to_dict()['id']
 
-
-        self.contigsizes = contigsizes
+        self.fasta = fasta 
+        self.fasta_path = Path(self.fasta).absolute()
+        
+        self.contigsizes = read_chrom_sizes(str(get_contig_size_from_fasta(self.fasta_path)))
         self.alleletable = alleletable 
         self.alleletable.data = self.alleletable.data[
             self.alleletable.data['similarity'] >= allelic_similarity]
@@ -444,13 +451,67 @@ class CollapsedRescue2:
                 print(' '.join(map(str, tour.data)), file=out)
                 logger.debug(f'Output tour: `{out.name}`')
         
+
+        os.chdir(outdir)
+        try:
+            build.main(args=[str(self.fasta_path),
+                            "-oa", "groups.dup.raw.agp",
+                            "--only-agp",], 
+                       prog_name="build")
+
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
             
+            if exit_code != 0:
+                raise e
+            
+        
+        try:
+            agp2fasta.main(args=["groups.dup.raw.agp", 
+                                 str(self.fasta_path), 
+                                 "--contigs", "-o", 
+                                 "contigs.fasta"],
+                            prog_name="agp2fasta")
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+
+        try:
+            agp_dup.main(args=["groups.dup.raw.agp", 
+                                "-o",
+                                "groups.dup.renamed.agp"
+                                 ],
+                            prog_name="agp2fasta")
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+            
+        shutil.copy(f"groups.dup.raw.agp", "../")
+        shutil.copy(f"groups.dup.renamed.agp", "../")
+        shutil.copy(f"contigs.collapsed.contig.list", "../")
+        shutil.copy(f"contigs.fasta", "../contigs.dup.fasta")
+
+        os.chdir("..")
+        
+        shutil.rmtree(outdir)
 
     def run(self):
         self.rescue()
         if self.split_link_df is not None:
             self.assign()
-
 
 
 def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):

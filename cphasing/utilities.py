@@ -464,6 +464,22 @@ def read_chrom_sizes(chrom_size):
 
     return df 
 
+def get_contig_size_from_fasta(fasta, force=False):
+    fasta_path = Path(fasta)
+    contigsizes = Path(f"{fasta_path.stem}.contigsizes")
+
+    if contigsizes.exists() and force is False:
+        logger.info(f"Load exists contigsizes: `{str(contigsizes)}`")
+        return contigsizes
+        
+    cmd = ["cphasing-rs", "chromsizes", str(fasta_path), 
+                "-o", str(contigsizes)]
+    
+    flag = run_cmd(cmd, log=os.devnull)
+    assert flag == 0, "Failed to execute command, please check log."           
+
+    return contigsizes  
+
 def calculate_Nx_from_contigsizes(contigsizes: pd.DataFrame, Nx: int) -> int:
     """
     calculate N10-N90 from a contigsizes dataframe

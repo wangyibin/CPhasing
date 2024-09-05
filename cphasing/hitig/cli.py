@@ -708,6 +708,56 @@ def hcr(fasta, lis, split_align, paf,
             logger.warning("The file of break position and contig sizes should be input at the same time.")
         hcr.workflow(lis, split_align, hcr_from_depth_file, 
                         min_count, min_score, output, use_continous_regions=use_continous_region)
+        
+
+@hitig.command(cls=RichCommand, hidden=True)
+@click.option(
+    '-f',
+    '--fasta',
+    metavar='Fasta',
+    help='the raw contigs file.',
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-d',
+    '--depth',
+    metavar="Depth",
+    help="Depth file of mapping quality 0",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '-f',
+    '--force',
+    help='Force run all the command, ignore existing results.'
+    ' The index file also will be removed.',
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+def clean(fasta, depth, threads, force):
+    """
+    Remove false duplicated and dup collapsed contigs.
+    """
+    from .hcr.clean import Clean 
+
+    c = Clean(fasta, 
+              depth, 
+              threads=threads, 
+              force=force)
+    c.run()
+
+
 
 
 

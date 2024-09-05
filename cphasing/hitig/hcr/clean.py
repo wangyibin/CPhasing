@@ -19,8 +19,10 @@ import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 from pyranges import PyRanges
+from subprocess import PIPE, Popen
 
 from ...utilities import (
+    cmd_exists,
     read_fasta, 
     get_contig_size_from_fasta, 
     read_chrom_sizes
@@ -69,16 +71,25 @@ class Clean:
                  "matches", "mapq", "identity"]
     
     DEPTH_HEADER = ["chrom", "start", "end", "count"]
-    def __init__(self, fasta, paf, depth, output="output.clean.list", 
-                    threads=10, ):
+    def __init__(self, fasta, depth, 
+                    max_cn=2,
+                    min_coverage=0.5,
+                    min_length=50000, ## minimum length of collapsed contigs
+                    output=None, 
+                    threads=10, log_dir="logs", force=False):
         self.fasta = fasta
-        self.paf = paf
+        self.fasta_prefix = Path(fasta).stem
+        self.paf = f"{self.fasta_prefix}.selfalign.paf"
         self.depth = depth 
         self.output = output
+        self.force = force
+        self.max_cn = max_cn 
+        self.min_coverage = min_coverage 
+        self.min_length = min_length
 
         self.contigsizes = read_chrom_sizes(str(get_contig_size_from_fasta(self.fasta)))
     
-
+        self.mapping()
         self.paf_df = self.read_paf()
         self.depth_df = self.read_depth()
         self.peak = self.get_main_peak()
@@ -91,12 +102,51 @@ class Clean:
         self.junk_contig_length = 0
         self.remove_dup_contig_length = 0
         self.collapsed_contig_length = 0
+        
+        self.threads = threads
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
-    def align(self):
-        cmd = ["wfmash", "-t",  str(), "-m", ""]
+        if not cmd_exists("wfmash"):
+            logger.error(f'No such command of `wfmash`.')
+            sys.exit()
+
+    def mapping(self):
+
+        if self.force is False:
+            logger.debug("Force is False")
+            if Path(self.paf).exists():
+                logger.warning(f"Using existing mapping results: `{self.paf}`")
+                return self.paf
+
+        logger.info("Mapping ...")
+        cmd = ["wfmash", "-t", str(self.threads), str(self.fasta), "-m"]
+
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.paf, "w"),
+                      stderr=open(f"{self.log_dir}/clean.self.align.log", "w"),
+                      bufsize=-1)
+            )
+            pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{cmd}')
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}')
+
+        return self.paf
 
 
-        pass 
 
     def read_paf(self):
         logger.info(f"Load alignments results `{self.paf}`")
@@ -153,9 +203,9 @@ class Clean:
 
         return peak_value
 
-    def get_collapsed(self, min_coverage=0.5):
-        
-        tmp_df = self.depth_df[self.depth_df['CN'] > 1.5][['chrom', 'start', 'end']]
+    def get_collapsed(self):
+        min_coverage = self.min_coverage
+        tmp_df = self.depth_df[(self.depth_df['CN'] > 1.5) & (self.depth_df['CN'] <= self.max_cn + 0.5)][['chrom', 'start', 'end']]
         tmp_df.columns = ['Chromosome', 'Start', 'End']
         tmp_df = PyRanges(tmp_df).merge().df
         contig_length_db = self.contigsizes.to_dict()['length']
@@ -183,18 +233,19 @@ class Clean:
         return self.junk_contigs
         
     
-    def remove_dup(self, min_coverage=0.5):
-        
+    def remove_dup(self):
+        min_coverage = self.min_coverage 
         false_df = self.category_df[self.category_df['type'] == 1] 
 
 
         alignment_df = self.paf_df 
         alignment_df['coverage2'] = (alignment_df['end2'] - alignment_df['start2']) / alignment_df['length2']
         alignment_df.set_index('contig1', inplace=True)
-
+        alignment_cache = {row.chrom: alignment_df.loc[row.chrom] 
+                           for idx, row in false_df.iterrows() if row.chrom in alignment_df.index}
         for idx, row in false_df.iterrows():
             try:
-                tmp_df = alignment_df.loc[row.chrom]
+                tmp_df = alignment_cache[row.chrom]
             except KeyError:
                 continue 
             
@@ -212,7 +263,8 @@ class Clean:
                         self.remove_dup_contigs.add(remove_contig)
                     
                 else:
-                    tmp_df2 = tmp_df[(tmp_df["length2"] < tmp_df["length1"]) & (tmp_df['coverage2'] > min_coverage)]
+                    tmp_df2 = tmp_df[(tmp_df["length2"] < tmp_df["length1"]) 
+                                        & (tmp_df['coverage2'] > min_coverage)]
                     for idx, row in tmp_df2.iterrows():
                         remove_contig = row['contig2']
                         remove_length = row['length2']
@@ -235,6 +287,7 @@ class Clean:
                 if remove_contig not in self.remove_dup_contigs:
                     self.remove_dup_contig_length += remove_length
                     self.remove_dup_contigs.add(remove_contig)
+               
 
         logger.info(f"Total `{self.remove_dup_contig_length}` false duplicated.")
 
@@ -242,45 +295,67 @@ class Clean:
 
     def category(self):
         
-        def func(row):
+        def func(cn):
             
-            if row['CN'] <= 0.25:
+            if cn <= 0.25:
                 return 0
-            elif 0.25 < row['CN'] <= 0.75:
+            elif 0.25 < cn <= 0.75:
                 return 1
-            elif 0.75 < row['CN'] <= 1.5:
-                return 2
             else:
-                return 3
+                return 2
         
-        cn_df = self.depth_df.groupby('chrom')['count'].mean()
-        cn_db = cn_df.to_dict()
-
+        self.cn_df = self.depth_df.groupby('chrom')['count'].mean()
+        cn_db = self.cn_df.to_dict()
+        self.cn_df = self.cn_df.to_frame()
+        self.cn_df['CN'] = self.cn_df['count'] / self.peak
         
-        self.depth_df['type'] = self.depth_df.apply(func, axis=1)
+        self.depth_df['type'] = self.depth_df['CN'].map(func)
 
-        res_df = self.depth_df.groupby(['chrom', 'type'])['CN'].count().reset_index()
-        self.category_df = res_df.loc[res_df.groupby('chrom')['CN'].idxmax()].reset_index(drop=True)
+        tmp_df = self.depth_df.copy()
+        tmp_df['length'] = (tmp_df['end'] - tmp_df['start'])
+        length_db = tmp_df.groupby('chrom')['length'].sum().to_dict()
+        
+        tmp_df = tmp_df.groupby(['chrom', 'type'])['length'].sum().reset_index()
+        tmp_df = tmp_df.loc[tmp_df.groupby('chrom')['length'].idxmax()].reset_index(drop=True)
+
+
+        # res_df = self.depth_df.groupby(['chrom', 'type'])['CN'].count().reset_index()
+        # self.category_df = res_df.loc[res_df.groupby('chrom')['CN'].idxmax()].reset_index(drop=True)
+        self.category_df = tmp_df.drop(['length'], axis=1)
         self.category_df['CN'] = self.category_df['chrom'].map(cn_db.get)
         
         return self.category_df 
     
     def output_fasta(self):
-        pass 
+        
+        fasta_db = read_fasta(self.fasta)
+        output = f"{self.fasta_prefix}.cleaned.fasta" if self.output is None else self.output
+        with open(output, 'w') as out:
+            for contig in fasta_db:
+                if contig in self.remove_dup_contigs or contig in self.junk_contigs:
+                    continue 
+                if contig in self.collapsed_contigs:
+                    out.write(f">{contig}_d2\n{fasta_db[contig]}")
+
+                out.write(f">{contig}\n{fasta_db[contig]}")
+            
+        logger.debug("Output new fasta `{output}`")
 
     def run(self):
+        
         self.get_coverage()
         self.remove_junk()
         self.remove_dup()
         self.get_collapsed()
         
-        with open(self.output, 'w') as out:
-            for contig in self.junk_contigs:
-                print(f"{contig}\tjunk", file=out)
-            
-            for contig in self.remove_dup_contigs:
-                print(f"{contig}\tdup", file=out)
+        output_clean = f"{self.fasta_prefix}.remove.txt"
         
-        with open("collapsed.contigs.list", 'w') as out:
-            for contig in self.collapsed_contigs:
-                print(f"{contig}\tcollapsed", file=out)
+
+        contigs = self.junk_contigs | self.remove_dup_contigs
+        self.cn_df.loc[list(contigs)].to_csv(output_clean, sep='\t', header=None, index=True)
+        logger.info(f"Output removed contigs information to `{output_clean}`")
+        output_collapsed = f"{self.fasta_prefix}.collapsed.txt"
+        self.cn_df.loc[list(self.collapsed_contigs)].to_csv(output_collapsed, sep='\t', header=None, index=True)
+        logger.info(f"Output collapsed contigs information to `{output_collapsed}`")
+
+        self.output_fasta()

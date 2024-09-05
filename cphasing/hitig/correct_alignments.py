@@ -819,7 +819,7 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
         else:
             mapqAlignLst.append({})
         bestAlignLst.append(bestASpafDic[qn])
-    AllmergedLIS = Parallel(n_jobs=threads)(
+    AllmergedLIS = Parallel(n_jobs=min(threads, 12))(
                     delayed(calculate_LMP_pipeline)(c, b, d, int(win), a) 
                         for a,b,c,d in zip(qnLst, allAlignLst, bestAlignLst, mapqAlignLst))
     

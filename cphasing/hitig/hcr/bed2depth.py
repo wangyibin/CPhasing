@@ -173,8 +173,8 @@ def workflow(depthFile, win,  outPre,  Max=None):
     contig_depth['CN'] = (contig_depth / trough)
 
     contig_depth.to_csv(f'{outPre}.allcontigs.depth', sep='\t', header=None, index=True)
-    high_coverage_df = contig_depth[contig_depth['count'] > 1.5]
-    high_coverage_df['CN'] = (high_coverage_df / trough)['count'].map(np.round)
+    high_coverage_df = contig_depth[contig_depth['CN'] > 1.5]
+    high_coverage_df['CN'] = (high_coverage_df / trough)['count']
     high_coverage_df.to_csv(f'{outPre}.collapsed.contigs', sep='\t', header=None, index=True)
 
     low_coverage_df = contig_depth[contig_depth['count'] < minpeak]

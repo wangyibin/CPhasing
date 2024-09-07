@@ -65,7 +65,11 @@ def agp2assembly(agpfile, output, add_gap=False):
     """
    
     tig_df, gap_df = import_agp(agpfile)
-    gap_length = gap_df.iloc[0]['length']
+    try:
+        gap_length = gap_df.iloc[0]['length']
+    except:
+        gap_length = 100
+
     chrom_matrix_db = OrderedDict()
     tig_list = []
     for i, item in enumerate(tig_df.iterrows(), 1):
@@ -238,10 +242,11 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
         logger.info(f"Output contig-level fasta into `{output.name}`.")
 
         if collapsed_rescue_flag:
-            with open(f"{output.name.replace(".fasta", ".collapsed.contig.list")}", "w") as out:
+            output_file = output.name.replace(".fasta", ".collapsed.contig.list")
+            with open(f"{output_file}", "w") as out:
                 for raw_contig, output_contig in collapsed_rescued_contigs:
                     out.write(f"{raw_contig}\t{output_contig}\n")
-            logger.info(f"Output collapsed contigs: `{output.name.replace(".fasta", ".collapsed.contig.list")}`")
+            logger.info(f"Output collapsed contigs: `{output_file}`")
 
 def agp2tour(agp, outdir="tour", force=False, store=True):
     """
@@ -658,20 +663,25 @@ def agp_dup(agp, output):
 
     
 
-    agp_df, _ = import_agp(agp)
+    agp_df = import_agp(agp, split=False)
     agp_df.reset_index(inplace=True)
-    duplicated_df = agp_df[agp_df.duplicated('id')]
+    
+    duplicated_df = agp_df[agp_df[4] == 'W'][agp_df.duplicated(5)]
 
     duplicated_contigs = defaultdict(lambda :1)
     for idx, row in duplicated_df.iterrows():
-        duplicated_contigs[row.id] += 1
-        suffix = duplicated_contigs[row.id]
-        if row['chrom'] == row['id']:
-            agp_df.loc[idx, 'chrom'] = f"{row.id}_d{suffix}"
+        if row[4] == 'U':
+            continue
+        duplicated_contigs[row[5]] += 1
+        suffix = duplicated_contigs[row[5]]
+        if row[0] == row[5]:
+            agp_df.loc[idx, 0] = f"{row[5]}_d{suffix}"
 
-        agp_df.loc[idx, 'id'] = f"{row.id}_d{suffix}"
+        agp_df.loc[idx, 5] = f"{row[5]}_d{suffix}"
 
     
+    agp_df.drop('index', axis=1, inplace=True)
+
     agp_df.to_csv(output, sep='\t', header=None, index=None)
 
         

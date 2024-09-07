@@ -76,7 +76,10 @@ class Clean:
                     min_coverage=0.5,
                     min_length=50000, ## minimum length of collapsed contigs
                     output=None, 
-                    threads=10, log_dir="logs", force=False):
+                    skip_remove=False,
+                    threads=10, 
+                    log_dir="logs",
+                    force=False):
         self.fasta = fasta
         self.fasta_prefix = Path(fasta).stem
         self.paf = f"{self.fasta_prefix}.selfalign.paf"
@@ -88,9 +91,13 @@ class Clean:
         self.min_length = min_length
 
         self.contigsizes = read_chrom_sizes(str(get_contig_size_from_fasta(self.fasta)))
-    
-        self.mapping()
-        self.paf_df = self.read_paf()
+
+        self.skip_remove = skip_remove
+
+        if not self.skip_remove:
+            self.mapping()
+            self.paf_df = self.read_paf()
+
         self.depth_df = self.read_depth()
         self.peak = self.get_main_peak()
         self.depth_df['CN'] = self.depth_df['count'] / self.peak 
@@ -344,16 +351,17 @@ class Clean:
     def run(self):
         
         self.get_coverage()
-        self.remove_junk()
-        self.remove_dup()
+        if not self.skip_remove:
+            self.remove_junk()
+            self.remove_dup()
         self.get_collapsed()
         
         output_clean = f"{self.fasta_prefix}.remove.txt"
         
-
-        contigs = self.junk_contigs | self.remove_dup_contigs
-        self.cn_df.loc[list(contigs)].to_csv(output_clean, sep='\t', header=None, index=True)
-        logger.info(f"Output removed contigs information to `{output_clean}`")
+        if not self.skip_remove: 
+            contigs = self.junk_contigs | self.remove_dup_contigs
+            self.cn_df.loc[list(contigs)].to_csv(output_clean, sep='\t', header=None, index=True)
+            logger.info(f"Output removed contigs information to `{output_clean}`")
         output_collapsed = f"{self.fasta_prefix}.collapsed.txt"
         self.cn_df.loc[list(self.collapsed_contigs)].to_csv(output_collapsed, sep='\t', header=None, index=True)
         logger.info(f"Output collapsed contigs information to `{output_collapsed}`")

@@ -14,7 +14,28 @@ import sys
 import pandas as pd
 import numpy as np
 
+from ..agp import import_agp
+
 logger = logging.getLogger(__name__)
+
+
+class GapEvaluator:
+    """
+    Evaluate assembly by ont data at gap region
+    """
+
+    def __init__(self, agp):
+        self.agp = agp
+        self.agp_df, self.gap_df = import_agp(self.agp)
+        self.gap_num = len(self.gap_df)
+
+    def get_gap_bed(self):
+        self.gap_df
+        
+
+    def run(self):
+        pass 
+
 
 def check_Mcount(typeLst, minCount, minMapqCount):
     mCount = typeLst.count("M")
@@ -71,8 +92,6 @@ def read_LIS(LisFile, minCount=3, minMapqCount=0):
                 newLst.append(lisLst[i][:2])
         outDic[ctg] = newLst
     return outDic
-
-
 
 
 

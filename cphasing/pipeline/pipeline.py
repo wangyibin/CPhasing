@@ -329,6 +329,7 @@ def run(fasta,
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
                 corrected = True
+                hg_input = pairs
                 fasta_prefix = Path(Path(fasta).name).with_suffix("")
                 while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
                     fasta_prefix = fasta_prefix.with_suffix("")
@@ -631,7 +632,7 @@ def run(fasta,
         logger.info("""#----------------------------------#
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
-        
+        print(hg_input, contigsizes)
         hyperpartition_args = [
                                 hg_input,
                                 contigsizes,

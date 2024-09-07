@@ -683,9 +683,3 @@ def agp_dup(agp, output):
     agp_df.drop('index', axis=1, inplace=True)
 
     agp_df.to_csv(output, sep='\t', header=None, index=None)
-
-        
-    
-    
-            
-

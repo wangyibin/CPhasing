@@ -98,7 +98,7 @@ def main(args):
 
     patches = []
     colors = []
-    cmap = cm.get_cmap('bwr_r')
+    cmap = cm.get_cmap('bwr')
   
     norm = plt.Normalize(-1.0, 1.0)
     chroms = []
@@ -168,11 +168,17 @@ def main(args):
     xticklabels = chrom_ticks_convert(_xticks)
     ax.set_xticklabels(xticklabels, fontsize=10)
 
-    ax.set_yticks(chroms)
-    ax.set_yticklabels(chroms)
+    ax.set_yticks(list(map(lambda x: x+0.4, chroms)))
+    ax.set_yticklabels(list(map(lambda x: f"{x}", chroms)), va='top')
+
+    plt.xlim(0)
+    ax.tick_params(axis='y', length=0)
     
-
-
+    cax = fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), 
+                    #    orientation='horizontal',
+                       ax=ax, pad=0.02, shrink=0.2)
+    cax.set_ticks([-1, 0, 1])
+    cax.set_ticklabels(['Paternal', '', 'Maternal'], fontsize=12)
 
     sns.despine(trim=True, bottom=True, left=True)
 

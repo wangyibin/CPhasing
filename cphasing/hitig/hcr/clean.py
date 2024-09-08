@@ -28,6 +28,7 @@ from ...utilities import (
     read_chrom_sizes
     )
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,6 +91,15 @@ class Clean:
         self.min_coverage = min_coverage 
         self.min_length = min_length
 
+        self.threads = threads
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        if not cmd_exists("wfmash"):
+            logger.error(f'No such command of `wfmash`.')
+            sys.exit()
+
         self.contigsizes = read_chrom_sizes(str(get_contig_size_from_fasta(self.fasta)))
 
         self.skip_remove = skip_remove
@@ -110,13 +120,6 @@ class Clean:
         self.remove_dup_contig_length = 0
         self.collapsed_contig_length = 0
         
-        self.threads = threads
-        self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-
-        if not cmd_exists("wfmash"):
-            logger.error(f'No such command of `wfmash`.')
-            sys.exit()
 
     def mapping(self):
 

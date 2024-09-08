@@ -345,9 +345,9 @@ class Clean:
                 if contig in self.remove_dup_contigs or contig in self.junk_contigs:
                     continue 
                 if contig in self.collapsed_contigs:
-                    out.write(f">{contig}_d2\n{fasta_db[contig]}")
+                    out.write(f">{contig}_d2\n{fasta_db[contig]}\n")
 
-                out.write(f">{contig}\n{fasta_db[contig]}")
+                out.write(f">{contig}\n{fasta_db[contig]}\n")
             
         logger.debug("Output new fasta `{output}`")
 

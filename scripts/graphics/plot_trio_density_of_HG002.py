@@ -102,7 +102,7 @@ def main(args):
   
     norm = plt.Normalize(-1.0, 1.0)
     chroms = []
-    for group, tmp_df in agp_df.groupby("chrom"):
+    for group, tmp_df in agp_df.groupby("chrom", sort=False):
         if "Chr" in group:
             group_idx = group.split("g")
        
@@ -153,6 +153,7 @@ def main(args):
         if idx not in chroms:
             chroms.append(idx)
 
+
         for i, row in tmp_df.iterrows():
             patches.append(Rectangle((row.start, idx + hap/3 if hap is not None else idx), 
                                    row.end - row.start, 0.2, edgecolor='none', linewidth=0.0))
@@ -168,8 +169,11 @@ def main(args):
     xticklabels = chrom_ticks_convert(_xticks)
     ax.set_xticklabels(xticklabels, fontsize=10)
 
-    ax.set_yticks(list(map(lambda x: x+0.4, chroms)))
-    ax.set_yticklabels(list(map(lambda x: f"{x}", chroms)), va='top')
+    if hap is None:
+        ax.set_yticks([])
+    else:
+        ax.set_yticks(list(map(lambda x: x+0.4, chroms)))
+        ax.set_yticklabels(list(map(lambda x: f"{x}", chroms)), va='top')
 
     plt.xlim(0)
     ax.tick_params(axis='y', length=0)

@@ -737,7 +737,6 @@ def hcr(fasta, lis, split_align, paf,
     show_default=True,
 )
 @click.option(
-    '-f',
     '--force',
     help='Force run all the command, ignore existing results.'
     ' The index file also will be removed.',

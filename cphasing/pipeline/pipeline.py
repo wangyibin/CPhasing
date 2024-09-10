@@ -118,6 +118,7 @@ def run(fasta,
         skip_steps.add("1")
         allele_table = None
 
+    filter_pairs = None
    
     if ul_data:
         input_fasta = str(Path(fasta).absolute())
@@ -486,6 +487,7 @@ def run(fasta,
         if not porec_table and min_quality1 > 0: 
             if low_memory or mapping_quality > 0:
                 hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
+                filtered_pairs = hg_input
                 if not Path(hg_input).exists():
                     cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
                         "-o", hg_input , "-q", str(min_quality1)]
@@ -764,6 +766,9 @@ def run(fasta,
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:
             try:
+                if filtered_pairs:
+                    pairs = filtered_pairs
+                    
                 pairs2cool.main(args=[
                                     pairs,
                                     contigsizes,

@@ -29,6 +29,8 @@ def main(args):
     pOpt = p.add_argument_group('Optional arguments')
     pReq.add_argument('tsv', 
             help='tsv from paftools.js misjoin -e ')
+    pOpt.add_argument('-m', '--min_count', default=2, type=int, 
+            help='minimum support of read count [default: %(default)s]')
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     
@@ -41,6 +43,9 @@ def main(args):
     except pd.errors.EmptyDataError:
         print(f"No. misassemblies: {0}", file=sys.stderr)
         return 
+
+    df = df[df[0] != "M"]
+    
     candicate_res = []
     for read, tmp_df in df.groupby(1, sort=False):
         
@@ -60,9 +65,10 @@ def main(args):
     res_df = pd.DataFrame(candicate_res, columns=['Chromosome', 'Start', 'End'])                
     res_df = PyRanges(res_df).merge(count=True).df
     res_df = res_df.sort_values(['Chromosome', 'Start', 'End'])
+    res_df = res_df[res_df['Count'] >= args.min_count]
     output = Path(args.tsv).stem
     res_df.to_csv(f'{output}.misassembly.txt', sep='\t', header=None, index=None)
-    print(f"No. misassemblies: {len(res_df)}", file=sys.stderr)
+    print(f"No. misassemblies: {int(len(res_df) / 2)}", file=sys.stderr)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

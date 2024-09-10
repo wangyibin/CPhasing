@@ -32,7 +32,7 @@ from pandarallel import pandarallel
 from scipy.sparse import triu
 
 from .agp import import_agp
-from .utilities import to_humanized, chrom_ticks_convert
+from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
 
 logger = logging.getLogger(__name__)
 
@@ -563,14 +563,14 @@ def coarsen_matrix(cool, k, out, threads):
         input_resolution = cooler.Cooler(cool).binsize
         out_resolution = f"{k * input_resolution}"
         
-        out = cool.replace(str(input_resolution), to_humanized(out_resolution))
-        out = out.replace(to_humanized(input_resolution), to_humanized(out_resolution))
+        out = cool.replace(str(input_resolution), to_humanized2(out_resolution))
+        out = out.replace(to_humanized2(input_resolution), to_humanized2(out_resolution))
 
-        if to_humanized(out_resolution) not in out:
+        if to_humanized2(out_resolution) not in out:
             if "chrom.cool" in out:
-                out = out.replace("chrom.cool", f"{to_humanized(out_resolution)}.chrom.cool")
+                out = out.replace("chrom.cool", f"{to_humanized2(out_resolution)}.chrom.cool")
             else:
-                out = out.replace("cool", f"{to_humanized(out_resolution)}.chrom.cool")
+                out = out.replace("cool", f"{to_humanized2(out_resolution)}.chrom.cool")
             
 
     try:

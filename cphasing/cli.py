@@ -1530,11 +1530,24 @@ def pairs_chrom2contig(pairs, contig_bed, output):
     metavar="Pairs",
     type=click.Path(exists=True)
 )
-@click.argument(
-    "output",
-    metavar="Output"
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
 )
-def pairs2mnd(pairs, output):
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+def pairs2mnd(pairs, output, min_mapq):
     """
     convert 4DN pairs to mnd file.
 
@@ -1545,7 +1558,7 @@ def pairs2mnd(pairs, output):
     # from .core import Pairs 
     # p = Pairs(pairs)
     # p.to_mnd(output, threads) 
-    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output]
+    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output, "-q", min_mapq]
     flag = run_cmd(cmd, log=os.devnull)
     assert flag == 0, "Failed to execute command, please check log."
 
@@ -3270,12 +3283,14 @@ def hyperpartition(hypergraph,
 
 
     if whitelist:
+        whitelist_file = whitelist 
         whitelist = [i.strip().split()[0] for i in open(whitelist) if i.strip()]
-        logger.info(f"{len(whitelist)} contigs will be load to cluster.")
+        logger.info(f"Only `{len(whitelist)}` contigs will be load to cluster, which specified in `{whitelist_file}`.")
     if blacklist:
+        blacklist_file = blacklist
         blacklist = [i.strip().split()[0] for i in open(blacklist) if i.strip()]
 
-        logger.info(f"{len(blacklist)} contigs will be removed to cluster.")
+        logger.info(f"`{len(blacklist)}` contigs will be removed to cluster, which specified in `{blacklist_file}`..")
 
     if merge_cluster:
         assert n[0] != 0, "parameter `k` must add to run merge cluster"
@@ -3626,6 +3641,7 @@ def collapsed_rescue2(hypergraph, fasta, agp_file,
 )
 @click.option(
     "-o",
+    "-oa",
     "--output",
     metavar="STR",
     help="Output agp file, only valid when fasta file exists.",
@@ -4313,9 +4329,19 @@ def pairs2contacts(pairs, min_contacts, split_num,
     default="-",
     show_default=True
 )
-def pairs2mnd(pairs, output):
-    print(HIDDEN)
-    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output]
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+def pairs2mnd(pairs, output, min_mapq):
+
+    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output, "-q", str(min_mapq)]
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 

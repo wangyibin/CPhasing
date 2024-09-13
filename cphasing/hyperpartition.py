@@ -1035,6 +1035,7 @@ class HyperPartition:
                         value = A[group1, ][:,group2 ].mean() 
                     else:
                         value = A[group1, ][:,group2 ].sum() 
+
                     value_matrix[i, j] = value
                     flag_matrix[i, j] = flag
                     flag = 1
@@ -1042,7 +1043,8 @@ class HyperPartition:
             
             
             value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
-            total_value = value_matrix.sum()
+            total_value = np.triu(value_matrix).sum()
+
 
             for i in range(current_group_number):
                 i_value = value_matrix[i].sum()
@@ -1056,6 +1058,7 @@ class HyperPartition:
                         Q = - 2**64
 
                     res[(i, j)] = Q
+            
             
             i1, i2 = max(res,  key=lambda x: res[x])
 

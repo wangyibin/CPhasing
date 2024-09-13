@@ -769,15 +769,20 @@ def plot_heatmap(matrix, output,
                 norm = None
 
         factor = round(matrix.shape[0] / 5000 + 1, 2)   
-        
+        logger.debug(f"Figure factor is `{factor}`")
         fig_width = round(7 * factor, 2) 
         fig_height = round(8 * factor, 2)
-        
+        logger.info(f"Set figsize: (W: {fig_width},H: {fig_height})")
         plt.rcParams['font.family'] = 'Arial'
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
         
-        tick_fontsize = 15 / np.log10(len(chromnames)) if not fontsize else fontsize
-        
+        font_factor = np.log10(len(chromnames) ) if len(chromnames) >= 10 else 1
+        tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
+        if tick_fontsize == np.inf:
+            tick_fontsize = 16
+        if not fontsize:
+            logger.info(f"Auto set fontsize to `{tick_fontsize}`.")
+            
         logger.info("Plotting heatmap ...")
         ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,

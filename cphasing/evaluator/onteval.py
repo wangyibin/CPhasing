@@ -345,9 +345,9 @@ class ComponentAnalysis:
             
             if cn <= 0.25:
                 return 0
-            elif 0.25 < cn <= 0.5:
+            elif 0.25 < cn <= 0.75:
                 return 1
-            elif 0.5 < cn <= 1.5:
+            elif 0.75 < cn <= 1.5:
                 return 2
             else:
                 return 3
@@ -417,4 +417,3 @@ class ComponentAnalysis:
         component_df.to_csv(f"{self.outprefix}.component.tsv", sep='\t', header=None, index=True)
 
         self.plot(self.outprefix)
-        

@@ -127,6 +127,12 @@ def run_cmd(command, log=sys.stderr, out2err=False):
     
     return 0
 
+def is_empty(_file):
+    if os.path.getsize(_file) == 0:
+        return True 
+    else:
+        return False
+
 
 def xopen(infile, mode='r'):
     """

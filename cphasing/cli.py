@@ -82,7 +82,7 @@ click.rich_click.COMMAND_GROUPS = {
             "name": "Other Useful Commands",
             "commands": ["hic", "alignments", "hcr", "alleles2", 
                          "kprune", "hypergraph", "statagp", 
-                         "agp2fasta", "utils"]
+                         "agp2fasta", "utils", "evaluator"]
         }
     ],
 
@@ -4917,12 +4917,12 @@ ALIASES = {
 ## hic subcommand
 from .hic.cli import hic
 
-@cli.group(cls=CommandGroup, short_help='Evaluation tools.', hidden=True)
+@cli.group(cls=CommandGroup, short_help='Evaluation tools.')
 @click.pass_context
-def evaluate(ctx):
+def evaluator(ctx):
     pass
 
-@evaluate.command(short_help='Calculate the allelic error rate')
+@evaluator.command(short_help='Calculate the allelic error rate', hidden=True)
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -4941,6 +4941,100 @@ def evaluate(ctx):
 def allelic_error(cluster, alleletable, contigsizes):
     from .evaluate import allelic_error
     allelic_error(cluster, alleletable, contigsizes)
+
+
+@evaluator.command(short_help="Evaluate the switch errors by ultra-long reads")
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="STR",
+    help="Fasta file",
+    required=True,
+)
+@click.option(
+    "-i",
+    "--reads",
+    metavar="STR",
+    help="Reads file path, multiple file use comma separated",
+    required=True,
+)
+@click.option(
+    '-w',
+    '--window',
+    help='window size',
+    default=5000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-m',
+    '--min-windows',
+    'min_windows',
+    help='minimum windows of read',
+    default=3,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-g',
+    '--max-gap',
+    'max_gap',
+    help='maximum gap of two adjency alignments',
+    default=1000000,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '--hifi',
+    help="Input hifi data.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '-o',
+    '--output',
+    help='output file prefix',
+    default='output',
+    show_default=True
+)
+def sw(fasta, reads, window, min_windows, 
+       max_gap, hifi, threads, output):
+    from .evaluator.onteval import SwitchError
+    se = SwitchError(fasta, reads,
+                    window=window,
+                    min_windows=min_windows,
+                    maximum_gap=max_gap,
+                    is_hifi=hifi,
+                    threads=threads,
+                    outprefix=output)
+    se.run()
+
+
+@evaluator.command(short_help='Analysis sequences compoent by depth')
+@click.argument(
+    'depth'
+)
+@click.option(
+    '-o',
+    '--output',
+    help='output file prefix',
+    default='output',
+    show_default=True
+)
+def ca(depth, output):
+    from .evaluator.onteval import ComponentAnalysis
+    ca = ComponentAnalysis(depth, output)
+    ca.run()
 
 
 @cli.group(cls=CommandGroup, short_help='Misc tools.', epilog=__epilog__)

@@ -19,7 +19,8 @@ from .. import __version__
 from ..utilities import (
     run_cmd, 
     calculate_Nx_from_contigsizes,
-    read_chrom_sizes
+    read_chrom_sizes,
+    is_empty
     )
 
 
@@ -118,7 +119,7 @@ def run(fasta,
         skip_steps.add("1")
         allele_table = None
 
-    filter_pairs = None
+    filtered_pairs = None
    
     if ul_data:
         input_fasta = str(Path(fasta).absolute())
@@ -341,7 +342,7 @@ def run(fasta,
 
 
     contigsizes = f"{fasta_prefix}.contigsizes"
-    if not Path(contigsizes).exists():
+    if not Path(contigsizes).exists() or is_empty(contigsizes):
         
         cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
         flag = run_cmd(cmd, log=os.devnull)
@@ -424,7 +425,7 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
             else:
-                logger.warn(f"Using existed hcr porec table of `{hg_input}`")
+                logger.warning(f"Using existed hcr porec table of `{hg_input}`")
         
         else:
             hg_input = f"{pairs_prefix}_hcr.pairs.gz"
@@ -479,7 +480,7 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
             else:
-                logger.warn(f"Use exists hcr porec table of `{hg_input}`")
+                logger.warning(f"Use exists hcr porec table of `{hg_input}`")
         
             
     else:
@@ -634,7 +635,6 @@ def run(fasta,
         logger.info("""#----------------------------------#
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
-        print(hg_input, contigsizes)
         hyperpartition_args = [
                                 hg_input,
                                 contigsizes,

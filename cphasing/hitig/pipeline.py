@@ -82,7 +82,9 @@ def run(
                            "-l", lis, 
                            "-sa", split_alignments_file,  
                            "-b", break_pos_file,
-                           "-p", pafFile
+                           "-p", pafFile,
+                           "-w", window,
+                           "--step-size", window / 5,
                            ])
 
         except SystemExit as e:

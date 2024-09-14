@@ -12,7 +12,7 @@ import collections
 import pandas as pd
 import polars as pl 
 
-from cphasing.utilities import xopen
+from cphasing.utilities import xopen, is_empty
 
 logger = logging.getLogger(__name__)
 
@@ -794,10 +794,10 @@ def workflow(fasta, reads, threads, outPre, win, min_windows, nhap, minAS, minMa
     4. break chimeric and output
     """
     pafFile = outPre + ".paf"
-    if os.path.exists(pafFile) == False:
+    if os.path.exists(pafFile) == False or is_empty(pafFile):
         pafFile = minimap_mapping(fasta, reads, win, min_windows, threads, outPre, hifi)
     else:
-        logger.warn(f"Using existed mapping results: `{pafFile}`")
+        logger.warning(f"Using existed mapping results: `{pafFile}`")
 
     threads, win = int(threads), int(win)
     #pafFile = minimap_mapping(fasta, reads, threads, outPre)

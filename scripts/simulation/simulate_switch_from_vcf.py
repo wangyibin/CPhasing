@@ -15,9 +15,32 @@ import pandas as pd
 import numpy as np
 
 
+
 from collections import OrderedDict
 
-from cphasing.utilities import get_genome_size
+from cphasing.utilities import get_genome_size, run_cmd, cmd_exists
+
+def bgzip(vcf):
+    cmd1 = ["bgzip", "-f", vcf]
+
+    cmd2 = ["tabix", "-p", "vcf", f"{vcf}.gz"]
+    run_cmd(cmd1)
+    run_cmd(cmd2)
+
+def vcf2fasta(vcf, fasta, rename=None):
+    output_prefix = vcf.replace(".vcf.gz", "")
+    cmd = ["bcftools", "consensus", vcf, "-f", fasta, "-o", f"{output_prefix}.fa"]
+
+    run_cmd(cmd)
+
+    if rename:
+        cmd = ["seqkit", "replace", "-p", "hap1", "-r", "hap2", 
+               f"{output_prefix}.fasta",
+               "-o", f".{output_prefix}.fa"]
+        run_cmd(cmd)
+        
+        os.rename(f".{output_prefix}.fa", f"{output_prefix}.fa")
+    
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
@@ -34,7 +57,19 @@ def main(args):
             help='show help message and exit.')
     
     args = p.parse_args(args)
+
+    if not cmd_exists('bgzip'):
+        print("No such command of bgzip", file=sys.stderr)
+        sys.exit(-1)
+    if not cmd_exists('tabix'):
+        print("No such command of tabix", file=sys.stderr)
+        sys.exit(-1)
     
+    if not cmd_exists('bcftools'):
+        print("No such command of bcftools", file=sys.stderr)
+        sys.exit(-1)
+
+
     header = []
     with open(args.vcf, 'r') as fp:
         for line in fp:
@@ -65,12 +100,17 @@ def main(args):
         print("\n".join(header), file=out)
         vcf1.to_csv(out, sep='\t', header=None, index=None)
 
+    bgzip("1.vcf")
+    vcf2fasta("1.vcf.gz", args.ref_fasta)
+
     with open("2.vcf", 'w') as out:
         print("\n".join(header), file=out)
         vcf2.to_csv(out, sep='\t', header=None, index=None)
+
+    bgzip("2.vcf")
+    vcf2fasta("2.vcf.gz", args.ref_fasta, rename=True)
+
     
-
-
 
 
 

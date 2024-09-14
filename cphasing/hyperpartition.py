@@ -747,7 +747,7 @@ class HyperPartition:
 
             logger.info(f"Prune table stored in `{kprune_output_file}`")
         else:
-            logger.warn(f"Load exists prune table `{kprune_output_file}`")
+            logger.warning(f"Load exists prune table `{kprune_output_file}`")
             
         self.prunetable = kprune_output_file
         

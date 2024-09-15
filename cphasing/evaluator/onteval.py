@@ -22,12 +22,17 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, MaxNLocator
 import seaborn as sns
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+from joblib import Parallel, delayed
+from pandarallel import pandarallel
 from pathlib import Path
 from pyranges import PyRanges
 
+from line_profiler import LineProfiler
+
 from ..agp import import_agp
-from ..utilities import listify, xopen
+from ..utilities import listify, xopen, list_flatten
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +72,7 @@ class LIS:
     split_idx: list = field(default_factory=list)
     mapq: list = field(default_factory=list)
     nm: list = field(default_factory=list)
+    fragment_length: list = field(default_factory=list)
 
     def __len__(self):
         return len(self.start)
@@ -96,49 +102,68 @@ class LISContainer(list):
         
         return max_idx
     
+    # @profile
     def join(self):
         max_idx = self.idxmax()
         max_lis = self[max_idx]
-        init_df = pd.Series(max_lis.nm, index=max_lis.split_idx).to_frame()
-        init_df = init_df[~init_df.index.duplicated(keep='first')]
-    
-        df = pd.DataFrame([max_lis.start, max_lis.end], columns=max_lis.split_idx).T
-        # window_length = (df[1] - df[0]).sum()
-        total_windows = len(df)
+        
+        split_idx = np.array(max_lis.split_idx)
+        init_array = np.zeros(max(split_idx) + 1)
+        
+        non_dup = pd.Index(split_idx).duplicated(keep='first')
+        split_idx = split_idx[~non_dup]
+      
+        init_array[split_idx] = np.array(max_lis.nm)[~non_dup]
+
+
+        # init_df = pd.Series(max_lis.nm, index=max_lis.split_idx).to_frame()
+        # init_df = init_df[~init_df.index.duplicated(keep='first')]
+        
+        df = np.array(max_lis.fragment_length)[~non_dup]
+        
+        total_windows = len(split_idx)
         non_max_idx_list = []
-        # res = [init_df]
 
         for idx, lis in enumerate(self):
             if idx == max_idx:
                 continue
             non_max_idx_list.append(idx)
-            lis_series = pd.DataFrame([lis.nm, lis.mapq], columns=lis.split_idx).T
+
+            split_idx2 = np.array(lis.split_idx)
+            non_dup2 = pd.Index(split_idx2).duplicated(keep='first')
+            split_idx2 = split_idx2[~non_dup2]
+            _filter_split_idx2 = np.isin(split_idx2, split_idx)
+            if not any(_filter_split_idx2):
+                continue
+
+            filter_split_idx2 = split_idx2[_filter_split_idx2]
+            nm2 = np.zeros(max(split_idx2) + 1)
+
+            nm2[filter_split_idx2] = np.array(lis.nm)[~non_dup2][_filter_split_idx2]
+  
+
             
-            lis_series = lis_series[~lis_series.index.duplicated(keep='first')]
-       
-            tmp_idx = lis_series.loc[lis_series[1] > 1, 0]
-         
-            lis_series.drop(1, axis=1, inplace=True)
+            mapq2 = np.array(lis.mapq)[~non_dup2]
 
-            tmp_df =  (- init_df.reindex(tmp_idx.index).dropna() + lis_series.loc[tmp_idx.index] ).dropna()
-            init_df.loc[tmp_df.index] = tmp_df
+            filter_mapq2 = mapq2 > 1
+           
+            # filter_split_idx2 = np.isin(split_idx2, split_idx)
+            filter_idx = split_idx2[_filter_split_idx2 & filter_mapq2]
+            init_array[filter_idx] = - init_array[filter_idx] + nm2[filter_idx]
 
-
-        init_df = init_df.fillna(0)
-
-        error_df = init_df.loc[init_df[0] < 0]
-        
-        if error_df.empty:
-            return total_windows, [np.nan]
-        window_length = df.loc[error_df.index, 1] - df.loc[error_df.index, 0]
-        error_rate = np.abs(error_df[0]) / window_length
-
-        # print((df.loc[error_df.index, 1] - df.loc[error_df.index, 0]).sum())
-        # errors = np.abs(error_df.sum())
-        # error_rate = errors / window_length
+        error_idx = init_array < 0
+        error_array = init_array[error_idx]
     
-        error_rate = listify(error_rate.values.tolist())
-
+        if len(error_array) == 0:
+            return total_windows, [np.nan]
+        
+        true_idx = np.where(error_idx)[0]
+        true_idx = np.where(np.isin(true_idx, split_idx))[0]
+      
+        window_length = df[true_idx]
+    
+        error_rate = np.abs(error_array) / window_length
+        
         return total_windows, error_rate
 
 class SwitchError:
@@ -150,7 +175,14 @@ class SwitchError:
         'end', 'matches', 
         'align_length', 'mapping_quality',
         "NM"]
-    
+
+    PAF_HEADER2 = [
+        'read_name', 
+        'read_start', 'read_end', 
+        'strand', 'chrom', 
+        'start', 'end',
+        'mapping_quality',
+        "NM"]
     def __init__(self, fasta, reads, outprefix="output",
                  window=5000, min_windows=2, 
                  maximum_gap=1000000,
@@ -215,63 +247,97 @@ class SwitchError:
 
     def read_paf(self):
         self.paf_df = pd.read_csv(self.paf_path, sep='\t', header=None, index_col=None,
-                            names=self.PAF_HEADER, usecols=range(13))
+                            names=self.PAF_HEADER2, usecols=[0, 2, 3, 4, 5, 7, 8, 11, 12])
         
         self.paf_df['NM'] = self.paf_df['NM'].str.replace("NM:i:", "").astype(int)
 
         raw_read_names = self.paf_df['read_name'].str.rsplit("_", n=1, expand=True)
         self.paf_df.drop(['read_name'], axis=1, inplace=True)
-        self.paf_df['raw_read_name'] = raw_read_names[0]
+        self.paf_df['raw_read_name'] = raw_read_names[0].astype('category').cat.codes
+        
         self.paf_df['split_idx'] = raw_read_names[1].astype(int)
+        self.paf_df['fragment_length'] = self.paf_df['end'] - self.paf_df['start']
+    
         self.paf_df = self.paf_df[self.paf_df['read_end'] - self.paf_df['read_start'] > self.window * 0.9]
 
         return self.paf_df
-
+    
     def find_lis(self):
+        def sub_func(tmp_df):
+            lis = LIS()
+            chrom = tmp_df['chrom'].values[0]
+            popular_strand = tmp_df.groupby('strand')['raw_read_name'].count().idxmax()
+
+            ascending = True if popular_strand == '+' else False
+            tmp_df.sort_values(by=['split_idx'], inplace=True, ascending=ascending)
+
+            lis.chrom = chrom
+            starts = tmp_df['start'].values
+            ends = tmp_df['end'].values
+            split_idxs = tmp_df['split_idx'].values
+            mapqs = tmp_df['mapping_quality'].values
+            nms = tmp_df['NM'].values
+            fragment_lengths = tmp_df['fragment_length']
+    
+        
+            for start, end, split_idx, mapq, nm, fragment_length in zip(
+                starts, ends, split_idxs, mapqs, nms, fragment_lengths):
+
+                pos = bisect.bisect_left(lis.start, start)
+                if pos == len(lis.start):
+                    if lis.start and (start - lis.start[pos - 1]) > self.maximum_gap:
+                        continue
+                    lis.start.append(start)
+                    lis.end.append(end)
+                    lis.split_idx.append(split_idx)
+                    lis.mapq.append(mapq)
+                    lis.nm.append(nm)
+                    lis.fragment_length.append(fragment_length)
+            
+            return lis
+
         def func(df):
             res = LISContainer()
             res.raw_read_name = df['raw_read_name'].values[0]
-            for chrom, tmp_df in df.groupby('chrom', sort=False):
-                if tmp_df.empty:
-                    continue
-                popular_strand = tmp_df.groupby('strand')['raw_read_name'].count().idxmax()
-
-                ascending = True if popular_strand == '+' else False
-                tmp_df.sort_values(by=['split_idx'], inplace=True, ascending=ascending)
-
-                lis = LIS()
-                lis.chrom = chrom
-                for start, end, split_idx, mapq, nm in zip(tmp_df['start'], tmp_df['end'], 
-                                                       tmp_df['split_idx'], tmp_df['mapping_quality'],
-                                                       tmp_df['NM']):
-                    pos = bisect.bisect_left(lis.start, start)
-                    if pos == len(lis):
-                        if lis.start and (start - lis.start[pos - 1]) > self.maximum_gap:
-                            continue
-                        lis.start.append(start)
-                        lis.end.append(end)
-                        lis.split_idx.append(split_idx)
-                        lis.mapq.append(mapq)
-                        lis.nm.append(nm)
-                
-                res.append(lis)
-
+            res.extend(df.groupby('chrom', sort=False).apply(sub_func).values.tolist())
             
             return res
 
-        res = self.paf_df.groupby('raw_read_name', sort=False).apply(func)
+        pandarallel.initialize(nb_workers=self.threads, verbose=0)
+        res = self.paf_df.groupby('raw_read_name', sort=False).parallel_apply(func)
         error_rates = []
         
         total_window_num = 0
+        total_window_num_list = []
+
         for read, lis_list in res.items():
             if isinstance(lis_list, pd.Series):
                 continue
             window_num, error_rate = lis_list.join()
             error_rates.extend(error_rate)
             total_window_num += window_num
+        
 
+        def process(lis_list):
+            window_num, error_rate = lis_list.join()
+            return window_num, error_rate
+        
+        args = []
+        for read, lis_list in res.items():
+            if isinstance(lis_list, pd.Series):
+                continue
+            args.append(lis_list)
+            # window_num, error_rate = lis_list.join()
+            # error_rates.extend(error_rate)
+            # total_window_num += window_num
 
-        error_rates = list(filter(lambda x: ~np.isnan(x), error_rates))
+        res = Parallel(n_jobs=self.threads)(
+            delayed(process)(i) for i in args
+        )
+        window_nums, error_rates = list(zip(*res))
+       
+        total_window_num = sum(window_nums)
+        error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
         error_rate = np.median(error_rates) 
         error_rate = error_rate if not np.isnan(error_rate) else 0
 

@@ -7,6 +7,7 @@ evaluate the asssembly by ultra-long reads
 
 import argparse
 import logging
+import gc
 import os
 import os.path as op
 import sys
@@ -29,7 +30,7 @@ from pandarallel import pandarallel
 from pathlib import Path
 from pyranges import PyRanges
 
-from line_profiler import LineProfiler
+# from line_profiler import LineProfiler
 
 from ..agp import import_agp
 from ..utilities import listify, xopen, list_flatten
@@ -64,27 +65,67 @@ class GapEvaluator:
     def run(self):
         pass 
 
+# @dataclass
+# class LIS:
+#     chrom: str = ""
+#     start: list = field(default_factory=list)
+#     end: list = field(default_factory=list)
+#     split_idx: list = field(default_factory=list)
+#     mapq: list = field(default_factory=list)
+#     nm: list = field(default_factory=list)
+#     fragment_length: list = field(default_factory=list)
+
+#     def __len__(self):
+#         return len(self.start)
+    
+#     def pop(self, index):
+#         return (self.start.pop(index), 
+#                 self.end.pop(index),
+#                 self.split_idx.pop(index),
+#                 self.mapq.pop(index))
+
+#     def count_by_mapq(self, min_mapq=2):
+#         return len(list(filter(lambda x: x>=min_mapq, self.mapq)))
+
 @dataclass
 class LIS:
-    chrom: str = ""
-    start: list = field(default_factory=list)
-    end: list = field(default_factory=list)
-    split_idx: list = field(default_factory=list)
-    mapq: list = field(default_factory=list)
-    nm: list = field(default_factory=list)
-    fragment_length: list = field(default_factory=list)
+    # chrom: str = ""
+    start: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int32))
+    # end: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int32))
+    split_idx: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int32))
+    mapq: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int8))
+    nm: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int32))
+    fragment_length: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int32))
 
     def __len__(self):
         return len(self.start)
     
     def pop(self, index):
-        return (self.start.pop(index), 
-                self.end.pop(index),
-                self.split_idx.pop(index),
-                self.mapq.pop(index))
+        start_val = self.start[index]
+        end_val = self.end[index]
+        split_idx_val = self.split_idx[index]
+        mapq_val = self.mapq[index]
+
+        self.start = np.delete(self.start, index)
+        # self.end = np.delete(self.end, index)
+        self.split_idx = np.delete(self.split_idx, index)
+        self.mapq = np.delete(self.mapq, index)
+        self.nm = np.delete(self.nm, index)
+        self.fragment_length = np.delete(self.fragment_length, index)
+
+        return (start_val, end_val, split_idx_val, mapq_val)
+
+    def append(self, start, #end, 
+               split_idx, mapq, nm, fragment_length):
+        self.start = np.append(self.start, start)
+        # self.end = np.append(self.end, end)
+        self.split_idx = np.append(self.split_idx, split_idx)
+        self.mapq = np.append(self.mapq, mapq)
+        self.nm = np.append(self.nm, nm)
+        self.fragment_length = np.append(self.fragment_length, fragment_length)
 
     def count_by_mapq(self, min_mapq=2):
-        return len(list(filter(lambda x: x>=min_mapq, self.mapq)))
+        return np.sum(self.mapq >= min_mapq)
 
 class LISContainer(list):
     raw_read_name = ""
@@ -115,9 +156,6 @@ class LISContainer(list):
       
         init_array[split_idx] = np.array(max_lis.nm)[~non_dup]
 
-
-        # init_df = pd.Series(max_lis.nm, index=max_lis.split_idx).to_frame()
-        # init_df = init_df[~init_df.index.duplicated(keep='first')]
         
         df = np.array(max_lis.fragment_length)[~non_dup]
         
@@ -137,17 +175,15 @@ class LISContainer(list):
                 continue
 
             filter_split_idx2 = split_idx2[_filter_split_idx2]
-            nm2 = np.zeros(max(split_idx2) + 1)
-
-            nm2[filter_split_idx2] = np.array(lis.nm)[~non_dup2][_filter_split_idx2]
-  
-
-            
             mapq2 = np.array(lis.mapq)[~non_dup2]
 
             filter_mapq2 = mapq2 > 1
-           
-            # filter_split_idx2 = np.isin(split_idx2, split_idx)
+            if not any(filter_mapq2):
+                continue
+
+            nm2 = np.zeros(max(split_idx2) + 1)
+            nm2[filter_split_idx2] = np.array(lis.nm)[~non_dup2][_filter_split_idx2]
+            
             filter_idx = split_idx2[_filter_split_idx2 & filter_mapq2]
             init_array[filter_idx] = - init_array[filter_idx] + nm2[filter_idx]
 
@@ -250,7 +286,7 @@ class SwitchError:
                             names=self.PAF_HEADER2, usecols=[0, 2, 3, 4, 5, 7, 8, 11, 12])
         
         self.paf_df['NM'] = self.paf_df['NM'].str.replace("NM:i:", "").astype(int)
-
+        
         raw_read_names = self.paf_df['read_name'].str.rsplit("_", n=1, expand=True)
         self.paf_df.drop(['read_name'], axis=1, inplace=True)
         self.paf_df['raw_read_name'] = raw_read_names[0].astype('category').cat.codes
@@ -271,7 +307,7 @@ class SwitchError:
             ascending = True if popular_strand == '+' else False
             tmp_df.sort_values(by=['split_idx'], inplace=True, ascending=ascending)
 
-            lis.chrom = chrom
+            # lis.chrom = chrom
             starts = tmp_df['start'].values
             ends = tmp_df['end'].values
             split_idxs = tmp_df['split_idx'].values
@@ -280,19 +316,15 @@ class SwitchError:
             fragment_lengths = tmp_df['fragment_length']
     
         
-            for start, end, split_idx, mapq, nm, fragment_length in zip(
-                starts, ends, split_idxs, mapqs, nms, fragment_lengths):
+            for start, split_idx, mapq, nm, fragment_length in zip(
+                starts, split_idxs, mapqs, nms, fragment_lengths):
 
                 pos = bisect.bisect_left(lis.start, start)
                 if pos == len(lis.start):
-                    if lis.start and (start - lis.start[pos - 1]) > self.maximum_gap:
+                    if lis.start.size > 0 and (start - lis.start[(pos - 1)]) > self.maximum_gap:
                         continue
-                    lis.start.append(start)
-                    lis.end.append(end)
-                    lis.split_idx.append(split_idx)
-                    lis.mapq.append(mapq)
-                    lis.nm.append(nm)
-                    lis.fragment_length.append(fragment_length)
+
+                    lis.append(start, split_idx, mapq, nm, fragment_length)
             
             return lis
 
@@ -303,20 +335,12 @@ class SwitchError:
             
             return res
 
+        
         pandarallel.initialize(nb_workers=self.threads, verbose=0)
         res = self.paf_df.groupby('raw_read_name', sort=False).parallel_apply(func)
-        error_rates = []
         
-        total_window_num = 0
-        total_window_num_list = []
-
-        for read, lis_list in res.items():
-            if isinstance(lis_list, pd.Series):
-                continue
-            window_num, error_rate = lis_list.join()
-            error_rates.extend(error_rate)
-            total_window_num += window_num
-        
+        del self.paf_df 
+        gc.collect()
 
         def process(lis_list):
             window_num, error_rate = lis_list.join()
@@ -324,8 +348,10 @@ class SwitchError:
         
         args = []
         for read, lis_list in res.items():
-            if isinstance(lis_list, pd.Series):
-                continue
+            # if isinstance(lis_list, pd.Series):
+            #     continue
+            if len(lis_list) == 1:
+                 continue 
             args.append(lis_list)
             # window_num, error_rate = lis_list.join()
             # error_rates.extend(error_rate)
@@ -344,7 +370,6 @@ class SwitchError:
         print(f"Total window counts: {total_window_num}", file=sys.stdout)
         print(f"Error windows counts: {len(error_rates)}", file=sys.stdout)
         print(f"Switch error rate: {error_rate:.4%}", file=sys.stdout)
-
 
     def run(self):
 

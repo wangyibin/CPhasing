@@ -185,7 +185,7 @@ def evaluate_HapHiC(fasta, bam, ploidy, n, contigs):
     pt_pairs = all_pairs - full_pairs
     
     os.chdir("..")
-    shutil.copy(tmpDir/"01.cluster/HapHiC_cluster.log", ".")
+    shutil.copy(f"{tmpDir}/01.cluster/HapHiC_cluster.log", ".")
     shutil.rmtree(tmpDir)
 
     with open(f"{name}.HapHiC.remove.table", 'w') as out:

@@ -96,7 +96,7 @@ def downsample(pairs, percent):
     cmd = ["samtools", "collate", "-@", "10", f"{percent:.2f}.bam", "-o", f"{percent:.2f}.shuffle.bam"]
     run_cmd(cmd)
 
-    os.remove(f"{percent:.2f}.shuffle.bam", f"{percent:.2f}.bam")
+    shutil.move(f"{percent:.2f}.shuffle.bam", f"{percent:.2f}.bam")
 
     return f"{percent:.2f}.pairs.gz", f"{percent:.2f}.contacts", f"{percent:.2f}.bam"
 

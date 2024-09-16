@@ -363,7 +363,7 @@ class AlleleTable:
         self.data.index.rename(0, inplace=True)
         
         if self.data.empty:
-            logger.warn("After filter AlleleTable is empty")
+            logger.warning("After filter AlleleTable is empty")
 
     @property
     def contig_pairs(self):
@@ -1663,7 +1663,7 @@ class Tour:
         try:
             shutil.move(f"{self.filename}", f"{self.filename}.{suffix}")
         except FileNotFoundError:
-            logger.warn(f"No such file of `{self.filename}`, will not backup it.")
+            logger.warning(f"No such file of `{self.filename}`, will not backup it.")
 
     def save(self, output):
         with open(output, 'w') as out:
@@ -3064,7 +3064,7 @@ class PoreCTable:
 
         res_df = query_gr.join(bed_gr, nb_cpu=self.threads).df
         if res_df.empty:
-            logger.warn('Could not found anything.')
+            logger.warning('Could not found anything.')
             return
         res_index = res_df['Index'].astype(int)
 

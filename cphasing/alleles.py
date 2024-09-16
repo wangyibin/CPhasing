@@ -439,7 +439,7 @@ class AlignmentAlleles:
             logger.error(f'No such command of `wfmash`.')
             sys.exit()
 
-        fasta_prefix = Path(fasta).with_suffix("")
+        fasta_prefix = Path(Path(fasta).stem).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
         self.prefix = fasta_prefix

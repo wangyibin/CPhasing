@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-plot the curve of retain and remove 
+evaluate the retain and remove of prune
 """
 
 

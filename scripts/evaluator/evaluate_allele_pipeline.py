@@ -36,13 +36,12 @@ def main(args):
                         conflict_handler='resolve')
     pReq = p.add_argument_group('Required arguments')
     pOpt = p.add_argument_group('Optional arguments')
-    pReq.add_argument('contigsize', 
+    pReq.add_argument('contigsizes', 
             help='contigsizes')
     pReq.add_argument("alleletable", help="alleletable")
 
     pReq.add_argument('allhic_alleletable')
     pReq.add_argument('haphic_log', help="log of haphic, `--verbose` should be add")
-    pReq.add_argument('n', type=int)
     pOpt.add_argument('-h', '--help', action='help',
             help='show help message and exit.')
     

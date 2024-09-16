@@ -90,6 +90,11 @@ def downsample(pairs, percent):
            "-o", f"{percent:.2f}.bam"]
     run_cmd(cmd)
 
+    cmd = ["samtools", "collate", "-@", "10", f"{percent:.2f}.bam", "-o", f"{percent:.2f}.shuffle.bam"]
+    run_cmd(cmd)
+
+    os.remove(f"{percent:.2f}.shuffle.bam", f"{percent:.2f}.bam")
+
     return f"{percent:.2f}.pairs.gz", f"{percent:.2f}.contacts", f"{percent:.2f}.bam"
 
 def evaluate_cphasing(alleletable, contacts):

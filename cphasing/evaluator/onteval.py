@@ -122,8 +122,7 @@ class LISContainer(list):
         
         return max_idx
     
-    # @profile
-    def join(self):
+    def join(self, min_mapq=2):
         max_idx = self.idxmax()
         max_lis = self[max_idx]
         
@@ -156,7 +155,7 @@ class LISContainer(list):
             filter_split_idx2 = split_idx2[_filter_split_idx2]
             mapq2 = np.array(lis.mapq)[~non_dup2]
 
-            filter_mapq2 = mapq2 > 1
+            filter_mapq2 = mapq2 >= min_mapq
             if not any(filter_mapq2):
                 continue
 
@@ -201,7 +200,7 @@ class SwitchError:
     def __init__(self, fasta, reads, outprefix="output",
                  window=5000, min_windows=2, 
                  maximum_gap=1000000,
-                 chunksize=1e7,
+                 chunksize=1e6,
                  threads=10, is_hifi=False):
         
         self.fasta = fasta 
@@ -311,9 +310,11 @@ class SwitchError:
             another_df = df2.loc[df2['raw_read_name'] == df1.tail(1)['raw_read_name'].values[0]]
 
             df1 = pd.concat([df1, another_df], axis=0)
+            df1['raw_read_name'] = df1['raw_read_name'].astype('category').cat.codes
             yield df1 
             df1 = df2
         else:
+            df1['raw_read_name'] = df1['raw_read_name'].astype('category').cat.codes
             yield df1 
 
     
@@ -328,7 +329,7 @@ class SwitchError:
 
             # lis.chrom = chrom
             starts = tmp_df['start'].values
-            ends = tmp_df['end'].values
+            # ends = tmp_df['end'].values
             split_idxs = tmp_df['split_idx'].values
             mapqs = tmp_df['mapping_quality'].values
             nms = tmp_df['NM'].values
@@ -346,7 +347,7 @@ class SwitchError:
                     lis.append(start, split_idx, mapq, nm, fragment_length)
             
             return lis
-
+    
         def func(df):
             res = LISContainer()
             res.raw_read_name = df['raw_read_name'].values[0]
@@ -364,24 +365,33 @@ class SwitchError:
             return window_num, error_rate
         
         args = []
+        window_nums = []
+        error_rates = []
         for read, lis_list in res.items():
-            # if isinstance(lis_list, pd.Series):
-            #     continue
+            if isinstance(lis_list, pd.Series):
+                continue
             if len(lis_list) == 1:
-                 continue 
-            args.append(lis_list)
+                window_nums.append(len(lis_list[0]))
+                continue 
+            # args.append(lis_list)
+            window_num, error_rate = process(lis_list)
+            window_nums.append(window_num)
+            error_rates.append(error_rate)
 
-        res = Parallel(n_jobs=self.threads)(
-            delayed(process)(i) for i in args
-        )
-        window_nums, error_rates = list(zip(*res))
+        # res = Parallel(n_jobs=self.threads)(
+        #     delayed(process)(i) for i in args
+        # )
+        # window_nums, error_rates = list(zip(*res))
+        
+        error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
 
         return window_nums, error_rates 
     
     def calculate(self, window_nums, error_rates):
-        total_window_num = sum(window_nums)
-        error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
-        error_rate = np.median(error_rates) 
+        total_window_num = sum(list_flatten(window_nums))
+        # error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
+        error_rates = list_flatten(error_rates)
+        error_rate = np.median(error_rates)
         error_rate = error_rate if not np.isnan(error_rate) else 0
 
         print(f"Total window counts: {total_window_num}", file=sys.stdout)
@@ -397,12 +407,17 @@ class SwitchError:
         # self.read_paf()
         window_nums = []
         error_rates = []
-        for df in self.read_paf_by_chunk():
+        # for df in self.read_paf_by_chunk():
 
-            _window_nums, _error_rates = self.find_lis(df)
-            window_nums.extend(_window_nums)
-            error_rates.extend(_error_rates)
-      
+        #     _window_nums, _error_rates = self.find_lis(df)
+        #     window_nums.extend(_window_nums)
+        #     error_rates.extend(_error_rates)
+
+        res = Parallel(n_jobs=self.threads)(delayed(self.find_lis)(df) for df in self.read_paf_by_chunk())
+
+        
+        window_nums, error_rates = list(zip(*res))
+        
         self.calculate(window_nums, error_rates)
         
 

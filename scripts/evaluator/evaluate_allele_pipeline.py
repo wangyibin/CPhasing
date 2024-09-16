@@ -54,7 +54,7 @@ def main(args):
     os.system(cmd)
 
     cmd = f'grep -v ChrC {args.allhic_alleletable} | grep -v ChrM > tmp.allhic.allele.table'
-    cmd = '~/code/CPhasing/scripts/evaluator/get_allelic_from_ALLHiC tmp.allhic.allele.table > allhic.allelic'
+    cmd = '~/code/CPhasing/scripts/evaluator/get_allelic_from_ALLHiC.py tmp.allhic.allele.table > allhic.allelic'
     os.system(cmd)
 
     cmd = f'~/code/CPhasing/scripts/evaluator/get_allelic_from_haphic_log.py {args.haphic_log} > haphic.allelic'

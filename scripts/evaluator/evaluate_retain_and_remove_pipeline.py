@@ -126,7 +126,7 @@ def evaluate_ALLHiC(allhic_alleletable, bam, fasta):
     cmd = ["allhic", "extract", f"{name}.prune.bam", f"{Path(fasta).name}",
            "--RE", "AAGCTT", "--minLinks", "1"]
     run_cmd(cmd)
-
+                                                                                                                                                                                                             
     
     os.remove(f"{name}.prune.clm")
 
@@ -165,7 +165,7 @@ def evaluate_HapHiC(fasta, bam, ploidy, n, contigs):
     os.chdir(tmpDir)
     os.link(fasta_absolute, Path(fasta).name)
     os.link(bam_absolute, bam)
-    cmd = f"conda run -n haphic ~/software/HapHiC/HapHiC/haphic pipeline {fasta_absolute} {bam} {n} --remove_allelic {ploidy} --steps 1"
+    cmd = f"conda run -n haphic ~/software/HapHiC/HapHiC/haphic pipeline {fasta_absolute} {bam} {n} --remove_allelic {ploidy} --steps 1 --verbose"
     os.system(cmd)
 
     data = pickle.load(open("01.cluster/full_links.pkl", 'rb'))

@@ -65,27 +65,6 @@ class GapEvaluator:
     def run(self):
         pass 
 
-# @dataclass
-# class LIS:
-#     chrom: str = ""
-#     start: list = field(default_factory=list)
-#     end: list = field(default_factory=list)
-#     split_idx: list = field(default_factory=list)
-#     mapq: list = field(default_factory=list)
-#     nm: list = field(default_factory=list)
-#     fragment_length: list = field(default_factory=list)
-
-#     def __len__(self):
-#         return len(self.start)
-    
-#     def pop(self, index):
-#         return (self.start.pop(index), 
-#                 self.end.pop(index),
-#                 self.split_idx.pop(index),
-#                 self.mapq.pop(index))
-
-#     def count_by_mapq(self, min_mapq=2):
-#         return len(list(filter(lambda x: x>=min_mapq, self.mapq)))
 
 @dataclass
 class LIS:
@@ -222,6 +201,7 @@ class SwitchError:
     def __init__(self, fasta, reads, outprefix="output",
                  window=5000, min_windows=2, 
                  maximum_gap=1000000,
+                 chunksize=1e7,
                  threads=10, is_hifi=False):
         
         self.fasta = fasta 
@@ -233,6 +213,7 @@ class SwitchError:
         self.window = window
         self.min_windows = min_windows
         self.maximum_gap = maximum_gap
+        self.chunksize = chunksize
         self.threads = threads
         self.is_hifi = is_hifi
     
@@ -297,11 +278,49 @@ class SwitchError:
         self.paf_df = self.paf_df[self.paf_df['read_end'] - self.paf_df['read_start'] > self.window * 0.9]
 
         return self.paf_df
+
+    def read_paf_by_chunk(self):
+        chunks = pd.read_csv(self.paf_path, sep='\t', header=None, index_col=None,
+                            names=self.PAF_HEADER2, usecols=[0, 2, 3, 4, 5, 7, 8, 11, 12],
+                            chunksize=self.chunksize)
+        
+        df1 = chunks.__next__()
+
+        df1['NM'] = df1['NM'].str.replace("NM:i:", "").astype(int)
+        
+        raw_read_names = df1['read_name'].str.rsplit("_", n=1, expand=True)
+        df1.drop(['read_name'], axis=1, inplace=True)
+        df1['raw_read_name'] = raw_read_names[0] # .astype('category').cat.codes
+        
+        df1['split_idx'] = raw_read_names[1].astype(int)
+        df1['fragment_length'] = df1['end'] - df1['start']
     
-    def find_lis(self):
+        df1 = df1[df1['read_end'] - df1['read_start'] > self.window * 0.9]
+
+        for df2 in chunks:
+            df2['NM'] = df2['NM'].str.replace("NM:i:", "").astype(int)
+        
+            raw_read_names = df2['read_name'].str.rsplit("_", n=1, expand=True)
+            df2.drop(['read_name'], axis=1, inplace=True)
+            df2['raw_read_name'] = raw_read_names[0] #.astype('category').cat.codes
+            
+            df2['split_idx'] = raw_read_names[1].astype(int)
+            df2['fragment_length'] = df2['end'] - df2['start']
+        
+            df2 = df2[df2['read_end'] - df2['read_start'] > self.window * 0.9]
+            another_df = df2.loc[df2['raw_read_name'] == df1.tail(1)['raw_read_name'].values[0]]
+
+            df1 = pd.concat([df1, another_df], axis=0)
+            yield df1 
+            df1 = df2
+        else:
+            yield df1 
+
+    
+    def find_lis(self, input_df):
         def sub_func(tmp_df):
             lis = LIS()
-            chrom = tmp_df['chrom'].values[0]
+            # chrom = tmp_df['chrom'].values[0]
             popular_strand = tmp_df.groupby('strand')['raw_read_name'].count().idxmax()
 
             ascending = True if popular_strand == '+' else False
@@ -337,10 +356,8 @@ class SwitchError:
 
         
         pandarallel.initialize(nb_workers=self.threads, verbose=0)
-        res = self.paf_df.groupby('raw_read_name', sort=False).parallel_apply(func)
-        
-        del self.paf_df 
-        gc.collect()
+        res = input_df.groupby('raw_read_name', sort=False).parallel_apply(func)
+
 
         def process(lis_list):
             window_num, error_rate = lis_list.join()
@@ -353,15 +370,15 @@ class SwitchError:
             if len(lis_list) == 1:
                  continue 
             args.append(lis_list)
-            # window_num, error_rate = lis_list.join()
-            # error_rates.extend(error_rate)
-            # total_window_num += window_num
 
         res = Parallel(n_jobs=self.threads)(
             delayed(process)(i) for i in args
         )
         window_nums, error_rates = list(zip(*res))
-       
+
+        return window_nums, error_rates 
+    
+    def calculate(self, window_nums, error_rates):
         total_window_num = sum(window_nums)
         error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
         error_rate = np.median(error_rates) 
@@ -377,8 +394,16 @@ class SwitchError:
             self.mapping()
         else:
             logger.warning(f"Using existed mapping results: `{self.paf_path}`")
-        self.read_paf()
-        self.find_lis()
+        # self.read_paf()
+        window_nums = []
+        error_rates = []
+        for df in self.read_paf_by_chunk():
+
+            _window_nums, _error_rates = self.find_lis(df)
+            window_nums.extend(_window_nums)
+            error_rates.extend(_error_rates)
+      
+        self.calculate(window_nums, error_rates)
         
 
 def get_mode(arr):

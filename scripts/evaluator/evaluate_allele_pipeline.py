@@ -54,6 +54,8 @@ def main(args):
     os.system(cmd)
 
     cmd = f'grep -v ChrC {args.allhic_alleletable} | grep -v ChrM > tmp.allhic.allele.table'
+    os.system(cmd)
+
     cmd = '~/code/CPhasing/scripts/evaluator/get_allelic_from_ALLHiC.py tmp.allhic.allele.table > allhic.allelic'
     os.system(cmd)
 
@@ -63,15 +65,17 @@ def main(args):
     
     res = {}
 
-    for software, allelic in [("C-Phasing", "cphasing.allelic"),
-                              ("HapHiC", "haphic.allelic"),
-                              ("ALLHiC", "allhic.allelic")]:
-        
-        cmd = f"~/code/CPhasing/scripts/evaluator/evaluate_allele.py ground.truth.allelic {allelic}"
+    with open('output.allele.eval.tsv', 'w') as out:
+        for software, allelic in [("C-Phasing", "cphasing.allelic"),
+                                ("HapHiC", "haphic.allelic"),
+                                ("ALLHiC", "allhic.allelic")]:
+            
+            cmd = f"~/code/CPhasing/scripts/evaluator/evaluate_allele.py ground.truth.allelic {allelic}"
 
-        res[software] = os.popen(cmd).read()
-    
-        print(software, res[software], sep='\t')
+            res[software] = os.popen(cmd).read()
+
+        
+            print(software, res[software], sep='\t', file=out)
 
 
 

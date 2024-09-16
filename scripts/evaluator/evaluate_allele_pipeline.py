@@ -72,8 +72,7 @@ def main(args):
             
             cmd = f"~/code/CPhasing/scripts/evaluator/evaluate_allele.py ground.truth.allelic {allelic}"
 
-            res[software] = os.popen(cmd).read()
-
+            res[software] = os.popen(cmd).read().strip()
         
             print(software, res[software], sep='\t', file=out)
 

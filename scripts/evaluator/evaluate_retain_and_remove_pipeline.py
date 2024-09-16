@@ -76,7 +76,10 @@ def get_remove_retain(prunelist, contacts, contigs):
 
 def downsample(pairs, percent):
     if percent == 1.0:
-        os.link(pairs, f"{percent:.2f}.pairs.gz")
+        try:
+            os.link(pairs, f"{percent:.2f}.pairs.gz")
+        except FileExistsError:
+            pass
     else:
         cmd = ["cphasing-rs", "pairs-downsample", pairs,
             "-p", f"{percent}", "-o", f"{percent:.2f}.pairs.gz"]
@@ -182,6 +185,7 @@ def evaluate_HapHiC(fasta, bam, ploidy, n, contigs):
     pt_pairs = all_pairs - full_pairs
     
     os.chdir("..")
+    shutil.copy(tmpDir/"01.cluster/HapHiC_cluster.log", ".")
     shutil.rmtree(tmpDir)
 
     with open(f"{name}.HapHiC.remove.table", 'w') as out:

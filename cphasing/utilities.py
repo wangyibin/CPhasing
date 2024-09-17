@@ -731,7 +731,7 @@ def to_humanized2(size):
 
     return label
 
-def chrom_ticks_convert(ticks):
+def chrom_ticks_convert(ticks, add_suffix=True):
     """
     Convert a list of  chromosome size to suitable unit.
     >>> ticks = [10000, 20000, 30000]
@@ -741,15 +741,18 @@ def chrom_ticks_convert(ticks):
     if ticks[-1]  - ticks[1] <= 1e3:
         labels = ["{:,.0f}".format((x)) 
                   for x in ticks] 
-        labels[-1] += " bp"
+        if add_suffix:
+            labels[-1] += " bp"
     elif ticks[-1]  - ticks[1] <= 4e5:
         labels = ["{:,.0f}".format((x / 1e3)) 
                   for x in ticks]
-        labels[-1] += 'Kbp'
+        if add_suffix:
+            labels[-1] += 'Kbp'
     else:
         labels = ["{:,.1f}".format((x / 1e6)) 
                   for x in ticks]
-        labels[-1] += " Mbp"
+        if add_suffix:
+            labels[-1] += " Mbp"
     
     return labels
 

@@ -17,6 +17,7 @@ matplotlib == 3.8.0
 msgspec
 pandas >= 2.2.0
 pandarallel
+patchworklib
 portion 
 polars >= 0.20.29
 pyarrow >= 8.0.0

@@ -193,6 +193,17 @@ class PartigRecords:
                 # if k:
                 #     if int(record.mzShared) * k * float(record.kmerSimilarity) < filter_value:
                 #         continue 
+                record.kmerSimilarity = float(record.kmerSimilarity)
+                similarity1 = int(record.mzShared) / int(record.mzConsidered1)
+                similarity2 = int(record.mzShared) / int(record.mzConsidered2)
+                if similarity1 > record.kmerSimilarity or similarity2 > record.kmerSimilarity:
+                    record.kmerSimilarity = max([similarity1, similarity2])
+
+                if record.kmerSimilarity < 0.80:
+                    continue
+
+                record.kmerSimilarity = f"{record.kmerSimilarity:.4}"
+
                 print(i, i, record.seqName1, 
                             record.seqName2, 
                             record.mzConsidered1,

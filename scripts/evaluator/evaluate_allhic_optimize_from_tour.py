@@ -86,7 +86,10 @@ def main(args):
         midpoint_db = []
         cum_sum = 0 
         for i, contig in enumerate(contigs):
-            length = length_db[contig]
+            try:
+                length = length_db[contig]
+            except KeyError:
+                continue
             midpoint_db.append(cum_sum + length / 2)
             cum_sum += length 
 
@@ -94,7 +97,10 @@ def main(args):
         for i in range(len(contigs)-1):
             for j in range(i + 1, len(contigs)):
                 contig1, contig2 = contigs[i], contigs[j]
-                dist = midpoint_db[j] - midpoint_db[i]
+                try:
+                    dist = midpoint_db[j] - midpoint_db[i]
+                except IndexError:
+                    continue
                 count = count_db[(contig1, contig2)]
 
                 S += count / dist 
@@ -113,15 +119,21 @@ def main(args):
         cum_sum = 0 
 
         for i, contig in enumerate(real_contigs):
-            length = length_db[contig]
-            midpoint_db.append(cum_sum + length / 2)
+            try:
+                length = length_db[contig]
+                midpoint_db.append(cum_sum + length / 2)
+            except:
+                continue
             cum_sum += length 
 
         real_S = 0
         for i in range(len(real_contigs)-1):
             for j in range(i + 1, len(real_contigs)):
-                contig1, contig2 = real_contigs[i], real_contigs[j]
-                dist = midpoint_db[j] - midpoint_db[i]
+                try:
+                    contig1, contig2 = real_contigs[i], real_contigs[j]
+                    dist = midpoint_db[j] - midpoint_db[i]
+                except:
+                    continue
                 count = count_db[(contig1, contig2)]
 
                 real_S += count / dist 

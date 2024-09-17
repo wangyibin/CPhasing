@@ -80,7 +80,8 @@ class CountRE:
                                         header=None, index_col=0,
                                         names=['#Contigs','RECounts', 'Length'],
                                         dtype={'RECounts': int, 
-                                                'Length': int})
+                                                'Length': int},
+                                        comment="#")
             
         self.data = self.data[self.data['RECounts'] >= self.minRE]
         

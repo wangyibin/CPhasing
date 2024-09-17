@@ -130,15 +130,6 @@ def main(args):
 
     plt.savefig(f"{prefix}.evulate_allhic_optimize.png", dpi=600, bbox_inches='tight')
     
-    
-
-
-
-
-
-
-    
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -94,8 +94,9 @@ def main(args):
     df['identity'] = df['identity'].map(lambda x: x.replace("id:f:", "")).astype(float)
     
     _df = df.drop_duplicates(subset=['contig1'], keep='first')
-    # _df = _df[_df['contig1'].str.startswith('Chr')]
-    # total_count = len(_df)
+    _df = _df[_df['contig1'].str.startswith('Chr')]
+    _df = _df[_df['contig1'].str.startswith('group')]
+    total_count = len(_df)
     df = df.drop_duplicates(subset=['contig1'], keep=False)
     total_count = len(df)
 
@@ -127,13 +128,16 @@ def main(args):
     total_misassembly_count = 0
     ploted_chrom = set()
     for raw_chrom, tmp_df in df.groupby('raw_chrom', sort=False):
-        # if not raw_chrom.startswith('Chr'):
-        #     continue
+        if raw_chrom.startswith('chr'):
+            continue
+        
+        if raw_chrom.startswith('utg'):
+            continue
 
         best_chrom = tmp_df.groupby('contig2')['raw_chrom'].count().idxmax()
         if best_chrom in ploted_chrom:
             continue
-        tmp_df = tmp_df[['contig1', 'raw_chrom', 'raw_start', 'raw_end', 'contig2', 'start2', 'end2']]
+        tmp_df = tmp_df[['contig1', 'raw_chrom', 'raw_start', 'raw_end', 'strand', 'contig2', 'start2', 'end2']]
         
         trio = best_chrom.split("_")[1]
         if trio == "PATERNAL":
@@ -174,12 +178,16 @@ def main(args):
             
             if row.color == 'grey':
                 line_list.append([(row.raw_start, row.raw_end),
-                                (0, 0)])
+                                    (0, 0)])
+
                 color_list.append(row.color)
             else:
-
-                line_list.append([(row.raw_start, row.raw_end),
-                                (row.start2, row.end2)])
+                if row.strand == "+":
+                    line_list.append([(row.raw_start, row.raw_end),
+                                    (row.start2, row.end2)])
+                else:
+                     line_list.append([(row.raw_start, row.raw_end),
+                                    (row.end2, row.start2)])
                 color_list.append(row.color)
         
         for i, line in enumerate(line_list):

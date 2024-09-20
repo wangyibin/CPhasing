@@ -222,8 +222,8 @@ def main(args):
 
     ref_half_pos = ref_cumsum[:-1] + (ref_cumsum[1:] - ref_cumsum[:-1])//2
     qry_half_pos = qry_cumsum[:-1] + (qry_cumsum[1:] - qry_cumsum[:-1])//2
-    plt.xticks(qry_half_pos, qry_chromsizes.index, fontsize=6, rotation=90)
-
+    # plt.xticks(qry_half_pos, qry_chromsizes.index, fontsize=6, rotation=90)
+    plt.xticks([])
     plt.yticks(ref_half_pos, ref_chromsizes.index, fontsize=6)
 
     plt.vlines(qry_cumsum, ax.get_xlim()[0], ax.get_xlim()[1],

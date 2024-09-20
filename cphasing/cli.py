@@ -2445,7 +2445,7 @@ def alleles2(fasta, ploidy, kmer, segment_length, block_length,
     '--norm-method',
     'norm_method',
     metavar="STR",
-    help="Normalization method of contacts for kprune",
+    help="Normalization method of contacts for kprune: none|cis|cis_unique",
     default="none",
     show_default=True ,
     type=click.Choice(["none", "cis", "cis_unique", "auto"])

@@ -120,7 +120,7 @@ def main(args):
 
     axes = OrderedDict()
 
-    fig = plt.figure(figsize=(60, 4))
+    fig = plt.figure(figsize=(60, 4.2))
     gs = gridspec.GridSpec(2, 24)
 
   
@@ -167,7 +167,7 @@ def main(args):
             # ax = pw.Brick(figsize=(3, 3))
             
             ax = fig.add_subplot(gs[ref_idx[best_chrom][0], ref_idx[best_chrom][1]])
-            plt.subplots_adjust(wspace=0.6, hspace=0.6)
+            plt.subplots_adjust(wspace=0.8, hspace=0.8)
         else:
             fig, ax = plt.subplots(figsize=(3, 3))
 

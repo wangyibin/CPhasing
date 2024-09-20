@@ -396,6 +396,7 @@ class SwitchError:
 
         print(f"Total window counts: {total_window_num}", file=sys.stdout)
         print(f"Error windows counts: {len(error_rates)}", file=sys.stdout)
+        print(f"Hamming error rate: {len(error_rates)/total_window_num:.4%}", file=sys.stdout)
         print(f"Switch error rate: {error_rate:.4%}", file=sys.stdout)
 
     def run(self):

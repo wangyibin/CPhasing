@@ -5020,9 +5020,61 @@ def sw(fasta, reads, window, min_windows,
     se.run()
 
 
-@evaluator.command(short_help='Analysis sequences compoent by depth')
-@click.argument(
-    'depth'
+@evaluator.command(short_help='Analysis sequences compoent by hifi or ont reads ')
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="STR",
+    help="Fasta file",
+    required=True,
+)
+@click.option(
+    "-i",
+    "--reads",
+    metavar="STR",
+    help="Reads file path, multiple file use comma separated",
+    required=True,
+)
+@click.option(
+    '-w',
+    '--window',
+    help='window size',
+    default=5000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-s',
+    '--step',
+    help='step size',
+    default=1000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-m',
+    '--min-windows',
+    'min_windows',
+    help='minimum windows of read',
+    default=2,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '--is-ont',
+    help="Input ont data.",
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
 )
 @click.option(
     '-o',
@@ -5031,9 +5083,16 @@ def sw(fasta, reads, window, min_windows,
     default='output',
     show_default=True
 )
-def ca(depth, output):
+def ca(fasta, reads, window,
+        step, min_windows,
+       is_ont, threads, output):
     from .evaluator.onteval import ComponentAnalysis
-    ca = ComponentAnalysis(depth, output)
+    ca = ComponentAnalysis(fasta, reads, 
+                           window=window, step=step,
+                           min_windows=min_windows,
+                           is_ont=is_ont,
+                           threads=threads,
+                           output=output)
     ca.run()
 
 

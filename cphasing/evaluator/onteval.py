@@ -33,7 +33,10 @@ from pyranges import PyRanges
 # from line_profiler import LineProfiler
 
 from ..agp import import_agp
-from ..utilities import listify, xopen, list_flatten
+from ..utilities import (listify, xopen, 
+                         list_flatten, 
+                         run_cmd,
+                          get_contig_size_from_fasta )
 
 logger = logging.getLogger(__name__)
 
@@ -432,19 +435,113 @@ class ComponentAnalysis:
     Analysis the components of contigs, including junk, false duplication, haploid, collapsed.
     """
     DEPTH_HEADER = ["chrom", "start", "end", "count"]
-    def __init__(self, depth, outprefix):
-        self.depth_path = depth
-        self.outprefix = outprefix
+    def __init__(self, fasta, reads, output="output",
+                 window=5000, step=1000, min_windows=2, 
+                 min_mapq=0,
+                 threads=10, is_ont=False):
+
+        self.fasta = fasta 
+        self.reads = reads 
+
+        self.outprefix = output 
+        if self.outprefix is None:
+            self.outprefix = Path(self.fasta).stem 
+        
+        paf = f"{self.outprefix}.paf"
+        self.paf_path = Path(paf)
+        self.paf = paf
+
+        self.contigsizes = get_contig_size_from_fasta(self.fasta)
+
+        self.threads = threads
+        self.is_ont = is_ont
+        self.min_mapq = min_mapq
+        self.window = window    
+        self.step = step 
+        self.min_windows = min_windows
+
+    def mapping(self):
+        checkMinimap2CMD = "minimap2 --version"
+        minimapVer = "".join(os.popen(checkMinimap2CMD).readlines())
+        minimapVer = float(minimapVer.split('-')[0].split('.')[1])
+        if minimapVer < float(24):
+            print("Warnning: The minimap2 version should be 2.24 or higher.")
+            sys.exit()
+        preset = "map-ont" if self.is_ont else "map-hifi"
+
+        if ',' in self.reads:
+            readsLst = self.reads.split(',')
+        else:
+            readsLst = [self.reads]
+
+        file_type = get_file_type(readsLst[0])
+        if not file_type:
+            logger.error("Input error: please input fasta or fastq.")
+            sys.exit()
+
+        if readsLst[0][-3:] == ".gz":
+            cat_cmd = "pigz -p 4 -dc"
+        else:
+            cat_cmd = "cat"
+
+        min_length = self.window * self.min_windows
+
+        if len(readsLst) > 1:
+            minimap2CMD = "{} {} | cphasing-rs slidefq - -w {} -l {} -f {}\
+                                | minimap2 -I 16g -t {} --qstrand -cx {} \
+                                -p.3 {} - > {}.paf".format(
+                                    cat_cmd, ' '.join(readsLst), self.window, min_length, 
+                                            file_type, self.threads, preset, self.fasta,  self.outprefix)
+        else:
+            minimap2CMD = "cphasing-rs slidefq {} -w {} -l {} -f {} \
+                            | minimap2 -I 16g -t {} --qstrand -cx {} \
+                            -p.3 {} - > {}.paf".format(
+                                readsLst[0], self.window, min_length, file_type, self.threads, preset, self.fasta,  self.outprefix)
+    
+        logger.info("Running Command:")
+        logger.info(f"\t\t{minimap2CMD}")
+        flag = os.system(minimap2CMD)
+        assert flag == 0, "Failed to run the `minimap2`"
+
+        return self.outprefix + ".paf"
+
+    def paf2depth(self):
+        
+        contigsizes = self.contigsizes
+        if not Path(contigsizes).exists():
+            cmd = ["cphasing-rs", "chromsizes", self.fasta, 
+                        "-o", str(contigsizes)]
+            flag = run_cmd(cmd)
+            assert flag == 0, "Failed to execute command, please check log."
+    
+
+        cmd = f"bedtools makewindows -g {contigsizes} -w {self.window} -s {self.step} 2>/dev/null > temp.{self.outprefix}.w{self.window}.s{self.step}.bed"
+        os.system(cmd)
+
+        cmd = "fgrep -v 'tp:A:S' {}".format(self.paf)
+        cmd += " | awk '$12>=%d {print $6,$8,$9}' OFS='\t' " % (self.min_mapq)
+        cmd += " > temp.{}.paf.bed".format(self.outprefix)
+        os.system(cmd)
+
+        cmd = f"bedtools intersect -f 0.5 -a temp.{self.outprefix}.w{self.window}.s{self.step}.bed -b temp.{self.outprefix}.paf.bed -c 2>/dev/null > {self.outprefix}.q{self.min_mapq}.depth"
+        os.system(cmd)
+
+        os.remove(f"temp.{self.outprefix}.w{self.window}.s{self.step}.bed")
+        os.remove(f"temp.{self.outprefix}.paf.bed")
+
+        return f"{self.outprefix}.q{self.min_mapq}.depth"
 
     def read_depth(self):
-        logger.info(f"Load depth file: `{self.depth_path}`")
-        df = pd.read_csv(self.depth_path, sep='\t', header=None, 
+        logger.info(f"Load depth file: `{self.depth}`")
+        df = pd.read_csv(self.depth, sep='\t', header=None, 
                             names=self.DEPTH_HEADER, index_col=None)
         df.columns = ['chrom', 'start', 'end', 'count']
 
         popular_window_size = get_mode(df['end'] - df['start'])
-        
+        logger.info(f"Remove window that smaller than {popular_window_size}")
         df = df[(df['end'] - df['start']) == popular_window_size]
+        df = df.groupby('chrom').apply(lambda x: x.iloc[1:-2]).reset_index(drop=True)
+
 
         return df 
 
@@ -475,9 +572,9 @@ class ComponentAnalysis:
     def category(self):
         def func(cn):
             
-            if cn <= 0.25:
+            if cn <= 0.10:
                 return 0
-            elif 0.25 < cn <= 0.5:
+            elif 0.10 < cn <= 0.5:
                 return 1
             elif 0.5 < cn <= 1.5:
                 return 2
@@ -535,17 +632,25 @@ class ComponentAnalysis:
         plt.ylabel("Frequency", fontsize=20)
         plt.xlabel("Coverage", fontsize=20)
 
-       
+        logger.info(f"Output distribution of depth: `{output}.hist.plot.png`")
         plt.savefig(f'{output}.hist.plot.png', dpi=600, bbox_inches='tight')
         plt.savefig(f'{output}.hist.plot.pdf', dpi=600, bbox_inches='tight')
 
     def run(self):
+        if not Path(self.paf_path).exists():
+            self.mapping()
+        else:
+            logger.warning(f"Using existed mapping results: `{self.paf_path}`")
+        self.depth = self.paf2depth()
         self.depth_df = self.read_depth()
         self.peak = self.get_main_peak()
         self.depth_df['CN'] = self.depth_df['count'] / self.peak 
 
         self.category()
         component_df = self.analysis()
+        logger.info(f"Output component result in `{self.outprefix}.component.tsv`")
         component_df.to_csv(f"{self.outprefix}.component.tsv", sep='\t', header=None, index=True)
 
         self.plot(self.outprefix)
+
+    

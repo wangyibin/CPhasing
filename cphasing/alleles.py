@@ -198,6 +198,8 @@ class PartigRecords:
                 similarity2 = int(record.mzShared) / int(record.mzConsidered2)
                 if similarity1 > record.kmerSimilarity or similarity2 > record.kmerSimilarity:
                     record.kmerSimilarity = max([similarity1, similarity2])
+                    if record.kmerSimilarity  > 1.0:
+                        record.kmerSimilarity = 1.0
 
                 if record.kmerSimilarity < 0.80:
                     continue

@@ -641,7 +641,13 @@ class ComponentAnalysis:
             self.mapping()
         else:
             logger.warning(f"Using existed mapping results: `{self.paf_path}`")
-        self.depth = self.paf2depth()
+        
+        if not Path(f"{self.outprefix}.q{self.min_mapq}.depth").exists():
+            self.depth = self.paf2depth()
+        else:
+            self.depth = f"{self.outprefix}.q{self.min_mapq}.depth"
+            logger.warning(f"Using existed depth results: `{self.outprefix}.q{self.min_mapq}.depth`")
+            
         self.depth_df = self.read_depth()
         self.peak = self.get_main_peak()
         self.depth_df['CN'] = self.depth_df['count'] / self.peak 

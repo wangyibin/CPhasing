@@ -36,7 +36,8 @@ from ..agp import import_agp
 from ..utilities import (listify, xopen, 
                          list_flatten, 
                          run_cmd,
-                          get_contig_size_from_fasta )
+                          get_contig_size_from_fasta,
+                          is_empty )
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +204,7 @@ class SwitchError:
     def __init__(self, fasta, reads, outprefix="output",
                  window=5000, min_windows=2, 
                  maximum_gap=1000000,
-                 chunksize=1e6,
+                 chunksize=1e5,
                  threads=10, is_hifi=False):
         
         self.fasta = fasta 
@@ -386,13 +387,14 @@ class SwitchError:
         # )
         # window_nums, error_rates = list(zip(*res))
         
-        error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
+        error_rates = np.array(list_flatten(error_rates))
+        error_rates = error_rates[~np.isnan(error_rates)]
+        window_nums = np.array(window_nums, dtype=np.int32)
 
         return window_nums, error_rates 
     
     def calculate(self, window_nums, error_rates):
         total_window_num = sum(list_flatten(window_nums))
-        # error_rates = list(filter(lambda x: ~np.isnan(x), list_flatten(error_rates)))
         error_rates = list_flatten(error_rates)
         error_rate = np.median(error_rates)
         error_rate = error_rate if not np.isnan(error_rate) else 0
@@ -411,15 +413,9 @@ class SwitchError:
         # self.read_paf()
         window_nums = []
         error_rates = []
-        # for df in self.read_paf_by_chunk():
-
-        #     _window_nums, _error_rates = self.find_lis(df)
-        #     window_nums.extend(_window_nums)
-        #     error_rates.extend(_error_rates)
 
         res = Parallel(n_jobs=self.threads)(delayed(self.find_lis)(df) for df in self.read_paf_by_chunk())
 
-        
         window_nums, error_rates = list(zip(*res))
         
         self.calculate(window_nums, error_rates)
@@ -637,12 +633,12 @@ class ComponentAnalysis:
         plt.savefig(f'{output}.hist.plot.pdf', dpi=600, bbox_inches='tight')
 
     def run(self):
-        if not Path(self.paf_path).exists():
+        if not Path(self.paf_path).exists() or is_empty(self.paf_path):
             self.mapping()
         else:
             logger.warning(f"Using existed mapping results: `{self.paf_path}`")
         
-        if not Path(f"{self.outprefix}.q{self.min_mapq}.depth").exists():
+        if not Path(f"{self.outprefix}.q{self.min_mapq}.depth").exists() or is_empty(f"{self.outprefix}.q{self.min_mapq}.depth"):
             self.depth = self.paf2depth()
         else:
             self.depth = f"{self.outprefix}.q{self.min_mapq}.depth"

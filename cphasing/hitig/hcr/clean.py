@@ -197,7 +197,7 @@ class Clean:
         self.depth_df['count'] = self.depth_df['count'].map(np.round)
         depthHist = self.depth_df.groupby(['count'])['chrom'].count()
         depthHist = depthHist[depthHist.index > 0]
-        max_values = round(depthHist.argmax()  * 4)
+        max_values = round((depthHist[3:].argmax() + 3)  * 4)
         depthHist = depthHist[depthHist.index < max_values]
         depthHist = depthHist.to_dict()
         ## find wave vally
@@ -209,7 +209,7 @@ class Clean:
         xxx = xxx[:max_values]
         yyy = yyy[:max_values]
 
-        peak_value = xxx[np.argmax(yyy)]
+        peak_value = xxx[np.argmax(yyy[3:]) + 3]
 
         return peak_value
 

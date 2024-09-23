@@ -46,7 +46,7 @@ def main(args):
     depth_df['count'] = depth_df['count'].map(np.round)
     depthHist = depth_df.groupby(['count'])['chrom'].count()
     depthHist = depthHist[depthHist.index > 0]
-    max_values = round(depthHist.argmax()  * 4)
+    max_values = round((depthHist[3:].argmax() + 3)  * 4)
     depthHist = depthHist[depthHist.index < max_values]
     depthHist = depthHist.to_dict()
     ## find wave vally
@@ -60,7 +60,7 @@ def main(args):
 
     peak_ind = find_peaks(yyy, distance=10)
 
-    peak_value = xxx[np.argmax(yyy)]
+    peak_value = xxx[np.argmax(yyy[3:]) + 3]
 
     fig, ax = plt.subplots(figsize=(5.7, 5))
     plt.rcParams['font.family'] = 'Arial'

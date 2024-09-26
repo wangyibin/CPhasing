@@ -77,6 +77,7 @@ class Clean:
                     min_coverage=0.5,
                     min_length=50000, ## minimum length of collapsed contigs
                     output=None, 
+                    output_collapsed=False,
                     skip_remove=False,
                     threads=10, 
                     log_dir="logs",
@@ -86,9 +87,10 @@ class Clean:
         self.paf = f"{self.fasta_prefix}.selfalign.paf"
         self.depth = depth 
         self.output = output
+        self.output_collapsed = output_collapsed
         self.force = force
         self.max_cn = max_cn 
-        self.min_coverage = min_coverage 
+        self.min_coverage = min_coverage
         self.min_length = min_length
 
         self.threads = threads
@@ -344,7 +346,7 @@ class Clean:
             for contig in fasta_db:
                 if contig in self.remove_dup_contigs or contig in self.junk_contigs:
                     continue 
-                if contig in self.collapsed_contigs:
+                if contig in self.collapsed_contigs and self.output_collapsed:
                     out.write(f">{contig}_d2\n{fasta_db[contig]}\n")
 
                 out.write(f">{contig}\n{fasta_db[contig]}\n")

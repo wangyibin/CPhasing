@@ -170,6 +170,7 @@ cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
 cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```
+Note: if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.gz` by `cphasing-rs pairs-break`
 - After curation
 ```bash
 ## convert assembly to agp
@@ -181,6 +182,7 @@ cphasing agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
 ## extract chromosome-level fasta from agp
 cphasing agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
 ```
+
 
 ### Rename and orient chromosome to a reference
 ```bash

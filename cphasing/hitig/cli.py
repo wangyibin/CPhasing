@@ -737,6 +737,13 @@ def hcr(fasta, lis, split_align, paf,
     show_default=True,
 )
 @click.option(
+    "-oc",
+    "--output-collapsed",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '--force',
     help='Force run all the command, ignore existing results.'
     ' The index file also will be removed.',
@@ -744,7 +751,8 @@ def hcr(fasta, lis, split_align, paf,
     default=False,
     show_default=True,
 )
-def clean(fasta, depth, threads, force):
+def clean(fasta, depth, threads, 
+          output_collapsed, force):
     """
     Remove false duplicated and dup collapsed contigs.
     """
@@ -752,6 +760,7 @@ def clean(fasta, depth, threads, force):
 
     c = Clean(fasta, 
               depth, 
+              output_collapsed=output_collapsed,
               threads=threads, 
               force=force)
     c.run()

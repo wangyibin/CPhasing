@@ -115,7 +115,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
     cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
     ```
 1. **alleles** (Optional for phasing mode)  
-    > This step is specific to diploid and polyploid phasing. If you only want to scaffolding a haploid, ignore this step.
+    >re this step. Note: the memory usage of this step is depend on the genome size of input fasta, when input the length larger 10 Gb, the peak memory will reach 130 Gb, or more. If you want to reduce the memory usage, you can increase the `k` and `w`, for example, when we benchmark a 20 Gb hexaploid, we set the `k` and `w` to 27 and 24, respectively.
     - **Step1** `alleles`
     ```bash
     ## result is `draft.asm.allele.table`

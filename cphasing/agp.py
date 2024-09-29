@@ -221,7 +221,7 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
             try:
                 seq = seq_db[raw_contig]
             except KeyError:
-                logger.warning(f"Counld not found `{raw_contig}`")
+                logger.warning(f"Counld not found `{raw_contig}`, skipped.")
             seq_length = len(seq)
             if start == 1 and end == seq_length:
                 seq = str(seq)

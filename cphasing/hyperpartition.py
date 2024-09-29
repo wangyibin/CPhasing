@@ -438,7 +438,7 @@ class HyperPartition:
             result_K_length = 0
             tmp_resolution = self.init_resolution1
             if not k:
-                logger.warn("To automatic search best resolution, the `-n` must be specified.")
+                logger.warning("To automatic search best resolution, the `-n` must be specified.")
             while result_K_length < k:
                 # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
                 raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, 
@@ -542,6 +542,9 @@ class HyperPartition:
         """
         single function for incremental_partition.
         """
+        if k == 1:
+            return None, None, K
+        
         if NW is not None:
             merge_method = "sum"
         else:

@@ -100,7 +100,7 @@ def run(fasta,
     start_time = time.time()
     logger.info(f"C-Phasing version: {__version__}")
     today = date.today().strftime("%Y-%m-%d")
-    logger.info(f"Pipeline begins in {today}.")
+    logger.info(f"Pipeline is started on {today}.")
 
 
     log_dir = Path("logs")

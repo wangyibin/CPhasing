@@ -4894,26 +4894,6 @@ def plot(matrix,
 
 
 
-ALIASES = {
-    "allele": alleles,
-    "pipe": pipeline,
-    "align": alignments,
-    "alignment": alignments,
-    "hg": hypergraph,
-    "hp": hyperpartition,
-    "partition": hyperpartition,
-    "ho": hyperoptimize,
-    "optimize": scaffolding,
-    "sf": scaffolding,
-    "scaf": scaffolding, 
-    "scaffold": scaffolding,
-    "scaffolds": scaffolding,
-    "contigsizes": chromsizes,
-    "pairs2contact": pairs2contacts,
-    "pair2cool": pairs2cool,
-    "p2c": pairs2cool,
-}
-
 ## hic subcommand
 from .hic.cli import hic
 
@@ -4921,6 +4901,29 @@ from .hic.cli import hic
 @click.pass_context
 def evaluator(ctx):
     pass
+
+@evaluator.command(short_help="Estimate the highly homologous ratio")
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="STR",
+    help="Fasta file",
+    required=True,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def homo(fasta, threads):
+    from .evaluator.seqeval import HomoAnalysis
+    ha = HomoAnalysis(fasta=fasta,
+                      threads=threads)
+    ha.run()
 
 @evaluator.command(short_help='Calculate the allelic error rate', hidden=True)
 @click.argument(
@@ -5805,3 +5808,24 @@ def filter_high_similarity_contigs(alleletable,
 
 cli.add_command(statagp)
 cli.add_command(agp2fasta)
+
+ALIASES = {
+    "allele": alleles,
+    "pipe": pipeline,
+    "align": alignments,
+    "alignment": alignments,
+    "hg": hypergraph,
+    "hp": hyperpartition,
+    "partition": hyperpartition,
+    "ho": hyperoptimize,
+    "optimize": scaffolding,
+    "sf": scaffolding,
+    "scaf": scaffolding, 
+    "scaffold": scaffolding,
+    "scaffolds": scaffolding,
+    "contigsizes": chromsizes,
+    "pairs2contact": pairs2contacts,
+    "pair2cool": pairs2cool,
+    "p2c": pairs2cool,
+    "agp2fa": agp2fasta,
+}

@@ -103,7 +103,7 @@ class HomoAnalysis:
                 return self.paf
 
         logger.info("Mapping ...")
-        cmd = ["minigraph", "-t", str(self.threads), "-DP", "-cxasm", str(self.fasta)]
+        cmd = ["minigraph", "-t", str(self.threads), "-DP", "-cxasm", str(self.fasta), str(self.fasta)]
 
         pipelines = []
         try:

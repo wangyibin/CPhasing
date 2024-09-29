@@ -35,6 +35,7 @@ class HomoAnalysis:
                  "matches", "mapq", "identity"]
     def __init__(self, fasta, 
                 min_similarity=0.998,
+                aligner='wfmash',
                 threads=10,
                 log_dir="logs",
                 force=False):
@@ -50,9 +51,9 @@ class HomoAnalysis:
         self.threads = threads
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-
-        if not cmd_exists("wfmash"):
-            logger.error(f'No such command of `wfmash`.')
+        self.aligner = aligner
+        if not cmd_exists(self.aligner):
+            logger.error(f'No such command of `{self.aligner}`.')
             sys.exit()
 
         self.force = force 
@@ -92,6 +93,42 @@ class HomoAnalysis:
 
         return self.paf
     
+
+    def mapping2(self):
+
+        if self.force is False:
+            logger.debug("Force is False")
+            if Path(self.paf).exists():
+                logger.warning(f"Using existing mapping results: `{self.paf}`")
+                return self.paf
+
+        logger.info("Mapping ...")
+        cmd = ["minigraph", "-t", str(self.threads), "-DP", "-cxasm", str(self.fasta)]
+
+        pipelines = []
+        try:
+            pipelines.append(
+                Popen(cmd, stdout=open(self.paf, "w"),
+                      stderr=open(f"{self.log_dir}/clean.self.align.log", "w"),
+                      bufsize=-1)
+            )
+            pipelines[-1].wait()
+        except:
+            raise Exception('Failed to execute command:' 
+                                f'\t{cmd}')
+        finally:
+            for p in pipelines:
+                if p.poll() is None:
+                    p.terminate()
+                else:
+                    assert pipelines != [], \
+                        "Failed to execute command, please check log."
+                if p.returncode != 0:
+                    raise Exception('Failed to execute command:' 
+                                        f'\t{" ".join(cmd)}')
+
+        return self.paf
+    
     def read_paf(self):
         logger.info(f"Load alignments results `{self.paf}`")
         df = pd.read_csv(self.paf, sep='\t', header=None, usecols=range(13),
@@ -104,6 +141,22 @@ class HomoAnalysis:
         self.paf_df = df[df['identity'] >= self.min_similarity]
 
         return df 
+    
+    def read_paf2(self):
+        logger.info(f"Load alignments results `{self.paf}`")
+        df = pd.read_csv(self.paf, sep='\t', header=None, usecols=range(13),
+                         names=self.PAF_HADER, index_col=None)
+        df['identity'] = df['mismatch'] / df['matches']
+
+
+        # df['identity'].map(lambda x: x.replace("id:f:", "")).astype('float64')
+        df = df[df['contig1'] != df['contig2']]
+    
+        # df = df.sort_values(['contig2', 'start2'])
+
+        self.paf_df = df[df['identity'] >= self.min_similarity]
+   
+        return self.paf_df
     
     def calcualte_homo(self):
         
@@ -143,6 +196,12 @@ class HomoAnalysis:
             print(f"coverage ({i/10.0}):{df[df['coverage'] >= i/10.0]['region_length'].sum() / self.total_length:.2%}")
       
     def run(self):
-        self.mapping()
-        self.read_paf()
+
+        if self.aligner == 'minigraph':
+            self.mapping2()
+            self.read_paf2()
+        else:
+            self.mapping()
+            self.read_paf()
+
         self.calcualte_homo()

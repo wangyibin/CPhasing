@@ -4911,6 +4911,14 @@ def evaluator(ctx):
     required=True,
 )
 @click.option(
+    '-ms',
+    '--min-similarity',
+    metavar='FLOAT',
+    default=0.999,
+    type=click.FloatRange(0, 1.0),
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -4919,10 +4927,20 @@ def evaluator(ctx):
     metavar='INT',
     show_default=True,
 )
-def homo(fasta, threads):
+@click.option(
+    '--aligner',
+    metavar="STR",
+    help="alinger",
+    type=click.Choice(['wfmash', 'minigraph']),
+    default='minigraph',
+    show_default=True,
+)
+def homo(fasta, min_similarity, threads, aligner):
     from .evaluator.seqeval import HomoAnalysis
     ha = HomoAnalysis(fasta=fasta,
-                      threads=threads)
+                      min_similarity=min_similarity,
+                      threads=threads,
+                      aligner=aligner)
     ha.run()
 
 @evaluator.command(short_help='Calculate the allelic error rate', hidden=True)

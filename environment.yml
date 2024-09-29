@@ -35,11 +35,11 @@ dependencies:
   - bzip2=1.0.8=h5eee18b_6
   - c-ares=1.32.3=h4bc722e_0
   - c-blosc2=2.15.1=hc57e6cf_0
-  - ca-certificates=2024.7.4=hbcca054_0
+  - ca-certificates=2024.8.30=hbcca054_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.18.0=h3faef2a_0
-  - certifi=2024.7.4=pyhd8ed1ab_0
+  - certifi=2024.8.30=pyhd8ed1ab_0
   - cffi=1.16.0=py312hf06ca03_0
   - chardet=5.2.0=py312h7900ff3_1
   - charset-normalizer=3.3.2=pyhd8ed1ab_0
@@ -190,6 +190,7 @@ dependencies:
   - matplotlib=3.8.0=py312h7900ff3_2
   - matplotlib-base=3.8.0=py312he5832f3_2
   - mdurl=0.1.2=pyhd8ed1ab_0
+  - minigraph=0.21=he4a0461_1
   - minimap2=2.24=h7132678_1
   - mpg123=1.32.6=h59595ed_0
   - mpi=1.0=openmpi
@@ -217,6 +218,7 @@ dependencies:
   - pandarallel=1.6.5=pyhd8ed1ab_0
   - pandas=2.2.2=py312h1d6d2e6_1
   - partd=1.4.2=pyhd8ed1ab_0
+  - patchworklib=0.6.3=pyhd8ed1ab_0
   - patsy=0.5.6=pyhd8ed1ab_0
   - pbs-installer=2024.4.24=pyhd8ed1ab_0
   - pcre2=10.43=hcad00b1_0

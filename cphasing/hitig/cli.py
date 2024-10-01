@@ -209,7 +209,7 @@ def pipeline(fasta, fastq, min_as, min_mapq,
     nhap, window, min_windows, step_size, 
     min_sa, edge, min_depth,
     cutoff, hifi, 
-    threads, output,
+    threads, output, 
     steps, skip_steps):
     """
     Pipeline of chimeric correct by hitig.
@@ -256,7 +256,7 @@ def pipeline(fasta, fastq, min_as, min_mapq,
     nhap, window, min_windows, step_size,
     min_sa, edge, min_depth,
     cutoff, hifi,
-    threads, output,
+    threads, output, 
     steps, skip_steps
     )
 

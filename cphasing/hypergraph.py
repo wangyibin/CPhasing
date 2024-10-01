@@ -454,7 +454,7 @@ class HyperExtractor:
         self.min_quality = min_quality
         self.threads = threads
         self.is_parquet = is_parquet
-
+        
         self.pore_c_tables = self.import_pore_c_table()
         self.edges = self.generate_edges()
 
@@ -465,10 +465,10 @@ class HyperExtractor:
         """
         logger.info("Loading Pore-C table ...")
         if len(self.pore_c_table_pathes) == 1:
-            if Path(self.pore_c_table_pathes[0]).is_symlink():
-                infile = os.readlink(self.pore_c_table_pathes[0])
-            else:
-                infile = self.pore_c_table_pathes[0]
+            # if Path(self.pore_c_table_pathes[0]).is_symlink():
+            #     infile = os.readlink(self.pore_c_table_pathes[0])
+            # else:
+            infile = self.pore_c_table_pathes[0]
             
             if self.is_parquet:
                 df = pd.read_parquet(infile, 
@@ -527,10 +527,10 @@ class HyperExtractor:
         else:
             infiles = []
             for i in self.pore_c_table_pathes:
-                if Path(i).is_symlink():
-                    infiles.append(os.readlink(i))
-                else:
-                    infiles.append(i)
+                # if Path(i).is_symlink():
+                #     infiles.append(os.readlink(i))
+                # else:
+                infiles.append(i)
             
             if self.is_parquet:
                 df_list = list(map(lambda x: pd.read_parquet(

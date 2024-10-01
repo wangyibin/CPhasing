@@ -73,7 +73,7 @@ class HomoAnalysis:
         try:
             pipelines.append(
                 Popen(cmd, stdout=open(self.paf, "w"),
-                      stderr=open(f"{self.log_dir}/clean.self.align.log", "w"),
+                      stderr=open(f"{self.log_dir}/seqeval.self.align.log", "w"),
                       bufsize=-1)
             )
             pipelines[-1].wait()
@@ -109,7 +109,7 @@ class HomoAnalysis:
         try:
             pipelines.append(
                 Popen(cmd, stdout=open(self.paf, "w"),
-                      stderr=open(f"{self.log_dir}/clean.self.align.log", "w"),
+                      stderr=open(f"{self.log_dir}/seqeval.self.align.log", "w"),
                       bufsize=-1)
             )
             pipelines[-1].wait()

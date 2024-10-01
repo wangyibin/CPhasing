@@ -37,9 +37,13 @@ def run(
         find_split_alignment, paf2depth, 
         norm_merge_bp, correct_fasta)
     from .cli import hcr 
-    
+
+
+
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
+
+    
 
     if "1" not in skip_steps and "1" in steps:
         logger.info("""#-------------------------------------#
@@ -69,6 +73,7 @@ def run(
         split_alignments_file = output + ".mergedSplitAlign.txt"
         corrected_fasta = output + ".corrected.fasta"
         break_pos_file = output + ".breakPos.txt"
+        
         # if Path(_fasta).exists():
         #     fasta = _fasta 
 

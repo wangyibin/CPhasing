@@ -525,6 +525,7 @@ def assembly2agp(assembly,
     
 
     raw_agp = f"{outprefix}.agp"
+
     agp = f"{outprefix}.corrected.agp"
 
     with open(raw_agp, "w") as raw_out, open(agp, "w") as out:
@@ -612,7 +613,7 @@ def assembly2agp(assembly,
                     if contig in fragment_db:
                         raw_contig, raw_contig_start, raw_contig_end = fragments_range[contig]
                         contig = f"{raw_contig}:{raw_contig_start}-{raw_contig_end}"
-                        print(raw_contig, raw_contig_start, raw_contig_end)
+                        # print(raw_contig, raw_contig_start, raw_contig_end)
                     print("\t".join(map(str, (chrom, 1, contig_end - contig_start + 1, record_num, _type, 
                                                 contig, contig_start, contig_end, orient))), file=out)
                     

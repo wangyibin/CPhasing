@@ -543,7 +543,7 @@ class HyperPartition:
         single function for incremental_partition.
         """
         if k == 1:
-            return None, None, K
+            return None, None, [K]
         
         if NW is not None:
             merge_method = "sum"
@@ -837,7 +837,7 @@ class HyperPartition:
         if self.exclude_group_to_second:
             for i in self.exclude_group_to_second:
                 if i > len(self.K):
-                    logger.warn(f"Exclude group `{i}` exceed the numbers of first cluster. skipped")
+                    logger.warning(f"Exclude group `{i}` exceed the numbers of first cluster. skipped")
 
         logger.info("Starting second round hyperpartition ...")
 
@@ -946,6 +946,7 @@ class HyperPartition:
 
         # self.vertices = raw_vertices
         self.K = list_flatten(results)
+
         self.K = self.filter_cluster()
 
         if self.exclude_group_to_second:

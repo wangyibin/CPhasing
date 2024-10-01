@@ -928,3 +928,20 @@ def trim_axes(axes, N):
         ax.remove()
     
     return axes[:N]
+
+def generate_to_hic_cmd(agp, pairs, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
+
+    pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
+    agp_prefix = str(Path(agp).name).replace(".agp", "")
+    cmd = f"""
+_3ddna_path={_3ddna_path}
+cphasing-rs pairs2mnd {pairs} -o {pairs_prefix}.mnd.txt
+cphasing utils agp2assembly {agp} -o {agp_prefix}.assembly
+bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.assembly {pairs_prefix}.mnd.txt
+
+## After curation, convert review.assembly to new agp 
+# cphasing utils assembly2agp groups.review.assembly -o groups.review -n {n}
+    """
+
+    with open(output, 'w') as out:
+        out.write(cmd)

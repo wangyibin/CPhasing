@@ -678,7 +678,8 @@ def cli(verbose, quiet):
     metavar="PATH",
     help='Use the existing first cluster results to second round cluster',
     default=None,
-    show_default=True
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '--exclude-to-second',
@@ -1945,11 +1946,14 @@ def hcr(porectable, pairs, contigsize, binsize,
         if not pairs:
             pairs_files = []
             for pore_c_table in pore_c_tables:
-                prefix = Path(pore_c_table).with_suffix("")
+                path = Path(pore_c_table).parent
+         
+                prefix = Path(Path(pore_c_table).stem).with_suffix("")
+                
                 while prefix.suffix in {'.gz', 'gz', 'porec', ".porec"}:
                     prefix = prefix.with_suffix('')
                 
-                pairs = f"{prefix}.pairs.gz"
+                pairs = f"{path}/{prefix}.pairs.gz"
                 pairs_files.append(pairs)
                 if not Path(pairs).exists():
                     cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
@@ -1958,7 +1962,7 @@ def hcr(porectable, pairs, contigsize, binsize,
                     flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
                     assert flag == 0, "Failed to execute command, please check log."
                 else:
-                    logger.warn(f"Use exists 4DN pairs file of `{pairs}`.")
+                    logger.warning(f"Use exists 4DN pairs file of `{pairs}`.")
         else:
             prefix = Path(pairs).with_suffix("")
             while prefix.suffix in {'.gz', 'gz', '.pairs'}:
@@ -1971,7 +1975,7 @@ def hcr(porectable, pairs, contigsize, binsize,
             pairs_files = [pairs]
         
         for pairs in pairs_files:
-            prefix = Path(pairs).with_suffix("")
+            prefix = Path(Path(pairs).stem).with_suffix("")
             while prefix.suffix in {'.gz', 'gz', '.pairs'}:
                 prefix = prefix.with_suffix('')
 
@@ -2729,7 +2733,7 @@ def hypergraph(contacts,
     """,
     default=None, 
     show_default=True,
-    type=click.Path(exists=True)
+    type=click.Path(exists=True), 
 )
 @click.option(
     "-ul",
@@ -3140,7 +3144,7 @@ def hyperpartition(hypergraph,
         incremental = False
         logger.info("Running hyperpartition with `basal(haploid)` mode.")
         if alleletable or prunetable:
-            logger.warn("allelic information will not be used in basal mode")
+            logger.warning("allelic information will not be used in basal mode")
             alleletable = None
             prunetable = None  
     elif mode == "phasing":
@@ -3164,15 +3168,15 @@ def hyperpartition(hypergraph,
                                     "the mode was set to `phasing` to run two-layer cluster.")
                         incremental = True
                     else:
-                        logger.warn("Mode not be specified, running `basal_withprune` mode, "
+                        logger.warning("Mode not be specified, running `basal_withprune` mode, "
                                 "if you want to phase the diploid or polyploid, please "
                                 "set the mode to `phasing`, or add `-inc` parameter.")
                 else:
-                    logger.warn("Mode not be specified, running basal_withprune mode, "
+                    logger.warning("Mode not be specified, running basal_withprune mode, "
                                 "if you want to phase the diploid or polyploid, please "
                                 "set the mode to `phasing`, or add `-inc` parameter.")
             else:
-                logger.warn("Mode not be specified, running `basal(haploid)` mode")
+                logger.warning("Mode not be specified, running `basal(haploid)` mode")
         else:
             logger.info("`-inc` be specified, will run in `phasing` mode")
 
@@ -3187,7 +3191,7 @@ def hyperpartition(hypergraph,
     if n is not None:
         # n = re.split(":|x|\|", n) 
         if len(n) <= 1 and incremental is True:
-            logger.warn("Second round partition will not be run, if you want to run second round partition the `-inc` parameters must be added")
+            logger.warning("Second round partition will not be run, if you want to run second round partition the `-inc` parameters must be added")
 
 
     else:
@@ -3210,7 +3214,7 @@ def hyperpartition(hypergraph,
                 except ValueError:
                     if Path(n[i]).exists():
                         logger.info(f"Load 2nd group number list f`{n[i]}`")
-                        tmp_df = pd.read_csv(n[i], sep='\t', header=None, index_col=None)
+                        tmp_df = pd.read_csv(n[i], sep='\s+', header=None, index_col=None)
 
                         n[i] = tmp_df.to_dict()[1]
 
@@ -3238,7 +3242,7 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warn(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`")
+            logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
 
         
@@ -3254,7 +3258,7 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warn(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`")
+            logger.warning(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
         
         
@@ -3310,15 +3314,15 @@ def hyperpartition(hypergraph,
         try:
             exclude_group_to_second = list(map(int, exclude_group_to_second))
         except ValueError:
-            logger.warn("The exclude groups must be several numbers with comma seperated")
+            logger.warning("The exclude groups must be several numbers with comma seperated")
 
 
     if alleletable:
         if prunetable:
-            logger.warn("The allele table will not be used, becauese prunetable parameter added.")
+            logger.warning("The allele table will not be used, becauese prunetable parameter added.")
 
     if incremental is False and first_cluster is not None:
-        logger.warn("First cluster only support for incremental method, will be not used.")
+        logger.warning("First cluster only support for incremental method, will be not used.")
     
     if not prunetable and not alleletable:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
@@ -5846,4 +5850,5 @@ ALIASES = {
     "pair2cool": pairs2cool,
     "p2c": pairs2cool,
     "agp2fa": agp2fasta,
+    "eval": evaluator,
 }

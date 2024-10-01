@@ -680,6 +680,7 @@ def plot_heatmap(matrix, output,
         log = False
         log1p =False
 
+    logger.info("Plotting heatmap ...")
 
 
     if not per_chromosomes:
@@ -783,7 +784,7 @@ def plot_heatmap(matrix, output,
         if not fontsize:
             logger.info(f"Auto set fontsize to `{tick_fontsize}`.")
             
-        logger.info("Plotting heatmap ...")
+        
         ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,

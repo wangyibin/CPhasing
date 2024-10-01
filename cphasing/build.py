@@ -62,11 +62,13 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
                     contig_length = fasta.faidx.index[contig].rlen
                 except KeyError:
                     logger.warning(f"Skip contig `{contig}`")
+                    continue
                 except AttributeError:
                     try:
                         length = len(fasta[contig])
                     except KeyError:
                         continue 
+                
                 contig_range = portion.closed(1, contig_length)
                 contig_ranges[contig] = contig_range 
           

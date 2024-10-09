@@ -337,10 +337,10 @@ def run(fasta,
                         raise e
     
     corrected = False
-    correct_dir = Path("0_2.correct")
-    correct_dir.mkdir(exist_ok=True)
-    correct_dir = str(correct_dir)
     if chimeric_correct or chimeric_corrected:
+        correct_dir = Path("0_2.correct")
+        correct_dir.mkdir(exist_ok=True)
+        correct_dir = str(correct_dir)
         os.chdir(correct_dir)
         if porec_table:
             if chimeric_corrected:
@@ -877,12 +877,6 @@ def run(fasta,
 #----------------------------------#""")
         os.chdir(scaffolding_dir)
 
-
-        with open("scaffolding.cmd.sh", "w") as _out_sh:
-            _out_sh.write("cphasing scaffolding ")
-            _out_sh.write(" ".join(map(str, args)))
-            _out_sh.write("\n")
-
         if corrected:
             args = [
                 f"../{hyperpartition_dir}/{output_cluster}",
@@ -919,6 +913,11 @@ def run(fasta,
                 out_agp,
                 "-m",
                 scaffolding_method]
+            
+        with open("scaffolding.cmd.sh", "w") as _out_sh:
+            _out_sh.write("cphasing scaffolding ")
+            _out_sh.write(" ".join(map(str, args)))
+            _out_sh.write("\n")
 
         try:
             scaffolding.main(args=args,
@@ -952,20 +951,25 @@ def run(fasta,
 #      Running step 5. plot        #
 #----------------------------------#""")
         os.chdir(plot_dir)
+        _out_sh = open('plot.cmd.sh', 'w')
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
         else:
+            if filtered_pairs:
+                pairs = filtered_pairs
+            
+            args = [
+                    f"../{pairs}",
+                    f"../{contigsizes}",
+                    out_small_cool,
+                    "-q", 
+                    min_quality1
+                    ]
+            _out_sh.write("cphasing pairs2cool ")
+            _out_sh.write(" ".join(map(str, args)))
+            _out_sh.write("\n")
             try:
-                if filtered_pairs:
-                    pairs = filtered_pairs
                 
-                args = [
-                        f"../{pairs}",
-                        f"../{contigsizes}",
-                        out_small_cool,
-                        "-q", 
-                        min_quality1
-                        ]
                 pairs2cool.main(args=args,
                                 prog_name='pairs2cool')
             except SystemExit as e:
@@ -986,6 +990,7 @@ def run(fasta,
             else:
                 input_agp = out_agp
 
+            # factor * 10000
             args = [
                     "-a",
                     f"../{scaffolding_dir}/{input_agp}",
@@ -1009,17 +1014,18 @@ def run(fasta,
                 raise e
             
         
-        with open("plot.cmd.sh", 'w') as _out_sh:
-            _out_sh.write("cphasing plot ")
-            _out_sh.write(" ".join(map(str, args)))
-            _out_sh.write("\n")
-
+        
+        _out_sh.write("cphasing plot ")
+        _out_sh.write(" ".join(map(str, args)))
+        _out_sh.write("\n")
+        _out_sh.close()
         os.chdir("../")
+
 
     today = date.today().strftime("%Y-%m-%d")
     end_time = time.time() - start_time
     # peak_memory = tracemalloc.get_traced_memory()[1] / 1024 / 1024 / 1024
     # peak_memory = 0
     logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f} s. ") #Peak memory: {peak_memory:2f} Gb")
-    logger.info(f"Results are store in {outdir}")
+    logger.info(f"Results are store in `{outdir}`")
     # tracemalloc.stop()

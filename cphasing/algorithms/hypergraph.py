@@ -506,7 +506,23 @@ def IRMM(H, A=None,
                 
             A = A.tocsr()
     else:
-        raw_A = A
+        raw_A = A.copy()
+        if P_allelic_idx or P_weak_idx:
+            A = A.tolil()
+            if P_allelic_idx:
+        
+                if allelic_factor == 0: 
+                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
+                else:
+                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+            if P_weak_idx:
+                if cross_allelic_factor == 0:
+                    A[P_weak_idx[0], P_weak_idx[1]] = 0
+                else:
+                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
+                
+            A = A.tocsr()
+
 
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)

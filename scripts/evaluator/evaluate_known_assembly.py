@@ -97,14 +97,17 @@ def main(args):
     res = OrderedDict()
     zero_chrom = []
     PR_output = open(f"{prefix}.PR", 'w')
+    error_contig_output = open(f"{prefix}.errors", 'w')
     for real_chrom in real_db:
         try:
             group, _contigs, _contigs_chrom, _contigs_chrom_count = group_assign[real_chrom]
             main_contigs = list(filter(lambda x: real_chrom in x, _contigs))
             error_contigs = set(_contigs) - set(main_contigs)
             if error_contigs:
-                print(group, error_contigs)
-                print()
+                for _c in error_contigs:
+
+                    error_contig_output.write(f"{real_chrom}\t{_c}\n")
+
             P = sum(list(map(lambda x: contigsizes.get(x), main_contigs))) \
                 / sum(list(map(lambda x: contigsizes.get(x), _contigs)))
             R = sum(list(map(lambda x: contigsizes.get(x), main_contigs))) \

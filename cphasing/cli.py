@@ -4682,7 +4682,7 @@ def pairs2cool(pairs, chromsize, outcool,
     Colormap of heatmap. 
     Available values can be seen : 
     https://pratiman-91.github.io/colormaps/ 
-    and http://matplotlib.org/examples/color/colormaps_reference.html and `whitered`.
+    and http://matplotlib.org/examples/color/colormaps_reference.html and `whitered` .
     """,
     default='redp1_r',
     show_default=True

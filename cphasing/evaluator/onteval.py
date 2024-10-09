@@ -162,13 +162,13 @@ class LISContainer(list):
             filter_mapq2 = mapq2 >= min_mapq
             if not any(filter_mapq2):
                 continue
-
+            
             nm2 = np.zeros(max(split_idx2) + 1)
             nm2[filter_split_idx2] = np.array(lis.nm)[~non_dup2][_filter_split_idx2]
             
             filter_idx = split_idx2[_filter_split_idx2 & filter_mapq2]
             init_array[filter_idx] = - init_array[filter_idx] + nm2[filter_idx]
-
+           
         error_idx = init_array < 0
         error_array = init_array[error_idx]
     
@@ -179,7 +179,7 @@ class LISContainer(list):
         true_idx = np.where(np.isin(true_idx, split_idx))[0]
       
         window_length = df[true_idx]
-    
+
         error_rate = np.abs(error_array) / window_length
         
         return total_windows, error_rate

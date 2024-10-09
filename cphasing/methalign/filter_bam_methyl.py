@@ -7,6 +7,7 @@
 
 
 import argparse
+import sys
 import os
 import pysam
 import re
@@ -69,7 +70,7 @@ def get_5mc_sites_from_read(read_name, read_seq, MM_tag, ML_tag, prob_cutoff, pa
         index_sum += i
         if ML_tag[n] >= prob_cutoff:
             ont_methylation_array[n+index_sum] = 1
-    
+            
     return ont_pos_index, ont_methylation_array
 
 # @profile
@@ -151,6 +152,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
         inconsistent_5mC = 0
         ref_name, is_forward = aln.reference_name, aln.is_forward
         hifi_methylation_set = hifi_methylation_dict[ref_name]
+        fa_seq = fa_dict[ref_name]
         for read_aln_pos, ref_aln_pos in aln.get_aligned_pairs():
             raw_read_aln_pos = read_aln_pos
             # for reverse strand, recalculate read_aln_pos based on the contig length
@@ -165,7 +167,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
             # forward strand
             if is_forward:
                 # mismatch
-                if ref_aln_pos is None or fa_dict[ref_name][ref_aln_pos] != 'C':
+                if ref_aln_pos is None or fa_seq[ref_aln_pos] != 'C':
                     continue
                 if not ((ref_aln_pos in hifi_methylation_set and is_methylated) or 
                         (ref_aln_pos not in hifi_methylation_set and not is_methylated)):
@@ -173,7 +175,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
             # reverse strand
             else:
                 # mismatch
-                if ref_aln_pos is None or fa_dict[ref_name][ref_aln_pos] != 'G':
+                if ref_aln_pos is None or fa_seq[ref_aln_pos] != 'G':
                     continue
                 if not ((ref_aln_pos - 1 in hifi_methylation_set and is_methylated) or
                         (ref_aln_pos - 1 not in hifi_methylation_set and not is_methylated)):

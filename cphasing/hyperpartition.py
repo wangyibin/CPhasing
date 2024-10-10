@@ -113,6 +113,7 @@ class HyperPartition:
                     mapq_filter_1_to_2=False,
                     min_scaffold_length=10000,
                     is_remove_misassembly=False,
+                    is_recluster_contigs=False,
                     threshold=0.01,
                     max_round=1, 
                     threads=4,
@@ -153,6 +154,7 @@ class HyperPartition:
         self.min_quality2 = min_quality2
         self.min_scaffold_length = int(min_scaffold_length)
         self.is_remove_misassembly = is_remove_misassembly
+        self.is_recluster_contigs = is_recluster_contigs
         logger.debug(f"is remove misassembly: {self.is_remove_misassembly}")
         self.threshold = threshold
         self.max_round = max_round
@@ -511,10 +513,11 @@ class HyperPartition:
 
         # self.remove_misassembly()
 
-        self.K = HyperPartition.recluster_contigs(self.K, k, A, raw_A,
-                                         vertices_idx_sizes, 
-                                          None, 
-                                         self.prune_pair_df, self.allelic_similarity)
+        if self.is_recluster_contigs:
+            self.K = HyperPartition.recluster_contigs(self.K, k, A, raw_A,
+                                            vertices_idx_sizes, 
+                                            None, 
+                                            self.prune_pair_df, self.allelic_similarity)
         if sort_group:
             vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
             self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
@@ -541,7 +544,7 @@ class HyperPartition:
                                k, prune_pair_df, H, vertices_idx_sizes, NW, 
                             resolution, init_resolution=0.8, min_weight=1, allelic_similarity=0.8, 
                             min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
-                            is_remove_misassembly=False,
+                            is_remove_misassembly=False, is_recluster_contigs=False,
                            min_scaffold_length=10000, threshold=0.01, max_round=1, num=None):
         """
         single function for incremental_partition.
@@ -695,10 +698,11 @@ class HyperPartition:
             new_K = HyperPartition._remove_misassembly(new_K, sub_H, sub_prune_pair_df, 
                                                         allelic_similarity=allelic_similarity)
         
-        # new_K = HyperPartition.recluster_contigs(new_K, k, A, raw_A,
-        #                                  sub_vertices_new_idx_sizes, 
-        #                                   None, 
-        #                                  sub_prune_pair_df, allelic_similarity)
+        if is_recluster_contigs:
+                new_K = HyperPartition.recluster_contigs(new_K, k, A, raw_A,
+                                         sub_vertices_new_idx_sizes, 
+                                          None, 
+                                         sub_prune_pair_df, allelic_similarity)
             
         # vertices_length = sub_vertices_new_idx_sizes['length']
         # new_K = raw_sort(new_K, A, vertices_length, threads=1)
@@ -931,6 +935,7 @@ class HyperPartition:
                         self.resolution2, self.init_resolution2, self.min_weight, 
                         self.allelic_similarity,  self.min_allelic_overlap, 
                         self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
+                        self.is_recluster_contigs,
                         self.min_scaffold_length, self.threshold, self.max_round, num))
             
             
@@ -946,8 +951,8 @@ class HyperPartition:
         
         results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
                         delayed(HyperPartition._incremental_partition)
-                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) 
-                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z in args)
+                                (i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, a) 
+                                    for i, j, _k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, a in args)
         
         self.sub_A_list, self.cluster_assignments, results = zip(*results)
         self.inc_chr_idx = []
@@ -1275,7 +1280,7 @@ class HyperPartition:
     @staticmethod
     def recluster_contigs(K, k, A, raw_A, idx_size, idx2vertices=None,
                           prune_pair_df=None, allelic_similarity=0.85,
-                          delta_modularity=0.1, is_recluster_high_identity=True):
+                          delta_modularity=0.1, is_recluster_high_identity=False):
         """
         recluster contigs 
         """
@@ -1296,6 +1301,7 @@ class HyperPartition:
 
         tmp_df.set_index(['contig1', 'contig2'], inplace=True)
         candicate_contig_assignment = {}
+        all_candicate_contigs = set()
         new_K = K.copy()
         for i, g in enumerate(K):
             g_len = sum(idx_size_db[c] for c in g)
@@ -1312,7 +1318,19 @@ class HyperPartition:
                 pass 
             
             new_K[i] = list(set(g) - candicate_contigs)
+            all_candicate_contigs.update(candicate_contigs)
+        
+        # for contig in sorted(all_candicate_contigs, key=idx_size_db.get, reverse=True):
+        #     m = np.zeros(len(new_K))
+        #     for i, g in enumerate(new_K):    
+        #         conflict_df = tmp_df.reindex(list(product([contig], g))).dropna()
+        #         if len(conflict_df) >= 1:
+        #             m[i] = 0
+        #         else:
+        #             m[i] = A[contig, g].mean()
 
+        #     new_K[m.argmax()].append(contig)
+            
         
         if is_recluster_high_identity:
 
@@ -1369,7 +1387,6 @@ class HyperPartition:
                     #     reclustered_contigs.add(contig2)
                     continue
                 
-                print(m, matching_results)
                 if contig1 not in new_K[matching_results[0][1] - len(K)] and \
                     contig1 not in new_K[matching_results[1][1] - len(K)]:
                     if contig1 in reclustered_contigs:
@@ -1451,6 +1468,8 @@ class HyperPartition:
         # for i, j in enumerate(membership):
         #     new_K[j].append(new2old[i])
         
+        new_K = list(filter(lambda x: len(x) > 0, new_K))
+
         return new_K
 
     def rescue_collapsed(self, is_duplicate=True):
@@ -1600,6 +1619,7 @@ class HyperPartition:
         
     def to_cluster(self, output):
         idx_to_vertices = self.idx_to_vertices
+
 
         clusters = list(map(lambda y: list(
                         map(lambda x: idx_to_vertices[x], y)), 

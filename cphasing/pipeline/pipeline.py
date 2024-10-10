@@ -24,6 +24,7 @@ from ..utilities import (
     calculate_Nx_from_contigsizes,
     read_chrom_sizes,
     is_empty,
+    is_compressed_table_empty,
     generate_to_hic_cmd
     )
 
@@ -112,13 +113,14 @@ def run(fasta,
     logger.info(f"Pipeline is started on {today}.")
 
     _n = re.split(":|x|\|", n) if n else None
-    if len(_n) == 2:
-        try: 
-            _n[1] = int(_n[1])
-        except ValueError:
-            if Path(_n[1]).exists():
-                _n[1] = str(Path(_n[1]).absolute())
-                n = ":".join(_n)
+    if _n is not None:
+        if len(_n) == 2:
+            try: 
+                _n[1] = int(_n[1])
+            except ValueError:
+                if Path(_n[1]).exists():
+                    _n[1] = str(Path(_n[1]).absolute())
+                    n = ":".join(_n)
     
     outdir = Path(outdir)
     if outdir.exists():
@@ -234,14 +236,32 @@ def run(fasta,
     if porec_data:
         porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
         pairs_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
+        paf = f"{porec_prefix}.paf.gz"
         pairs = f"{pairs_prefix}.pairs.gz"
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
         porec_table = hg_input
         input_param = "--porec"
         
-        if not Path(pairs).exists() and not Path(porec_table).exists() and "0" not in skip_steps:
+        
+        if not Path(pairs).exists() or not Path(porec_table).exists() and "0" not in skip_steps:
             steps.add("0")
+
+        if Path(paf).exists():
+            if is_compressed_table_empty(paf):
+                logger.info(f"The existing paf `{paf}` is empty, rerun step 0.mapper.")
+                steps.add("0")
+                
+                os.remove(paf)
+
+        if Path(porec_table).exists():
+            if is_compressed_table_empty(porec_table):
+                logger.info(f"The existing porec table `{porec_table}` is empty, rerun step 0.mapper.")
+                steps.add("0")
+                
+                os.remove(porec_table)
+
+        
     
     elif hic1 and hic2:
         pairs_prefix = Path(Path(hic1).stem).with_suffix('')
@@ -257,11 +277,17 @@ def run(fasta,
         if not Path(pairs).exists() and "0" not in skip_steps:
             steps.add("0")
         
+        if Path(pairs).exists():
+            if is_compressed_table_empty(pairs):
+                logger.info(f"The existing pairs `{pairs}` is empty, rerun step 0.mapper.")
+                steps.add("0")
+                os.remove(pairs)
+
     else:
         if "0" in steps:
             steps = steps - set("0")
             if "0" not in skip_steps:
-                logger.warning("Mapping step will not be run")
+                logger.warning("Mapping step will not be run, because not specified porec data with `-pcd` or hic data with `-hic1` and `-hic2`")
         if porec_table:
             porec_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]

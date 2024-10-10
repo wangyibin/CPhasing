@@ -10,11 +10,14 @@ import os
 import os.path as op
 import sys
 
+import pandas as pd 
+
 from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
 
 from .utilities import (
+    is_compressed_table_empty,
     run_cmd,
     ligation_site,
     to_humanized
@@ -421,11 +424,10 @@ class PoreCMapper:
                     '-w', str(self.w),
                     '-c',
                     f'--secondary={secondary}',
-                    '-I', self.batchsize,
-                    str(self.reference),
-                    str(self.reads[0])]
+                    '-I', self.batchsize]
             cmd.extend(list(self.additional_arguments))
-
+            cmd.extend([str(self.reference),
+                    str(self.reads[0])])
             cmd2 = ["pigz", "-c", "-p", "8"]
 
             logger.info('Running command:')
@@ -477,51 +479,56 @@ class PoreCMapper:
                     '-c',
                     f'--secondary={secondary}',
                     '-I', self.batchsize,
-                    str(self.reference),
                     ]
             cmd.extend(list(self.additional_arguments))
+            cmd.append(str(self.reference))
             cmd.append("-")
+
 
             cmd2 = ["pigz", "-c", "-p", "4"]
 
             logger.info('Running command:')
-            logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
+            logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd)  + f' 2 > {self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
                         + ' > ' + str(self.outpaf))
 
-            pipelines = []
-            try:
-                
-                pipelines.append(
-                    Popen(cmd0, stdout=PIPE,
-                    stderr=open(f'{self.log_dir}/{self.prefix}'
-                    '.mapping.log', 'w'),
-                    bufsize=-1, shell=True)
-                )
-
-                pipelines.append(
-                    Popen(cmd, stdin=pipelines[-1].stdout,
-                          stdout=PIPE, shell=True,
-                    stderr=open(f'{self.log_dir}/{self.prefix}'
-                    '.mapping.log', 'w'),
-                    bufsize=-1)
-                )
-
-                pipelines.append(
-                    Popen(cmd2, stdin=pipelines[-1].stdout,
-                        stdout=open(self.outpaf, 'wb'), 
-                        stderr=open(f'{self.log_dir}/{self.prefix}'
-                    '.mapping.log', 'w'),
-                    bufsize=-1)
-                )
-                pipelines[-1].wait()
+            os.system(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd) + f' 2>{self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
+                        + ' > ' + str(self.outpaf))
             
-            finally:
-                for p in pipelines:
-                    if p.poll() is None:
-                        p.terminate()
-                else:
-                    assert pipelines != [], \
-                        "Failed to execute command, please check log."
+            
+            # pipelines = []
+            # try:
+                
+            #     pipelines.append(
+            #         Popen(cmd0, stdout=PIPE,
+            #         stderr=open(f'{self.log_dir}/{self.prefix}'
+            #         '.mapping.log', 'w'),
+            #         bufsize=-1, shell=True)
+            #     )
+
+            #     pipelines.append(
+            #         Popen(cmd, stdin=pipelines[-1].stdout,
+            #               stdout=PIPE, shell=True,
+            #         stderr=open(f'{self.log_dir}/{self.prefix}'
+            #         '.mapping.log', 'w'),
+            #         bufsize=-1)
+            #     )
+
+            #     pipelines.append(
+            #         Popen(cmd2, stdin=pipelines[-1].stdout,
+            #             stdout=open(self.outpaf, 'wb'), 
+            #             stderr=open(f'{self.log_dir}/{self.prefix}'
+            #         '.mapping.log', 'w'),
+            #         bufsize=-1)
+            #     )
+            #     pipelines[-1].wait()
+            
+            # finally:
+            #     for p in pipelines:
+            #         if p.poll() is None:
+            #             p.terminate()
+            #     else:
+            #         assert pipelines != [], \
+            #             "Failed to execute command, please check log."
     
     def run_realign(self):
         cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]
@@ -576,8 +583,13 @@ class PoreCMapper:
 
         if not op.exists(self.outpaf) or self.force:
             self.mapping()
+            
         else:
-            logger.warning(f"The paf of `{self.outpaf} existing, skipped `reads mapping` ...")
+            if is_compressed_table_empty(self.outpaf):
+                logger.warning(f"Empty existing mapping result: `{self.outpaf}`, force rerun mapper.")
+                self.mapping()
+            else:
+                logger.warning(f"The paf of `{self.outpaf} existing, skipped `reads mapping` ...")
 
         if self.realign:
             if not op.exists(self.realign_outpaf) or self.force:

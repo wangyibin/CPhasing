@@ -133,6 +133,16 @@ def is_empty(_file):
     else:
         return False
 
+def is_compressed_table_empty(_file):
+    try:
+        pd.read_csv(_file, chunksize=1)
+    except EOFError:
+        return True 
+    except pd.errors.EmptyDataError:
+        return True
+    else:
+        False
+
 
 def xopen(infile, mode='r'):
     """
@@ -945,3 +955,4 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
 
     with open(output, 'w') as out:
         out.write(cmd)
+

@@ -195,6 +195,7 @@ class Extractor:
                     f"hyperedges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
         
+        logger.debug("Generating hyperedges ...")
         if 'mapq' in res.columns:
             return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
@@ -531,7 +532,7 @@ class HyperExtractor:
                 #     infiles.append(os.readlink(i))
                 # else:
                 infiles.append(i)
-            
+
             if self.is_parquet:
                 df_list = list(map(lambda x: pd.read_parquet(
                                 x, columns=['read_idx', 'chrom', 
@@ -591,9 +592,9 @@ class HyperExtractor:
                     #                                       f"'min_quality >= {self.min_quality}'")
                     #                                 # .drop("filter_reason", axis=1)
                     #                                 )(i) for i in df_list)
-                    
+
                     df_list = Parallel(n_jobs=self.threads)(delayed(
-                        lambda x: x.filter(pl.col('mapping_quality') >= self.min_quality).to_pandas())(i) for i in df_list)
+                        lambda x: x.filter(pl.col('mapping_quality') >= self.min_quality))(i) for i in df_list)
                 # else:
                 #     df_list = Parallel(n_jobs=self.threads)(delayed(
                 #                         lambda x: x.query("filter_reason == 'pass'")
@@ -639,7 +640,6 @@ class HyperExtractor:
                             self.min_order, self.max_order, 
                             self.min_alignments, self.is_parquet))
            
-            
             res = Parallel(n_jobs=threads_1)(
                             delayed(process_pore_c_table)(i, j, k, l, m, n, o) 
                                     for i, j, k, l, m, n, o in args)

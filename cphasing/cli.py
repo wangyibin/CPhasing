@@ -3041,6 +3041,13 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    "--is-recluster-contigs",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True
+)
+@click.option(
     "--threshold",
     metavar="FLOAT",
     help="Threshold of reweight.",
@@ -3112,6 +3119,7 @@ def hyperpartition(hypergraph,
                     min_quality2,
                     min_scaffold_length,
                     enable_misassembly_remove,
+                    is_recluster_contigs,
                     threshold, 
                     max_round, 
                     threads,
@@ -3359,6 +3367,7 @@ def hyperpartition(hypergraph,
                             mapq_filter_1_to_2,
                             min_scaffold_length,
                             is_remove_misassembly,
+                            is_recluster_contigs,
                             threshold, 
                             max_round, 
                             threads, 

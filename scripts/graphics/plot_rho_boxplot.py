@@ -54,6 +54,9 @@ def main(args):
     plt.rcParams['font.family'] = 'Arial'
     fig, ax = plt.subplots(figsize=(3, 4.5))
 
+    decribes = pd.DataFrame(datas).T.describe()
+    decribes.columns = list(colors.keys())
+    print(decribes)
     sns.boxplot(datas, width=.6, dodge=False, ax=ax, showfliers=False, palette=colors.values())
     sns.stripplot(datas, dodge=False, color=".3")
     ax.spines['bottom'].set_linewidth(1.5)

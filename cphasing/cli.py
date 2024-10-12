@@ -27,7 +27,8 @@ from .core import (
 )
 from .utilities import (
     run_cmd,
-    humanized2numeric
+    humanized2numeric,
+    is_compressed_table_empty,
     )
 
 logger = logging.getLogger("cphasing")
@@ -1955,7 +1956,7 @@ def hcr(porectable, pairs, contigsize, binsize,
                 
                 pairs = f"{path}/{prefix}.pairs.gz"
                 pairs_files.append(pairs)
-                if not Path(pairs).exists():
+                if not Path(pairs).exists() or is_compressed_table_empty(pairs):
                     cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
                     "-o", pairs, "-q", "0"]
                 
@@ -3250,7 +3251,7 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`")
+            logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`, if the input pore-c table changed, you should remove this existing hg.")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
 
         
@@ -3266,7 +3267,7 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warning(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`")
+            logger.warning(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`, if the input pairs changed, you should remove this existing hg.")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
         
         
@@ -4857,7 +4858,7 @@ def plot(matrix,
 
     if op.exists(chromosomes):
         logger.info(f"Load chromosomes list from the file `{chromosomes}`.")
-        chromosomes = [i.strip() for i in open(chromosomes) if i.strip()]
+        chromosomes = [i.strip().split("\t")[0] for i in open(chromosomes) if i.strip()]
         
     else:
         

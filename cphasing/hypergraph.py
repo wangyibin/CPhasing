@@ -23,7 +23,7 @@ from pandarallel import pandarallel
 from pytools import natsorted
 
 from .algorithms.hypergraph import HyperEdges
-from .utilities import listify, list_flatten 
+from .utilities import listify, list_flatten, is_compressed_table_empty
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,10 @@ class Extractor:
             dtype={'mapq': pl.Int8}
         
         if len(self.pairs_pathes) == 1:
+
+            if is_compressed_table_empty(self.pairs_pathes[0]):
+                logger.error(f"The pairs `{self.pairs_pathes[0]}` is empty, can not load anything, please check it.")
+                sys.exit(-1)            
 
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
@@ -481,10 +485,14 @@ class HyperExtractor:
                                     engine=PQ_ENGINE)
             else: 
                 logger.debug("Start to load one porec table.")
-                df = pl.read_csv(infile, separator='\t', has_header=False,
-                                 columns=[0, 5, 8], 
-                                 dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
-                                 new_columns=['read_idx', 'chrom', 'mapping_quality'])
+                try:
+                    df = pl.read_csv(infile, separator='\t', has_header=False,
+                                    columns=[0, 5, 8], 
+                                    dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
+                                    new_columns=['read_idx', 'chrom', 'mapping_quality'])
+                except pl.exceptions.NoDataError:
+                    logger.error(f"The pore-c table `{infile}` is empty, can not load anything, please check it.")
+                    sys.exit(-1)
                 
                 # try:
                 #     logger.debug("Start to load one porec table.")

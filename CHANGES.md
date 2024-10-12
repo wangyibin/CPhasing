@@ -1,4 +1,8 @@
 # Release notes #
+Date: 2024-10-12
+## [v0.2.1]
+## Bug fixes
+ - `rename`, bug of read agp
 
 ## [v0.2.0]
 Date: 2024-10-1

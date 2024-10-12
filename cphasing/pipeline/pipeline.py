@@ -636,7 +636,7 @@ def run(fasta,
                     logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
 
 
-    if not Path(prepare_input).exists() and (hic1 is None ):
+    if (not Path(prepare_input).exists() and (hic1 is None )) or is_compressed_table_empty(prepare_input):
         logger.info("Generating pairs file ...")
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
                     "-o", pairs, "-q", "0"]
@@ -644,15 +644,16 @@ def run(fasta,
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
 
-    alleles_dir = Path("1.alleles")
-    Path(alleles_dir).mkdir(exist_ok=True)
-    alleles_dir = str(alleles_dir)
+
+    alleles_dir = str("1.alleles")
+    
 
     if "1" not in skip_steps and "1" in steps:
         logger.info("""
 #----------------------------------#
 #      Running step 1. alleles     #
 #----------------------------------#""")
+        Path(alleles_dir).mkdir(exist_ok=True)
         os.chdir(alleles_dir)
 
         args = ["-f",
@@ -691,15 +692,14 @@ def run(fasta,
 
 
     prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
-    prepare_dir = Path("2.prepare")
-    prepare_dir.mkdir(exist_ok=True)
-    prepare_dir = str(prepare_dir)
+    prepare_dir = str("2.prepare")
+    
     if "2" not in skip_steps and "2" in steps:
         logger.info("""
 #----------------------------------#
 #       Running step 2. prepare    #
 #----------------------------------#""")
-        
+        Path(prepare_dir).mkdir(exist_ok=True)
         os.chdir(prepare_dir)
 
         if porec_table:
@@ -791,15 +791,14 @@ def run(fasta,
         hg_flag == "--pairs"
         input_param = "--pairs"
     
-    hyperpartition_dir = Path("3.hyperpartition")
-    hyperpartition_dir.mkdir(exist_ok=True)
-    hyperpartition_dir = str(hyperpartition_dir)
+    hyperpartition_dir = str("3.hyperpartition")
     
     if "3" not in skip_steps and "3" in steps:
         logger.info("""
 #----------------------------------#
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
+        Path(hyperpartition_dir).mkdir(exist_ok=True)
         
         os.chdir(hyperpartition_dir)
         hyperpartition_args = [
@@ -892,15 +891,14 @@ def run(fasta,
     if corrected:
         corrected_agp = out_agp.replace("agp", "corrected.agp")
     
-    scaffolding_dir = Path("4.scaffolding")
-    scaffolding_dir.mkdir(exist_ok=True)
-    scaffolding_dir = str(scaffolding_dir)
+    scaffolding_dir = str("4.scaffolding")
 
     if "4" not in skip_steps and "4" in steps:
         logger.info("""
 #----------------------------------#
 #    Running step 4. scaffolding   #
 #----------------------------------#""")
+        Path(scaffolding_dir).mkdir(exist_ok=True)
         os.chdir(scaffolding_dir)
 
         if corrected:
@@ -967,15 +965,15 @@ def run(fasta,
 
     out_small_cool = f"{pairs_prefix}.q{min_quality1}.10000.cool"
 
-    plot_dir = Path("5.plot")
-    plot_dir.mkdir(exist_ok=True)
-    plot_dir = str(plot_dir)
-
+    plot_dir = str("5.plot")
+    
     if "5" not in skip_steps and "5" in steps:
         logger.info("""
 #----------------------------------#
 #      Running step 5. plot        #
 #----------------------------------#""")
+        Path(plot_dir).mkdir(exist_ok=True)
+
         os.chdir(plot_dir)
         _out_sh = open('plot.cmd.sh', 'w')
         if Path(out_small_cool).exists():
@@ -994,6 +992,7 @@ def run(fasta,
             _out_sh.write("cphasing pairs2cool ")
             _out_sh.write(" ".join(map(str, args)))
             _out_sh.write("\n")
+            _out_sh.close()
             try:
                 
                 pairs2cool.main(args=args,
@@ -1007,27 +1006,35 @@ def run(fasta,
                 if exit_code != 0:
                     raise e
                 
-        try:
-            if corrected:
-                if Path(f"../{scaffolding_dir}/{corrected_agp}").exists():
-                    input_agp = corrected_agp
-                else:
-                    input_agp = out_agp
+        
+        if corrected:
+            if Path(f"../{scaffolding_dir}/{corrected_agp}").exists():
+                input_agp = corrected_agp
             else:
                 input_agp = out_agp
+        else:
+            input_agp = out_agp
 
-            # factor * 10000
-            args = [
-                    "-a",
-                    f"../{scaffolding_dir}/{input_agp}",
-                    "-m",
-                    out_small_cool,
-                    "-o",
-                    "groups.wg.png",
-                    "-k",
-                    factor,
-                    "-oc",
-                    ]
+        # factor * 10000
+        args = [
+                "-a",
+                f"../{scaffolding_dir}/{input_agp}",
+                "-m",
+                out_small_cool,
+                "-o",
+                "groups.wg.png",
+                "-k",
+                factor,
+                "-oc",
+                ]
+        
+        _out_sh = open('plot.cmd.sh', 'a')
+        _out_sh.write("cphasing plot ")
+        _out_sh.write(" ".join(map(str, args)))
+        _out_sh.write("\n")
+        _out_sh.close()
+ 
+        try:
             plot.main(args=args,
                             prog_name='plot')
         except SystemExit as e:
@@ -1039,12 +1046,6 @@ def run(fasta,
             if exit_code != 0:
                 raise e
             
-        
-        
-        _out_sh.write("cphasing plot ")
-        _out_sh.write(" ".join(map(str, args)))
-        _out_sh.write("\n")
-        _out_sh.close()
         os.chdir("../")
 
 

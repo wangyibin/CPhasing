@@ -307,7 +307,7 @@ def agp2tour(agp, outdir="tour", force=False, store=True):
             logger.info(f'Force output results, removed `{outdir}`')
             shutil.rmtree(outdir)
         else:
-            logger.warn(f'The output directory of `{outdir}` exists.')
+            logger.warning(f'The output directory of `{outdir}` exists.')
     outdir.mkdir(parents=True, exist_ok=True)
         
     for group, data in db.items():  
@@ -319,7 +319,7 @@ def agp2tour(agp, outdir="tour", force=False, store=True):
 
     logger.info('ALL done.')
 
-    return db
+    return agp_df
 
 def statagp(agp, output):
     """

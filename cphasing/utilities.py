@@ -135,13 +135,13 @@ def is_empty(_file):
 
 def is_compressed_table_empty(_file):
     try:
-        pd.read_csv(_file, chunksize=1)
+        pd.read_csv(_file, chunksize=1, comment="#")
     except EOFError:
         return True 
     except pd.errors.EmptyDataError:
-        return True
-    else:
-        False
+        return True 
+
+    return False
 
 
 def xopen(infile, mode='r'):

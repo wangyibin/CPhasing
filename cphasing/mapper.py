@@ -488,10 +488,10 @@ class PoreCMapper:
             cmd2 = ["pigz", "-c", "-p", "4"]
 
             logger.info('Running command:')
-            logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd)  + f' 2 > {self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
+            logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + ' '.join(cmd)  + f' 2 > {self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
                         + ' > ' + str(self.outpaf))
 
-            os.system(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + '\t' + ' '.join(cmd) + f' 2>{self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
+            os.system(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + ' '.join(cmd) + f' 2>{self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
                         + ' > ' + str(self.outpaf))
             
             
@@ -605,6 +605,10 @@ class PoreCMapper:
         if not op.exists(self.outpairs) or self.force:
             self.porec2pairs()
         else:
-            logger.warning(f"The pairs of {self.outpairs} existing, skipped `porec2pairs` ...")
+            if is_compressed_table_empty(self.outpairs):
+                logger.warning(f"Empty existing mapping result: `{self.outpaf}`, force rerun porec2pairs.")
+                self.porec2pairs()
+            else:
+                logger.warning(f"The pairs of {self.outpairs} existing, skipped `porec2pairs` ...")
 
         logger.info("Mapping done.")

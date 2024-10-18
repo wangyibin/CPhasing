@@ -610,9 +610,13 @@ class AlignmentAlleles:
         df = df.reset_index(drop=True).reset_index().reset_index()
         
         df['strand'] = df['strand'].map(lambda x: 1 if x == "+" else -1)
-        df.to_csv(f"{self.prefix}.allele.table", sep='\t', 
+        if not self.output:
+            output = f"{self.prefix}.allele.table"
+        else:
+            output = self.output
+        df.to_csv(output, sep='\t', 
                   index=None, header=None)
-        logger.info(f"Export the allele table `{self.prefix}.allele.table`")
+        logger.info(f"Export the allele table `{output}`")
         
         return df 
 

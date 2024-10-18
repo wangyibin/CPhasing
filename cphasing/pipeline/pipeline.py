@@ -978,6 +978,17 @@ def run(fasta,
         _out_sh = open('plot.cmd.sh', 'w')
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
+            args = [
+                    f"../{pairs}",
+                    f"../{contigsizes}",
+                    out_small_cool,
+                    "-q", 
+                    min_quality1
+                    ]
+            _out_sh.write("# cphasing pairs2cool ")
+            _out_sh.write(" ".join(map(str, args)))
+            _out_sh.write("\n")
+            _out_sh.close()
         else:
             if filtered_pairs:
                 pairs = filtered_pairs

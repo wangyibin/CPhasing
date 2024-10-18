@@ -509,7 +509,7 @@ class HyperPartition:
             logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
             self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
                                             self.prune_pair_df, self.allelic_similarity,
-                                            self.min_allelic_overlap)
+                                            self.min_allelic_overlap, method='sum')
 
         # self.remove_misassembly()
 
@@ -830,7 +830,7 @@ class HyperPartition:
             self.K = self.filter_cluster()
             
             if k[0] and len(self.K) > k[0]:
-                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0])
+                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], method='sum')
 
             self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
             assert len(self.K) > 0, "Couldn't run first cluster."

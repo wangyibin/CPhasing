@@ -3043,6 +3043,7 @@ def hypergraph(contacts,
 )
 @click.option(
     "--is-recluster-contigs",
+    "--recluster-contigs",
     is_flag=True,
     default=False,
     show_default=True,
@@ -3277,7 +3278,7 @@ def hyperpartition(hypergraph,
             hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
         except msgspec.ValidationError:
             raise msgspec.ValidationError(f"`{hypergraph}` is not the hypergraph. Please input correct hypergraph format")
-        
+            
     if ultra_long and ul_weight:
         logger.info("Load raw hypergraph from ultra-long hypergraph: `{ultra_long}`")
         try:

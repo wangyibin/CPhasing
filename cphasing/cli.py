@@ -3794,7 +3794,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
             output_agp=output_agp, only_agp=only_agp)
 
 
-@cli.command(cls=RichCommand, short_help="Rename and orient the groups according to a refernce.")
+@cli.command(cls=RichCommand, short_help="Rename and orient the groups according to a reference.")
 @click.option(
     '-r',
     '--ref',
@@ -4912,9 +4912,12 @@ def plot(matrix,
 ## hic subcommand
 from .hic.cli import hic
 
-@cli.group(cls=CommandGroup, short_help='Evaluation tools.')
+@cli.group(cls=CommandGroup, hidden=True, short_help='Evaluation tools.')
 @click.pass_context
 def evaluator(ctx):
+    """
+    **Lack of validation**, please dont use these function.
+    """
     pass
 
 @evaluator.command(short_help="Estimate the highly homologous ratio")

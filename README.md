@@ -113,11 +113,12 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 
 0_1. **hcr** (Optional)
 
-    > Only retain high confidence regions (HCRs) to subsequencing analysis, which will remove greedy contacts (contact to whole genome or multiple chromosomes.)  
-    ```bash
-    ## results are `sample.hcr.bed`, `sample.hcr.porec.gz` and `sample.hcr.pairs.gz`
-    cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
-    ``` 
+> Only retain high confidence regions (HCRs) to subsequencing analysis, which will remove greedy contacts (contact to whole genome or multiple chromosomes.)  
+
+```bash
+## results are `sample.hcr.bed`, `sample.hcr.porec.gz` and `sample.hcr.pairs.gz`
+cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
+``` 
 
 1. **alleles** (Optional for phasing mode)  
     > Identify the inter-allelic contig pairs.

@@ -5,7 +5,7 @@
 ***  
 
 ## Introduction
-The main problem with Hi-C scaffolding of polyploid genomes is the lower level of unambiguous mapping. Now, the long reads based chromosome conformation capture technology, called Pore-C, provides an effective way to solve this problem. So we have developed a new pipeline, called `C-Phasing`, which is specifically tailored for polyploid phasing and scaffolding using Pore-C data. It can also be used to scaffold assembly using Hi-C data, but it will be slow.  
+One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., Pore-C, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C data. It also works on Hi-C data and diploid genome assembly.  
   
 The advantages of `C-Phasing`:   
 - High speed.   

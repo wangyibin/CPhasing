@@ -102,22 +102,22 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     ## results are `sample.porec.gz` and `sample.pairs.gz`  
     cphasing mapper draft.asm.fasta sample.fastq.gz -t 10
     ```  
-    > Note: At first, only one data can be run until the index is successfully created.   
 
-    > For Hi-C data please use `cphasing hic mapper`  
+    > For Hi-C data please use `cphasing hic mapper`.
 
     Note: If you are mapping multiple pore-c data, the multiple `pairs.gz` files should be merged by following steps:
     ```bash
-    zgrep "^#" sample-1.pairs.gz > header  
-    cat header <(zcat sample-1.pairs.gz sample-2.pairs.gz | grep -v "^#") | pigz -p 4 -c > sample.pairs.gz   
+    cphasing-rs pairs-merge sample1.pairs.gz sample2.pairs.gz -o sample.merge.pairs.gz
     ```
-0.1. **hcr** (Optional)
 
-    > Only retain high confidence regions (HCRs) to subsequencing analysis, which will remove greedy contacts (contact to whole genome or multiple chromosomes.)
+0_1. **hcr** (Optional)
+
+    > Only retain high confidence regions (HCRs) to subsequencing analysis, which will remove greedy contacts (contact to whole genome or multiple chromosomes.)  
     ```bash
     ## results are `sample.hcr.bed`, `sample.hcr.porec.gz` and `sample.hcr.pairs.gz`
     cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes 
-    ```
+    ``` 
+
 1. **alleles** (Optional for phasing mode)  
     > Identify the inter-allelic contig pairs.
     - **Step1** `alleles`
@@ -177,7 +177,7 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     cphasing plot -m sample.10k.chrom.cool -o sample.500k.chrom.png --coarsen -k 50
     ```
 
-    Note: If the number of bins in matrix is too large (large genome with small binsize), the memory may overflow. To fix it, users can improve the binsize or specifing several chromosomes with `-c` parameter. 
+    Note: If the number of bins in matrix is too large (large genome with small binsize), the memory may overflow. To fix it, users can improve the binsize or specified several chromosomes with `-c` parameter. 
 
     ```bash
     cphasing plot -m sample.100k.chrom -c Chr01g1,Chr01g2,Chr01g3,Chr01g4 -o Chr01.100k.png 
@@ -215,7 +215,7 @@ Note: To reduce the time consumed, we only align the first haplotype (g1) to the
 
 ## FAQ
 ### The results of first round partition is unsatisfactory.
-In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the `-q1 0` for `hyperpartition` to increase the rate of h-trans errors. However, this parameter may raise error of `out of memory` when you input huge pore-c data in porec table or hic contacts in pairs file. 
+In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be not enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the `-q1 0` for `hyperpartition` to increase the rate of h-trans errors. However, this parameter may raise error of `out of memory` when you input huge pore-c data in porec table or hic contacts in pairs file. 
 
 ### How to set the `-n` parameter when assembling an aneuploid genome. 
 The aneuploid genome, such as modern cultivated sugarcane, contains unequal homologous chromosomes. The `-n` parameter can be set to zero (`-n 10:0`) to automatically partition contigs into different chromosomes within a homologous chromosome.     
@@ -233,3 +233,4 @@ However, we also allow the user to input a file with two columns: the first colu
 9    12
 10    12
 ```
+

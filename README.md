@@ -47,6 +47,7 @@ export PATH=/path/to/CPhasing/bin:$PATH
     - [chromap](https://github.com/haowenz/chromap)
 
 ## One command pipeline of C-Phasing
+The `-n 8:4` parameter of the following commands means assembling a tetraploid (**4**) with **8** chromosome basic numbers. If you set `-n 0:0` means partition in both rounds partition automatically, also support it set to `-n 8:0` or `-n 0:8`.
 - Start from a **pore-c data**
 
 ```bash

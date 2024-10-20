@@ -262,7 +262,11 @@ class ChromapMapper:
         self.prefix = Path(self.read1.stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
             self.prefix = self.prefix.with_suffix('')
-        self.prefix = Path(str(self.prefix).replace('_R1', ''))
+        
+        if str(self.prefix).endswith("_R1"):
+            self.prefix = Path(str(self.prefix)[:-3])
+        elif str(self.prefix).endswith("_1"):
+            self.prefix = Path(str(self.prefix)[:-2])
 
         self.output_pairs = Path(f'{self.prefix}.pairs')
 

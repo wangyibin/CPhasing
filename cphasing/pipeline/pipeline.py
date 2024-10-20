@@ -265,6 +265,8 @@ def run(fasta,
     
     elif hic1 and hic2:
         pairs_prefix = Path(Path(hic1).stem).with_suffix('')
+        hic1 = Path(hic1).absolute()
+        hic2 = Path(hic2).absolute()
         while pairs_prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
             pairs_prefix = pairs_prefix.with_suffix('')
         pairs_prefix = str(pairs_prefix).replace('_R1', '')
@@ -334,6 +336,7 @@ def run(fasta,
                         raise e
             
             if hic1 and hic2:
+
                 try:
                     hic_mapper.main(args=[
                                     "-r",

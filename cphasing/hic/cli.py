@@ -159,7 +159,7 @@ def mapper(
     # assert len(read1) == len(read2), "reads must paired."
 
     if read1 == read2:
-        logger.warn("The read1 and read2 are the sample files. Please check it.")
+        logger.warning("The read1 and read2 are the sample files. Please check it.")
 
 
     if aligner == 'hisat2':

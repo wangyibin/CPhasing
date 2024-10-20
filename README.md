@@ -175,7 +175,7 @@ cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes
     cphasing plot -m sample.100k.chrom -c Chr01g1,Chr01g2,Chr01g3,Chr01g4 -o Chr01.100k.png 
     ```
 
-
+    
 ### Curation by Juicebox
 - generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)
 

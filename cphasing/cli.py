@@ -1818,7 +1818,7 @@ def chimeric(fasta, pairs, depth, window_size,
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, 
-                short_help='Only retain the HCRs from Pore-C/Hi-C data')
+                short_help='Only retain the HCRs from Pore-C data')
 @click.option(
     '-pct',
     '--porectable',
@@ -2003,7 +2003,7 @@ def hcr(porectable, pairs, contigsize, binsize,
     #                 raise e
             
     #     else:
-    #         logger.warn(f"Use exists cool file of `{out_small_cool}`.")
+    #         logger.warning(f"Use exists cool file of `{out_small_cool}`.")
 
     depth_file = f"{prefix}.{binsize}.depth"
     if not bed:
@@ -3381,7 +3381,7 @@ def hyperpartition(hypergraph,
         if first_cluster and op.exists(first_cluster):
             first_cluster = ClusterTable(first_cluster)
             if n[0] != len(first_cluster.groups) and n[0]:
-                logger.warn("The group number of first cluster is conflicted with the specified group number specified in `-n`.")
+                logger.warning("The group number of first cluster is conflicted with the specified group number specified in `-n`.")
         else:
             first_cluster = None 
         
@@ -3703,11 +3703,11 @@ def scaffolding(clustertable, count_re, clm,
     from .algorithms.scaffolding import AllhicOptimize, HapHiCSort
     
     if split_contacts is None and (method == "precision" or method == "fast"):
-        logger.warn("The split contacts not be specified, change the method to `allhic`.")
+        logger.warning("The split contacts not be specified, change the method to `allhic`.")
         method = "allhic"
 
     if fasta is None:
-        logger.warn("Will not generate the agp file, because the fasta not be specified")                               
+        logger.warning("Will not generate the agp file, because the fasta not be specified")                               
 
     if method == "allhic":
         ao = AllhicOptimize(clustertable, count_re, clm, allele_table=allele_table, corrected=corrected,
@@ -4818,10 +4818,10 @@ def plot(matrix,
     if agp is None:
         only_plot = True 
         if not only_coarsen:
-            logger.warn( "Only plot the matrix. "
+            logger.warning( "Only plot the matrix. "
                     "If you want to adjust matrix to chromosome-level, please provide agp file. ")
         else:
-            logger.warn("Only coarsen the input matrix.")
+            logger.warning("Only coarsen the input matrix.")
 
     if not only_plot:
         if not no_adjust:
@@ -4846,11 +4846,11 @@ def plot(matrix,
         try:
             cool.bins()[:]['weight']
             if balanced:
-                logger.warn("Weight existed in matrix, "
+                logger.warning("Weight existed in matrix, "
                             "the `--balanced` parameter added, force execute balance.")
                 balance_matrix(matrix, force=True, threads=threads)
             else:
-                logger.warn("Weight existed in matrix, skip the balance step, "
+                logger.warning("Weight existed in matrix, skip the balance step, "
                         "or add `--balanced` to force rerun balance.")
         except KeyError:
 
@@ -4883,7 +4883,7 @@ def plot(matrix,
             cool.bins()[:]['weight']
             logger.info("Plot the balanced matrix.")
         except KeyError:
-            logger.warn("There is not column of `bins/weight` in cool file, set `balanced=False`")
+            logger.warning("There is not column of `bins/weight` in cool file, set `balanced=False`")
             balanced = False
     
     if not only_coarsen:

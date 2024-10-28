@@ -4,7 +4,7 @@
 
 |         |                                                       |
 | ------- | -------------------------------------------------------------------------|
-| Main author | Xiaofei zeng ([zengxiaofei](https://github.com/zengxiaofei))             |
+| Main author | Xiaofei Zeng ([zengxiaofei](https://github.com/zengxiaofei))             |
 | Co-authors  | Yibin Wang ([wangyibin](http://github.com/wangyibin))                |
 |             | Xingtan Zhang ([tangerzhang](https://github.com/tangerzhang/))       |
 

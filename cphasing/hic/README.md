@@ -1,8 +1,9 @@
 ## legacy from ALLHiC
-    These functions were developing for ALLHiC2 but deprecated.
+These functions were developed for `ALLHiC2` but **deprecated**.
 
 
-    - [gmap](http://research-pub.gene.com/gmap/)
+## Dependency
+- [gmap](http://research-pub.gene.com/gmap/)
 
 
 ## Hi-C scaffolding based on pregroup by homologous
@@ -13,34 +14,34 @@ cphasing hic mapper -r draft.asm.fasta -1 Lib_R1.fastq.gz -2 Lib_R2.fastq.gz -t 
 ```
 2. **correct** [Optional]
 ```
-cphasing correct draft.asm.fasta Lib.pairs -t 20 -o corrected.fasta -ob corrected.bed -op corrected.pairs
+cphasing hic correct draft.asm.fasta Lib.pairs -t 20 -o corrected.fasta -ob corrected.bed -op corrected.pairs
 ```
 
 3. **alleles**  
 Generate allele table.
 ```
-cphasing alleles -f corrected.fasta -c mono.cds -b mono.bed -k 4 -t 20 --method gene
+cphasing hic alleles -f corrected.fasta -c mono.cds -b mono.bed -k 4 -t 20 --method gene
 ```
 4. **extract**  
 Extract contacts for partition.
 ```
-cphasing extract corrected.pairs corrected.fasta -e HindIII
+cphasing hic extract corrected.pairs corrected.fasta -e HindIII
 ```
 5. **pregroup**  
 Pregroup by homologous
 ```
-cphasing pregroup Allele.ctg.table corrected.counts_AAGCTT.txt corrected.pairs.txt -f corrected.fasta
+cphasing hic pregroup Allele.ctg.table corrected.counts_AAGCTT.txt corrected.pairs.txt -f corrected.fasta
 ```
 6. **prune**  
 Pruning in each homologous group.
 ```
-cphasing prune Chr01.allele.table Chr01.counts_AAGCTT.txt Chr01.pairs.txt
+cphasing hic prune Chr01.allele.table Chr01.counts_AAGCTT.txt Chr01.pairs.txt
 ...
 ```
 7. **partition**  
 Partition in each homologous group
 ```
-cphasing partition Chr01.counts_GATC.txt Chr01.pairs.prune.txt 4 --adaptive --threads 10
+cphasing hic partition Chr01.counts_GATC.txt Chr01.pairs.prune.txt 4 --adaptive --threads 10
 ...
 ```
 `4` is repersent the number of groups (ploidy in there)  
@@ -48,13 +49,13 @@ cphasing partition Chr01.counts_GATC.txt Chr01.pairs.prune.txt 4 --adaptive --th
 8. **recluster**  
 Allelic information was used to further optimize the clustering results.
 ```
-cphasing recluster clusters.txt Chr01.allele.table Chr01.counts_GATC.txt Chr01.pairs.txt 4
+cphasing hic recluster clusters.txt Chr01.allele.table Chr01.counts_GATC.txt Chr01.pairs.txt 4
 ...
 ```
 9. **rescue**  
 Assign unplaced contigs into partitioned clusters.
 ```
-cphasing rescue clusters.txt corrected.counts_AAGCTT.txt corrected.pairs.txt -o rescued.clusters.txt
+cphasing hic rescue clusters.txt corrected.counts_AAGCTT.txt corrected.pairs.txt -o rescued.clusters.txt
 ```
 10. **optimize**  
 Ordering and orientation for each group.
@@ -68,7 +69,7 @@ cphasing build corrected.fasta
 ```
 12. **plot**  
 ```
-cooler cload pairs corrected.fasta.chromsizes:10000 corrected.pairs corrected.10k.cool -c1 2 -p1 3 -c2 4 -p2 5
+cphasing pairs2cool corrected.pairs corrected.contigsizes corrected.10k.cool
 cphasing plot -a groups.agp -m corrected.10k.cool -o groups.wg.png
 ```
 

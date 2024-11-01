@@ -944,6 +944,8 @@ def generate_to_hic_cmd(agp, pairs, n=0, _3ddna_path="~/software/3d-dna", output
     pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
     agp_prefix = str(Path(agp).name).replace(".agp", "")
     cmd = f"""
+## Please submit the following command yourself
+
 _3ddna_path={_3ddna_path}
 cphasing-rs pairs2mnd {pairs} -o {pairs_prefix}.mnd.txt
 cphasing utils agp2assembly {agp} -o {agp_prefix}.assembly

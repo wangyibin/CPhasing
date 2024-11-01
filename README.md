@@ -1,11 +1,11 @@
 <img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, Ultra-long
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>.
 
 ***  
 
 ## Introduction
-One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., Pore-C, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C data. It also works for diploid genome assembly.  
+One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C data. It also works on **Hi-C** data and diploid genome assembly.  
   
 The advantages of `C-Phasing`:   
 - High speed.   
@@ -65,6 +65,12 @@ Note: If you want to run on cluster system and submit them to multiple nodes, yo
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n "8:4"
 ```
 
+- Start from a paired-end **Hi-C data** 
+```bash
+cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n "8:4"
+```
+Note: If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.
+
 - Start from a 4DN pairs file,
 ```bash
 cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n "8:4"
@@ -99,7 +105,12 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     cphasing mapper draft.asm.fasta sample.fastq.gz -t 10
 
     ```  
+    > For Hi-C data please use `cphasing hic mapper`.
 
+    Note: If you are mapping multiple pore-c data, the multiple `pairs.gz` files should be merged by following steps:
+    ```bash
+    cphasing-rs pairs-merge sample1.pairs.gz sample2.pairs.gz -o sample.merge.pairs.gz
+    ```
 
 0_1. **hcr** (Optional)
 
@@ -180,7 +191,7 @@ cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes
 - generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)
 
 ```bash
-cphasing alignments pairs2mnd sample.pairs.gz sample.mnd.txt
+cphasing pairs2mnd sample.pairs.gz -o sample.mnd.txt
 cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```

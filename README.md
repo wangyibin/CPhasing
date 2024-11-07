@@ -112,7 +112,7 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
     cphasing-rs pairs-merge sample1.pairs.gz sample2.pairs.gz -o sample.merge.pairs.gz
     ```
 
-0_1. **hcr** (Optional)
+0_3. **hcr** (Optional)
 
 > Only retain high confidence regions (HCRs) to subsequencing analysis, which will remove greedy contacts (contact to whole genome or multiple chromosomes.)  
 
@@ -123,7 +123,6 @@ cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes
 
 1. **alleles** (Optional for phasing mode)  
     > Identify the inter-allelic contig pairs.
-    - **Step1** `alleles`
     ```bash
     ## result is `draft.asm.allele.table`
     cphasing alleles -f draft.asm.fasta

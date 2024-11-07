@@ -1560,7 +1560,7 @@ def pairs2mnd(pairs, output, min_mapq):
     # from .core import Pairs 
     # p = Pairs(pairs)
     # p.to_mnd(output, threads) 
-    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output, "-q", min_mapq]
+    cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output, "-q", str(min_mapq)]
     flag = run_cmd(cmd, log=os.devnull)
     assert flag == 0, "Failed to execute command, please check log."
 

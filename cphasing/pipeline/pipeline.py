@@ -139,6 +139,11 @@ def run(fasta,
         for i, j in enumerate(porec_data):
             porec_data[i] = str(Path(j).absolute())
     
+    if hic1 and hic2:
+        hic1 = str(Path(hic1).absolute())
+        hic2 = str(Path(hic2).absolute())
+    
+    
     if porec_table:
         porec_table_path = Path(porec_table).absolute()
         if not pairs:
@@ -267,6 +272,7 @@ def run(fasta,
         pairs_prefix = Path(Path(hic1).stem).with_suffix('')
         hic1 = str(Path(hic1).absolute())
         hic2 = str(Path(hic2).absolute())
+       
         while pairs_prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
             pairs_prefix = pairs_prefix.with_suffix('')
         pairs_prefix = str(pairs_prefix).replace('_R1', '')

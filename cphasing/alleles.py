@@ -452,9 +452,10 @@ class AlignmentAlleles:
             logger.error(f'No such command of `wfmash`.')
             sys.exit()
 
-        fasta_prefix = Path(Path(fasta).stem).with_suffix("")
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
+
         self.prefix = fasta_prefix
 
         self.paf = f"{self.prefix}.selfalign.paf"
@@ -463,7 +464,7 @@ class AlignmentAlleles:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         if not output:
-            self.output = f"{self.prefix}.raw.allele.table"
+            self.output = f"{self.prefix}.allele.table"
         else:
             self.output = output
 
@@ -648,7 +649,8 @@ class AlignmentAlleles:
 
         if not self.no_raw_table:
             self.allele_table = self.paf2allele()
-            self.save(self.output)
+            output = self.output.replace(".allele.table", ".raw.allele.table")
+            self.save(output)
        
         self.export_allele2()
     

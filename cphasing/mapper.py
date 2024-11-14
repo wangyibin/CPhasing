@@ -18,6 +18,7 @@ from subprocess import Popen, PIPE
 
 from .utilities import (
     is_compressed_table_empty,
+    is_empty,
     run_cmd,
     ligation_site,
     to_humanized
@@ -293,6 +294,10 @@ class ChromapMapper:
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
         assert flag == 0, "Failed to execute command, please check log."
 
+        if not Path(self.index_path).exists():
+            logger.error(f"Failed to create index of `{self.index_path}`.")
+            sys.exit(1)
+
     def mapping(self):
         cmd = [self._path, '-t', str(self.threads), 
                 '--preset', 'hic', 
@@ -306,6 +311,15 @@ class ChromapMapper:
 
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.mapping.log')
         assert flag == 0, "Failed to execute command, please check log."
+
+        if not Path(self.output_pairs).exists():
+            logger.error(f"Failed to create pairs of `{self.output_pairs}`.")
+            sys.exit(1)
+
+        if is_empty(self.output_pairs):
+            logger.error(f"Empty pairs of `{self.output_pairs}`.")
+            sys.exit(1)    
+
         logger.info("Done.")
 
     def compress(self):

@@ -390,6 +390,7 @@ def statagp(agp, output):
     print(f'Total Number of contigs:\t{total_number_of_contigs}',
         f'Total Length of contigs (bp):\t{total_length_of_contigs}', 
         f'Total Number of anchored contigs:\t{total_number_of_anchored_contigs}',
+        f'Total Length of anchored contigs (bp):\t{chrom_length}',
         f'Total Length of chromosome level assembly (bp):\t{total_length_of_chromosome_level_assembly}',
         f'Number of unanchored contigs:\t{number_of_unanchored_contigs}',
         f'Length of unanchored contigs (bp):\t{length_of_unanchored_contigs}',
@@ -519,18 +520,17 @@ def assembly2agp(assembly,
         
         
     if sort_by_length:
-        scaffolds_idx = sorted(scaffolds_length_db.items(), key=lambda x: x[1], reverse=True)
+        scaffolds_idx = sorted(scaffolds_length_db, key=lambda x: scaffolds_length_db[x], reverse=True)
     else:
         scaffolds_idx = list(scaffolds_length_db.keys())
     
-
     raw_agp = f"{outprefix}.agp"
 
     agp = f"{outprefix}.corrected.agp"
 
     with open(raw_agp, "w") as raw_out, open(agp, "w") as out:
         record_num = 1
-        for group_idx in scaffolds_idx:
+        for idx, group_idx in enumerate(scaffolds_idx):
             records = agp_records[group_idx]
             raw_records = raw_agp_records[group_idx]
             unanchor_records = []
@@ -539,7 +539,7 @@ def assembly2agp(assembly,
                 total_chrom_num = chrom_num[0] if len(chrom_num) == 1 else chrom_num[0] * chrom_num[1]
 
                 for i, (record, raw_record) in enumerate(zip(records, raw_records)):
-                    num = group_idx + 1
+                    num = idx + 1
                     
                     if num > total_chrom_num:
                         unanchor_records.append(record)

@@ -37,7 +37,7 @@ def get_version():
 
 def get_author():
     author = re.search(
-        r'^__author__\s*=\s*[\'"]([^\'"]*)[\'"]',
+        r'^__author__\s*=\s*\S*[\'"]([^\'"]*)[\'"]',
         _read("cphasing", "__init__.py"),
         re.MULTILINE,
     ).group(1)
@@ -46,7 +46,7 @@ def get_author():
 
 def get_email():
     email = re.search(
-        r'^__email__\s*=\s*[\'"]([^\'"]*)[\'"]',
+        r'^__email__\s*=\s*\S*[\'"]([^\'"]*)[\'"]',
         _read("cphasing", "__init__.py"),
         re.MULTILINE,
     ).group(1)

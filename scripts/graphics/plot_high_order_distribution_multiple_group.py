@@ -64,10 +64,16 @@ def main(args):
     # markers = ["o", "o", 'o', 'D', 'D', 'D', 'D']
     # markers = ['D', 'D', 'D', 'D']
     bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluered_12)))
-    ax = sns.pointplot(data=hist_df, x='order', y='proportion', 
-                    #    markers=markers, 
-                       palette=bluered_12, hue='sample', ax=ax, 
-                  alpha=0.7, errorbar=None, dodge=0.3, color='k')
+    if len(sample_names) > 1:
+        ax = sns.pointplot(data=hist_df, x='order', y='proportion', 
+                        #    markers=markers, 
+                        palette=bluered_12, hue='sample', ax=ax, 
+                    alpha=0.7, errorbar=None, dodge=0.3, color='k')
+    else:
+         ax = sns.pointplot(data=hist_df, x='order', y='proportion', 
+                        #    markers=markers, 
+                        palette=bluered_12, hue='sample', ax=ax, 
+                    alpha=0.7, errorbar=None, color='k')
     # ax.get_legend().set_visible(False)
     # legend_items = [mlines.Line2D([], [], color=color, marker=None, linewidth=2.5,
     #                           markersize=10, label=f'{sample}') for sample, (color, marker) in list(zip(header_name, zip(bluered_12, markers)))]

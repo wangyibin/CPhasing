@@ -7,7 +7,7 @@ import sys
 import re 
 
 import gffpandas.gffpandas as gffpd
-
+from collections import defaultdict
 from pyfaidx import Fasta
 from cphasing.utilities import read_fasta
 
@@ -36,18 +36,22 @@ def main(args):
 
     gff_df = gff_df[gff_df['seq_id'].str.match(r'utg.*_d(\d+)')]
     dup_genes = gff_df['attributes'].apply(lambda x: re.search(r'ID=(.*?);', x).group(1))
-
+ 
     dup_raw_genes = list(map(lambda x: x.rsplit("_", 1)[0], dup_genes))
-    dup_genes_db = dict(zip(dup_raw_genes, dup_genes))
-
+    dup_genes_db = defaultdict(list)
+    for i, gene in enumerate(dup_genes):
+        dup_genes_db[dup_raw_genes[i]].append(gene)
+ 
     for gene in fasta.keys():
-        if gene in dup_raw_genes:
-            print(f'>{dup_genes_db[gene]}', file=args.output)
-            print(fasta[gene][:].seq, file=args.output)
-        
         print(f'>{gene}', file=args.output)
         print(fasta[gene][:].seq, file=args.output)
     
+    for genes in dup_genes_db:
+        for gene in dup_genes_db[genes]:
+            raw_gene = gene.rsplit("_", 1)[0]
+            print(f'>{gene}', file=args.output)
+            print(fasta[raw_gene][:].seq, file=args.output)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

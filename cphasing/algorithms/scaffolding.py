@@ -303,8 +303,11 @@ class Rename:
 
         renamed_chrom = []
         for chrom1 in first_chrom_to_other_chroms:
+            try:
+                tmp_res = res[chrom1]
+            except KeyError:
+                continue 
             
-            tmp_res = res[chrom1]
             tour = Tour(f"raw_tour/{chrom1}.tour")
 
             tour_dict = tour.to_dict()

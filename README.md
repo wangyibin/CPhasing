@@ -24,6 +24,8 @@ conda activate cphasing
 ## Add these command into .bash_profile or .bashrc
 export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
+## The hic pipeline require GLIBCXX_3.4.29, or you can add this to your environment (.bash_profile)
+export LD_LIBRARY_PATH=/path/to/anaconda3/envs/cphasing/lib:$LD_LIBRARY_PATH
 ```
 ### Custom install the dependencies
 #### Install C-Phasing
@@ -69,7 +71,9 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```bash
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
-Note: If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.
+Note1: If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.  
+Note2: If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified. 
+
 
 - Start from a 4DN pairs file,
 ```bash

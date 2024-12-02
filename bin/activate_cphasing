@@ -15,13 +15,17 @@ fi
 
 software_dir="$(dirname "$(dirname "$0")")"
 
-if [ ! -f $software_dir/.pixi/envs/default/bin/ ]; then
-    
+if [ -d $software_dir/.pixi/envs/default/bin/ ]; then
+    echo
+else
+    echo "Installing cphasing environment..."
     pixi install --manifest-path $software_dir/pixi.toml
 fi
 
 export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
+export PATH=$software_dir/bin:$PATH
 export PYTHONPATH=$software_dir:$PYTHONPATH
-pixi shell --manifest-path $software_dir/pixi.toml --no-install
+
+pixi shell --manifest-path $software_dir/pixi.toml --no-install --change-ps1 false
 
 

@@ -515,7 +515,8 @@ class AllhicOptimize:
 
 
         if not self.fasta:
-            os.system(f"cp *tour ../")
+            for file in glob.glob("*.tour"):
+                shutil.copy(file, "../")
         else:
             try:
                 if self.corrected:
@@ -532,10 +533,10 @@ class AllhicOptimize:
                 if exit_code != 0:
                     raise e
                 
-            os.system(f"cp {self.output} ../")
+            shutil.copy(f"{self.output}", "../")
             if self.corrected:
                 if Path(self.output.replace("agp", "corrected.agp")).exists():
-                    os.system(f"cp {self.output.replace('agp', 'corrected.agp')} ../")
+                    shutil.copy(f"{self.output.replace('agp', 'corrected.agp')}", "../")
              
         os.chdir("../")
         if self.delete_temp is True:
@@ -718,7 +719,8 @@ class HapHiCSort:
 
         
         if not self.fasta:
-            os.system(f"cp *tour ../")
+            for file in glob.glob("*.tour"):
+                shutil.copy(file, "../")
         else:
             try:
                 if self.corrected:
@@ -736,10 +738,11 @@ class HapHiCSort:
                 if exit_code != 0:
                     raise e
                 
-            os.system(f"cp {self.output} ../")
+            # os.system(f"cp {self.output} ../")
+            shutil.copy(self.output, "../")
             if self.corrected:
                 if Path(self.output.replace("agp", "corrected.agp")).exists():
-                    os.system(f"cp {self.output.replace('agp', 'corrected.agp')} ../")
+                    shutil.copy(f"{self.output.replace('agp', 'corrected.agp')}", "../")
     
         os.chdir("../")
 

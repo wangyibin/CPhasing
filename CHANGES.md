@@ -1,6 +1,8 @@
 # Release notes #
 Date: 2024-12-02
 ## [v0.2.1]
+## Enhancement
+- `activate_cphasing`, use pixi to activate the enviroment of CPhasing
 ## Bug fixes    
 - `rename`, bug of read agp
 - `pipeline`

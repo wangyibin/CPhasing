@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# This script activates the cphasing environment by pixi 
+
+if ! command -v pixi &> /dev/null
+then
+    echo "pixi could not be found, installing pixi..."
+    curl -fsSL https://pixi.sh/install.sh | bash
+fi
+
+software_dir="$(dirname "$(dirname "$0")")"
+export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
+export PYTHONPATH=$software_dir:$PYTHONPATH
+pixi shell --manifest-path $software_dir/pixi.toml --no-install
+
+

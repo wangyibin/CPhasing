@@ -2,6 +2,10 @@
 
 # This script activates the cphasing environment by pixi 
 
+if [ -f $HOME/.pixi/bin/pixi ]; then
+    export PATH=$HOME/.pixi/bin:$PATH
+fi
+
 if ! command -v pixi &> /dev/null
 then
     echo "pixi could not be found, installing pixi..."

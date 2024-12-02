@@ -13,7 +13,20 @@ The advantages of `C-Phasing`:
 - High accuracy of polyploid phasing. 
 
 ## Installation
-### Via anaconda (recommend)
+
+### Via activate_cphasing (Recommended)
+```bash
+## Download C-Phasing and install all dependencies
+git clone https://github.com/wangyibin/CPhasing.git
+cd CPhasing
+## Add these command into .bash_profile or .bashrc
+export PATH=/path/to/CPhasing/bin:$PATH
+
+## activate environment (For the first configuration, run it when the network is accessible.)
+activate_cphasing
+```
+
+### Via Anaconda
 ```bash
 ## Download C-Phasing and install all dependencies
 git clone https://github.com/wangyibin/CPhasing.git

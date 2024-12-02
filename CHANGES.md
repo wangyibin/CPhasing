@@ -1,8 +1,12 @@
 # Release notes #
-Date: 2024-10-12
+Date: 2024-12-02
 ## [v0.2.1]
-## Bug fixes
- - `rename`, bug of read agp
+## Bug fixes    
+- `rename`, bug of read agp
+- `pipeline`
+    - input hic with `_1` or `_2` suffix can not load successful
+    - input hic can not find fastq path in `output dir`
+
 
 ## [v0.2.0]
 Date: 2024-10-1

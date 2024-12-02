@@ -275,7 +275,8 @@ def run(fasta,
        
         while pairs_prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2'}:
             pairs_prefix = pairs_prefix.with_suffix('')
-        pairs_prefix = str(pairs_prefix).replace('_R1', '')
+
+        pairs_prefix = str(pairs_prefix).replace('_R1', '').replace('_1', '')
         pairs = f"{pairs_prefix}.pairs.gz"
         hg_input = f"{pairs_prefix}.pairs.gz"
         porec_table = None

@@ -24,7 +24,7 @@ conda activate cphasing
 ## Add these command into .bash_profile or .bashrc
 export PATH=/path/to/CPhasing/bin:$PATH
 export PYTHONPATH=/path/to/CPhasing:$PYTHONPATH
-## The hic pipeline require GLIBCXX_3.4.29, or you can add this to your environment (.bash_profile)
+## The hic pipeline require GLIBCXX_3.4.29, or you can add this command to your environment (.bash_profile)
 export LD_LIBRARY_PATH=/path/to/anaconda3/envs/cphasing/lib:$LD_LIBRARY_PATH
 ```
 ### Custom install the dependencies
@@ -72,7 +72,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
 Note1: If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.  
-Note2: If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified. 
+Note2: If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of chromap. 
 
 
 - Start from a 4DN pairs file,
@@ -94,6 +94,37 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr
 ```
+    
+### Curation by Juicebox
+- generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)
+
+```bash
+cphasing pairs2mnd sample.pairs.gz -o sample.mnd.txt
+cphasing utils agp2assembly groups.agp > groups.assembly
+bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
+```
+Note: if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.gz` by `cphasing-rs pairs-break`
+- After curation
+```bash
+## convert assembly to agp
+cphasing utils assembly2agp groups.review.assembly -n 8:4 
+## or haploid or a homologous group
+cphasing utils assembly2agp groups.review.assembly -n 8
+## extract contigs from agp 
+cphasing agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
+## extract chromosome-level fasta from agp
+cphasing agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
+```
+
+
+### Rename 
+Rename and orient chromosome according a monoploid reference (or genome of closely related species).
+```bash
+cphasing rename -r mono.fasta -f draft.asm.fasta -a groups.review.agp -t 20
+```
+Note: To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the `scaffolding` step. If not, you can set `—unphased` to align all haplotypes to the monoploid to adjust the orientation.  
+
+----------------------------------------------
 
 
 ## Pipeline of Ultra-long data [Optional]
@@ -189,36 +220,6 @@ cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes
     cphasing plot -m sample.100k.chrom -c Chr01g1,Chr01g2,Chr01g3,Chr01g4 -o Chr01.100k.png 
     ```
 
-    
-### Curation by Juicebox
-- generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)
-
-```bash
-cphasing pairs2mnd sample.pairs.gz -o sample.mnd.txt
-cphasing utils agp2assembly groups.agp > groups.assembly
-bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
-```
-Note: if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.gz` by `cphasing-rs pairs-break`
-- After curation
-```bash
-## convert assembly to agp
-cphasing utils assembly2agp groups.review.assembly -n 8:4 
-## or haploid or a homologous group
-cphasing utils assembly2agp groups.review.assembly -n 8
-## extract contigs from agp 
-cphasing agp2fasta groups.review.agp draft.asm.fasta --contigs > contigs.fasta
-## extract chromosome-level fasta from agp
-cphasing agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
-```
-
-
-### Rename 
-Rename and orient chromosome according a monoploid reference (or genome of closely related species).
-```bash
-cphasing rename -r mono.fasta -f draft.asm.fasta -a groups.review.agp -t 20
-```
-Note: To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the `scaffolding` step. If not, you can set `—unphased` to align all haplotypes to the monoploid to adjust the orientation.
-
 ## FAQ
 ### The results of the first round partition are unsatisfactory.
 In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be not enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the `-q1 0` for `hyperpartition` to increase the rate of h-trans errors. However, this parameter may raise error of `out of memory` when you input huge pore-c data in porec table or hic contacts in pairs file. 
@@ -239,3 +240,5 @@ However, we also allow the user to input a file with two columns: the first colu
 9    12
 10    12
 ```
+
+

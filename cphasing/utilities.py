@@ -953,6 +953,7 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
 
 ## After curation, convert review.assembly to new agp 
 # cphasing utils assembly2agp groups.review.assembly -o groups.review -n {n}
+# cphasing utils agp2fasta groups.review.agp -o groups.review.fasta
     """
 
     with open(output, 'w') as out:

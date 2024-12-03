@@ -1,6 +1,6 @@
 
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="zh" class="no-js">
   <head>
     
       <meta charset="utf-8">
@@ -8,28 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/basic_usage/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/zh/basic_usage/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../">
       
       
         <link rel="next" href="../faq/">
       
       
-      <link rel="icon" href="../logo/logo.png">
+      <link rel="icon" href="../../logo/logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
     
     
       
-        <title>Basic Usage - C-Phasing</title>
+        <title>基本用法 - C-Phasing 中文</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -43,14 +43,14 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"JetBrains Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"JetBrains Mono"}</style>
       
     
     
-      <link rel="stylesheet" href="../styles/extra.css">
+      <link rel="stylesheet" href="../../styles/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,8 +76,8 @@
     <div data-md-component="skip">
       
         
-        <a href="#one-command-pipeline-of-c-phasing" class="md-skip">
-          Skip to content
+        <a href="#_1" class="md-skip">
+          跳转至
         </a>
       
     </div>
@@ -95,10 +95,10 @@
   
 
 <header class="md-header md-header--shadow" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="https://wangyibin.github.io" title="C-Phasing" class="md-header__button md-logo" aria-label="C-Phasing" data-md-component="logo">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="https://wangyibin.github.io" title="C-Phasing 中文" class="md-header__button md-logo" aria-label="C-Phasing 中文" data-md-component="logo">
       
-  <img src="../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -109,13 +109,13 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            C-Phasing
+            C-Phasing 中文
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Basic Usage
+              基本用法
             
           </span>
         </div>
@@ -165,20 +165,20 @@
       <div class="md-header__option">
   <div class="md-select">
     
-    <button class="md-header__button md-icon" aria-label="Select language">
+    <button class="md-header__button md-icon" aria-label="选择当前语言">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
     </button>
     <div class="md-select__inner">
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="./" hreflang="en" class="md-select__link">
+            <a href="../../basic_usage/" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
         
           <li class="md-select__item">
-            <a href="../zh/basic_usage/" hreflang="zh" class="md-select__link">
+            <a href="./" hreflang="zh" class="md-select__link">
               简体中文
             </a>
           </li>
@@ -197,16 +197,16 @@
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
         
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
         
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
       </label>
-      <nav class="md-search__options" aria-label="Search">
+      <nav class="md-search__options" aria-label="查找">
         
-        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
@@ -217,7 +217,7 @@
       <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
-            Initializing search
+            正在初始化搜索引擎
           </div>
           <ol class="md-search-result__list" role="presentation"></ol>
         </div>
@@ -228,7 +228,7 @@
     
     
       <div class="md-header__source">
-        <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
+        <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
@@ -262,18 +262,18 @@
 
 
 
-<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="https://wangyibin.github.io" title="C-Phasing" class="md-nav__button md-logo" aria-label="C-Phasing" data-md-component="logo">
+    <a href="https://wangyibin.github.io" title="C-Phasing 中文" class="md-nav__button md-logo" aria-label="C-Phasing 中文" data-md-component="logo">
       
-  <img src="../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
-    C-Phasing
+    C-Phasing 中文
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
@@ -293,11 +293,11 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Installation
+    安装
   </span>
   
 
@@ -324,7 +324,7 @@
           
   
   <span class="md-ellipsis">
-    Basic Usage
+    基本用法
   </span>
   
 
@@ -335,7 +335,7 @@
         
   
   <span class="md-ellipsis">
-    Basic Usage
+    基本用法
   </span>
   
 
@@ -343,49 +343,49 @@
       
         
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+<nav class="md-nav md-nav--secondary" aria-label="目录">
   
   
   
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      目录
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#one-command-pipeline-of-c-phasing" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
-      One command pipeline of C-Phasing
+      流程化的命令
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="One command pipeline of C-Phasing">
+    <nav class="md-nav" aria-label="流程化的命令">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#pipeline" class="md-nav__link">
     <span class="md-ellipsis">
-      pipeline
+      pipeline命令
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#curation-by-juicebox" class="md-nav__link">
+  <a href="#juicebox" class="md-nav__link">
     <span class="md-ellipsis">
-      Curation by Juicebox
+      通过Juicebox 人工调整基因组组装
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#rename" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
-      Rename
+      根据参考基因组重新命名和调整整条染色体的方向
     </span>
   </a>
   
@@ -415,7 +415,7 @@
         
   
   <span class="md-ellipsis">
-    FAQ
+    常见问题
   </span>
   
 
@@ -437,49 +437,49 @@
                   <div class="md-sidebar__inner">
                     
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+<nav class="md-nav md-nav--secondary" aria-label="目录">
   
   
   
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      目录
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#one-command-pipeline-of-c-phasing" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
-      One command pipeline of C-Phasing
+      流程化的命令
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="One command pipeline of C-Phasing">
+    <nav class="md-nav" aria-label="流程化的命令">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#pipeline" class="md-nav__link">
     <span class="md-ellipsis">
-      pipeline
+      pipeline命令
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#curation-by-juicebox" class="md-nav__link">
+  <a href="#juicebox" class="md-nav__link">
     <span class="md-ellipsis">
-      Curation by Juicebox
+      通过Juicebox 人工调整基因组组装
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#rename" class="md-nav__link">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
-      Rename
+      根据参考基因组重新命名和调整整条染色体的方向
     </span>
   </a>
   
@@ -505,7 +505,7 @@
                   
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/basic_usage.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/basic_usage.zh.md" title="编辑此页" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -513,54 +513,54 @@
   
 
 
-  <h1>Basic Usage</h1>
+  <h1>基本用法</h1>
 
-<h2 id="one-command-pipeline-of-c-phasing">One command pipeline of C-Phasing<a class="headerlink" href="#one-command-pipeline-of-c-phasing" title="Permanent link">#</a></h2>
-<h3 id="pipeline">pipeline<a class="headerlink" href="#pipeline" title="Permanent link">#</a></h3>
-<p>The <code>-n 8:4</code> parameter of the following commands means assembling a tetraploid (<strong>4</strong>) with <strong>8</strong> chromosome basic numbers. If you set <code>-n 0:0</code> means partition in both rounds automatically, also support it set to <code>-n 8:0</code> or <code>-n 0:4</code>.  </p>
-<h4 id="start-from-a-pore-c-data">Start from a <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-a-pore-c-data" title="Permanent link">#</a></h4>
+<h2 id="_1">流程化的命令<a class="headerlink" href="#_1" title="Permanent link">#</a></h2>
+<h3 id="pipeline">pipeline命令<a class="headerlink" href="#pipeline" title="Permanent link">#</a></h3>
+<p>以下案例中的参数<code>-n 8:4</code>表示组装一个染色体基数为<strong>8</strong>的四倍体（<strong>4</strong>），指定程序第一次分组输出8组，第二次再每一组里面输出4组，最终输出32条染色体。我们也支持自动分组，只需设置<code>-n 0:0</code>, 这表示两轮自动分组。也可以设置为第一分成8组第二次自动分组（<code>-n 8:0</code>）或者第一次自动分组第二次分4组（<code>-n 0:8</code>)</p>
+<h4 id="pore-c-reads">输入 <strong>Pore-C 测序reads</strong>:<a class="headerlink" href="#pore-c-reads" title="Permanent link">#</a></h4>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
-<h4 id="start-from-multiple-pore-c-data">Start from multiple <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-multiple-pore-c-data" title="Permanent link">#</a></h4>
-<p>specify multiple <code>-pcd</code> parameters. 
+<h4 id="pore-c-data">输入多组 <strong>pore-c data</strong>:<a class="headerlink" href="#pore-c-data" title="Permanent link">#</a></h4>
+<p>每个数据指定一次<code>-pcd</code>参数
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample1.fastq.gz<span class="w"> </span>-pcd<span class="w"> </span>sample2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If you want to run on cluster system and submit them to multiple nodes, you can use <code>cphasing mapper</code> and <code>cphasing-rs porec-merge</code> to generate the merged <code>porec.gz</code> file and input it by <code>-pct</code> parameter. </p>
+<p>如果你希望，将不同cell的数据分别投递到不同的节点上跑，可以使用<code>cphasing mapper</code>参数，并最后使用<code>cphasing-rs porec-merge</code>将输出的<code>porec.gz</code> 文件合并为一个<code>.merge.porec.gz</code>, 然后再通过<code>-pct</code>参数输入。</p>
 </div>
-<h4 id="start-from-a-pore-c-table-porecgz">Start from a <strong>pore-c table (porec.gz)</strong>:<a class="headerlink" href="#start-from-a-pore-c-table-porecgz" title="Permanent link">#</a></h4>
-<p>which is generated by <code>cphasing mapper</code>.
+<h4 id="pore-c-table-porecgz">输入 <strong>pore-c table (porec.gz)</strong>:<a class="headerlink" href="#pore-c-table-porecgz" title="Permanent link">#</a></h4>
+<p>这种文件是由<code>cphasing mapper</code>产生的.
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
-<h4 id="start-from-a-paired-end-hi-c-data">Start from a paired-end <strong>Hi-C data</strong><a class="headerlink" href="#start-from-a-paired-end-hi-c-data" title="Permanent link">#</a></h4>
+<h4 id="hi-c-data">输入<strong>Hi-C data</strong>数据<a class="headerlink" href="#hi-c-data" title="Permanent link">#</a></h4>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <ul>
-<li><strong>1</strong> | If you want to run multiple samples, you can use <code>cphasing hic mapper</code> and <code>cphasing-rs pairs-merge</code> to generate the merged <code>pairs.gz</code> file, and input it by <code>-prs</code> parameter.  </li>
-<li><strong>2</strong> | If the total length of your input genome is larger than 8 Gb, the <code>-hic-mapper-k 27 -hic-mapper-w 14</code> should be specified, to avoid the error of chromap. </li>
+<li><strong>1</strong> | <code>cphasing pipeline</code> 不支持输入多组Hi-C数据，但是用户可以自行使用<code>cphasing hic mapper</code> 进行比对，然后再使用<code>cphasing-rs pairs-merge</code> 合并所有的<code>.pairs.gz</code>文件, 然后通过 <code>-prs</code> 参数输入.  </li>
+<li><strong>2</strong> | 如果基因组的大小大于8Gb，需要提高比对的<code>k</code> 和<code>w</code>的大小，避免<code>chromap</code>报错，例如 <code>-hic-mapper-k 27</code>.</li>
 </ul>
 </div>
-<h4 id="start-from-a-4dn-pairs-file">Start from a 4DN pairs file,<a class="headerlink" href="#start-from-a-4dn-pairs-file" title="Permanent link">#</a></h4>
+<h4 id="4dn-pairs">输入4DN pairs文件<a class="headerlink" href="#4dn-pairs" title="Permanent link">#</a></h4>
 <p><div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-prs<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
-- Skip some steps<br />
+- 跳过一些步骤
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">## skip steps 1.alleles and 2.prepare steps </span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-ss<span class="w"> </span><span class="m">1</span>,2
 </span></code></pre></div></p>
-<h4 id="perform-only-specified-steps">Perform only specified steps<a class="headerlink" href="#perform-only-specified-steps" title="Permanent link">#</a></h4>
+<h4 id="_2">只跑某一步<a class="headerlink" href="#_2" title="Permanent link">#</a></h4>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">## run 3.hyperpartition </span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
 </span></code></pre></div>
-<h4 id="improve-performance">Improve performance<a class="headerlink" href="#improve-performance" title="Permanent link">#</a></h4>
-<p>Add the <code>-hcr</code> parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality.
+<h4 id="_3">提升组装质量<a class="headerlink" href="#_3" title="Permanent link">#</a></h4>
+<p>大部分情况下，设置<code>-hcr</code>参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr
 </span></code></pre></div></p>
-<h3 id="curation-by-juicebox">Curation by Juicebox<a class="headerlink" href="#curation-by-juicebox" title="Permanent link">#</a></h3>
+<h3 id="juicebox">通过Juicebox 人工调整基因组组装<a class="headerlink" href="#juicebox" title="Permanent link">#</a></h3>
 <ul>
-<li>generate <code>.assembly</code> and <code>.hic</code>, depend on <a href="https://github.com/aidenlab/3d-dna">3d-dna</a>  </li>
+<li>首先需要生成两个文件：<code>.assembly</code> 和 <code>.hic</code>, 以下步骤依赖于<a href="https://github.com/aidenlab/3d-dna">3d-dna</a> 软件，用户需自行安装。</li>
 </ul>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
@@ -571,7 +571,7 @@
 <p>if chimeric corrected, please use <code>groups.corrected.agp</code> and generate a new <code>corrected.pairs.gz</code> by <code>cphasing-rs pairs-break</code>  </p>
 </div>
 <ul>
-<li>After curation
+<li>调整完后生成agp和fasta文件
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">## convert assembly to agp</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">## or haploid or a homologous group</span>
@@ -582,13 +582,13 @@
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
 </span></code></pre></div></li>
 </ul>
-<h3 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">#</a></h3>
-<p>Rename and orient chromosome according a monoploid reference (or genome of closely related species).<br />
+<h3 id="_4">根据参考基因组重新命名和调整整条染色体的方向<a class="headerlink" href="#_4" title="Permanent link">#</a></h3>
+<p>我们内置了<code>cphasing rename</code>命令，该命令可以根据一套单倍型或者近缘物种的染色体水平基因组去调整多倍体分型组装的染色体编号和整条染色体的方向方向
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the <code>scaffolding</code> step. If not, you can set <code>—unphased</code> to align all haplotypes to the monoploid to adjust the orientation.  </p>
+<p>为了减少时间消耗，我们只对每套同源染色体组内的第一条进行比对，然后根据此比对结果，对整个同源组进行重命名和调整方向。这是因为我们在<code>scaffolding</code>步骤的时候已经把同源染色体的方向调整为一致了。如果你需要对所用同源组内的染色体进行比对，可以设置<code>--unphased</code>参数实现。</p>
 </div>
 
 
@@ -615,7 +615,7 @@
           <button type="button" class="md-top md-icon" data-md-component="top" hidden>
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
-  Back to top
+  回到页面顶部
 </button>
         
       </main>
@@ -624,33 +624,33 @@
   
     
       
-      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+      <nav class="md-footer__inner md-grid" aria-label="页脚" >
         
           
-          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="上一页: 安装">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                Previous
+                上一页
               </span>
               <div class="md-ellipsis">
-                Installation
+                安装
               </div>
             </div>
           </a>
         
         
           
-          <a href="../faq/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ">
+          <a href="../faq/" class="md-footer__link md-footer__link--next" aria-label="下一页: 常见问题">
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                Next
+                下一页
               </span>
               <div class="md-ellipsis">
-                FAQ
+                常见问题
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -705,10 +705,10 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

@@ -115,13 +115,15 @@ jobs:
 
       - name: Copy file to gh-pages
         run: |
-          git fetch
-          git checkout gh-pages
-          ls -la
-          pwd
-          ls /home/runner/work/CPhasing/CPhasing/
-          ls dev 
-          git restore --staged .
-          # Check diff before committing
-          git diff-index --quiet HEAD || git commit -m "Update install scripts from main"
-          git push origin gh-pages
+          # git fetch
+          # git checkout gh-pages
+          # ls -la
+          # pwd
+          # ls /home/runner/work/CPhasing/CPhasing/
+          # ls dev 
+          # git restore --staged .
+          # # Check diff before committing
+          # git diff-index --quiet HEAD || git commit -m "Update install scripts from main"
+          # git push origin gh-pages
+
+          pixi run -e docs mike deploy --push --update-aliases dev latest

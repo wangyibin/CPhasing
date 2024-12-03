@@ -241,7 +241,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/re2-2024.07.02-h77b4e00_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.2-h8228510_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rich-13.9.4-pyhd8ed1ab_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/rich-click-1.8.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/rich-click-1.7.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/s2n-1.5.9-h0fd0ee4_0.conda
       - conda: https://conda.anaconda.org/bioconda/linux-64/samtools-1.21-h50ea8bc_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/scikit-learn-1.5.2-py312h7a48858_1.conda
@@ -4586,21 +4586,21 @@ packages:
   timestamp: 1730592349978
 - kind: conda
   name: rich-click
-  version: 1.8.3
+  version: 1.7.4
   build: pyhd8ed1ab_0
   subdir: noarch
   noarch: python
-  url: https://conda.anaconda.org/conda-forge/noarch/rich-click-1.8.3-pyhd8ed1ab_0.conda
-  sha256: e83ebdc82e5787cb2dacd4380e0ca7c1ce4e7f356a0be0ccbac2ebcff1032efa
-  md5: ad6cdc745c76535e7cc56aab865b1fc5
+  url: https://conda.anaconda.org/conda-forge/noarch/rich-click-1.7.4-pyhd8ed1ab_0.conda
+  sha256: 91e0b041cf663d4a8e27f1cf572d265d90fdf3a58fa6513bc41292572ca5462f
+  md5: a3e6556c7cfce33ba7dae23fb17d3303
   depends:
   - click >=7,<9
   - python >=3.7
   - rich >=10
   license: MIT
   license_family: MIT
-  size: 33837
-  timestamp: 1718026216838
+  size: 32697
+  timestamp: 1710221771405
 - kind: conda
   name: s2n
   version: 1.5.9

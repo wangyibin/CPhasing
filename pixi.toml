@@ -16,7 +16,7 @@ activate = "LD_LIBRARY_PATH=$PWD/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
 
 [dependencies]
 python = "3.12.2.*"
-rich-click = ">=1.8.3,<2"
+rich-click = "1.7.4.*"
 biopython = ">=1.84,<2"
 click-didyoumean = ">=0.3.1,<0.4"
 colormaps = ">=0.4.2,<0.5"

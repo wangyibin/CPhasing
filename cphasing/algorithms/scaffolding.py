@@ -181,7 +181,7 @@ class Rename:
         self.paf = "ref.align.paf"
         self.hap_aligned = hap_aligned
         self.output = Path(output).absolute()
-        
+        self.output_prefix = Path(self.output.stem).absolute()
         self.threads = threads 
         self.tmp_dir = tmp_dir
         self.log_dir = Path(log_dir)
@@ -261,6 +261,7 @@ class Rename:
         logger.info("Mapping ...")
         cmd = ["wfmash", str(self.ref), self.first_contig, 
                     "-m", "-s", "50k", "-l", "250k", 
+                    "-p", "90",
                     "-t", str(self.threads)]
         
         pipelines = []
@@ -352,7 +353,8 @@ class Rename:
         self.align(ref_align_df, first_chrom_to_other_chroms, workdir)
 
         try:
-            build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
+            build.main(args=[str(self.fasta), "-oa", self.output, 
+                             "-o", f"{self.output_prefix}.fasta"], 
                         prog_name="build")
             
         except SystemExit as e:

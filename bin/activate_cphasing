@@ -26,6 +26,6 @@ export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
 export PATH=$software_dir/bin:$PATH
 export PYTHONPATH=$software_dir:$PYTHONPATH
 
-pixi shell --manifest-path $software_dir/pixi.toml --no-install --change-ps1 false
+pixi shell --manifest-path $software_dir/pixi.toml --no-install
 
 

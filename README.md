@@ -8,6 +8,8 @@
 
 ***  
 
+[Documentation](https://wangyibin.github.io/CPhasing) [中文文档](https://wangyibin.github.io/CPhasing/zh)
+
 ## Introduction
 One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C data. It also works on **Hi-C** data and diploid genome assembly.  
   
@@ -49,7 +51,7 @@ git clone https://github.com/wangyibin/CPhasing.git
 cd CPhasing
 pip install .
 
-## Add these into .bash_profile or .bashrc
+## Add following to the .bash_profile or .bashrc
 export PATH=/path/to/CPhasing/bin:$PATH
 ```
 #### Dependencies

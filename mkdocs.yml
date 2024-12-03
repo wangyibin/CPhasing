@@ -87,23 +87,29 @@ extra:
 
 plugins:
   - search 
-  # - i18n:
-  #   docs_structure: suffix
-  #   fallback_to_default: true 
-  #   reconfigure_material: true 
-  #   reconfigure_search: true
-  #   languages:
-  #     - locale: en
-  #       default: true 
-  #       name: English
-  #       build: true 
-  #       site_name: "C-Phasing documentation (en)"
-  #     - locale: zh 
-  #       name: 简体中文
-  #       build: true  
-  #       site_name: "C-Phasing documentation (Zh)"
-  
-
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          name: English
+          build: true
+          default: true
+          site_name: "C-Phasing"
+        - locale: zh
+          name: 简体中文
+          build: true
+          site_name: "C-Phasing 中文"
+          theme:
+            palette:
+              primary: red
+            font:
+              text: Roboto
+              code: JetBrains Mono
+          nav_translations:
+            Home: 首页
+            Installation: 安装
+            Basic Usage: 基本用法
+            FAQ: 常见问题
 nav:
   - Installation: index.md
   - Basic Usage: basic_usage.md

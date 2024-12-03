@@ -10,15 +10,40 @@ if ! command -v pixi &> /dev/null
 then
     echo "pixi could not be found, installing pixi..."
     curl -fsSL https://pixi.sh/install.sh | bash
+    export PATH=$HOME/.pixi/bin:$PATH
+
+    if ! command -v pixi &> /dev/null
+    then
+        if command -v cargo &> /dev/null
+        then
+            echo "Installing pixi using cargo..."
+            cargo install --locked --git https://github.com/prefix-dev/pixi.git
+            export PATH=$HOME/.cargo/bin:$PATH
+        else
+            curl -sSf https://static.rust-lang.org/rustup.sh | sh
+            export PATH=$HOME/.cargo/bin:$PATH
+            if ! command -v cargo &> /dev/null
+            then
+                echo "Failed to install pixi, please install pixi manually."
+                exit 1
+            else
+                echo "Installing pixi using cargo..."
+                cargo install --locked --git https://github.com/prefix-dev/pixi.git
+           fi
+        fi
+    fi
 fi
 
+script_dir="$(dirname "$(realpath "$0")")"
+software_dir="$(dirname "$script_dir")"
 
-software_dir="$(dirname "$(dirname "$0")")"
 
-if [ -d $software_dir/.pixi/envs/default/bin/ ]; then
-    echo
-    # pixi install --manifest-path $software_dir/pixi.toml --locked
-else
+if [ ! -f $software_dir/pixi.toml ]; then
+    echo "pixi.toml not found in $software_dir"
+    exit 1
+fi
+
+if [ ! -d $software_dir/.pixi/envs/default/bin/ ]; then
     echo "Installing cphasing environment..."
     pixi install --manifest-path $software_dir/pixi.toml
 fi
@@ -27,6 +52,4 @@ export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
 export PATH=$software_dir/bin:$PATH
 export PYTHONPATH=$software_dir:$PYTHONPATH
 
-pixi shell --manifest-path $software_dir/pixi.toml --no-install --locked
-
-
+pixi shell --manifest-path $software_dir/pixi.toml --no-install

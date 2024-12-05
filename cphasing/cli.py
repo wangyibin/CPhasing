@@ -3149,7 +3149,17 @@ def hyperpartition(hypergraph,
     ultra_complex = None
     # mode = "basal" if mode == "haploid" else mode 
     n = re.split(":|x|\|", n) if n else None
+   
     mode = None if mode == "None" else mode
+    
+    if mode == "phasing" and n is not None:
+        if len(n) == 1 and incremental is False:
+            if alleletable is None and prunetable is None:
+                mode = "haploid"
+            else:
+                mode = "basal_withprune"
+                logger.info(f"Mode was set to `phasing` mode, but the group number of second cluster was not be specified, set the mode to {mode}")
+            
     if mode == "basal":
         incremental = False
         logger.info("Running hyperpartition with `basal(haploid)` mode.")
@@ -3202,8 +3212,6 @@ def hyperpartition(hypergraph,
         # n = re.split(":|x|\|", n) 
         if len(n) <= 1 and incremental is True:
             logger.warning("Second round partition will not be run, if you want to run second round partition the `-inc` parameters must be added")
-
-
     else:
         n = [None, None]
 

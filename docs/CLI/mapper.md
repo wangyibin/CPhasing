@@ -76,13 +76,13 @@ cphasing mapper draft.contigs.fasta sample*.porec.fastq.gz -t 40
 
 - use multiple scripts to run mapper for each sample
 ```shell title="run_sample1.sh"
-cphasing mapper draft.contigs.fasta sample1.poref.fastq.gz -t 40
+cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz -t 40
 ```
 ```shell title="run_sample2.sh"
-cphasing mapper draft.contigs.fasta sample2.poref.fastq.gz -t 40
+cphasing mapper draft.contigs.fasta sample2.porec.fastq.gz -t 40
 ```
 ```shell title="run_sample3.sh"
-cphasing mapper draft.contigs.fasta sample3.poref.fastq.gz -t 40
+cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
 ```
 
 - merge results 

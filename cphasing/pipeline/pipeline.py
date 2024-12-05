@@ -121,7 +121,13 @@ def run(fasta,
                 if Path(_n[1]).exists():
                     _n[1] = str(Path(_n[1]).absolute())
                     n = ":".join(_n)
-    
+
+    if _n is not None:
+        if len(_n) <= 1 and mode != "basal_withprune":
+            mode = "haploid"
+            logger.info("Mode is set to `haploid` because of the second `n` is not specified.")
+        
+
     outdir = Path(outdir)
     if outdir.exists():
         logger.info(f"Working on existing directory: `{outdir}`")
@@ -201,9 +207,9 @@ def run(fasta,
 
     mode = 'basal' if mode == 'haploid' else mode
     if mode == 'basal':
-        
         skip_steps.add("1")
         allele_table = None
+        logger.info("The mode is `haploid`, skip step 1. alleles.")
 
     filtered_pairs = None
    
@@ -819,7 +825,7 @@ def run(fasta,
                                 "--mode",
                                 mode,
                                 "-at",
-                                f"../{allele_table}",
+                                f"../{allele_table}" if allele_table else None,
                                 "-c",
                                 hyperpartition_contacts,
                                 "-n",
@@ -917,7 +923,7 @@ def run(fasta,
                 f"../{count_re}",
                 f"../{clm}",
                 "-at",
-                f"../{allele_table}",
+                f"../{allele_table}" if allele_table else None,
                 "-sc",
                 f"../{split_contacts}",
                 "-f",
@@ -936,7 +942,7 @@ def run(fasta,
                 f"../{count_re}",
                 f"../{clm}",
                 "-at",
-                f"../{allele_table}",
+                f"../{allele_table}" if allele_table else None,
                 "-sc",
                 f"../{split_contacts}",
                 "-f",

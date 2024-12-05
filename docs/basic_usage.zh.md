@@ -2,6 +2,9 @@
 ## 流程化的命令
 ### pipeline命令
 以下案例中的参数`-n 8:4`表示组装一个染色体基数为**8**的四倍体（**4**），指定程序第一次分组输出8组，第二次再每一组里面输出4组，最终输出32条染色体。我们也支持自动分组，只需设置`-n 0:0`, 这表示两轮自动分组。也可以设置为第一分成8组第二次自动分组（`-n 8:0`）或者第一次自动分组第二次分4组（`-n 0:8`)
+!!! note
+    CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如`-n 8`，染色体数为8，期望程序将contig分成8条染色体。`pipeline`会自动跳过`1.allele`这步.
+
 #### 输入 **Pore-C 测序reads**:
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -n 8:4
@@ -48,8 +51,8 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr
-```
-    
+```  
+
 ### 通过Juicebox 人工调整基因组组装
 - 首先需要生成两个文件：`.assembly` 和 `.hic`, 以下步骤依赖于[3d-dna](https://github.com/aidenlab/3d-dna) 软件，用户需自行安装。
 

@@ -86,3 +86,21 @@
         - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)  
     
 
+
+<div class="grid cards" markdown>
+-  __基本用法__
+
+    ---
+
+    使用 `pipeline`命令开始运行`cphasing`.  
+
+    [:octicons-arrow-right-24:基本用法](basic_usage)
+
+- __教程__
+    
+    ---
+
+    一些案例教你如何运行 `cphasing`.  
+    [:octicons-arrow-right-24:Tutorials](tutorials)
+
+</div>

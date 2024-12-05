@@ -40,9 +40,9 @@ theme:
   features:
     - content.tabs.link
     - content.code.copy
+    - content.code.select
     - content.action.edit
     - content.code.annotate
-    # - content.code.select Sponsor only
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
@@ -52,6 +52,7 @@ theme:
   
 markdown_extensions:
   - admonition
+  - attr_list
   - def_list
   - footnotes
   - pymdownx.tasklist:
@@ -67,18 +68,22 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tabbed:
       alternate_style: true
   - toc:
       toc_depth: 3
       permalink: "#"
   - mdx_truly_sane_lists
+  - md_in_html
 
 extra_css:
   - styles/extra.css
 
 extra:
-  homepage: https://wangyibin.github.io
+  homepage: https://wangyibin.github.io/CPhasing
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/wangyibin
@@ -94,11 +99,12 @@ plugins:
           name: English
           build: true
           default: true
-          site_name: "C-Phasing"
+          site_name: "C-Phasing Docs"
+
         - locale: zh
-          name: 简体中文
+          name: 中文
           build: true
-          site_name: "C-Phasing 中文"
+          site_name: "C-Phasing 文档"
           theme:
             palette:
               primary: red
@@ -109,8 +115,24 @@ plugins:
             Home: 首页
             Installation: 安装
             Basic Usage: 基本用法
+            Tutorials: 教程
             FAQ: 常见问题
+
+
+
 nav:
   - Installation: index.md
   - Basic Usage: basic_usage.md
+  - Tutorials:
+    - Pore-C:
+      - tutorials/porec/porec_tetraploid.md
+      - tutorials/porec/porec_sugarcane.md
+    - Hi-C:
+      - tutorials/hic/hic_tetraploid.md
+
+  - CLI: 
+    - CLI/mapper.md
+    - CLI/alleles.md
+    - CLI/plot.md
+
   - FAQ: faq.md

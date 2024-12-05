@@ -27,7 +27,7 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
 ```
 !!! note
     - **1** | `cphasing pipeline` 不支持输入多组Hi-C数据，但是用户可以自行使用`cphasing hic mapper` 进行比对，然后再使用`cphasing-rs pairs-merge` 合并所有的`.pairs.gz`文件, 然后通过 `-prs` 参数输入.  
-    - **2** | 如果基因组的大小大于8Gb，需要提高比对的`k` 和`w`的大小，避免`chromap`报错，例如 `-hic-mapper-k 27`.
+    - **2** | 如果基因组的大小大于8Gb，需要提高比对的`k` 和`w`的大小，避免`chromap`报错，例如 `-hic-mapper-k 27 -hic-mapper-w 14`.
 
 
 #### 输入4DN pairs文件

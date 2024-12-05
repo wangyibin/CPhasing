@@ -4,7 +4,7 @@ channels = ["conda-forge", "bioconda", "anaconda"]
 description = "Add a short description here"
 name = "CPhasing"
 platforms = ["linux-64"]
-version = "0.2.0.r269"
+version = "0.2.0"
 
 [system-requirements]
 linux = "3.10.0"

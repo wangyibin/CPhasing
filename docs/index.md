@@ -15,7 +15,7 @@ The advantages of `C-Phasing`:
 === "recommended" 
     Download the CPhasing and activate environments by the `activate_cphasing`
     ```shell
-    git clone https://github.com/wangyibin/CPhasing.git
+    git clone https://github.com/wangyibin/CPhasing.git 
     
     ./CPhasing/bin/activate_cphasing
     ```
@@ -69,3 +69,21 @@ The advantages of `C-Phasing`:
         - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)  
     
 
+
+<div class="grid cards" markdown>
+-  __Basic Usage__
+
+    ---
+
+    Use `pipeline` to run `cphasing`.  
+
+    [:octicons-arrow-right-24:Basic Usage](basic_usage)
+
+- __Tutorials__
+    
+    ---
+
+    Tutorials to help you know how to run `cphasing`.  
+    [:octicons-arrow-right-24:Tutorials](tutorials)
+
+</div>

@@ -8,28 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/basic_usage/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_sugarcane/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../porec_tetraploid/">
       
       
-        <link rel="next" href="../tutorials/porec/porec_tetraploid/">
+        <link rel="next" href="../../hic/hic_tetraploid/">
       
       
-      <link rel="icon" href="../logo/logo.png">
+      <link rel="icon" href="../../../logo/logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
     
     
       
-        <title>Basic Usage - C-Phasing Docs</title>
+        <title>Assemble hybrid sugarcane by Pore-C - C-Phasing Docs</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="../styles/extra.css">
+      <link rel="stylesheet" href="../../../styles/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#one-command-pipeline-of-c-phasing" class="md-skip">
+        <a href="#assemble-hybrid-sugarcane-by-pore-c" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-header__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../logo/logo.png" alt="logo">
+  <img src="../../../logo/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Basic Usage
+              Assemble hybrid sugarcane by Pore-C
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../zh/basic_usage/" hreflang="zh" class="md-select__link">
+            <a href="../../../zh/tutorials/porec/porec_sugarcane/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -266,7 +266,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-nav__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../logo/logo.png" alt="logo">
+  <img src="../../../logo/logo.png" alt="logo">
 
     </a>
     C-Phasing Docs
@@ -293,7 +293,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -310,28 +310,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Basic Usage
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../basic_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -340,66 +322,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#one-command-pipeline-of-c-phasing" class="md-nav__link">
-    <span class="md-ellipsis">
-      One command pipeline of C-Phasing
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="One command pipeline of C-Phasing">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#pipeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      pipeline
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curation-by-juicebox" class="md-nav__link">
-    <span class="md-ellipsis">
-      Curation by Juicebox
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rename" class="md-nav__link">
-    <span class="md-ellipsis">
-      Rename
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -408,8 +330,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -419,11 +343,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -437,7 +361,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Tutorials
@@ -448,6 +372,8 @@
                 
   
   
+    
+  
   
   
     
@@ -456,11 +382,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
         
           
           <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
@@ -474,7 +400,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
             Pore-C
@@ -488,7 +414,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/porec/porec_tetraploid/" class="md-nav__link">
+      <a href="../porec_tetraploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -506,10 +432,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../tutorials/porec/porec_sugarcane/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -518,6 +453,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -575,7 +511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/hic/hic_tetraploid/" class="md-nav__link">
+      <a href="../../hic/hic_tetraploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -651,7 +587,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CLI/mapper/" class="md-nav__link">
+      <a href="../../../CLI/mapper/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -672,7 +608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CLI/alleles/" class="md-nav__link">
+      <a href="../../../CLI/alleles/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -693,7 +629,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CLI/plot/" class="md-nav__link">
+      <a href="../../../CLI/plot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -721,7 +657,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
+      <a href="../../../faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -751,56 +687,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#one-command-pipeline-of-c-phasing" class="md-nav__link">
-    <span class="md-ellipsis">
-      One command pipeline of C-Phasing
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="One command pipeline of C-Phasing">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#pipeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      pipeline
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curation-by-juicebox" class="md-nav__link">
-    <span class="md-ellipsis">
-      Curation by Juicebox
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rename" class="md-nav__link">
-    <span class="md-ellipsis">
-      Rename
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -815,7 +703,7 @@
                   
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/basic_usage.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/porec/porec_sugarcane.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -823,83 +711,7 @@
   
 
 
-  <h1>Basic Usage</h1>
-
-<h2 id="one-command-pipeline-of-c-phasing">One command pipeline of C-Phasing<a class="headerlink" href="#one-command-pipeline-of-c-phasing" title="Permanent link">#</a></h2>
-<h3 id="pipeline">pipeline<a class="headerlink" href="#pipeline" title="Permanent link">#</a></h3>
-<p>The <code>-n 8:4</code> parameter of the following commands means assembling a tetraploid (<strong>4</strong>) with <strong>8</strong> chromosome basic numbers. If you set <code>-n 0:0</code> means partition in both rounds automatically, also support it set to <code>-n 8:0</code> or <code>-n 0:4</code>.  </p>
-<h4 id="start-from-a-pore-c-data">Start from a <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-a-pore-c-data" title="Permanent link">#</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
-</span></code></pre></div>
-<h4 id="start-from-multiple-pore-c-data">Start from multiple <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-multiple-pore-c-data" title="Permanent link">#</a></h4>
-<p>specify multiple <code>-pcd</code> parameters. 
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample1.fastq.gz<span class="w"> </span>-pcd<span class="w"> </span>sample2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
-</span></code></pre></div></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If you want to run on cluster system and submit them to multiple nodes, you can use <code>cphasing mapper</code> and <code>cphasing-rs porec-merge</code> to generate the merged <code>porec.gz</code> file and input it by <code>-pct</code> parameter. </p>
-</div>
-<h4 id="start-from-a-pore-c-table-porecgz">Start from a <strong>pore-c table (porec.gz)</strong>:<a class="headerlink" href="#start-from-a-pore-c-table-porecgz" title="Permanent link">#</a></h4>
-<p>which is generated by <code>cphasing mapper</code>.
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
-</span></code></pre></div></p>
-<h4 id="start-from-a-paired-end-hi-c-data">Start from a paired-end <strong>Hi-C data</strong><a class="headerlink" href="#start-from-a-paired-end-hi-c-data" title="Permanent link">#</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul>
-<li><strong>1</strong> | If you want to run multiple samples, you can use <code>cphasing hic mapper</code> and <code>cphasing-rs pairs-merge</code> to generate the merged <code>pairs.gz</code> file, and input it by <code>-prs</code> parameter.  </li>
-<li><strong>2</strong> | If the total length of your input genome is larger than 8 Gb, the <code>-hic-mapper-k 27 -hic-mapper-w 14</code> should be specified, to avoid the error of chromap. </li>
-</ul>
-</div>
-<h4 id="start-from-a-4dn-pairs-file">Start from a 4DN pairs file,<a class="headerlink" href="#start-from-a-4dn-pairs-file" title="Permanent link">#</a></h4>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-prs<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
-</span></code></pre></div>
-- Skip some steps<br />
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">## skip steps 1.alleles and 2.prepare steps </span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-ss<span class="w"> </span><span class="m">1</span>,2
-</span></code></pre></div></p>
-<h4 id="perform-only-specified-steps">Perform only specified steps<a class="headerlink" href="#perform-only-specified-steps" title="Permanent link">#</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">## run 3.hyperpartition </span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
-</span></code></pre></div>
-<h4 id="improve-performance">Improve performance<a class="headerlink" href="#improve-performance" title="Permanent link">#</a></h4>
-<p>Add the <code>-hcr</code> parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality.
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr
-</span></code></pre></div></p>
-<h3 id="curation-by-juicebox">Curation by Juicebox<a class="headerlink" href="#curation-by-juicebox" title="Permanent link">#</a></h3>
-<ul>
-<li>generate <code>.assembly</code> and <code>.hic</code>, depend on <a href="https://github.com/aidenlab/3d-dna">3d-dna</a>  </li>
-</ul>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>bash<span class="w"> </span>~/software/3d-dna/visualize/run-assembly-visualizer.sh<span class="w"> </span>sample.assembly<span class="w"> </span>sample.mnd.txt
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>if chimeric corrected, please use <code>groups.corrected.agp</code> and generate a new <code>corrected.pairs.gz</code> by <code>cphasing-rs pairs-break</code>  </p>
-</div>
-<ul>
-<li>After curation
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">## convert assembly to agp</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">## or haploid or a homologous group</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1">## extract contigs from agp </span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>contigs.fasta
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">## extract chromosome-level fasta from agp</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
-</span></code></pre></div></li>
-</ul>
-<h3 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">#</a></h3>
-<p>Rename and orient chromosome according a monoploid reference (or genome of closely related species).<br />
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
-</span></code></pre></div></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the <code>scaffolding</code> step. If not, you can set <code>—unphased</code> to align all haplotypes to the monoploid to adjust the orientation.  </p>
-</div>
+<h1 id="assemble-hybrid-sugarcane-by-pore-c">Assemble hybrid sugarcane by Pore-C<a class="headerlink" href="#assemble-hybrid-sugarcane-by-pore-c" title="Permanent link">#</a></h1>
 
 
 
@@ -937,7 +749,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
+          <a href="../porec_tetraploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble tetraploid by Pore-C">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -947,20 +759,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Installation
+                Assemble tetraploid by Pore-C
               </div>
             </div>
           </a>
         
         
           
-          <a href="../tutorials/porec/porec_tetraploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble tetraploid by Pore-C">
+          <a href="../../hic/hic_tetraploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble tetraploid by Hi-C">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Assemble tetraploid by Pore-C
+                Assemble tetraploid by Hi-C
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1015,10 +827,10 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

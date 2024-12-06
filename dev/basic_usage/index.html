@@ -830,7 +830,7 @@
 <p>The <code>-n 8:4</code> parameter of the following commands means assembling a tetraploid (<strong>4</strong>) with <strong>8</strong> chromosome basic numbers. If you set <code>-n 0:0</code> means partition in both rounds automatically, also support it set to <code>-n 8:0</code> or <code>-n 0:4</code>.  </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>CPhasing</code> also support the monoploid scaffolding, when you set one group number, e.g. <code>-n 8</code>. The <code>pipeline</code> will automatically skip the step <code>1.alleles</code>.</p>
+<p><code>CPhasing</code> also support the monoploid scaffolding, when you set one group number, e.g. <code>-n 8</code>. The <code>pipeline</code> will automatically skip the step <code>1.alleles</code>, and only run one round partition.</p>
 </div>
 <h4 id="start-from-a-pore-c-data">Start from a <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-a-pore-c-data" title="Permanent link">#</a></h4>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4

@@ -830,7 +830,7 @@
 <p>以下案例中的参数<code>-n 8:4</code>表示组装一个染色体基数为<strong>8</strong>的四倍体（<strong>4</strong>），指定程序第一次分组输出8组，第二次再每一组里面输出4组，最终输出32条染色体。我们也支持自动分组，只需设置<code>-n 0:0</code>, 这表示两轮自动分组。也可以设置为第一分成8组第二次自动分组（<code>-n 8:0</code>）或者第一次自动分组第二次分4组（<code>-n 0:8</code>)</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如<code>-n 8</code>，染色体数为8，期望程序将contig分成8条染色体。<code>pipeline</code>会自动跳过<code>1.allele</code>这步.</p>
+<p>CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如<code>-n 8</code>，染色体数为8，期望程序将contig分成8条染色体。<code>pipeline</code>会自动跳过<code>1.allele</code>这步，并且只执行一次contig分组.</p>
 </div>
 <h4 id="pore-c-reads">输入 <strong>Pore-C 测序reads</strong>:<a class="headerlink" href="#pore-c-reads" title="Permanent link">#</a></h4>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4

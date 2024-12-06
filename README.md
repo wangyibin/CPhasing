@@ -225,9 +225,9 @@ cphasing -pct sample.porec.gz -cs drfat.asm.contigsizes
     ## directly plot the heatmap in the input resolution, 
     cphasing plot -m sample.500k.chrom.cool -o sample.500k.chrom.png
 
-    ## or first coarsen small binsize to larger binsize, e.g. 10k to 500k, specify the `--coarsen` and `-k 50` parameters.
+    ## or first coarsen small binsize to larger binsize, e.g. 10k to 500k, specify the `-bs 500k` parameter.
 
-    cphasing plot -m sample.10k.chrom.cool -o sample.500k.chrom.png --coarsen -k 50
+    cphasing plot -m sample.10k.chrom.cool -o sample.500k.chrom.png -bs 500k
     ```
 
     Note: If the number of bins in matrix is too large (large genome with small binsize), the memory may overflow. To fix it, users can improve the binsize or specified several chromosomes with `-c` parameter. 

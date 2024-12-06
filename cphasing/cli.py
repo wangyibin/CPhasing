@@ -4832,7 +4832,10 @@ def plot(matrix,
     ```
     > - adjust the matrix by agp and plot a 100k resolution heatmap
     ```bash
-    cphasing plot -a groups.agp -m sample.10000.cool -o groups.100k.wg.png -k 10
+    cphasing plot -a groups.agp \\
+        -m sample.10000.cool \\
+        -o groups.100k.wg.png \\
+        -bs 100k
     ```
     > - only plot a heatmap
     ```bash
@@ -4909,6 +4912,7 @@ def plot(matrix,
                             "the `--balanced --balance` parameter added, force execute balance.")
                 balance_matrix(matrix, force=True, threads=threads)
             else:
+                balanced = True
                 logger.warning("Weight existed in matrix, skip the balance step, "
                         "or add `--balanced --balance` to force rerun balance.")
         except KeyError:

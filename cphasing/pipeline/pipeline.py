@@ -90,7 +90,7 @@ def run(fasta,
         enable_misassembly_remove=False,
         whitelist=None,
         blacklist=None,
-        factor=50,
+        binsize="500k",
         low_memory=False,
         outdir="cphasing_output",
         threads=4):
@@ -1042,7 +1042,6 @@ def run(fasta,
         else:
             input_agp = out_agp
 
-        # factor * 10000
         args = [
                 "-a",
                 f"../{scaffolding_dir}/{input_agp}",
@@ -1050,8 +1049,8 @@ def run(fasta,
                 out_small_cool,
                 "-o",
                 "groups.wg.png",
-                "-k",
-                factor,
+                "-bs",
+                binsize,
                 "-oc",
                 ]
         

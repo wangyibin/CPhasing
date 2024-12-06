@@ -106,3 +106,11 @@
 │ --help     -help,-h  Show this message and exit.                                  │
 ╰───────────────────────────────────────────────────────────────────────────────────╯
 ```
+
+
+
+## Examples
+!!! note 
+  `plot` function need a cool file to plot heatmap 
+  
+### Plot 

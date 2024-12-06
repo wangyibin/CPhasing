@@ -4,7 +4,7 @@
 The `-n 8:4` parameter of the following commands means assembling a tetraploid (**4**) with **8** chromosome basic numbers. If you set `-n 0:0` means partition in both rounds automatically, also support it set to `-n 8:0` or `-n 0:4`.  
 
 !!! note
-    `CPhasing` also support the monoploid scaffolding, when you set one group number, e.g. `-n 8`. The `pipeline` will automatically skip the step `1.alleles`.
+    `CPhasing` also support the monoploid scaffolding, when you set one group number, e.g. `-n 8`. The `pipeline` will automatically skip the step `1.alleles`, and only run one round partition.
 
 #### Start from a **pore-c data**:
 

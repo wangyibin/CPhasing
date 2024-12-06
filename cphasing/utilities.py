@@ -758,11 +758,16 @@ def chrom_ticks_convert(ticks, add_suffix=True):
                   for x in ticks]
         if add_suffix:
             labels[-1] += 'Kbp'
-    else:
+    elif ticks[-1]  - ticks[1] <= 1e10:
         labels = ["{:,.1f}".format((x / 1e6)) 
                   for x in ticks]
         if add_suffix:
-            labels[-1] += " Mbp"
+            labels[-1] = f"      {labels[-1]} Mbp"
+    else:
+        labels = ["{:,.2f}".format((x / 1e9)) 
+                  for x in ticks]
+        if add_suffix:
+            labels[-1] = f"      {labels[-1]} Gbp"
     
     return labels
 

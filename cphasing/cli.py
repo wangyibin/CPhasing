@@ -17,7 +17,7 @@ from click_didyoumean import DYMGroup
 
 from collections import defaultdict
 from pathlib import Path
-# from pytools import natsorted
+from pytools import natsorted
 from shutil import which
 
 from . import __version__, __epilog__
@@ -28,6 +28,7 @@ from .core import (
 from .utilities import (
     run_cmd,
     humanized2numeric,
+    to_humanized2,
     is_compressed_table_empty,
     )
 
@@ -165,7 +166,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Plot",
-            "options": ["--factor"]
+            "options": ["--binsize"]
         },
         {
             "name": "Global Options",
@@ -229,7 +230,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Plot",
-            "options": ["--factor"]
+            "options": ["--binsize"]
         },
         {
             "name": "Global Options",
@@ -240,8 +241,8 @@ click.rich_click.OPTION_GROUPS = {
     "cphasing plot": [
         {
             "name": "Options of Matrix Operation",
-            "options": ["--matrix", "--factor", "--coarsen",
-                        "--no-coarsen", "--only-coarsen",
+            "options": ["--matrix", "--binsize", 
+                        "--only-coarsen",
                         "--balance", "--balanced"]
         },
         {
@@ -251,7 +252,9 @@ click.rich_click.OPTION_GROUPS = {
         {
             "name": "Options of Heatmap",
             "options": [
-                        "--chromosomes", "--per-chromosomes",
+                        "--chromosomes", 
+                        "--disable-natural-sort",
+                        "--per-chromosomes",
                         "--only-chr", "--chr-prefix",
                         "--chrom-per-row",
                         "--vmin", "--vmax", 
@@ -818,15 +821,23 @@ def cli(verbose, quiet):
     type=click.Choice(["precision", "allhic", "fast"]),
     show_default=True
 )
+# @click.option(
+#     '--factor',
+#     '-k',
+#     metavar="INT",
+#     help='Factor of plot matrix. '
+#             'If you input 10k matrix and want to plot heatmap at 500k, '
+#             'factor should be set with 50.',
+#     type=int,
+#     default=50,
+#     show_default=True
+# )
 @click.option(
-    '--factor',
-    '-k',
-    metavar="INT",
-    help='Factor of plot matrix. '
-            'If you input 10k matrix and want to plot heatmap at 500k, '
-            'factor should be set with 50.',
-    type=int,
-    default=50,
+    '-bs',
+    '--binsize',
+    metavar='STR',
+    help='Bin size of the heatmap you want to plot. Enabled suffix with [k, m].',
+    default='500k',
     show_default=True
 )
 @click.option(
@@ -907,7 +918,7 @@ def pipeline(fasta,
             enable_misassembly_remove,
             whitelist,
             scaffolding_method, 
-            factor,
+            binsize,
             low_memory,
             outdir,
             threads):
@@ -1031,7 +1042,7 @@ def pipeline(fasta,
         Nx=nx,
         min_scaffold_length=min_scaffold_length,
         enable_misassembly_remove=enable_misassembly_remove,
-        factor=factor,
+        binsize=binsize,
         outdir=outdir,
         threads=threads,
         low_memory=low_memory)
@@ -4528,15 +4539,23 @@ def pairs2cool(pairs, chromsize, outcool,
     metavar='AGP',
     type=click.Path(exists=True)
 )
+# @click.option(
+#     '--factor',
+#     '-k',
+#     help='Factor of plot matrix. '
+#             'If you input 10k matrix and want to plot heatmap at 500k, '
+#             'factor should be set with 50.',
+#     type=int,
+#     default=50,
+#     show_default=True
+# )
 @click.option(
-    '--factor',
-    '-k',
-    help='Factor of plot matrix. '
-            'If you input 10k matrix and want to plot heatmap at 500k, '
-            'factor should be set with 50.',
-    type=int,
-    default=50,
-    show_default=True
+    '-bs',
+    '--binsize',
+    metavar='STR',
+    help='Bin size of the heatmap you want to plot. '
+            ' Enabled suffix with k or m. [defalt: input matrix binsize]',
+    default=None,
 )
 @click.option(
     '--no-adjust',
@@ -4550,31 +4569,31 @@ def pairs2cool(pairs, chromsize, outcool,
 @click.option(
     '--only-adjust',
     'only_adjust',
-    help='Only adjust the matrix by agp.',
+    help='Only adjust the matrix by agp, do not need plot the heatmap.',
     default=False,
     is_flag=True,
     show_default=True,
 )
-@click.option(
-    '--coarsen',
-    'coarsen',
-    help='Need coarsen matrix to base bin size * k resolution, when only plot mode (agp not specified).',
-    default=False,
-    is_flag=True,
-    show_default=True
-)
-@click.option(
-    '--no-coarsen',
-    'no_coarsen',
-    help='The resolution of matrix is already for plotting, no need coarsen, when after adjust mode (agp specified).',
-    default=False,
-    is_flag=True,
-    show_default=True
-)
+# @click.option(
+#     '--coarsen',
+#     'coarsen',
+#     help='Need coarsen matrix to base bin size * k resolution, when only plot mode (agp not specified).',
+#     default=False,
+#     is_flag=True,
+#     show_default=True
+# )
+# @click.option(
+#     '--no-coarsen',
+#     'no_coarsen',
+#     help='The resolution of matrix is already for plotting, no need coarsen, when after adjust mode (agp specified).',
+#     default=False,
+#     is_flag=True,
+#     show_default=True
+# )
 @click.option(
     '--only-coarsen',
     'only_coarsen',
-    help='Only coarsen the input matrix.',
+    help='Only coarsen the input matrix, do not need plot the heatmap.',
     default=False,
     is_flag=True,
     show_default=True
@@ -4643,6 +4662,13 @@ def pairs2cool(pairs, chromsize, outcool,
     default=''
 )
 @click.option(
+    "-dns",
+    "--disable-natural-sort",
+    is_flag=True,
+    help="Disable natural sort of chromosomes, only used for `--chromosomes` or `--only-chr`",
+    default=False,
+)
+@click.option(
     '-pc',
     '--per-chromosomes',
     '--per-chromosome',
@@ -4696,7 +4722,9 @@ def pairs2cool(pairs, chromsize, outcool,
 )
 @click.option(
     '-cmap',
+    "-cm",
     '--cmap',
+    "--colormap",
     help="""
     Colormap of heatmap. 
     Available values can be seen : 
@@ -4766,11 +4794,11 @@ def pairs2cool(pairs, chromsize, outcool,
 )
 def plot(matrix, 
             agp, 
-            factor,
+            binsize,
             no_adjust, 
             only_adjust, 
-            coarsen,
-            no_coarsen,
+            # coarsen,
+            # no_coarsen,
             only_coarsen,
             only_plot, 
             output,
@@ -4780,6 +4808,7 @@ def plot(matrix,
             vmin,
             vmax,
             chromosomes, 
+            disable_natural_sort,
             per_chromosomes,
             only_chr,
             chr_prefix,
@@ -4822,7 +4851,8 @@ def plot(matrix,
         plot_heatmap
         
     )
-
+    coarsen = False
+    no_coarsen = False
     if agp is None:
         only_plot = True 
         if not only_coarsen:
@@ -4831,17 +4861,38 @@ def plot(matrix,
         else:
             logger.warning("Only coarsen the input matrix.")
 
+    cool_binsize = cooler.Cooler(matrix).info['bin-size']
+    
+
+    if binsize is None and agp is not None:
+        binsize = "500k"
+
+    if binsize is not None:
+        binsize = humanized2numeric(binsize)
+        if binsize < cool_binsize:
+            logger.warning(f"The matrix's binsize is larger than the input binsize, "
+                        f"set the heatmap's `binsize` to `{to_humanized2(cool_binsize)}`.")
+            binsize = cool_binsize
+            factor = 1
+        elif binsize > cool_binsize:
+            factor = binsize // cool_binsize
+            logger.warning(f"The matrix's binsize is smaller than the heatmap's `binsize`, "
+                        f"coarsen the matrix'binsize to {cool_binsize * factor}.")
+            coarsen = True
+    else:
+        factor = 1
+        binsize = cool_binsize
+
+
     if not only_plot:
         if not no_adjust:
             if which("bedtools") is None:
                 raise ValueError(f"bedtools: command not found.")
             matrix = adjust_matrix(matrix, agp, threads=threads)
 
-       
         if only_adjust:
             sys.exit()
         
-
         if not no_coarsen and factor > 1:
             matrix = coarsen_matrix(matrix, factor, None, threads)   
     
@@ -4855,11 +4906,11 @@ def plot(matrix,
             cool.bins()[:]['weight']
             if balanced:
                 logger.warning("Weight existed in matrix, "
-                            "the `--balanced` parameter added, force execute balance.")
+                            "the `--balanced --balance` parameter added, force execute balance.")
                 balance_matrix(matrix, force=True, threads=threads)
             else:
                 logger.warning("Weight existed in matrix, skip the balance step, "
-                        "or add `--balanced` to force rerun balance.")
+                        "or add `--balanced --balance` to force rerun balance.")
         except KeyError:
 
             balance_matrix(matrix, threads)
@@ -4878,6 +4929,11 @@ def plot(matrix,
         chroms = cooler.Cooler(matrix).chromnames 
         chromosomes = list(filter(lambda x: regex.findall(x), chroms))
 
+    if chromosomes:
+        if not disable_natural_sort:
+            chromosomes = natsorted(chromosomes)
+
+    
     if no_ticks:
         xticks = False 
         yticks = False

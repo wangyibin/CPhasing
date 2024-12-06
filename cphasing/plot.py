@@ -14,7 +14,6 @@ try:
 except ImportError:
     pass
 
-
 import cooler
 import numpy as np
 import pandas as pd
@@ -662,7 +661,8 @@ def plot_heatmap(matrix, output,
                     balanced=False,
                     threads=1):
     import matplotlib.pyplot as plt
-
+    import matplotlib as mpl
+    mpl.use('Agg')
     from matplotlib.colors import LogNorm
 
     logger.info(f"Load contact matrix `{matrix}`.")
@@ -769,7 +769,9 @@ def plot_heatmap(matrix, output,
             else:
                 norm = None
 
-        factor = round(matrix.shape[0] / 5000 + 1, 2)   
+        factor = round(matrix.shape[0] / 5000 + 1, 2)  
+        factor = np.log2(round((matrix.shape[0] * binsize) / 1e9  + 1, 2)) + 1
+    
         logger.debug(f"Figure factor is `{factor}`")
         fig_width = round(7 * factor, 2) 
         fig_height = round(8 * factor, 2)
@@ -783,7 +785,7 @@ def plot_heatmap(matrix, output,
             tick_fontsize = 16
         if not fontsize:
             logger.info(f"Auto set fontsize to `{tick_fontsize}`.")
-            
+
         
         ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
                             chrom_offset=chrom_offset, norm=norm,
@@ -799,6 +801,7 @@ def plot_heatmap(matrix, output,
                                          chrom_per_row=chrom_per_row,
                                         cmap=cmap, balanced=balanced, threads=threads)
 
+    logger.info(f"Set dpi to `{dpi}`.")
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
 
     logger.info(f'Successful, plotted the heatmap into `{output}`')
@@ -944,11 +947,39 @@ def plot_heatmap_core(matrix,
             """
             colormap = getattr(cmaps, cmap)
         except:
-            colormap = cmap 
+            try:
+                colormap = cmap 
+                colormap = getattr(plt.cm, cmap)
+            except AttributeError:
+                logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
+                colormap = getattr(cmaps, "redp1_r")
+
+            
     
-    if norm is None:
+    if norm is None or norm == "balanced":
         if vmax is None:
-            vmax = np.percentile(np.array(matrix), 95)
+            cis_matrix = []
+            for i in range(len(chrom_offset) - 1):
+                cis_matrix.append(
+                                np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                        chrom_offset[i]:chrom_offset[i+1]]))
+
+            # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
+            # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix]))
+            ## remove diagonal
+            cis_matrix = [arr[np.triu_indices(arr.shape[0], k=1)] for arr in cis_matrix]
+            cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
+            cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
+            vmax = np.percentile(cis_matrix, 98)
+            if isinstance(vmax, int):
+                logger.info(f"Set vmax to `{vmax}`.")
+            else:
+                logger.info(f"Set vmax to `{vmax:.6f}`.")
+            del cis_matrix
+            
+
+    #     if vmax is None:
+    #         vmax = np.percentile(np.array(matrix), 95)
 
    
     # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
@@ -985,14 +1016,15 @@ def plot_heatmap_core(matrix,
     else:
         fig = plt.gcf()
         cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
-                        interpolation=None)
+                            interpolation=None)
+        
     
     binsize = (bins['end'] - bins['start']).median()
-    tmp_chrom_offset = np.array(chrom_offset.copy())
-    tmp_chrom_range = list(zip(bins.iloc[tmp_chrom_offset[:-1]]['start'].values, bins.iloc[(tmp_chrom_offset - 1)[1:]]['end'].values))
-    tmp_chrom_start = tmp_chrom_range[0][0]
-    tmp_chrom_size = tmp_chrom_range[0][0] + sum(list(map(lambda x:(x[1] - x[0]), tmp_chrom_range)))
-        
+    # tmp_chrom_offset = np.array(chrom_offset.copy())
+    # tmp_chrom_range = list(zip(bins.iloc[tmp_chrom_offset[:-1]]['start'].values, bins.iloc[(tmp_chrom_offset - 1)[1:]]['end'].values))
+    # tmp_chrom_start = tmp_chrom_range[0][0]
+    # tmp_chrom_size = tmp_chrom_range[0][0] + sum(list(map(lambda x:(x[1] - x[0]), tmp_chrom_range)))
+    
     cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
 
     ax.set_xlim(0, matrix.shape[0])
@@ -1029,9 +1061,18 @@ def plot_heatmap_core(matrix,
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
         ax.tick_params(axis='x', length=5, width=2)
-        _xticks = np.r_[ax.get_xticks()[:-2], ax.get_xlim()[1]]
+        _xticks = ax.get_xticks()[:-1]
+        dist = _xticks[1] - _xticks[0]
+        if (ax.get_xlim()[1] - _xticks[-1]) < (dist / 2):
+            _xticks = _xticks[:-1]
+
+        _xticks = np.r_[_xticks, ax.get_xlim()[1]]
         ax.set_xticks(_xticks)
-        xticklabels = chrom_ticks_convert(_xticks * binsize)
+        _xticks = _xticks * binsize 
+        total_size = sum(bins['end'] - bins['start'])
+        _xticks[-1] = total_size
+        xticklabels = chrom_ticks_convert(_xticks)
+
         ax.set_xticklabels(xticklabels, fontsize=tick_fontsize, rotation=rotation)
 
     else:

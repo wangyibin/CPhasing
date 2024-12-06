@@ -21,7 +21,6 @@ biopython = ">=1.84,<2"
 click-didyoumean = ">=0.3.1,<0.4"
 colormaps = ">=0.4.2,<0.5"
 dask = ">=2024.11.2,<2025"
-matplotlib = ">=3.9.2,<4"
 pyranges = ">=0.1.2,<0.2"
 joblib = ">=1.4.2,<2"
 pandarallel = ">=1.6.5,<2"
@@ -51,6 +50,7 @@ seqkit = ">=2.9.0,<3"
 samtools = ">=1.21,<2"
 pigz = ">=2.8,<3"
 wfmash = "0.17.0.*"
+matplotlib = ">=3.9.3,<4"
 
 
 [feature.docs.system-requirements]

@@ -517,7 +517,7 @@ def run(fasta,
         hcr_dir.mkdir(exist_ok=True)
         hcr_dir = str(hcr_dir)
         os.chdir(hcr_dir)
-        if porec_table and not use_pairs:
+        if porec_table or not use_pairs:
             # hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}.pairs.gz"
             
@@ -638,15 +638,15 @@ def run(fasta,
             # else:
             #     logger.warning(f"Use exists hcr porec table of `{hg_input}`")
 
-        if not hcr_bed:
-            hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
-        else:
-            logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
-            cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed", ">", f".{pairs_prefix}.{hcr_bs}.hcr.bed"]
-            os.system(" ".join(cmd))
+            if not hcr_bed:
+                hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
+            else:
+                logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
+                cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed", ">", f".{pairs_prefix}.{hcr_bs}.hcr.bed"]
+                os.system(" ".join(cmd))
 
-            shutil.move(f".{pairs_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed")
-            hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
+                shutil.move(f".{pairs_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed")
+                hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
 
         os.chdir("../")
         if Path(f"{hcr_dir}/{hg_input}").exists():

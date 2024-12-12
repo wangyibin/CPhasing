@@ -440,12 +440,12 @@ def process_pore_c_table(df, contig_idx, threads=1,
 
     # df['read_idx'] = df['read_idx'].astype('category').cat.codes
 
-    df = df.with_columns(pl.col('chrom').apply(contig_idx.get).alias('chrom_idx')).drop_nulls()
+    df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
     df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
     
     df = df.with_columns(pl.col('read_idx').cast(pl.UInt32))
     df = df.select(['read_idx', 'chrom_idx', 'mapping_quality'])
-    df_grouped_nunique = df.groupby('read_idx').agg(pl.col('chrom_idx').n_unique().alias('chrom_idx_nunique'))
+    df_grouped_nunique = df.group_by('read_idx').agg(pl.col('chrom_idx').n_unique().alias('chrom_idx_nunique'))
     df = df.join(df_grouped_nunique, on='read_idx')
     df = df.filter((pl.col('chrom_idx_nunique') >= min_order) & (pl.col('chrom_idx_nunique') <= max_order))
 

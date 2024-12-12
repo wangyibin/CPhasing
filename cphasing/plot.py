@@ -1012,6 +1012,12 @@ def plot_heatmap_core(matrix,
         fig = plt.gcf()
         # ax.plot(100, 3, marker='v', markersize=2, linestyle=None, color='blue')
         # ax.axis('off')
+        # ax.xaxis.set_visible(False)
+        # ax.yaxis.set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
         
     else:
         fig = plt.gcf()
@@ -1090,7 +1096,8 @@ def plot_heatmap_core(matrix,
     if ylabel:
         ax.set_ylabel(ylabel, fontsize=18, labelpad=15)
 
-    sns.despine(top=False, right=False)
+    if not triangle:
+        sns.despine(top=False, right=False)
 
 
     if triangle:

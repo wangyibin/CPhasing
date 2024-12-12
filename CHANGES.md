@@ -1,7 +1,8 @@
 # Release notes #
-Date: 2024-12-02
+Date: 2024-12-11
 ## [v0.2.1]
 ## Enhancement
+- `hypergraph`, add hcr_bed filter step.
 - `activate_cphasing`, use pixi to activate the enviroment of CPhasing
 ## Bug fixes    
 - `rename`, bug of read agp

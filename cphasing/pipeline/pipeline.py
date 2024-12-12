@@ -511,124 +511,142 @@ def run(fasta,
             out.write("\n".join(whitelist_contigs))
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length} (N{Nx})")
 
-    if hcr_flag or hcr_bed:
+    if hcr_flag:
         hcr_invert_string = "-v" if hcr_invert else ""
-        hcr_dir = Path("0_3.hcr")
+        hcr_dir = Path("03.hcr")
         hcr_dir.mkdir(exist_ok=True)
         hcr_dir = str(hcr_dir)
         os.chdir(hcr_dir)
         if porec_table and not use_pairs:
-            hg_input = f"{porec_prefix}_hcr.porec.gz"
+            # hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}.pairs.gz"
+            
+           
+            try:
+                if hcr_invert_string:
+                    hcr.main(
+                        args=["-pct",
+                                f"../{porec_table}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                "-l",
+                                hcr_lower,
+                                "-u",
+                                hcr_upper,
+                                "-cr",
+                                collapsed_contig_ratio,
+                                "-bs",
+                                hcr_bs,
+                                # "-b",
+                                # hcr_bed,
+                                "-q",
+                                min_quality1,
+                                hcr_invert_string
+                        ],
+                        prog_name="hcr"
+                    )
+                else:
+                    hcr.main(
+                        args=["-pct",
+                                f"../{porec_table}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                "-l",
+                                hcr_lower,
+                                "-u",
+                                hcr_upper,
+                                "-cr",
+                                collapsed_contig_ratio,
+                                "-bs",
+                                hcr_bs,
+                                # "-b",
+                                # hcr_bed,
+                                
+                        ],
+                        prog_name="hcr"
+                    )
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
 
-            if not Path(hg_input).exists() or not Path(prepare_input).exists():
-                Path(hg_input).unlink(missing_ok=True)
-                try:
-                    if hcr_invert_string:
-                        hcr.main(
-                            args=["-pct",
-                                    f"../{porec_table}",
-                                    "-cs",
-                                    f"../{contigsizes}",
-                                    "-l",
-                                    hcr_lower,
-                                    "-u",
-                                    hcr_upper,
-                                    "-cr",
-                                    collapsed_contig_ratio,
-                                    "-bs",
-                                    hcr_bs,
-                                    "-b",
-                                    hcr_bed,
-                                    "-q",
-                                    min_quality1,
-                                    hcr_invert_string
-                            ],
-                            prog_name="hcr"
-                        )
-                    else:
-                        hcr.main(
-                            args=["-pct",
-                                    f"../{porec_table}",
-                                    "-cs",
-                                    f"../{contigsizes}",
-                                    "-l",
-                                    hcr_lower,
-                                    "-u",
-                                    hcr_upper,
-                                    "-cr",
-                                    collapsed_contig_ratio,
-                                    "-bs",
-                                    hcr_bs,
-                                    "-b",
-                                    hcr_bed,
-                                   
-                            ],
-                            prog_name="hcr"
-                        )
-                except SystemExit as e:
-                    exc_info = sys.exc_info()
-                    exit_code = e.code
-                    if exit_code is None:
-                        exit_code = 0
-                    
-                    if exit_code != 0:
-                        raise e
+            if not hcr_bed:
+                hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
             else:
-                logger.warning(f"Using existed hcr porec table of `{hg_input}`")
+                logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
+                cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed", ">", f".{porec_prefix}.{hcr_bs}.hcr.bed"]
+                os.system(" ".join(cmd))
+
+                shutil.move(f".{porec_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed")
+                hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
         
         else:
-            hg_input = f"{pairs_prefix}_hcr.pairs.gz"
+            # hg_input = f"{pairs_prefix}_hcr.pairs.gz"
+
             prepare_input = f"{pairs_prefix}.pairs.gz"
             input_param = "--pairs"
-            if not Path(hg_input).exists() or not Path(prepare_input).exists():
-                Path(hg_input).unlink(missing_ok=True)
-                try:
-                    if hcr_invert_string:
-                        args = ["-prs",
-                                    f"../{pairs}",
-                                    "-cs",
-                                    f"../{contigsizes}",
-                                    "-b",
-                                    hcr_bed,
-                                    "-u",
-                                    hcr_upper,
-                                    "-l",
-                                    hcr_lower,
-                                    "-q",
-                                    min_quality1,
-                                    hcr_invert_string]
-                        hcr.main(
-                            args=args,
-                            prog_name="hcr"
-                        )
-                    else:
-                        args = ["-prs",
-                                    f"../{pairs}",
-                                    "-cs",
-                                    f"../{contigsizes}",
-                                    "-b",
-                                    hcr_bed,
-                                    "-u",
-                                    hcr_upper,
-                                    "-l",
-                                    hcr_lower,
-                                    "-q",
-                                    min_quality1,]
-                        hcr.main(
-                            args=args,
-                            prog_name="hcr"
-                        )
-                except SystemExit as e:
-                    exc_info = sys.exc_info()
-                    exit_code = e.code
-                    if exit_code is None:
-                        exit_code = 0
-                    
-                    if exit_code != 0:
-                        raise e
-            else:
-                logger.warning(f"Use exists hcr porec table of `{hg_input}`")
+
+            try:
+                if hcr_invert_string:
+                    args = ["-prs",
+                                f"../{pairs}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                # "-b",
+                                # hcr_bed,
+                                "-u",
+                                hcr_upper,
+                                "-l",
+                                hcr_lower,
+                                "-q",
+                                min_quality1,
+                                hcr_invert_string]
+                    hcr.main(
+                        args=args,
+                        prog_name="hcr"
+                    )
+                else:
+                    args = ["-prs",
+                                f"../{pairs}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                # "-b",
+                                # hcr_bed,
+                                "-u",
+                                hcr_upper,
+                                "-l",
+                                hcr_lower,
+                                "-q",
+                                min_quality1,]
+                    hcr.main(
+                        args=args,
+                        prog_name="hcr"
+                    )
+
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+            # else:
+            #     logger.warning(f"Use exists hcr porec table of `{hg_input}`")
+
+        if not hcr_bed:
+            hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
+        else:
+            logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
+            cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed", ">", f".{pairs_prefix}.{hcr_bs}.hcr.bed"]
+            os.system(" ".join(cmd))
+
+            shutil.move(f".{pairs_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed")
+            hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
 
         os.chdir("../")
         if Path(f"{hcr_dir}/{hg_input}").exists():
@@ -868,6 +886,12 @@ def run(fasta,
             hyperpartition_args.append(enable_misassembly_remove)
         if hyperpartition_normalize:
             hyperpartition_args.append(hyperpartition_normalize)
+
+    
+        if hcr_bed:
+            hyperpartition_args.extend(["--hcr-bed", f"../{hcr_dir}/{hcr_bed}"])
+            if hcr_invert:
+                hyperpartition_args.append("--hcr-invert")
 
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
             _out_sh.write('cphasing hyperpartition ')

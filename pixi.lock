@@ -178,7 +178,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/matplotlib-base-3.9.3-py312hd3ec401_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/bioconda/linux-64/minimap2-2.28-he4a0461_3.tar.bz2
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/mpi-1.0-openmpi.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/msgpack-python-1.1.0-py312h68727a3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/msgspec-0.18.6-py312h98912ed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/multiprocess-0.70.17-py312h66e93f0_1.conda
@@ -194,7 +193,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.4-py312heda63a1_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openjpeg-2.5.2-h488ebb8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openldap-2.6.9-he970967_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/openmpi-4.1.6-hc5af2df_101.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openssl-3.4.0-hb9d3cd8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/orc-2.0.3-he039a57_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-24.2-pyhff2d567_1.conda
@@ -237,7 +235,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyyaml-6.0.2-py312h66e93f0_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/qhull-2020.2-h434a139_5.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/qt6-main-6.8.0-h6e8976b_0.conda
-      - conda: https://conda.anaconda.org/bioconda/linux-64/ray-2.3.1-hdf94a1f_6.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/re2-2024.07.02-h77b4e00_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.2-h8228510_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rich-13.9.4-pyhd8ed1ab_0.conda
@@ -4246,19 +4243,6 @@ packages:
   - mkdocs-material>=9.2.5 ; extra == 'material'
   requires_python: '>=3.8'
 - kind: conda
-  name: mpi
-  version: '1.0'
-  build: openmpi
-  subdir: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/mpi-1.0-openmpi.tar.bz2
-  sha256: 54cf44ee2c122bce206f834a825af06e3b14fc4fd58c968ae9329715cc281d1e
-  md5: 1dcc49e16749ff79ba2194fa5d4ca5e7
-  arch: x86_64
-  platform: linux
-  license: BSD 3-clause
-  purls: []
-  size: 4204
-- kind: conda
   name: msgpack-python
   version: 1.1.0
   build: py312h68727a3_0
@@ -4552,31 +4536,6 @@ packages:
   purls: []
   size: 784483
   timestamp: 1732674189726
-- kind: conda
-  name: openmpi
-  version: 4.1.6
-  build: hc5af2df_101
-  build_number: 101
-  subdir: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/openmpi-4.1.6-hc5af2df_101.conda
-  sha256: f0769dd891e1735be4606ec8643951e5cbca199f774e58c7d933f70a70134ce4
-  md5: f9a2ad0088ee38f396350515fa37d243
-  depends:
-  - libgcc-ng >=12
-  - libgfortran-ng
-  - libgfortran5 >=12.3.0
-  - libstdcxx-ng >=12
-  - libzlib >=1.2.13,<2.0.0a0
-  - mpi 1.0 openmpi
-  - zlib
-  constrains:
-  - cudatoolkit  >= 10.2
-  - ucx >=1.15.0,<2.0a0
-  license: BSD-3-Clause
-  license_family: BSD
-  purls: []
-  size: 4069632
-  timestamp: 1696593196408
 - kind: conda
   name: openssl
   version: 3.4.0
@@ -5714,22 +5673,6 @@ packages:
   license_family: LGPL
   size: 51315820
   timestamp: 1728406028
-- kind: conda
-  name: ray
-  version: 2.3.1
-  build: hdf94a1f_6
-  build_number: 6
-  subdir: linux-64
-  url: https://conda.anaconda.org/bioconda/linux-64/ray-2.3.1-hdf94a1f_6.tar.bz2
-  sha256: 6b581de01450c1ca36213392e003c6b54e6c929ac4de3ed5443a7da9b0d097e9
-  md5: f52e9e09d1e2d7d544b63cfb9c60f0a9
-  depends:
-  - libgcc-ng >=12
-  - libstdcxx-ng >=12
-  - openmpi >=4.1.5,<5.0a0
-  license: GPL3
-  size: 18174466
-  timestamp: 1684218435817
 - kind: conda
   name: re2
   version: 2024.07.02

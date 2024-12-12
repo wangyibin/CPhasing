@@ -21,6 +21,7 @@ from joblib import Parallel, delayed
 from pathlib import Path
 from pandarallel import pandarallel 
 from pytools import natsorted
+from subprocess import Popen, PIPE
 
 from .algorithms.hypergraph import HyperEdges
 from .utilities import listify, list_flatten, is_compressed_table_empty
@@ -58,11 +59,14 @@ class Extractor:
  
     """
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
-                 min_quality=1, threads=4, low_memory=True):
+                 min_quality=1, hcr_bed=None, hcr_invert=False,
+                 threads=4, low_memory=True):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
         self.min_mapq = min_quality
+        self.hcr_bed = hcr_bed
+        self.hcr_invert = hcr_invert
         self.threads = threads 
         self.low_memory = low_memory
         self.edges = self.generate_edges()
@@ -73,7 +77,6 @@ class Extractor:
         df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
         df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
         df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
-
 
         return df
 
@@ -91,19 +94,25 @@ class Extractor:
 
             if is_compressed_table_empty(self.pairs_pathes[0]):
                 logger.error(f"The pairs `{self.pairs_pathes[0]}` is empty, can not load anything, please check it.")
-                sys.exit(-1)            
+                sys.exit(-1)    
+
+
+            input_file = ""
+            if not self.hcr_bed:
+                input_file = self.pairs_pathes[0]
+            else:
+                cmd = f"cphasing-rs pairs-intersect {self.pairs_pathes[0]} {self.hcr_bed} -q {self.min_mapq}"
+                if self.hcr_invert:
+                    cmd += " --invert"
+                process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                stdout, stderr = process.communicate()
+                input_file = stdout      
 
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
-                # p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                #                 header=None, index_col=None, dtype=dtype,
-                #                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'], 
-                #                 # converters={"chrom1": self.contig_idx.get, 
-                #                 #             "chrom2": self.contig_idx.get}
-                #                 ).query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1)
-                ## p = p.query(f'mapq >= {self.min_mapq}').drop('mapq', axis=1).reset_index(drop=True)
-                p = pl.read_csv(self.pairs_pathes[0], separator='\t', has_header=False,
+                    
+                p = pl.read_csv(input_file, separator='\t', has_header=False,
                                 comment_prefix="#", columns=[1, 3, 7],
                                 new_columns=['chrom1', 'chrom2', 'mapq'],
                                 dtypes=dtype)
@@ -122,12 +131,8 @@ class Extractor:
                                 axis=0)
                 
             else:
-                # p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#",
-                #                     header=None, index_col=None, 
-                #                     dtype=dtype,
-                #                     usecols=[1, 3], names=['chrom1', 'chrom2'], 
-                #                 )
-                p = pl.read_csv(self.pairs_pathes[0], separator='\t', has_header=False,
+
+                p = pl.read_csv(input_file, separator='\t', has_header=False,
                                 comment_prefix="#", columns=[1, 3],
                                 new_columns=['chrom1', 'chrom2'],
                                 dtypes=dtype)
@@ -150,26 +155,60 @@ class Extractor:
             if threads_1 == 0:
                 threads_1 = 1
 
-            dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
+            if not self.hcr_bed:
+                def get_file(i):
+                    if is_compressed_table_empty(i):
+                        logger.error(f"The pairs `{i}` is empty, can not load anything, please check it.")
+                        return None
+                    return i
+            else:
+                def get_file(i):
+                    cmd = f"cphasing-rs pairs-intersect {i} {self.hcr_bed} -q {self.min_mapq}"
+                    if self.hcr_invert:
+                        cmd += " --invert"
+                    process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = process.communicate()
+
+                    return stdout
+                
+
+
+            # dtype={'chrom1': 'category', 'chrom2': 'category', 'mapq': 'int8'}
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+                # res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                #                 lambda x: pd.read_csv(get_file(x), sep='\t', comment="#",
+                #                                 header=None, index_col=None, 
+                #                                 # compression=compression,
+                #                                 dtype=dtype,
+                #                                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
+                #                                 ).query(f'mapq >= {self.min_mapq}'))
+                #                                 (i) for i in p_list)
+                def read_csv(x):
+                    df = pl.read_csv(x, separator='\t', has_header=False, 
+                                     comment_prefix="#", columns=[1, 3, 7],
+                                    new_columns=['chrom1', 'chrom2', 'mapq'],
+                                    dtypes=dtype)
+                    if self.min_mapq > 0:
+                        df = df.filter(pl.col('mapq') >= self.min_mapq)
+
+                    return df.to_pandas()
+                
                 res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
-                                lambda x: pd.read_csv(x, sep='\t', comment="#",
-                                                header=None, index_col=None, 
-                                                # compression=compression,
-                                                dtype=dtype,
-                                                usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
-                                                ).query(f'mapq >= {self.min_mapq}'))
-                                                (i) for i in p_list)
+                                lambda x: read_csv(get_file(x)))(i) for i in p_list)
 
             else:
+                def read_csv(x):
+                    df = pl.read_csv(x, separator='\t', has_header=False, 
+                                     comment_prefix="#", columns=[1, 3],
+                                    new_columns=['chrom1', 'chrom2'],
+                                    dtypes=dtype)
+    
+                    return df.to_pandas()
+                
                 res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
-                            lambda x: pd.read_csv(x, sep='\t', comment="#",
-                                            header=None, index_col=None, 
-                                            dtype=dtype,
-                                            usecols=[1, 3], names=['chrom1', 'chrom2']))
-                                            (i) for i in p_list)
+                                lambda x: read_csv(get_file(x)))(i) for i in p_list)
                 
             args = [ (i, self.contig_idx, threads_2) for i in res ]
         
@@ -447,6 +486,8 @@ class HyperExtractor:
                             max_order=50, 
                             min_alignments=30,
                             min_quality=1,
+                            hcr_bed=None,
+                            hcr_invert=False,
                             threads=4,
                             is_parquet=False):
         
@@ -457,6 +498,8 @@ class HyperExtractor:
         self.max_order = max_order
         self.min_alignments = min_alignments
         self.min_quality = min_quality
+        self.hcr_bed = hcr_bed
+        self.hcr_invert = hcr_invert
         self.threads = threads
         self.is_parquet = is_parquet
         
@@ -473,7 +516,15 @@ class HyperExtractor:
             # if Path(self.pore_c_table_pathes[0]).is_symlink():
             #     infile = os.readlink(self.pore_c_table_pathes[0])
             # else:
-            infile = self.pore_c_table_pathes[0]
+            if not self.hcr_bed:
+                infile = self.pore_c_table_pathes[0]
+            else:
+                cmd = f"cphasing-rs porec-intersect {self.pore_c_table_pathes[0]} {self.hcr_bed}"
+                if self.hcr_invert:
+                    cmd += " --invert"
+                process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                stdout, stderr = process.communicate()
+                infile = stdout
             
             if self.is_parquet:
                 df = pd.read_parquet(infile, 
@@ -537,9 +588,22 @@ class HyperExtractor:
             infiles = []
             for i in self.pore_c_table_pathes:
                 # if Path(i).is_symlink():
-                #     infiles.append(os.readlink(i))
+                #     infile = os.readlink(i)
                 # else:
                 infiles.append(i)
+
+            if not self.hcr_bed:
+                def get_file(x):
+                    return x 
+            else:
+                def get_file(x):
+                    cmd = f"cphasing-rs porec-intersect {x} {self.hcr_bed}"
+                    if self.hcr_invert:
+                        cmd += " --invert"
+                    process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = process.communicate()
+
+                    return stdout
 
             if self.is_parquet:
                 df_list = list(map(lambda x: pd.read_parquet(
@@ -589,7 +653,7 @@ class HyperExtractor:
                 #     df.columns = ['read_idx', 'chrom', 'mapping_quality']
                 
                 df_list = list(map(lambda x: pl.read_csv(
-                    x, separator='\t', has_header=False,
+                    get_file(x), separator='\t', has_header=False,
                     columns=[0, 5, 8], dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
                     new_columns=['read_idx', 'chrom', 'mapping_quality']
                 ), infiles))

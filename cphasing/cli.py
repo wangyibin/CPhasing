@@ -1902,7 +1902,7 @@ def chimeric(fasta, pairs, depth, window_size,
 @click.option(
     "-v",
     "--invert",
-    help="Invert table by HCRs bed",
+    help="Invert regions",
     is_flag=True,
     default=False,
     show_default=True
@@ -1991,7 +1991,6 @@ def hcr(porectable, pairs, contigsize, binsize,
             while prefix.suffix in {'.gz', 'gz', '.pairs'}:
                 prefix = prefix.with_suffix('')
 
-
     # out_small_cool = f"{prefix}.{binsize}.cool"
     # if not bed:
     #     if not Path(out_small_cool).exists():
@@ -2029,17 +2028,41 @@ def hcr(porectable, pairs, contigsize, binsize,
         hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
                         lower, upper, collapsed_contig_ratio)
         bed =  f"{prefix}.{binsize}.hcr.bed"
- 
-        
-    if porectable:
-        cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
-               "-o", f"{prefix}_hcr.porec.gz"]
+
         if invert:
-            cmd.append("-v")
-        flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
-        assert flag == 0, "Failed to execute command, please check log."
-        logger.info(f'Successful out high confidence high-orrder '
-                    f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
+            logger.info("Invert regions.")
+            import pyranges as pr
+            contigsize = pd.read_csv(contigsize, sep='\t', header=None, index_col=None)
+            contigsize.columns = ['Chromosome', 'End']
+            contigsize['Start'] = 0
+
+            bed_df = pd.read_csv(bed, sep='\t', header=None, index_col=None, 
+                                 names=['Chromosome', 'Start', 'End'])
+
+            bed_gr = pr.PyRanges(bed_df)
+            contig_gr = pr.PyRanges(contigsize)
+            bed_gr = contig_gr.subtract(bed_gr)
+            bed_df = bed_gr.df
+
+            if bed_df.empty:
+                logger.warning("No inverted regions.")
+                
+            else:
+                total_length = (bed_df['End'] - bed_df['Start']).sum()
+                total_length_of_contigs = contigsize['End'].sum()
+                logger.info(f"Total length of inverted regions is {total_length / total_length_of_contigs:.02%}.")
+            bed_df.to_csv(bed, sep='\t', header=None, index=None)
+
+
+    # if porectable:
+    #     cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
+    #            "-o", f"{prefix}_hcr.porec.gz"]
+    #     if invert:
+    #         cmd.append("-v")
+    #     flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
+    #     assert flag == 0, "Failed to execute command, please check log."
+    #     logger.info(f'Successful out high confidence high-orrder '
+    #                 f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
         # cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
         #        "-o", f"{prefix}_hcr.pairs.gz", "-q", str(min_quality)]
         
@@ -2047,15 +2070,15 @@ def hcr(porectable, pairs, contigsize, binsize,
         # assert flag == 0, "Failed to execute command, please check log."
         # logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
 
-    else:
-        cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, 
-               "-q", str(min_quality), "-o", f"{prefix}_hcr.pairs.gz"]
-        if invert:
-            cmd.append("-v")
-        flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
-        assert flag == 0, "Failed to execute command, please check log."
-        logger.info(f'Successful out high confidence contacts into '
-                    f'`{prefix}_hcr.pairs.gz`')
+    # else:
+    #     cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, 
+    #            "-q", str(min_quality), "-o", f"{prefix}_hcr.pairs.gz"]
+    #     if invert:
+    #         cmd.append("-v")
+    #     flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
+    #     assert flag == 0, "Failed to execute command, please check log."
+    #     logger.info(f'Successful out high confidence contacts into '
+    #                 f'`{prefix}_hcr.pairs.gz`')
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, short_help='Prepare data for subsequence analysis.')
@@ -2616,6 +2639,25 @@ def kprune(alleletable, contacts,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-hcr-bed",
+    "--hcr-bed",
+    "hcr_bed",
+    metavar="STR",
+    default=None,
+    help="Only retain high confidence regions to subsequence analysis by input bed.",
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-hcr-invert",
+    "--hcr-invert",
+    "hcr_invert",
+    is_flag=True,
+    default=False,
+    help="Invert table by hcr bed.",
+    show_default=True,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads. Only when multiple files are input.',
@@ -2635,6 +2677,8 @@ def hypergraph(contacts,
             fofn,
             split,
             whitelist,
+            hcr_bed,
+            hcr_invert,
             threads):
     """
     Construct hypergraph from 4DN pairs or porec table (a: hg).
@@ -2664,7 +2708,9 @@ def hypergraph(contacts,
         whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
         contigs = list(filter(lambda x: x in whitelist, contigs))
 
-    
+    if not hcr_bed and hcr_invert:
+        logger.warning("The `--hcr-invert` parameter is only valid when `--hcr-bed` is set.")
+
     contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
 
     if not pairs:
@@ -2675,7 +2721,9 @@ def hypergraph(contacts,
 
         if not split:
             he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
-                                min_order, max_order, min_alignments, min_quality, threads)
+                                min_order, max_order, min_alignments, 
+                                hcr_bed=hcr_bed, hcr_invert=hcr_invert,
+                                min_quality=min_quality, threads=threads)
             he.save(output)
         else:
             he = HyperExtractorSplit(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
@@ -2690,8 +2738,9 @@ def hypergraph(contacts,
             pairs_files = contacts
         
         if not split:
-
+            
             e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], 
+                            hcr_bed= hcr_bed, hcr_invert=hcr_invert,
                             min_quality=min_quality, threads=threads)
             e.save(output)
         else:
@@ -2949,6 +2998,25 @@ def hypergraph(contacts,
     type=click.Path(exists=True)
 )
 @click.option(
+    "-hcr-bed",
+    "--hcr-bed",
+    "hcr_bed",
+    metavar="STR",
+    default=None,
+    help="Only retain high confidence regions to subsequence analysis by input bed.",
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-hcr-invert",
+    "--hcr-invert",
+    "hcr_invert",
+    is_flag=True,
+    default=False,
+    help="Invert table by hcr bed.",
+    show_default=True,
+)
+@click.option(
     "-mc",
     "--min-contacts",
     "min_contacts",
@@ -3121,6 +3189,8 @@ def hyperpartition(hypergraph,
                     exclude_group_to_second,
                     whitelist,
                     blacklist,
+                    hcr_bed,
+                    hcr_invert,
                     min_contacts,
                     min_length, 
                     resolution1,
@@ -3267,7 +3337,9 @@ def hyperpartition(hypergraph,
         if not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
-            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
+            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
+                                min_quality=min_quality1, hcr_bed=hcr_bed, 
+                                hcr_invert=hcr_invert, threads=threads)
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
@@ -3283,7 +3355,9 @@ def hyperpartition(hypergraph,
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
         if not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
-            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], min_quality=min_quality1)
+            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
+                           min_quality=min_quality1, hcr_bed=hcr_bed, 
+                           hcr_invert=hcr_invert, threads=threads)
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
@@ -4873,13 +4947,13 @@ def plot(matrix,
     if binsize is not None:
         binsize = humanized2numeric(binsize)
         if binsize < cool_binsize:
-            logger.warning(f"The matrix's binsize is larger than the input binsize, "
+            logger.warning(f"The matrix's binsize is larger than the specified binsize, "
                         f"set the heatmap's `binsize` to `{to_humanized2(cool_binsize)}`.")
             binsize = cool_binsize
             factor = 1
         elif binsize > cool_binsize:
             factor = binsize // cool_binsize
-            logger.warning(f"The matrix's binsize is smaller than the heatmap's `binsize`, "
+            logger.info(f"The matrix's binsize is smaller than the heatmap's `binsize`, "
                         f"coarsen the matrix'binsize to {cool_binsize * factor}.")
             coarsen = True
     else:

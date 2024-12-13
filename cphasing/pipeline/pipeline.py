@@ -104,8 +104,8 @@ def run(fasta,
                        plot
     )
     from ..hic.cli import mapper as hic_mapper
-    from ..hitig.pipeline import run  as hitig_run
-    from ..chimeric import run as chimeric_run 
+    
+    
     # tracemalloc.start()
     start_time = time.time()
     logger.info(f"C-Phasing version: {__version__}")
@@ -214,6 +214,7 @@ def run(fasta,
     filtered_pairs = None
    
     if ul_data:
+        from ..hitig.pipeline import run  as hitig_run
         input_fasta = str(Path(fasta).absolute())
         input_ul_data = str(Path(ul_data).absolute())              
         if not use_existed_hitig:
@@ -380,6 +381,7 @@ def run(fasta,
     
     corrected = False
     if chimeric_correct or chimeric_corrected:
+        from ..chimeric import run as chimeric_run 
         correct_dir = Path("0_2.correct")
         correct_dir.mkdir(exist_ok=True)
         correct_dir = str(correct_dir)

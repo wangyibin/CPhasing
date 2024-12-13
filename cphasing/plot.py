@@ -1112,7 +1112,8 @@ def plot_heatmap_core(matrix,
         ax.tick_params(axis='x', length=5, width=2)
         _xticks = ax.get_xticks()[:-1]
         dist = _xticks[1] - _xticks[0]
-        if (ax.get_xlim()[1] - _xticks[-1]) < (dist / 2):
+ 
+        if (ax.get_xlim()[1] - _xticks[-1]) <= (dist / 2):
             _xticks = _xticks[:-1]
 
         _xticks = np.r_[_xticks, ax.get_xlim()[1]]

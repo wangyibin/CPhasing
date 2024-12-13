@@ -5015,7 +5015,7 @@ def plot(matrix,
     if not cooler.fileops.is_cooler(matrix):
         logger.error(f"Input file `{matrix}` is not a cool file.")
         sys.exit(-1)
-        
+
     cool_binsize = cooler.Cooler(matrix).info['bin-size']
    
         
@@ -5085,7 +5085,7 @@ def plot(matrix,
         chroms = cooler.Cooler(matrix).chromnames 
         chromosomes = list(filter(lambda x: regex.findall(x), chroms))
 
-    if chromosomes:
+    if chromosomes and only_chr:
         if not disable_natural_sort:
             chromosomes = natsorted(chromosomes)
 

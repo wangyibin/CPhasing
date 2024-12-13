@@ -35,7 +35,7 @@ from scipy.sparse import triu
 from .agp import import_agp
 from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
 
-from line_profiler import profile 
+# from line_profiler import profile 
 
 logger = logging.getLogger(__name__)
 

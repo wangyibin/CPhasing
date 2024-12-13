@@ -523,12 +523,12 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     #                                     'contigidx'].aggregate(tuple)
 
     # grouped_contig_idx = grouped_contig_idx.tolist()
-    split_contig_on_chrom_df = pl.DataFrame(split_contig_on_chrom_df)
-    grouped_contig_idx = (split_contig_on_chrom_df
-                            .group_by('chromidx')
-                            .agg(pl.col('contigidx').apply(tuple, return_dtype=pl.Object))
-                            .to_series()
-                            .to_list())
+    # split_contig_on_chrom_df = pl.DataFrame(split_contig_on_chrom_df)
+    # grouped_contig_idx = (split_contig_on_chrom_df
+    #                         .group_by('chromidx')
+    #                         .agg(pl.col('contigidx').apply(tuple, return_dtype=pl.Object))
+    #                         .to_series()
+    #                         .to_list())
 
     
     # reorder matrix 

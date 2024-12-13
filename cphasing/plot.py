@@ -429,7 +429,6 @@ def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output,
         if threads > 1:
             pool.close()
 
-@profile 
 def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     start_time = time.time()

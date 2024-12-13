@@ -3,7 +3,8 @@ Date: 2024-12-11
 ## [v0.2.1]
 ## Enhancement
 - `hypergraph`, add hcr_bed filter step.
-- `activate_cphasing`, use pixi to activate the enviroment of CPhasing
+- `activate_cphasing`, use pixi to activate the environment of CPhasing
+- `plot`, speed up it
 ## Bug fixes    
 - `rename`, bug of read agp
 - `pipeline`

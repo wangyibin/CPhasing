@@ -429,7 +429,7 @@ class AlignmentAlleles:
     PAF_HADER2 = ["contig2", "length2", "start2", "end2", "strand",
                  "contig1", "length1", "start1", "end1", "mismatch",
                  "matches", "mapq", "identity"]
-    def __init__(self, fasta, ploidy, k=19, 
+    def __init__(self, fasta, ploidy, k=19, w=19,
                   s="5k", l="10k", p=98, 
                  H=10.0, no_raw_table=True,
                  output=None, log_dir="logs", threads=4):
@@ -438,6 +438,7 @@ class AlignmentAlleles:
         
         self.ploidy = ploidy 
         self.k = k
+        self.w = w 
         self.s = s 
         self.l = l 
         self.p = p
@@ -476,30 +477,34 @@ class AlignmentAlleles:
         cmd = ["wfmash", self.fasta, "-m", "-t", str(self.threads),
                "-H", f"{self.H}", "-n", f"{self.n}", "-l", f"{self.l}",
                 "-k", f"{self.k}", 
-                  "-Y", "#", "-s", f"{self.s}", "-p", f"{self.p}" ]
+                  "-Y", "'#'", "-s", f"{self.s}", "-p", f"{self.p}",
+                   ">", self.paf, f"2>{str(self.log_dir)}/alleles.align.log" ]
         
         logger.info("Self mapping ...")
-        pipelines = []
-        try:
-            pipelines.append(
-                Popen(cmd, stdout=open(self.paf, "w"),
-                      stderr=open(f"{self.log_dir}/alleles.align.log", "w"),
-                      bufsize=-1)
-            )
-            pipelines[-1].wait()
-        except:
-            raise Exception('Failed to execute command:' 
-                                f'\t{cmd}.')
-        finally:
-            for p in pipelines:
-                if p.poll() is None:
-                    p.terminate()
-                else:
-                    assert pipelines != [], \
-                        "Failed to execute command, please check log."
-                if p.returncode != 0:
-                    raise Exception('Failed to execute command:' 
-                                        f'\t{" ".join(cmd)}.')
+        os.system(" ".join(cmd))
+
+        
+        # pipelines = []
+        # try:
+        #     pipelines.append(
+        #         Popen(cmd, stdout=open(self.paf, "w"),
+        #               stderr=open(f"{self.log_dir}/alleles.align.log", "w"),
+        #               bufsize=-1)
+        #     )
+        #     pipelines[-1].wait()
+        # except:
+        #     raise Exception('Failed to execute command:' 
+        #                         f'\t{cmd}.')
+        # finally:
+        #     for p in pipelines:
+        #         if p.poll() is None:
+        #             p.terminate()
+        #         else:
+        #             assert pipelines != [], \
+        #                 "Failed to execute command, please check log."
+        #         if p.returncode != 0:
+        #             raise Exception('Failed to execute command:' 
+        #                                 f'\t{" ".join(cmd)}.')
                 
     def read_paf(self):
         logger.info(f"Load alignments results `{self.paf}`")
@@ -654,6 +659,93 @@ class AlignmentAlleles:
        
         self.export_allele2()
     
+
+class ANIAlleles:
+    def __init__(self, fasta, ploidy, percent,
+                 output=None, log_dir="logs", threads=4):
+        self.file = fasta 
+        self.fasta = fasta 
+        
+        self.ploidy = ploidy 
+        self.percent = percent  
+        if not cmd_exists("skani"):
+            logger.error(f'No such command of `skani`.')
+            sys.exit()
+
+        self.threads = threads
+
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+
+        self.prefix = fasta_prefix
+
+        self.ani_table = f"{self.prefix}.ani"
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        if not output:
+            self.output = f"{self.prefix}.allele.table"
+        else:
+            self.output = output
+
+
+    def align(self):
+        cmd = ["skani", "dist", "-t", str(self.threads), 
+               "--ri", "-r", self.fasta, "--qi", "-q", self.fasta,
+               "-s", str(self.percent), "-n", str(self.ploidy * 10),
+               "-o", self.ani_table]
+        
+        logger.info("Self comparison ...")
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/alleles.ani.log', out2err=True)
+        assert flag == 0, "Failed to execute command, please check log."
+
+    def read_ani_table(self):
+        logger.info(f"Load alignments results `{self.ani_table}`")
+        df = pd.read_csv(self.ani_table, sep='\t', header=None, usecols=range(2, 7),
+                         skiprows=1,
+                         names=['identity', 'frac1', 'frac2', 'contig1', 'contig2',], index_col=None)
+
+        df = df[df['contig1'] != df['contig2']]
+        df2 = df.copy()
+        df2.columns = ['identity', 'frac2', 'frac1', 'contig2', 'contig1']
+        df = pd.concat([df, df2], axis=0)
+        df.drop_duplicates(inplace=True)
+        df.query('frac1 > 1.0 and frac2 > 1.0', inplace=True)
+
+        df = df.sort_values(['contig1', 'contig2'])
+        self.ani_df = df 
+
+
+        return df
+    
+    def to_alleletable(self):
+        
+        df = self.ani_df[['contig1', 'contig2', 'frac1', 'frac2', 'identity']]
+        df = df.dropna()
+        df['identity'] = df['identity'].map(lambda x: f"{x/100:.4}")
+       
+        df2 = df.copy()
+        df2.columns = ['contig2', 'contig1', 'frac2', 'frac1', 'identity']
+        df = pd.concat([df, df2], axis=0)
+        df = df[['contig1', 'contig2', 'frac1', 'frac2', 'identity', 'identity']]
+        df['strand'] = 1
+        df = df.reset_index(drop=True).reset_index().reset_index()
+        if not self.output:
+            output = f"{self.prefix}.allele.table"
+        else:
+            output = self.output
+        df.to_csv(output, sep='\t', 
+                  index=None, header=None)
+        logger.info(f"Export the allele table `{output}`")
+        
+        return df
+
+    def run(self):
+        self.align()
+        self.read_ani_table()
+        self.to_alleletable()
 
 
 def filter_high_similarity_contigs(alleletable, contacts, min_values, output):

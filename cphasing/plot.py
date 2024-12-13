@@ -15,8 +15,10 @@ except ImportError:
     pass
 
 import cooler
+import concurrent.futures
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from collections import OrderedDict
 from math import ceil
@@ -32,6 +34,8 @@ from scipy.sparse import triu
 
 from .agp import import_agp
 from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
+
+from line_profiler import profile 
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +100,13 @@ def get_bins(bin_size, chrom_size, start=0, orientation="+",
                 old_start = start 
                 start = start + (length % bin_size)
                 bin_intervals.append((chrom, old_start, start))
-        for interval in range(start, size, bin_size):
-                bin_intervals.append((chrom, interval, 
-                                    min(size, interval + bin_size)))
+        # for interval in range(start, size, bin_size):
+        #         bin_intervals.append((chrom, interval, 
+        #                             min(size, interval + bin_size)))
+        bin_intervals.extend(
+            (chrom, interval, min(size, interval + bin_size))
+            for interval in range(start, size, bin_size)
+        )
 
     return bin_intervals if not reverse else bin_intervals[::-1]
 
@@ -167,7 +175,6 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
 
     """
     logger.debug("Binnify the agp ...")
-    db = []
     agp_df['start'] -= 1
     agp_df['tig_start'] = agp_df['tig_start'].astype(int) - 1
     def process_row(row):
@@ -283,11 +290,11 @@ class sumSmallContig(object):
     """
     Sum small conitg count into one chromosome bin
     """
-    def __init__(self, cool_path, contig2chrom, edges,
-                    columns, map, batchsize=1000):
+    def __init__(self, chrom_pixels, contig2chrom, edges,
+                    columns, map, batchsize=5000):
 
         self._map = map
-        self.cool_path = cool_path
+        # self.cool_path = cool_path
         self.contig2chrom = contig2chrom
         self.chromidx = contig2chrom.index.values
         self.contigidx = contig2chrom['contigidx'].values
@@ -310,29 +317,48 @@ class sumSmallContig(object):
         edges = self.contig2chrom_index[np.arange(0, len(self.contig2chrom_index), batchsize)]
         edges = np.append(edges, self.contig2chrom_index[-1])
         self.edges = list(zip(edges[:-1], edges[1:]))
-        
+
+        self.pixels = chrom_pixels
 
     def _aggregate(self, span):
 
-        cool = cooler.Cooler(self.cool_path)
-        pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)
+        # cool = cooler.Cooler(self.cool_path)
+    
+        pixels = self.pixels
+        # pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)
         contig2chrom_index = self.contig2chrom_index
 
         lo, hi = span
-        chunk = pixels[lo: hi+1]
+        # chunk = pixels[lo: hi+1]
+        # chunk = pixels[np.logical_and(pixels['bin1_id'] >= lo, pixels['bin1_id'] < hi)]
         
-        old_bin1_id = chunk['bin1_id'].values
-        old_bin2_id = chunk['bin2_id'].values
-     
-        chunk['bin1_id'] = np.searchsorted(contig2chrom_index, old_bin1_id, 
-                                            side='right') - 1
-        chunk['bin2_id'] = np.searchsorted(contig2chrom_index, old_bin2_id, 
-                                            side='right') - 1
+        chunk = pixels.filter(pl.col('bin1_id').is_between(lo, hi))
+       
+        # old_bin1_id, old_bin2_id = chunk['bin1_id'].values, chunk['bin2_id'].values
+        
+        # chunk['bin1_id'] = np.searchsorted(contig2chrom_index, old_bin1_id, 
+        #                                     side='right') - 1
+        # chunk['bin2_id'] = np.searchsorted(contig2chrom_index, old_bin2_id, 
+        #                                     side='right') - 1
+        
+        new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
+        new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
+        chunk = chunk.with_columns([
+            pl.Series('bin1_id', new_bin1_id),
+            pl.Series('bin2_id', new_bin2_id)
+        ])
 
-        return (chunk.groupby(self.index_columns, sort=True)
-                    .aggregate(self.agg)
-                    .reset_index())
-      
+        
+        if self.agg['count'] == 'sum':
+            result = (chunk.group_by(self.index_columns, maintain_order=True)
+                        .agg(pl.sum('count')).to_pandas().reset_index())
+        else:
+            result = (chunk.to_pandas().groupby(self.index_columns, sort=True)
+                            .agg(self.agg)
+                            .reset_index())
+            
+        
+        return result
 
     def aggregate(self, span):
         try:
@@ -361,20 +387,22 @@ class sumSmallContig(object):
                 yield {k: v.values for k, v in df.items()}
                 
 
-def sum_small_contig(cool_path, contig2chrom, new_bins, output, 
+def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output, 
                 dtypes=None, columns=['count'], threads=1, **kwargs):
     from cooler.create import create
 
-    cool = cooler.Cooler(cool_path)
-
-    edges = np.r_[0, np.cumsum(new_bins.groupby(
-        'chrom').count().reset_index()['start'].tolist())]
+    # cool = cooler.Cooler(cool_path)
+   
+    chrom_counts = new_bins['chrom'].value_counts().sort_index()
+    edges = np.r_[0, np.cumsum(chrom_counts)]
+    # edges = np.r_[0, np.cumsum(new_bins.groupby(
+    #     'chrom').count().reset_index()['start'].tolist())]
     edges = list(zip(edges[:-1], edges[1:]))
     
     if dtypes is None:
-        dtypes = {}
-    input_dtypes = cool.pixels().dtypes
- 
+        dtypes = {'count': 'float64'}
+    # input_dtypes = cool.pixels().dtypes
+    input_dtypes = dtypes
     for col in columns:
         if col in input_dtypes:
             dtypes.setdefault(col, input_dtypes[col])
@@ -384,7 +412,7 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
             pool = Pool(threads)
             kwargs.setdefault('lock', lock)
         
-        iterator = sumSmallContig(cool_path, 
+        iterator = sumSmallContig(chrom_pixels, 
             contig2chrom,
             edges,
             columns,
@@ -393,13 +421,15 @@ def sum_small_contig(cool_path, contig2chrom, new_bins, output,
 
         #kwargs.setdefault("append", True)
     
-        create(output, new_bins, iterator, dtypes=dtypes, **kwargs)
+        create(output, new_bins, iterator, dtypes=dtypes,
+                triucheck=False, dupcheck=False, boundscheck=False,
+                **kwargs)
     
     finally:
         if threads > 1:
             pool.close()
 
-
+@profile 
 def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     start_time = time.time()
@@ -490,37 +520,51 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
     contig2chrom.set_index('chromidx', inplace=True)
-    grouped_contig_idx = split_contig_on_chrom_df.groupby('chromidx')[
-                                        'contigidx'].aggregate(tuple)
-    grouped_contig_idx = grouped_contig_idx.tolist()
+    # grouped_contig_idx = split_contig_on_chrom_df.groupby('chromidx')[
+    #                                     'contigidx'].aggregate(tuple)
+
+    # grouped_contig_idx = grouped_contig_idx.tolist()
+    split_contig_on_chrom_df = pl.DataFrame(split_contig_on_chrom_df)
+    grouped_contig_idx = (split_contig_on_chrom_df
+                            .groupby('chromidx')
+                            .agg(pl.col('contigidx').apply(tuple, return_dtype=pl.Object))
+                            .to_series()
+                            .to_list())
+
     
     # reorder matrix 
     reordered_contigidx = contig2chrom['contigidx'].values
 
     reordered_matrix = matrix[:].tocsr(
                          )[:, reordered_contigidx][reordered_contigidx, :]
-    reordered_contig_bins = contig_bins[:].loc[reordered_contigidx].reset_index(
-        drop=True)
+    # reordered_contig_bins = contig_bins[:].loc[reordered_contigidx].reset_index(
+    #     drop=True)
     
     reordered_matrix = triu(reordered_matrix).tocoo()
 
-    chrom_pixels = {
+    # chrom_pixels = {
+    #     'bin1_id': reordered_matrix.row,
+    #     'bin2_id': reordered_matrix.col,
+    #     'count': reordered_matrix.data
+    # }
+    # chrom_pixels = pl.DataFrame(chrom_pixels).to_pandas()
+    chrom_pixels = pl.DataFrame({
         'bin1_id': reordered_matrix.row,
         'bin2_id': reordered_matrix.col,
-        'count': reordered_matrix.data
-    }
-
-    order_cool_path = f"{outprefix}.ordered.cool"
-    cooler.create_cooler(order_cool_path, reordered_contig_bins,
-                         chrom_pixels, dtypes=dtypes)#, metadata=HIC_METADATA)
-    logger.info('Successful, reorder the contig-level matrix, '
-                f' and output into `{outprefix}.ordered.cool`')
+        'count': reordered_matrix.data,
+    })
+    # order_cool_path = f"{outprefix}.ordered.cool"
+    # cooler.create_cooler(order_cool_path, reordered_contig_bins,
+    #                      chrom_pixels, dtypes=dtypes, triucheck=False,
+    #                      dupcheck=False, boundscheck=False)#, metadata=HIC_METADATA)
+    # logger.info('Successful, reorder the contig-level matrix, '
+    #             f' and output into `{outprefix}.ordered.cool`')
     
-    logger.info('Starting to convert contig bin to chromosome bin ...')
+    # logger.info('Starting to convert contig bin to chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
-    
-    sum_small_contig(order_cool_path, contig2chrom, chrom_bin_interval_df, 
+
+    sum_small_contig(chrom_pixels, contig2chrom, chrom_bin_interval_df, 
                      f'{outprefix}.chrom.cool', dtypes=dtypes)#, metadata=HIC_METADATA)
     logger.info('Successful, converted the contact into chromosome-level'
                 f' and output into `{outprefix}.chrom.cool`')
@@ -528,8 +572,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
 
-    logger.info(f'Removed `{order_cool_path}`')
-    os.remove(order_cool_path)
+    # logger.info(f'Removed `{order_cool_path}`')
+    # os.remove(order_cool_path)
     
     return f'{outprefix}.chrom.cool'
 

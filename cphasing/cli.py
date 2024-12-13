@@ -2315,6 +2315,15 @@ def alleles(fasta, output,
     show_default=True
 )
 @click.option(
+    "-w",
+    "--sketch-size",
+    metavar="INT",
+    type=int,
+    help="window size for wfmash",
+    default=19,
+    show_default=True
+)
+@click.option(
     "-s",
     "--segment-length",
     "segment_length",
@@ -2376,7 +2385,7 @@ def alleles(fasta, output,
     metavar='INT',
     show_default=True,
 )
-def alleles2(fasta, ploidy, kmer, segment_length, block_length,
+def alleles2(fasta, ploidy, kmer, sketch_size, segment_length, block_length,
                 identity, kmer_threshold, output_raw_table, output, threads):
     """
     Identify the allelic contigs by self-mapping, lower memory usage than alleles but more errors.
@@ -2388,6 +2397,7 @@ def alleles2(fasta, ploidy, kmer, segment_length, block_length,
     no_raw_table = False if output_raw_table else True
     aa = AlignmentAlleles(fasta, ploidy, 
                             k=kmer, 
+                            w=sketch_size,
                             s=segment_length,
                             l=block_length,
                             H=kmer_threshold,
@@ -2396,6 +2406,70 @@ def alleles2(fasta, ploidy, kmer, segment_length, block_length,
                             threads=threads, 
                             output=output)
     aa.run()
+
+@cli.command(cls=RichCommand, hidden=True,
+             short_help="Build allele table by self mapping, lower memory usage, but higher errors.")
+@click.option(
+    "-f",
+    "--fasta",
+    metavar="FILE",
+    help="polyploid contig-level fasta.",
+    type=click.Path(exists=True),
+    required=True
+)
+@click.option(
+    "-n",
+    "--ploidy",
+    help="ploidy level of genome.",
+    metavar="INT",
+    type=int,
+    default=10,
+)
+@click.option(
+    "-p",
+    "--map-pct-id",
+    "identity",
+    help="Percent identity in the wfmash",
+    metavar="INT",
+    type=click.IntRange(50, 100),
+    default=95,
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="PATH",
+    help="path of output allele table [default: fasta_prefix.allele.table]",
+    default=None
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=8,
+    metavar='INT',
+    show_default=True,
+)
+def alleles3(fasta, ploidy, 
+                identity, output, threads):
+    """
+    Identify the allelic contigs by self-mapping, lower memory usage than alleles but more errors.
+        
+        And, `-mao` of `hyperpartition` should be set to `0.8` and `-as` set to `0.95`.
+
+    """
+    from .alleles import ANIAlleles
+
+    aa = ANIAlleles(fasta, ploidy, 
+                            percent=identity,
+                            threads=threads, 
+                            output=output)
+    
+    aa.run()
+
+
+
 
 
 
@@ -4693,7 +4767,7 @@ def pairs2cool(pairs, chromsize, outcool,
     '--threads',
     help='Number of threads. (unused)',
     type=int,
-    default=4,
+    default=8,
     metavar='INT',
     show_default=True,
 )
@@ -4938,9 +5012,13 @@ def plot(matrix,
         else:
             logger.warning("Only coarsen the input matrix.")
 
+    if not cooler.fileops.is_cooler(matrix):
+        logger.error(f"Input file `{matrix}` is not a cool file.")
+        sys.exit(-1)
+        
     cool_binsize = cooler.Cooler(matrix).info['bin-size']
-    
-
+   
+        
     if binsize is None and agp is not None:
         binsize = "500k"
 

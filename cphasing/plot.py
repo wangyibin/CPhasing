@@ -35,7 +35,7 @@ from scipy.sparse import triu
 from .agp import import_agp
 from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
 
-from line_profiler import profile 
+# from line_profiler import profile 
 
 logger = logging.getLogger(__name__)
 
@@ -355,7 +355,7 @@ class sumSmallContig(object):
 
         self.pixels = chrom_pixels
 
-    @profile
+    # @profile
     def _aggregate(self, span):
 
         # cool = cooler.Cooler(self.cool_path)
@@ -1013,7 +1013,7 @@ def plot_heatmap_core(matrix,
                         chromnames=None,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
-                        triangle=True,
+                        triangle=False,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
                         rotate_xticks=False, rotate_yticks=False,

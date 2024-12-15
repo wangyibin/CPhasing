@@ -15,10 +15,10 @@ except ImportError:
     pass
 
 import cooler
-import concurrent.futures
 import numpy as np
 import pandas as pd
 import polars as pl
+import pyranges as pr
 
 from collections import OrderedDict
 from math import ceil
@@ -35,7 +35,7 @@ from scipy.sparse import triu
 from .agp import import_agp
 from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
 
-# from line_profiler import profile 
+from line_profiler import profile 
 
 logger = logging.getLogger(__name__)
 
@@ -82,27 +82,25 @@ def get_bins(bin_size, chrom_size, start=0, orientation="+",
     [('Chr2', 0, 23333)]
     """
     bin_intervals = []
-    chrom_size_dict = dict(chrom_size)
+    # chrom_size_dict = dict(chrom_size)
+    # if region:
+    #     tmp = []
+    #     for chroms in chrom_size:
+    #         chrom, size = chroms
+    #         if chrom == region:
+    #             tmp.append(chroms)
+    #     chrom_size = tmp 
+
     if region:
-        # chrom_size = [(region, chrom_size_dict[region])]
-        tmp = []
-        for chroms in chrom_size:
-            chrom, size = chroms
-            if chrom == region:
-                tmp.append(chroms)
-        chrom_size = tmp 
+        chrom_size = [(chrom, size) for chrom, size in chrom_size if chrom == region]
     
     for chrom, size in chrom_size:
         length = size - start
-        if orientation == "-":
-      
-            if length % bin_size > 0:
+        if orientation == "-" and length % bin_size > 0:
                 old_start = start 
                 start = start + (length % bin_size)
                 bin_intervals.append((chrom, old_start, start))
-        # for interval in range(start, size, bin_size):
-        #         bin_intervals.append((chrom, interval, 
-        #                             min(size, interval + bin_size)))
+
         bin_intervals.extend(
             (chrom, interval, min(size, interval + bin_size))
             for interval in range(start, size, bin_size)
@@ -168,7 +166,6 @@ def getContigIntervalTreeFromAGP(agp_df):
 
     return contig_bin_interval_tree
 
-
 def splitAGPByBinSize(agp_df, bin_size=1000):
     r"""
     split chromosome regions into specifial intervals for agp file
@@ -177,6 +174,7 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
     logger.debug("Binnify the agp ...")
     agp_df['start'] -= 1
     agp_df['tig_start'] = agp_df['tig_start'].astype(int) - 1
+    
     def process_row(row):
         if int(row.end - row.start + 1) <= bin_size:
             return pd.DataFrame([row])
@@ -191,15 +189,28 @@ def splitAGPByBinSize(agp_df, bin_size=1000):
             rows = []
             for (_, start, end), (_, tig_start, tig_end) in \
                     zip(tmp_chrom_bins, tmp_contig_bins):
-                tmp_row = row.copy()
-                tmp_row[['start', 'end', 'tig_start', 'tig_end']] = start, \
-                        end, tig_start, tig_end
+                # tmp_row = row.copy()
+                # tmp_row[['start', 'end', 'tig_start', 'tig_end']] = start, \
+                #         end, tig_start, tig_end
                
-                rows.append(tmp_row)
+                # rows.append(tmp_row)
+                rows.append({
+                'chrom': row.name,
+                'start': start,
+                'end': end,
+                'number': row.number,
+                'type': row.type,
+                'id': row.id,
+                'tig_start': tig_start,
+                'tig_end': tig_end,
+                'orientation': row.orientation
+                })
+
 
         return pd.DataFrame(rows)
 
     res_df = pd.concat(agp_df.parallel_apply(process_row, axis=1).tolist())
+    res_df.set_index('chrom', inplace=True)
 
     return res_df
           
@@ -229,32 +240,56 @@ def findIntersectRegion(a, b, fraction=0.51):
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     logger.debug("Get the coordinates of contig on chrom.")
-    _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    # _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    # _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    # _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
 
-    chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
+    # chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
 
-    contig_on_chrom_bins.to_csv(_file2.name,
-                                sep='\t', index=True, header=None)
+    # contig_on_chrom_bins.to_csv(_file2.name,
+    #                             sep='\t', index=True, header=None)
 
-    os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
-        _file1.name, _file2.name, _file3.name))
+    # os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
+    #     _file1.name, _file2.name, _file3.name))
 
-    df = pd.read_csv(_file3.name, sep='\t',
-                     header=None, index_col=None,
-                     dtype={9: 'category'})
+    # df = pd.read_csv(_file3.name, sep='\t',
+    #                  header=None, index_col=None,
+    #                  dtype={9: 'category'})
     
-    _file1.close()
-    _file2.close()
-    _file3.close()
+    # _file1.close()
+    # _file2.close()
+    # _file3.close()
 
-    df = df[~df.where(df == '.').any(axis=1)]
-    df.drop([3, 4, 5, 10], axis=1, inplace=True)
-    df.columns = ['chrom', 'start', 'end', 'contig',
-                  'tig_start', 'tig_end', 'orientation']
+    # df = df[~df.where(df == '.').any(axis=1)]
+    # df.drop([3, 4, 5, 10], axis=1, inplace=True)
+    # df.columns = ['chrom', 'start', 'end', 'contig',
+    #               'tig_start', 'tig_end', 'orientation']
+
+
+    # return df 
+
+    _contig_on_chrom_bins = contig_on_chrom_bins.reset_index()
+    _chrom_bins = chrom_bins.copy()
+    _chrom_bins.reset_index(inplace=True)
+    _chrom_bins.columns = ['Index', 'Chromosome', 'Start', 'End']
+    _contig_on_chrom_bins.columns = ['Chromosome', 'Start', 'End', 'Contig',
+                                    'Tig_start', 'Tig_end', 'Orientation']
     
-    return df
+    gr1 = pr.PyRanges(_chrom_bins)
+    gr2 = pr.PyRanges(_contig_on_chrom_bins)
+    res_df = gr1.join(gr2, report_overlap=True, how='right', preserve_order=True).df 
+    res_df.sort_values(by=['Index'], inplace=True)
+    res_df['Length'] = res_df['End_b'] - res_df['Start_b']
+    res_df['Fraction'] = res_df['Overlap'] / res_df['Length']
+    res_df = res_df[res_df['Fraction'] >= 0.5]
+    res_df.drop(['Overlap', 'Length', 'Fraction', 'Index'], axis=1, inplace=True)
+    res_df.drop(['Start_b', 'End_b'], axis=1, inplace=True)
+    res_df.columns = ['chrom', 'start', 'end', 'contig',
+                      'tig_start', 'tig_end', 'orientation']
+    
+    res_df.reset_index(drop=True, inplace=True)
+   
+    return res_df
 
 def chrRangeID(args, axis=0):
     """
@@ -291,7 +326,7 @@ class sumSmallContig(object):
     Sum small conitg count into one chromosome bin
     """
     def __init__(self, chrom_pixels, contig2chrom, edges,
-                    columns, map, batchsize=5000):
+                    columns, map, batchsize=10000):
 
         self._map = map
         # self.cool_path = cool_path
@@ -320,35 +355,26 @@ class sumSmallContig(object):
 
         self.pixels = chrom_pixels
 
+    @profile
     def _aggregate(self, span):
 
         # cool = cooler.Cooler(self.cool_path)
     
-        pixels = self.pixels
+        # pixels = self.pixels
         # pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)
         contig2chrom_index = self.contig2chrom_index
-
         lo, hi = span
-        # chunk = pixels[lo: hi+1]
-        # chunk = pixels[np.logical_and(pixels['bin1_id'] >= lo, pixels['bin1_id'] < hi)]
         
-        chunk = pixels.filter(pl.col('bin1_id').is_between(lo, hi))
-       
-        # old_bin1_id, old_bin2_id = chunk['bin1_id'].values, chunk['bin2_id'].values
-        
-        # chunk['bin1_id'] = np.searchsorted(contig2chrom_index, old_bin1_id, 
-        #                                     side='right') - 1
-        # chunk['bin2_id'] = np.searchsorted(contig2chrom_index, old_bin2_id, 
-        #                                     side='right') - 1
+        chunk = self.pixels.filter(pl.col('bin1_id').is_between(lo, hi))
         
         new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
         new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
+
         chunk = chunk.with_columns([
             pl.Series('bin1_id', new_bin1_id),
             pl.Series('bin2_id', new_bin2_id)
         ])
 
-        
         if self.agg['count'] == 'sum':
             result = (chunk.group_by(self.index_columns, maintain_order=True)
                         .agg(pl.sum('count')).to_pandas().reset_index())
@@ -386,13 +412,12 @@ class sumSmallContig(object):
             for df in results:
                 yield {k: v.values for k, v in df.items()}
                 
-
 def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output, 
                 dtypes=None, columns=['count'], threads=1, **kwargs):
     from cooler.create import create
 
     # cool = cooler.Cooler(cool_path)
-   
+
     chrom_counts = new_bins['chrom'].value_counts().sort_index()
     edges = np.r_[0, np.cumsum(chrom_counts)]
     # edges = np.r_[0, np.cumsum(new_bins.groupby(
@@ -412,12 +437,22 @@ def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output,
             pool = Pool(threads)
             kwargs.setdefault('lock', lock)
         
-        iterator = sumSmallContig(chrom_pixels, 
-            contig2chrom,
-            edges,
-            columns,
-            map=pool.map if threads > 1 else map, 
-        )
+            # from mpire import WorkerPool
+            # with WorkerPool(threads) as pool:
+        
+            iterator = sumSmallContig(chrom_pixels, 
+                contig2chrom,
+                edges,
+                columns,
+                map=pool.map if threads > 1 else map, 
+            )
+        else:
+            iterator = sumSmallContig(chrom_pixels, 
+                    contig2chrom,
+                    edges,
+                    columns,
+                    map=map, 
+                )
 
         #kwargs.setdefault("append", True)
     
@@ -533,11 +568,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     # reorder matrix 
     reordered_contigidx = contig2chrom['contigidx'].values
-
     reordered_matrix = matrix[:].tocsr(
                          )[:, reordered_contigidx][reordered_contigidx, :]
-    # reordered_contig_bins = contig_bins[:].loc[reordered_contigidx].reset_index(
-    #     drop=True)
     
     reordered_matrix = triu(reordered_matrix).tocoo()
 
@@ -559,7 +591,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     # logger.info('Successful, reorder the contig-level matrix, '
     #             f' and output into `{outprefix}.ordered.cool`')
     
-    # logger.info('Starting to convert contig bin to chromosome bin ...')
+    logger.info('Starting to convert contig bin to chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
     contig2chrom = contig2chrom.reset_index().set_index('chromidx')
 
@@ -569,10 +601,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                 f' and output into `{outprefix}.chrom.cool`')
     
 
-    logger.info('Successful, adjusted matrix, elasped time {:.2f}s'.format(time.time() - start_time))
-
-    # logger.info(f'Removed `{order_cool_path}`')
-    # os.remove(order_cool_path)
+    logger.info('Successful, adjusted matrix to chromosome-level, elasped time {:.2f}s'.format(time.time() - start_time))
     
     return f'{outprefix}.chrom.cool'
 
@@ -725,7 +754,6 @@ def plot_heatmap(matrix, output,
 
     logger.info("Plotting heatmap ...")
 
-
     if not per_chromosomes:
         chrom_offset = cool._load_dset('indexes/chrom_offset')
         chromsizes = cool.chromsizes
@@ -816,8 +844,13 @@ def plot_heatmap(matrix, output,
         factor = np.log2(round((matrix.shape[0] * binsize) / 1e9  + 1, 2)) + 1
     
         logger.debug(f"Figure factor is `{factor}`")
-        fig_width = round(7 * factor, 2) 
-        fig_height = round(8 * factor, 2)
+        if triangle:
+            fig_width = round(7 * factor, 2) 
+            fig_height = round(3.2 * factor, 2)
+        else:
+            fig_width = round(7 * factor, 2) 
+            fig_height = round(8 * factor, 2)
+
         logger.info(f"Set figsize: (W: {fig_width},H: {fig_height})")
         plt.rcParams['font.family'] = 'Arial'
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
@@ -841,7 +874,7 @@ def plot_heatmap(matrix, output,
     
     else: 
         ax = plot_per_chromosome_heatmap(cool, chromosomes,
-                                         chrom_per_row=chrom_per_row,
+                                         chrom_per_row=chrom_per_row, triangle=triangle,
                                         cmap=cmap, balanced=balanced, threads=threads)
 
     logger.info(f"Set dpi to `{dpi}`.")
@@ -853,7 +886,7 @@ def plot_heatmap(matrix, output,
 
 
 def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, 
-                                    chrom_per_row=4, remove_short_bin=True,
+                                    chrom_per_row=4, remove_short_bin=True, triangle=False,
                                     cmap='redp1_r', balanced=False, threads=1):
     """
     modified from hicPlotMatrix plotPerChr
@@ -908,11 +941,24 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
                                 width_ratios=width_ratios,
                                 height_ratios=[1] * num_rows)
 
-    fig_height = 6 * num_rows
-    fig_width = sum((np.array(width_ratios) + 0.05) * 6)
-    
+    if triangle:
+        grids = gridspec.GridSpec(num_rows, num_cols + 1,
+                                width_ratios=width_ratios,
+                                height_ratios=[1] * num_rows,
+                                hspace=0.4, wspace=0.1)
+     
+        fig_height = 3.8 * num_rows
+        fig_width = 7 * num_cols
+        fig = plt.figure(figsize=(fig_width, fig_height))
 
-    fig = plt.figure(figsize=(fig_width, fig_height))
+    else:
+        grids = gridspec.GridSpec(num_rows, num_cols + 1,
+                                width_ratios=width_ratios,
+                                height_ratios=[1] * num_rows)
+        fig_height = 6 * num_rows
+        fig_width = sum((np.array(width_ratios) + 0.05) * 6)
+        
+        fig = plt.figure(figsize=(fig_width, fig_height))
 
     def _plot(ax, chrom, matrix, chrom_range):
         chrom_matrix = matrix[chrom_range[0]:chrom_range[1], :][:, chrom_range[0]:chrom_range[1]]
@@ -944,7 +990,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
 
         plot_heatmap_core(chrom_matrix, ax, bins=bins, chrom_offset=chrom_offset,
-                          norm=norm, xlabel=chrom, 
+                          norm=norm, xlabel=chrom, triangle=triangle,
                             cmap=cmap, xticks=False, yticks=False)
     args = []
     for i, chrom in enumerate(chromosomes):
@@ -1041,7 +1087,7 @@ def plot_heatmap_core(matrix,
         #             bottom=0.1, top=0.9, hspace=0.04, height_ratios=[5])
         # ax = fig.add_subplot(grid[0])
         add_lines = False
-        fig, ax = plt.subplots(figsize=(7, 3.2))
+        # fig, ax = plt.subplots(figsize=(7, 3.2))
         n = matrix.shape[0]
         t = np.array([[1, 0.5], [-1, 0.5]])
         A = np.dot(np.array([(i[1], i[0]) for i in product(range(n, -1, -1),range(0, n+1, 1))]), t)

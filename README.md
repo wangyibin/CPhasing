@@ -56,8 +56,6 @@ export PATH=/path/to/CPhasing/bin:$PATH
 ```
 #### Dependencies
 1. For core function
-    - [bedtools](https://bedtools.readthedocs.io/en/latest/)
-    - [seqkit](https://bioinf.shenwei.me/seqkit/)
     - [pigz](https://github.com/madler/pigz)
 2. For Pore-C pipeline
     - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# This script activates the cphasing environment by pixi 
+
+if [ -f $HOME/.pixi/bin/pixi ]; then
+    export PATH=$HOME/.pixi/bin:$PATH
+fi
+
+
+script_dir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+software_dir="$(dirname "$script_dir")"
+
+
+if [ ! -f $software_dir/pixi.toml ]; then
+    echo "pixi.toml not found in $software_dir"
+    exit 1
+fi
+
+is_tty=$(tty)   
+
+if [ "$is_tty" == "not a tty" ]; then
+    source deactivate
+else 
+    source deactivate
+fi
+

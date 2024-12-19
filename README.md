@@ -26,7 +26,7 @@ The advantages of `C-Phasing`:
 git clone https://github.com/wangyibin/CPhasing.git
 
 ## activate environment (For the first configuration, run it when the network is accessible.)
-./CPhasing/bin/activate_cphasing
+source ./CPhasing/bin/activate_cphasing
 ```
 
 ### Via Anaconda

@@ -17,14 +17,18 @@ The advantages of `C-Phasing`:
     ```shell
     git clone https://github.com/wangyibin/CPhasing.git 
     
-    ./CPhasing/bin/activate_cphasing
+    ### activate environment
+    source ./CPhasing/bin/activate_cphasing
+
+    ### deactivate
+    source deactivate 
     ```
     !!! note
         For the first configuration, run it when the network is accessible.
     
     !!! note
         If you do not have direct access to the anaconda repository, you can set the mirror for pixi.
-        
+
 
 === "conda"
     Download the CPhasing and install environment by conda

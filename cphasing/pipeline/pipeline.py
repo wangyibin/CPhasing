@@ -661,16 +661,16 @@ def run(fasta,
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
             if low_memory or mapping_quality > 0:
-                hg_input = f"{pairs_prefix}.q{min_quality1}.pairs.gz"
+                hg_input = f"{pairs_prefix}.q{mapping_quality}.pairs.gz"
                 filtered_pairs = hg_input
                 if not Path(hg_input).exists():
                     cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
-                        "-o", hg_input , "-q", str(min_quality1)]
+                        "-o", hg_input , "-q", str(mapping_quality)]
                     flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
                     assert flag == 0, "Failed to execute command, please check log."
                 else:
                     logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
-
+                prepare_input = hg_input
 
     if (not Path(prepare_input).exists() and (hic1 is None )) or is_compressed_table_empty(prepare_input):
         logger.info("Generating pairs file ...")

@@ -34,7 +34,7 @@ then
     fi
 fi
 
-script_dir="$(dirname "$(realpath "$0")")"
+script_dir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 software_dir="$(dirname "$script_dir")"
 
 
@@ -51,5 +51,18 @@ fi
 export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
 export PATH=$software_dir/bin:$PATH
 export PYTHONPATH=$software_dir:$PYTHONPATH
+unset PERL5LIB
 
-pixi shell --manifest-path $software_dir/pixi.toml --no-install
+is_tty=$(tty)   
+
+if [ "$is_tty" == "not a tty" ]; then
+    export PS1="(CPhasing) $PS1"
+    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env
+    . $software_dir/.pixi/envs/default/.env
+else 
+    # export PS1="(CPhasing) $PS1"
+    # pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env
+    # . $software_dir/.pixi/envs/default/.env
+    pixi shell --manifest-path $software_dir/pixi.toml --no-install
+fi
+

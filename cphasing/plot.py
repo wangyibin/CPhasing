@@ -7,6 +7,7 @@ import sys
 import time
 import tempfile
 import warnings
+import gc
 
 try:
     from pandas.core.common import SettingWithCopyWarning
@@ -326,7 +327,7 @@ class sumSmallContig(object):
     Sum small conitg count into one chromosome bin
     """
     def __init__(self, chrom_pixels, contig2chrom, edges,
-                    columns, map, batchsize=10000):
+                    columns, map, batchsize=5000):
 
         self._map = map
         # self.cool_path = cool_path
@@ -369,12 +370,14 @@ class sumSmallContig(object):
         
         new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
         new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
+        
 
         chunk = chunk.with_columns([
             pl.Series('bin1_id', new_bin1_id),
             pl.Series('bin2_id', new_bin2_id)
         ])
 
+        chunk = chunk.filter((pl.col('bin1_id') >= 0) & (pl.col('bin2_id') >= 0))
         if self.agg['count'] == 'sum':
             result = (chunk.group_by(self.index_columns, maintain_order=True)
                         .agg(pl.sum('count')).to_pandas().reset_index())
@@ -550,6 +553,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Starting to reorder matrix ...')
 
     matrix = cool.matrix(balance=False, sparse=True)
+  
     dtypes = dict(cool.pixels().dtypes)
     
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
@@ -573,17 +577,14 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     reordered_matrix = triu(reordered_matrix).tocoo()
 
-    # chrom_pixels = {
-    #     'bin1_id': reordered_matrix.row,
-    #     'bin2_id': reordered_matrix.col,
-    #     'count': reordered_matrix.data
-    # }
-    # chrom_pixels = pl.DataFrame(chrom_pixels).to_pandas()
     chrom_pixels = pl.DataFrame({
         'bin1_id': reordered_matrix.row,
         'bin2_id': reordered_matrix.col,
         'count': reordered_matrix.data,
     })
+    
+    del reordered_matrix
+    gc.collect()
     # order_cool_path = f"{outprefix}.ordered.cool"
     # cooler.create_cooler(order_cool_path, reordered_contig_bins,
     #                      chrom_pixels, dtypes=dtypes, triucheck=False,

@@ -52,7 +52,7 @@ def main(args):
     agp_df, _ = import_agp(args.agp)
     dup_contigs = get_dup_contig_in_agp(agp_df)
     breaked_contigs = get_breaked_contig_in_agp(agp_df)
-
+    
     gff_df = gffpd.read_gff3(args.gff).df
     regex = re.compile(r'ID=(.*?);')
     dup_df_list = []
@@ -102,8 +102,23 @@ def main(args):
     gff_gr = pr.PyRanges(gff_bed)
     region_gr = pr.PyRanges(region_df)
     breaked_df = gff_gr.join(region_gr).new_position('intersection').df
-
+    breaked_df['Start'] = breaked_df['Start'].astype(int) - breaked_df['Start_b'].astype(int) + 1
+    breaked_df['End'] = breaked_df['End'].astype(int) - breaked_df['Start_b'].astype(int)  + 1 
+    
+    breaked_df['Chromosome'] = breaked_df['ID']
+    breaked_df.drop(['Start_b', 'End_b', 'ID'], axis=1, inplace=True)
+    
     duplicated_df = breaked_df[breaked_df['Index'].duplicated(keep=False)]
+
+
+    tmp_df = gff_df.loc[breaked_df['Index'].values]
+    tmp_df['seq_id'] = breaked_df['Chromosome'].values
+    tmp_df['start'] = breaked_df['Start'].values
+    tmp_df['end'] = breaked_df['End'].values
+
+    gff_df.loc[breaked_df['Index'].values] = tmp_df
+
+
 
     if duplicated_df.empty:
         print("No breaked gene in gff file.", file=sys.stderr)
@@ -114,7 +129,7 @@ def main(args):
         # need_to_drop_df.to_csv(sys.stderr, sep="\t", index=False, header=False)
 
         ## for TE gff3
-        gff_df = gff_df.drop(duplicated_df['Index'].values)
+        # gff_df = gff_df.drop(duplicated_df['Index'].values)
     
     if dup_df_list:
        

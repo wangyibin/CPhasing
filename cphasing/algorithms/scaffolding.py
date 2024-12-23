@@ -30,7 +30,7 @@ import scipy
 import shutil
 
 from collections import defaultdict, OrderedDict
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 from itertools import combinations, permutations, product
 from pathlib import Path
 from pytools import natsorted
@@ -501,13 +501,20 @@ class AllhicOptimize:
             contigs = self.clustertable.data[group]
             args.append((group, contigs, self.count_re, self.allhic_path, workdir))
         
-        with multiprocessing.get_context('spawn').Pool(processes=min(10, self.threads)) as pool:
+        with multiprocessing.Pool(processes=min(10, self.threads)) as pool:
             args = pool.map(AllhicOptimize._process_group, args)
  
         AllhicOptimize.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
         
+        total_cpu_of_machine = cpu_count()
+        if self.threads * 4 > total_cpu_of_machine:
+            threads = self.threads // 4
+            logger.info(f"Use {threads} threads to run optimize.")
+        else:
+            threads = self.threads
+
         logger.info("Running scaffolding in each group ...")
-        tour_res = Parallel(n_jobs=min(len(args), self.threads))(delayed(
+        tour_res = Parallel(n_jobs=min(len(args), threads))(delayed(
                         self._run)(i, j, k, l) for i, j, k, l in args)
         
         os.chdir(workdir)
@@ -691,7 +698,7 @@ class HapHiCSort:
             contigs = self.clustertable.data[group]
             args.append((group, contigs, self.count_re, self.allhic_path, workdir))
         
-        with multiprocessing.get_context('spawn').Pool(processes=min(4, self.threads)) as pool:
+        with multiprocessing.Pool(processes=min(4, self.threads)) as pool:
             pool.map(HapHiCSort._process_group, args)
         # for group in self.clustertable.data.keys():
         #     contigs = self.clustertable.data[group]
@@ -701,15 +708,21 @@ class HapHiCSort:
         
         HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
 
+        total_cpu_of_machine = cpu_count()
+        if self.threads * 4 > total_cpu_of_machine:
+            threads = total_cpu_of_machine // 4
+            logger.info(f"Use {threads} threads to run optimize.")
+        else:
+            threads = self.threads
         HapHiCSort._run(self.count_re_path, self.split_contacts, "./", 
-                            skip_allhic=self.skip_allhic, threads=self.threads,
+                            skip_allhic=self.skip_allhic, threads=threads,
                             log_dir=self.log_dir)
         
         os.chdir(workdir)
 
         tour_res = glob.glob("./*.tour")
         if len(tour_res) == 0:
-            logger.warn("Failed to run HapHiC sort, please check log file in logs.")
+            logger.warning("Failed to run HapHiC sort, please check log file in logs.")
             sys.exit(-1)
 
 

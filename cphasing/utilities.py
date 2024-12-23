@@ -964,3 +964,31 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
     with open(output, 'w') as out:
         out.write(cmd)
 
+
+def recommend_binsize_by_genomesize(genomesize):
+    """
+    Recommend the binsize by genome size.
+    """
+    
+    if genomesize < 5e8:
+        binsize = 100000 
+        init_binsize = 10000
+
+    elif genomesize < 5e9:
+        binsize = 500000
+        init_binsize = 50000
+    
+    elif genomesize < 2e10:
+        binsize = 1000000
+        init_binsize = 50000
+    
+    elif genomesize < 5e10:
+        binsize = 2000000
+        init_binsize = 100000
+
+    else:
+        binsize = 5000000
+        init_binsize = 100000
+    
+    return init_binsize, binsize
+

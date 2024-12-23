@@ -837,7 +837,7 @@ def cli(verbose, quiet):
     '--binsize',
     metavar='STR',
     help='Bin size of the heatmap you want to plot. Enabled suffix with [k, m].',
-    default='500k',
+    default='auto',
     show_default=True
 )
 @click.option(
@@ -985,7 +985,7 @@ def pipeline(fasta,
     else:
         steps = set(map(str, [0, 1, 2, 3, 4]))
 
-
+    binsize = binsize.lower()
 
     if skip_steps:
         skip_steps = set(skip_steps.strip().split(","))

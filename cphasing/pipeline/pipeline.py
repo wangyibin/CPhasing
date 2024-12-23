@@ -22,6 +22,8 @@ from .. import __version__
 from ..utilities import (
     run_cmd, 
     calculate_Nx_from_contigsizes,
+    to_humanized2,
+    recommend_binsize_by_genomesize,
     read_chrom_sizes,
     is_empty,
     is_compressed_table_empty,
@@ -683,7 +685,8 @@ def run(fasta,
 
     alleles_dir = str("1.alleles")
     
-
+    genomesize = read_chrom_sizes(contigsizes)['length'].sum()
+    logger.info(f"Total contig-level assembly size: {to_humanized2(genomesize)}")
     if "1" not in skip_steps and "1" in steps:
         logger.info("""
 #----------------------------------#
@@ -1005,7 +1008,7 @@ def run(fasta,
         
         os.chdir("..")
 
-    out_small_cool = f"{pairs_prefix}.q{min_quality1}.10000.cool"
+   
 
     plot_dir = str("5.plot")
     
@@ -1017,6 +1020,14 @@ def run(fasta,
         Path(plot_dir).mkdir(exist_ok=True)
 
         os.chdir(plot_dir)
+        if binsize == "auto" or binsize is None:
+            init_binsize, binsize = recommend_binsize_by_genomesize(genomesize)
+            
+            logger.info(f"Recommended binsize: `{to_humanized2(binsize)}`, initial binsize: `{to_humanized2(init_binsize)}`")
+        else:
+            init_binsize = 10000
+
+        out_small_cool = f"{pairs_prefix}.q{min_quality1}.{init_binsize}.cool"
         _out_sh = open('plot.cmd.sh', 'w')
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
@@ -1025,7 +1036,9 @@ def run(fasta,
                     f"../{contigsizes}",
                     out_small_cool,
                     "-q", 
-                    min_quality1
+                    min_quality1,
+                    "-bs",
+                    init_binsize,
                     ]
             _out_sh.write("# cphasing pairs2cool ")
             _out_sh.write(" ".join(map(str, args)))
@@ -1040,7 +1053,9 @@ def run(fasta,
                     f"../{contigsizes}",
                     out_small_cool,
                     "-q", 
-                    min_quality1
+                    min_quality1,
+                    "-bs",
+                    init_binsize,
                     ]
             _out_sh.write("cphasing pairs2cool ")
             _out_sh.write(" ".join(map(str, args)))

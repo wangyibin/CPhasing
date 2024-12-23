@@ -203,6 +203,7 @@ class HyperPartition:
                                     (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
                             [['contig1', 'contig2']].values)
                             )
+        
         # if allelic_factor is not None:
         #     self.allelic_factor_df = self.prune_pair_df[
         #         (self.prune_pair_df['type'] == 0)][['contig1', 'contig2', 'similarity']]
@@ -793,6 +794,7 @@ class HyperPartition:
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
         
+        self.P_allelic_idx, self.P_weak_idx = None, None
         A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
                                           self.NW,
                                           self.allelic_factor, self.min_weight)

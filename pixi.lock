@@ -209,7 +209,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pillow-11.0.0-py312h7b63e92_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pixman-0.43.2-h59595ed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.3.6-pyhd8ed1ab_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/polars-1.16.0-py312hfe7c9be_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/polars-1.17.1-py312hda0fa55_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/portion-2.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/psutil-6.1.0-py312h66e93f0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pthread-stubs-0.4-hb9d3cd8_1002.conda
@@ -225,7 +225,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyside6-6.8.0.2-py312h91f0f75_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pysocks-1.7.1-pyha2e5f31_6.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pytables-3.10.1-py312h1d844bd_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.2-hab00c5b_0_cpython.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.0-hab00c5b_0_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhff2d567_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/python-igraph-0.11.8-py312h3262465_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/python-tzdata-2024.2-pyhd8ed1ab_0.conda
@@ -4907,12 +4907,12 @@ packages:
   timestamp: 1726613611845
 - kind: conda
   name: polars
-  version: 1.16.0
-  build: py312hfe7c9be_0
+  version: 1.17.1
+  build: py312hda0fa55_0
   subdir: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/polars-1.16.0-py312hfe7c9be_0.conda
-  sha256: fcb55f905baa76d7b23d54c0c048bb75b7ae86abbf522f81c6ce63ea1145b1cb
-  md5: d772cdf6b9b7ba0bfd73f506af0d0bd9
+  url: https://conda.anaconda.org/conda-forge/linux-64/polars-1.17.1-py312hda0fa55_0.conda
+  sha256: 0ffd14a4f73ee1b24b2342a84295f8fb5f1848711865d55676515a1aac66f554
+  md5: 7ac74b8f85b43224508108f850617dad
   depends:
   - __glibc >=2.17,<3.0.a0
   - libgcc >=13
@@ -4924,10 +4924,8 @@ packages:
   - __glibc >=2.17
   license: MIT
   license_family: MIT
-  purls:
-  - pkg:pypi/polars?source=hash-mapping
-  size: 25170391
-  timestamp: 1732908667759
+  size: 25634166
+  timestamp: 1733806684601
 - kind: conda
   name: portion
   version: 2.5.0
@@ -5347,25 +5345,24 @@ packages:
   timestamp: 1724161235586
 - kind: conda
   name: python
-  version: 3.12.2
+  version: 3.12.0
   build: hab00c5b_0_cpython
   subdir: linux-64
-  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.2-hab00c5b_0_cpython.conda
-  sha256: ddb7a2d8d78046bda5d7631e6814f9468d2eb054e10f86f4648c9d1fdaa30c0f
-  md5: ad7b68400f3a6ebe72b00be093c7f301
+  url: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.0-hab00c5b_0_cpython.conda
+  sha256: 5398ebae6a1ccbfd3f76361eac75f3ac071527a8072627c4bf9008c689034f48
+  md5: 7f97faab5bebcc2580f4f299285323da
   depends:
   - bzip2 >=1.0.8,<2.0a0
   - ld_impl_linux-64 >=2.36.1
   - libexpat >=2.5.0,<3.0a0
   - libffi >=3.4,<4.0a0
   - libgcc-ng >=12
-  - libnsl >=2.0.1,<2.1.0a0
-  - libsqlite >=3.45.1,<4.0a0
+  - libnsl >=2.0.0,<2.1.0a0
+  - libsqlite >=3.43.0,<4.0a0
   - libuuid >=2.38.1,<3.0a0
-  - libxcrypt >=4.4.36
   - libzlib >=1.2.13,<2.0.0a0
   - ncurses >=6.4,<7.0a0
-  - openssl >=3.2.1,<4.0a0
+  - openssl >=3.1.3,<4.0a0
   - readline >=8.2,<9.0a0
   - tk >=8.6.13,<8.7.0a0
   - tzdata
@@ -5373,9 +5370,8 @@ packages:
   constrains:
   - python_abi 3.12.* *_cp312
   license: Python-2.0
-  purls: []
-  size: 32312631
-  timestamp: 1708118077305
+  size: 32123473
+  timestamp: 1696324522323
 - kind: conda
   name: python
   version: 3.12.7

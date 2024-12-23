@@ -572,6 +572,9 @@ class PruneTable:
         except pd.errors.ParserError:
             logger.error("Incorrect format of prune table.")
             sys.exit(-1)
+        except ValueError:
+            logger.error("Incorrect format of prune table.")
+            sys.exit(-1)
 
         return data
     

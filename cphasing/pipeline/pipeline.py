@@ -27,7 +27,8 @@ from ..utilities import (
     read_chrom_sizes,
     is_empty,
     is_compressed_table_empty,
-    generate_to_hic_cmd
+    generate_to_hic_cmd,
+    generate_plot_cmd
     )
 
 
@@ -79,7 +80,9 @@ def run(fasta,
         init_resolution2=1,
         first_cluster=None,
         normalize=False,
+        disable_merge_in_first=False,
         exclude_group_to_second=None,
+        exclude_group_from_first=None,
         allelic_similarity=0.85,
         min_allelic_overlap=0.3,
         min_weight=0.1,
@@ -524,7 +527,6 @@ def run(fasta,
         if porec_table or not use_pairs:
             # hg_input = f"{porec_prefix}_hcr.porec.gz"
             prepare_input = f"{porec_prefix}.pairs.gz"
-            
            
             try:
                 if hcr_invert_string:
@@ -541,8 +543,8 @@ def run(fasta,
                                 collapsed_contig_ratio,
                                 "-bs",
                                 hcr_bs,
-                                # "-b",
-                                # hcr_bed,
+                                "-b",
+                                hcr_bed,
                                 "-q",
                                 min_quality1,
                                 hcr_invert_string
@@ -563,8 +565,8 @@ def run(fasta,
                                 collapsed_contig_ratio,
                                 "-bs",
                                 hcr_bs,
-                                # "-b",
-                                # hcr_bed,
+                                "-b",
+                                hcr_bed,
                                 
                         ],
                         prog_name="hcr"
@@ -578,15 +580,15 @@ def run(fasta,
                 if exit_code != 0:
                     raise e
 
-            if not hcr_bed:
-                hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
-            else:
-                logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
-                cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed", ">", f".{porec_prefix}.{hcr_bs}.hcr.bed"]
-                os.system(" ".join(cmd))
+            # if not hcr_bed:
+            #     hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
+            # else:
+            #     logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
+            #     cmd = ["bedtools", "intersect", "-a", hcr_bed, "-b", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed", ">", f".{porec_prefix}.{hcr_bs}.hcr.bed"]
+            #     os.system(" ".join(cmd))
 
-                shutil.move(f".{porec_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed")
-                hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
+            #     shutil.move(f".{porec_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed")
+            #     hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
         
         else:
             # hg_input = f"{pairs_prefix}_hcr.pairs.gz"
@@ -686,7 +688,7 @@ def run(fasta,
     alleles_dir = str("1.alleles")
     
     genomesize = read_chrom_sizes(contigsizes)['length'].sum()
-    logger.info(f"Total contig-level assembly size: {to_humanized2(genomesize)}")
+    logger.info(f"Total size of contig-level assembly: {to_humanized2(genomesize)}")
     if "1" not in skip_steps and "1" in steps:
         logger.info("""
 #----------------------------------#
@@ -851,8 +853,6 @@ def run(fasta,
                                 f"../{allele_table}" if allele_table else None,
                                 "-c",
                                 hyperpartition_contacts,
-                                "-n",
-                                n,
                                 "-r1",
                                 resolution1,
                                 "-ir1",
@@ -865,6 +865,8 @@ def run(fasta,
                                 first_cluster,
                                 "--exclude-group-to-second",
                                 exclude_group_to_second,
+                                "--exclude-group-from-first",
+                                exclude_group_from_first,
                                 "-as",
                                 allelic_similarity,
                                 "-mao",
@@ -884,9 +886,13 @@ def run(fasta,
                                 "-wl",
                                 whitelist,
                                 "-t",
-                                threads
+                                threads,
+                                "-n",
+                                n,
                             ]
         
+        if disable_merge_in_first:
+            hyperpartition_args.append("--disable-merge-in-first")
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
         if hyperpartition_normalize:
@@ -894,7 +900,7 @@ def run(fasta,
 
     
         if hcr_bed:
-            hyperpartition_args.extend(["--hcr-bed", f"../{hcr_dir}/{hcr_bed}"])
+            hyperpartition_args.extend(["--hcr-bed", f"{hcr_bed}"])
             if hcr_invert:
                 hyperpartition_args.append("--hcr-invert")
 
@@ -1028,7 +1034,6 @@ def run(fasta,
             init_binsize = 10000
 
         out_small_cool = f"{pairs_prefix}.q{min_quality1}.{init_binsize}.cool"
-        _out_sh = open('plot.cmd.sh', 'w')
         if Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
             args = [
@@ -1040,10 +1045,7 @@ def run(fasta,
                     "-bs",
                     init_binsize,
                     ]
-            _out_sh.write("# cphasing pairs2cool ")
-            _out_sh.write(" ".join(map(str, args)))
-            _out_sh.write("\n")
-            _out_sh.close()
+
         else:
             if filtered_pairs:
                 pairs = filtered_pairs
@@ -1057,10 +1059,7 @@ def run(fasta,
                     "-bs",
                     init_binsize,
                     ]
-            _out_sh.write("cphasing pairs2cool ")
-            _out_sh.write(" ".join(map(str, args)))
-            _out_sh.write("\n")
-            _out_sh.close()
+
             try:
                 
                 pairs2cool.main(args=args,
@@ -1089,18 +1088,17 @@ def run(fasta,
                 "-m",
                 out_small_cool,
                 "-o",
-                "groups.wg.png",
+                f"groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png",
                 "-bs",
                 binsize,
                 "-oc",
                 ]
         
-        _out_sh = open('plot.cmd.sh', 'a')
-        _out_sh.write("cphasing plot ")
-        _out_sh.write(" ".join(map(str, args)))
-        _out_sh.write("\n")
-        _out_sh.close()
- 
+        generate_plot_cmd(f"../{pairs}",
+                        f"../{contigsizes}",
+                        out_small_cool, f"../{scaffolding_dir}/{input_agp}", 
+                        min_quality1, init_binsize,
+                        binsize)
         try:
             plot.main(args=args,
                             prog_name='plot')

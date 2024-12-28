@@ -15,6 +15,12 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib.ticker import MaxNLocator
+from scipy.signal import find_peaks
 
 from collections import defaultdict, OrderedDict
 from itertools import product
@@ -25,7 +31,9 @@ from pathlib import Path
 try:
     from .algorithms.hypergraph import extract_incidence_matrix2 
     from .core import Tour
-    from .utilities import run_cmd, list_flatten, get_contig_size_from_fasta, read_chrom_sizes
+    from .utilities import (run_cmd, list_flatten, 
+                            get_contig_size_from_fasta, 
+                            read_chrom_sizes, xopen)
     from .agp import agp2cluster, import_agp, agp2tour
     from .cli import build
     from .cli import utils
@@ -37,6 +45,112 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+class CollapseFromGfa:
+    """
+    get collapsed contigs from gfa 
+    """
+    def __init__(self, gfa):
+        self.gfa = gfa
+
+    def parse_gfa(self):
+        length_db = {}
+        rd_db = {}
+        overlap_db = []
+        with xopen(self.gfa) as f:
+            for line in f:
+                if line.startswith("L"):
+                    parts = line.strip().split("\t")
+                    contig1, starnd1, contig2, strand2, overlap = parts[1], parts[2], parts[3], parts[4], parts[5]
+                    overlap = overlap.strip("M")
+                    overlap = int(overlap)
+
+                    overlap_db.append((contig1, starnd1, contig2, strand2, overlap))
+                elif line.startswith("S"):
+                    parts = line.strip().split("\t")
+                    contig, _, length, rd = parts[1], parts[2], parts[3], parts[4]
+                    length = int(length.split(":")[-1])
+
+                    rd = int(rd.split(":")[-1])
+                    length_db[contig] = length
+                    rd_db[contig] = rd
+    
+        self.length_db = length_db 
+        self.rd_db = rd_db 
+        self.overlap_db = overlap_db
+
+    def split_depth_by_bin(self, binsize=50000):
+        length_df = pd.DataFrame(self.length_db.items(), columns=["chrom", "length"])
+        length_df.set_index('chrom', inplace=True)
+        
+        self.bins = cooler.util.binnify(length_df.iloc[:, 0], binsize)
+    
+    def get_depth_from_rd(self):
+
+        self.depth_df = self.bins.copy()
+        self.depth_df['count'] = self.depth_df['chrom'].map(self.rd_db.get)
+
+    def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.75 ):
+        data = self.depth_df['count']
+        fig, ax = plt.subplots(figsize=(5.7, 5))
+        plt.rcParams['font.family'] = 'Arial'
+
+        data = data[data <= np.percentile(data, 98) * 1.5]
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+
+
+        kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+        plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        formatter = plt.gca().get_yaxis().get_major_formatter()
+        plt.gca().yaxis.set_major_formatter(formatter)
+        plt.gca().yaxis.get_offset_text().set_fontsize(14)
+        # plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        formatter = plt.gca().get_xaxis().get_major_formatter()
+        plt.gca().xaxis.set_major_formatter(formatter)
+        plt.gca().xaxis.get_offset_text().set_fontsize(14)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.xlabel("Read depth", fontsize=24)
+        plt.ylabel("Density", fontsize=24)
+
+        x = kdelines.lines[0].get_xdata()
+        y = kdelines.lines[0].get_ydata()
+
+        peak_ind = find_peaks(y, distance=10)[0]
+        median_value = np.quantile(data, .3)
+        peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+        if len(peak_ind) == 0:
+            max_idx = np.argsort(x)[len(x)//2]
+        else:
+            max_idx = peak_ind[np.argmax(y[peak_ind])]
+
+        ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+        ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
+        ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
+        ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
+        ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
+
+        sns.despine()
+        plt.legend([], frameon=False)
+        ax.spines['bottom'].set_linewidth(1.5)
+        ax.spines['left'].set_linewidth(1.5)
+        plt.tick_params(which='both', width=1.5, length=5)
+
+        plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+        plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+
+        return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+        
+    def run(self):
+        self.parse_gfa()
+        self.split_depth_by_bin()
+        self.get_depth_from_rd()
+
+        peak_depth, lower_depth, upper_depth = self.plot_distribution()
+        rd_df = pd.DataFrame(self.rd_db.items(), columns=['contig', 'count'])
+        print(rd_df[rd_df['count'] >= upper_depth])
+        print(rd_df[rd_df['count'] < lower_depth])
 
 class CollapseContigs:
     def __init__(self, cool_path):

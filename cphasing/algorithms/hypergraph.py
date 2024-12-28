@@ -97,15 +97,15 @@ class HyperGraph:
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
             self.col = self.edges.col[retain_idx]
+
             # self.idx = np.sort(np.array(pd.unique(self.row)))
             self.idx = np.unique(self.row)
             remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
-
+            # self.mapq = self.mapq[retain_idx]
             self.remove_contigs = self.nodes[~remove_idx]
             logger.info(f"Removed `{total_edge_counts - np.count_nonzero(retain_idx)}` "
                             f"hyperedges that mapq < {self.min_quality}.")
         
-           
         else:
             self.mapq = np.array([])
             # self.nodes = np.array(sorted(self.edges.idx, key=self.edges.idx.get))
@@ -131,6 +131,8 @@ class HyperGraph:
         self.row = self.row[~remove_idx]
         self.col = self.col[~remove_idx]
 
+        # if len(self.mapq) > 1:
+        #     self.mapq = self.mapq[~remove_idx]
 
         # self.nodes = np.delete(self.nodes, contig_idx)
 
@@ -150,6 +152,9 @@ class HyperGraph:
         self.row = self.row[remove_idx]
         self.col = self.col[remove_idx]
 
+        # if len(self.mapq) > 1:
+        #     self.mapq = self.mapq[remove_idx]
+
 
     def incidence_matrix(self, min_contacts=1):
         """
@@ -161,23 +166,37 @@ class HyperGraph:
             minimum contacts of contig
 
         """
+        # if len(self.mapq) == 1:
         matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
-                             (self.row, self.col)
-                             ), 
-                             shape=self.shape
-                             )
+                                (self.row, self.col)
+                                ), 
+                                shape=self.shape
+                                )
+        # else:
+        #     weight = self.mapq + 1
+        #     matrix = csr_matrix((weight, 
+        #                         (self.row, self.col)
+        #                         ), 
+        #                         shape=self.shape
+        #                         )
 
         if min_contacts:
             non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
             matrix = matrix[non_zero_contig_idx]
+            self.remove_contigs = self.nodes[~non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
+           
             logger.info(f"Total {self.shape[0] - matrix.shape[0]} "
                         f"low-singal (contacts < {min_contacts}) contigs were removed")
             
             non_zero_edges_idx = matrix.sum(axis=0).A1 >= 2
             matrix = matrix[:, non_zero_edges_idx]
+         
             self.shape = matrix.shape 
 
+        else:
+            self.remove_contigs = []
+       
         del self.row, self.col 
         gc.collect()
 
@@ -187,24 +206,31 @@ class HyperGraph:
     def clique_expansion_init(H, P_allelic_idx=None, 
                               P_weak_idx=None, 
                               NW=None,
+                              W=None,
                               allelic_factor=-1,
                               min_weight=0.1):
         """
         clique expansion/reduction
         """
         m = H.shape[1]
-        W = identity(m, dtype=np.float32)
-
         D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
-
+        
+        # W = identity(m, dtype=np.float32)
+        # if W is not None:
+        #     W = dia_matrix((W, np.array([0])), shape=(m, m), dtype=np.float32)
+        # W = dia_matrix((D_e_num, np.array([0])), (m, m), dtype=np.float32)
+        
+       
         ## inverse diagonal matrix D_e
         D_e_inv = 1/D_e_num
         D_e_inv[D_e_inv == -np.inf] = 0
         D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                                W.shape, dtype=np.float32)
+                                (m, m), dtype=np.float32)
     
-        
-        A = H @ W @ D_e_inv @ H.T
+        if W is not None:
+            A = H @ W @ D_e_inv @ H.T
+        else:
+            A = H.dot(D_e_inv).dot(H.T)
 
         if NW is not None:
             A = A.toarray() * NW
@@ -250,12 +276,14 @@ class HyperGraph:
 
         return A
 
+    
     @staticmethod
-    def to_contacts(H, nodes, 
+    def to_contacts(A, nodes, 
                     NW=None,
                     min_weight=1.0, 
                     output="hypergraph.expansion.contacts"):
-        A = HyperGraph.clique_expansion_init(H, NW=NW, min_weight=min_weight).tocoo()
+        # A = HyperGraph.clique_expansion_init(H, NW=NW, min_weight=min_weight).tocoo()
+        A = A.tocoo()
         V = nodes
 
         df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
@@ -377,7 +405,7 @@ def extract_incidence_matrix2(mat, idx):
     else:
         remove_edges_idx = np.array([])
 
-    return A, remove_edges_idx
+    return A, remove_edges_idx, non_zero_edges_idx
 
 def remove_incidence_matrix(mat, idx):   
     if not isinstance(mat, csr_matrix):

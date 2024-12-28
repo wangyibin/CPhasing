@@ -75,7 +75,7 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
     logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
-
+    
     return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
 
 def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,

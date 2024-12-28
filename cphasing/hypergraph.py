@@ -516,7 +516,7 @@ class HyperExtractor:
             # if Path(self.pore_c_table_pathes[0]).is_symlink():
             #     infile = os.readlink(self.pore_c_table_pathes[0])
             # else:
-            if not self.hcr_bed:
+            if self.hcr_bed is None:
                 infile = self.pore_c_table_pathes[0]
             else:
                 cmd = f"cphasing-rs porec-intersect {self.pore_c_table_pathes[0]} {self.hcr_bed}"
@@ -525,7 +525,7 @@ class HyperExtractor:
                 process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
                 stdout, stderr = process.communicate()
                 infile = stdout
-            
+    
             if self.is_parquet:
                 df = pd.read_parquet(infile, 
                                         columns=['read_idx', 'chrom',

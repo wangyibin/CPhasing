@@ -143,6 +143,23 @@ def is_compressed_table_empty(_file):
 
     return False
 
+def is_file_changed(input_file):
+
+    input_file_path = Path(input_file).absolute().parent
+    file_name = Path(input_file).name
+    prefix = Path(input_file).stem
+
+    if Path(f"{input_file_path}/.{prefix}.md5.txt").exists():
+        text = os.popen(f"md5sum -c {input_file_path}/.{prefix}.md5.txt 2>/dev/null").read()
+        if text.strip().split()[-1] == "OK":
+            return False
+        else:
+            os.system(f"md5sum {input_file_path}/{file_name} > {input_file_path}/.{prefix}.md5.txt")
+            return True
+    else:
+        os.system(f"md5sum {input_file_path}/{file_name} > {input_file_path}/.{prefix}.md5.txt")
+        return True
+
 
 def xopen(infile, mode='r'):
     """
@@ -944,15 +961,17 @@ def trim_axes(axes, N):
     
     return axes[:N]
 
-def generate_to_hic_cmd(agp, pairs, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
+def generate_to_hic_cmd(agp, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
 
     pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
     agp_prefix = str(Path(agp).name).replace(".agp", "")
-    cmd = f"""
-## Please submit the following command yourself
+    cmd = f"""#!/usr/bin/bash
+## Please submit the following command in yourself
 
 _3ddna_path={_3ddna_path}
-cphasing-rs pairs2mnd {pairs} -o {pairs_prefix}.mnd.txt
+min_quality={mapq}
+
+cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
 cphasing utils agp2assembly {agp} -o {agp_prefix}.assembly
 bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.assembly {pairs_prefix}.mnd.txt
 
@@ -964,6 +983,23 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
     with open(output, 'w') as out:
         out.write(cmd)
 
+def generate_plot_cmd(pairs, contigsizes, 
+                        out_small_cool, agp, 
+                        min_quality, init_binsize,
+                      binsize, output="plot.cmd.sh"):
+    
+    out_heatmap =  f"groups.q{min_quality}.{to_humanized2(binsize)}.wg.png"
+    cmd = f"""#!/usr/bin/bash
+
+min_quality={min_quality}
+binsize={binsize}
+
+cphasing pairs2cool {pairs} {contigsizes} {out_small_cool} -q ${{min_quality}} -bs {init_binsize} 
+cphasing plot -a {agp} -m {out_small_cool} -o {out_heatmap} -bs ${{binsize}} -oc
+    """
+
+    with open(output, 'w') as out:
+        out.write(cmd)
 
 def recommend_binsize_by_genomesize(genomesize):
     """
@@ -976,15 +1012,15 @@ def recommend_binsize_by_genomesize(genomesize):
 
     elif genomesize < 5e9:
         binsize = 500000
-        init_binsize = 50000
+        init_binsize = 10000
     
     elif genomesize < 2e10:
         binsize = 1000000
-        init_binsize = 50000
+        init_binsize = 20000
     
     elif genomesize < 5e10:
         binsize = 2000000
-        init_binsize = 100000
+        init_binsize = 50000
 
     else:
         binsize = 5000000

@@ -241,33 +241,33 @@ def findIntersectRegion(a, b, fraction=0.51):
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     logger.debug("Get the coordinates of contig on chrom.")
-    # _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    # _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    # _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
 
-    # chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
+    chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
 
-    # contig_on_chrom_bins.to_csv(_file2.name,
-    #                             sep='\t', index=True, header=None)
+    contig_on_chrom_bins.to_csv(_file2.name,
+                                sep='\t', index=True, header=None)
 
-    # os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
-    #     _file1.name, _file2.name, _file3.name))
+    os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
+        _file1.name, _file2.name, _file3.name))
 
-    # df = pd.read_csv(_file3.name, sep='\t',
-    #                  header=None, index_col=None,
-    #                  dtype={9: 'category'})
+    df = pd.read_csv(_file3.name, sep='\t',
+                     header=None, index_col=None,
+                     dtype={9: 'category'})
     
-    # _file1.close()
-    # _file2.close()
-    # _file3.close()
+    _file1.close()
+    _file2.close()
+    _file3.close()
 
-    # df = df[~df.where(df == '.').any(axis=1)]
-    # df.drop([3, 4, 5, 10], axis=1, inplace=True)
-    # df.columns = ['chrom', 'start', 'end', 'contig',
-    #               'tig_start', 'tig_end', 'orientation']
+    df = df[~df.where(df == '.').any(axis=1)]
+    df.drop([3, 4, 5, 10], axis=1, inplace=True)
+    df.columns = ['chrom', 'start', 'end', 'contig',
+                  'tig_start', 'tig_end', 'orientation']
 
 
-    # return df 
+    return df 
 
     _contig_on_chrom_bins = contig_on_chrom_bins.reset_index()
     _chrom_bins = chrom_bins.copy()
@@ -276,21 +276,47 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     _contig_on_chrom_bins.columns = ['Chromosome', 'Start', 'End', 'Contig',
                                     'Tig_start', 'Tig_end', 'Orientation']
     
+    
     gr1 = pr.PyRanges(_chrom_bins)
     gr2 = pr.PyRanges(_contig_on_chrom_bins)
-    res_df = gr1.join(gr2, report_overlap=True, how='right', preserve_order=True).df 
+    res_df = gr1.join(gr2, report_overlap=True, how='right', preserve_order=True ).df 
     res_df.sort_values(by=['Index'], inplace=True)
     res_df['Length'] = res_df['End_b'] - res_df['Start_b']
     res_df['Fraction'] = res_df['Overlap'] / res_df['Length']
     res_df = res_df[res_df['Fraction'] >= 0.5]
-    res_df.drop(['Overlap', 'Length', 'Fraction', 'Index'], axis=1, inplace=True)
-    res_df.drop(['Start_b', 'End_b'], axis=1, inplace=True)
+    res_df.drop(['Overlap', 'Length', 'Fraction', 'Index', 'Start_b', 'End_b'], axis=1, inplace=True)
+   
     res_df.columns = ['chrom', 'start', 'end', 'contig',
                       'tig_start', 'tig_end', 'orientation']
     
     res_df.reset_index(drop=True, inplace=True)
-   
     return res_df
+
+    def process_chromosome(args):
+        gr1 = pr.PyRanges(args[0])
+        gr2 = pr.PyRanges(args[1])
+        res_df = gr1.join(gr2, report_overlap=True, how='right', preserve_order=True).df 
+        res_df.sort_values(by=['Index'], inplace=True)
+        res_df['Length'] = res_df['End_b'] - res_df['Start_b']
+        res_df['Fraction'] = res_df['Overlap'] / res_df['Length']
+        res_df = res_df[res_df['Fraction'] >= 0.5]
+        res_df.drop(['Overlap', 'Length', 'Fraction', 'Index', 'Start_b', 'End_b'], axis=1, inplace=True)
+        res_df.columns = ['chrom', 'start', 'end', 'contig',
+                        'tig_start', 'tig_end', 'orientation']
+        res_df.reset_index(drop=True, inplace=True)
+        return res_df
+
+    chromosomes = _chrom_bins['Chromosome'].unique()
+    
+    args = [(_chrom_bins[_chrom_bins['Chromosome'] == chrom], 
+             _contig_on_chrom_bins[_contig_on_chrom_bins['Chromosome'] == chrom]) 
+             for chrom in chromosomes]
+
+
+    results = Parallel(n_jobs=4)(delayed(process_chromosome)(arg) for arg in args)
+    final_res_df = pd.concat(results, ignore_index=True)
+
+    return final_res_df
 
 def chrRangeID(args, axis=0):
     """
@@ -475,7 +501,6 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     agp_df, _ = import_agp(agp)
     bin_size = int(cool.binsize)
 
-    
     if outprefix is None:
         agpprefix = op.basename(agp).rsplit(".", 1)[0]
         outprefix = op.basename(cool.filename).rsplit(".", 1)[0]
@@ -558,17 +583,6 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
     contig2chrom.set_index('chromidx', inplace=True)
-    # grouped_contig_idx = split_contig_on_chrom_df.groupby('chromidx')[
-    #                                     'contigidx'].aggregate(tuple)
-
-    # grouped_contig_idx = grouped_contig_idx.tolist()
-    # split_contig_on_chrom_df = pl.DataFrame(split_contig_on_chrom_df)
-    # grouped_contig_idx = (split_contig_on_chrom_df
-    #                         .group_by('chromidx')
-    #                         .agg(pl.col('contigidx').apply(tuple, return_dtype=pl.Object))
-    #                         .to_series()
-    #                         .to_list())
-
     
     # reorder matrix 
     reordered_contigidx = contig2chrom['contigidx'].values
@@ -576,6 +590,8 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                          )[:, reordered_contigidx][reordered_contigidx, :]
     
     reordered_matrix = triu(reordered_matrix).tocoo()
+    
+    os.environ["POLARS_MAX_THREADS"]  = str(threads)
 
     chrom_pixels = pl.DataFrame({
         'bin1_id': reordered_matrix.row,
@@ -1061,10 +1077,16 @@ def plot_heatmap_core(matrix,
             cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
             cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
             vmax = np.percentile(cis_matrix, 98)
+            
+            if vmax == 0:
+                vmax = 0.1
             if isinstance(vmax, int):
                 logger.info(f"Set vmax to `{vmax}`.")
             else:
                 logger.info(f"Set vmax to `{vmax:.6f}`.")
+
+            if norm is None and vmin is None:
+                vmin = 0
             del cis_matrix
             
 

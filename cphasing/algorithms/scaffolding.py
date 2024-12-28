@@ -507,8 +507,8 @@ class AllhicOptimize:
         AllhicOptimize.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
         
         total_cpu_of_machine = cpu_count()
-        if self.threads * 4 > total_cpu_of_machine:
-            threads = self.threads // 4
+        if self.threads * 8 > total_cpu_of_machine:
+            threads = self.threads // 8
             logger.info(f"Use {threads} threads to run optimize.")
         else:
             threads = self.threads
@@ -709,8 +709,8 @@ class HapHiCSort:
         HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
 
         total_cpu_of_machine = cpu_count()
-        if self.threads * 4 > total_cpu_of_machine:
-            threads = total_cpu_of_machine // 4
+        if self.threads * 8 > total_cpu_of_machine:
+            threads = total_cpu_of_machine // 8
             logger.info(f"Use {threads} threads to run optimize.")
         else:
             threads = self.threads

@@ -157,6 +157,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
+                          "--disable-merge-in-first", "--exclude-group-from-first",
                           "--exclude-group-to-second", "--enable-misassembly-remove"
                           ]
         },
@@ -221,6 +222,7 @@ click.rich_click.OPTION_GROUPS = {
                           "--min-quality1", "--min-quality2",
                            "--min-scaffold-length",
                           "--allelic-similarity", "--min-allelic-overlap",
+                          "--disable-merge-in-first", "--exclude-group-from-first",
                           "--exclude-group-to-second", "--enable-misassembly-remove"
                           ]
         },
@@ -433,7 +435,7 @@ def cli(verbose, quiet):
     '--mapping-quality',
     'mapping_quality',
     metavar='INT',
-    help='minimum mapping quality of mapper or hicmapper.',
+    help='minimum mapping quality of mapper or hicmapper, also control the minimum mapping quality for scaffolding.',
     default=0,
     show_default=True,
     type=click.IntRange(0, 60),
@@ -686,6 +688,26 @@ def cli(verbose, quiet):
     type=click.Path(exists=True)
 )
 @click.option(
+    '--disable-merge-in-first',
+    '--disable-merge-first',
+    help="""
+    disable merge function in first round cluster results, if set the `n` that
+     program select `n` group to second round cluster.
+    """,
+    default=False, 
+    is_flag=True
+)
+@click.option(
+    '--exclude-from-first',
+    '--exclude-group-from-first',
+    'exclude_group_from_first',
+    metavar="STR",
+    help='exclude several groups in first rount cluster, do not retain it to any group, comma seperate. 1-base.'
+    '[default: None]',
+    default=None,
+    show_default=True
+)
+@click.option(
     '--exclude-to-second',
     '--exclude-group-to-second',
     'exclude_group_to_second',
@@ -736,7 +758,7 @@ def cli(verbose, quiet):
     "-q1",
     "--min-quality1",
     "min_quality1",
-    help="Minimum quality of hyperedge in first cluster.",
+    help="Minimum quality of hyperedge in first cluster, also control the minimum mapping quality of plotting heatmap.",
     type=click.IntRange(0, 60),
     default=1,
     show_default=True, 
@@ -904,6 +926,8 @@ def pipeline(fasta,
             init_resolution1,
             init_resolution2,
             first_cluster,
+            disable_merge_in_first,
+            exclude_group_from_first,
             exclude_group_to_second,
             normalize,
             allelic_similarity,
@@ -975,6 +999,9 @@ def pipeline(fasta,
                 (pairs is not None), ((hic1 is not None) and (hic2 is not None))]), \
         "PoreC data or PoreC table or Hi-C data or Pairs must specified"
 
+    if all([(porec_data is not None), ((hic1 is not None) and (hic2 is not None))]):
+        logger.warning("Simulataneously process Pore-C and Hi-C is not yet supported, only use Pore-C data for subsequently steps.")
+        
     
     if steps:
         if steps == "all":
@@ -1030,7 +1057,9 @@ def pipeline(fasta,
         init_resolution2=init_resolution2,
         first_cluster=first_cluster,
         normalize=normalize,
+        disable_merge_in_first=disable_merge_in_first,
         exclude_group_to_second=exclude_group_to_second,
+        exclude_group_from_first=exclude_group_from_first,
         whitelist=whitelist,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
@@ -1944,6 +1973,7 @@ def hcr(porectable, pairs, contigsize, binsize,
 
     """
     from .hitig.hcr.hcr_by_contacts import hcr_by_contacts
+    from .utilities import is_file_changed
 
     assert porectable or pairs, "The Pore-C table or 4DN pairs file should be provided at least one."
 
@@ -2016,44 +2046,62 @@ def hcr(porectable, pairs, contigsize, binsize,
     #         logger.warning(f"Use exists cool file of `{out_small_cool}`.")
 
     depth_file = f"{prefix}.{binsize}.depth"
-    if not bed:
-        if not Path(depth_file).exists():
+
+    
+    
+    if bed:
+        if is_file_changed(str(pairs)) or is_file_changed(bed) or not Path(depth_file).exists():
+            is_file_changed(bed)
+            cmd = ['cphasing-rs', 'pairs-intersect', str(pairs), str(bed),
+                    f"2>logs/pairs2intersect.1.log", "|",
+                   'cphasing-rs', 'pairs2depth', "-", "-o", depth_file, 
+                    f"2>logs/pairs2depth.log",]
+
+            
+            flag = os.system(" ".join(cmd))
+            assert flag == 0, "Failed to execute command, please check log."
+
+        else:
+            logger.warning(f"Use exists depth file of `{depth_file}`.")
+    
+    else:
+        
+        if is_file_changed(str(pairs)) or not Path(depth_file).exists():
             cmd = ['cphasing-rs', 'pairs2depth', str(pairs), "-o", depth_file]
             flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
             assert flag == 0, "Failed to execute command, please check log."
 
         else:
             logger.warning(f"Use exists depth file of `{depth_file}`.")
-   
-        hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
-                        lower, upper, collapsed_contig_ratio)
-        bed =  f"{prefix}.{binsize}.hcr.bed"
 
-        if invert:
-            logger.info("Invert regions.")
-            import pyranges as pr
-            contigsize = pd.read_csv(contigsize, sep='\t', header=None, index_col=None)
-            contigsize.columns = ['Chromosome', 'End']
-            contigsize['Start'] = 0
+    hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
+                    lower, upper, collapsed_contig_ratio)
+    bed =  f"{prefix}.{binsize}.hcr.bed"
 
-            bed_df = pd.read_csv(bed, sep='\t', header=None, index_col=None, 
-                                 names=['Chromosome', 'Start', 'End'])
+    if invert:
+        logger.info("Invert regions.")
+        import pyranges as pr
+        contigsize = pd.read_csv(contigsize, sep='\t', header=None, index_col=None)
+        contigsize.columns = ['Chromosome', 'End']
+        contigsize['Start'] = 0
 
-            bed_gr = pr.PyRanges(bed_df)
-            contig_gr = pr.PyRanges(contigsize)
-            bed_gr = contig_gr.subtract(bed_gr)
-            bed_df = bed_gr.df
+        bed_df = pd.read_csv(bed, sep='\t', header=None, index_col=None, 
+                                names=['Chromosome', 'Start', 'End'])
 
-            if bed_df.empty:
-                logger.warning("No inverted regions.")
-                
-            else:
-                total_length = (bed_df['End'] - bed_df['Start']).sum()
-                total_length_of_contigs = contigsize['End'].sum()
-                logger.info(f"Total length of inverted regions is {total_length / total_length_of_contigs:.02%}.")
-            bed_df.to_csv(bed, sep='\t', header=None, index=None)
+        bed_gr = pr.PyRanges(bed_df)
+        contig_gr = pr.PyRanges(contigsize)
+        bed_gr = contig_gr.subtract(bed_gr)
+        bed_df = bed_gr.df
 
-
+        if bed_df.empty:
+            logger.warning("No inverted regions.")
+            
+        else:
+            total_length = (bed_df['End'] - bed_df['Start']).sum()
+            total_length_of_contigs = contigsize['End'].sum()
+            logger.info(f"Total length of inverted regions is {total_length / total_length_of_contigs:.02%}.")
+        bed_df.to_csv(bed, sep='\t', header=None, index=None)
+        
     # if porectable:
     #     cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
     #            "-o", f"{prefix}_hcr.porec.gz"]
@@ -3036,11 +3084,31 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    '--disable-merge-in-first',
+    '--disable-merge-first',
+    help="""
+    disable merge function in first round cluster results, if set the `n` that
+     program select `n` group to second round cluster.
+    """,
+    default=False, 
+    is_flag=True
+)
+@click.option(
     '--exclude-group-to-second',
     '--exclude-to-second',
     'exclude_group_to_second',
     metavar="STR",
     help='exclude several groups that do not run in second round cluster, comma seperate. 1-base.'
+    '[default: None]',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '--exclude-from-first',
+    '--exclude-group-from-first',
+    'exclude_group_from_first',
+    metavar="STR",
+    help='exclude several groups in first rount cluster, do not retain it to any group, comma seperate. 1-base.'
     '[default: None]',
     default=None,
     show_default=True
@@ -3260,7 +3328,9 @@ def hyperpartition(hypergraph,
                     # ultra_complex,
                     merge_cluster,
                     first_cluster,
+                    disable_merge_in_first,
                     exclude_group_to_second,
+                    exclude_group_from_first,
                     whitelist,
                     blacklist,
                     hcr_bed,
@@ -3297,7 +3367,7 @@ def hyperpartition(hypergraph,
     from .hypergraph import HyperExtractor, Extractor
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges, merge_hyperedges
-    from .utilities import read_chrom_sizes 
+    from .utilities import read_chrom_sizes, is_file_changed
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
 
@@ -3408,7 +3478,7 @@ def hyperpartition(hypergraph,
 
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if not Path(f"{prefix}.q{min_quality1}.hg").exists():
+        if is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
             he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
@@ -3417,17 +3487,18 @@ def hyperpartition(hypergraph,
             he.save(f"{prefix}.q{min_quality1}.hg")
             hypergraph = he.edges
         else:
-            logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`, if the input pore-c table changed, you should remove this existing hg.")
+            if hcr_bed:
+                logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`, if the {hcr_bed} changed, you should remove this existing hg.")
+            else:
+                logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`.")
             hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
-
-        
 
     elif pairs:
         contigs = contigsizes.index.values.tolist()
         contigs = list(map(str, contigs))
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if not Path(f"{prefix}.q{min_quality1}.hg").exists():
+        if not Path(f"{prefix}.q{min_quality1}.hg").exists() or is_file_changed(hypergraph):
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
             he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
                            min_quality=min_quality1, hcr_bed=hcr_bed, 
@@ -3493,6 +3564,12 @@ def hyperpartition(hypergraph,
         except ValueError:
             logger.warning("The exclude groups must be several numbers with comma seperated")
 
+    if exclude_group_from_first:
+        exclude_group_from_first = exclude_group_from_first.split(",")
+        try:
+            exclude_group_from_first = list(map(int, exclude_group_from_first))
+        except ValueError:
+            logger.warning("The exclude groups must be several numbers with comma seperated")
 
     if alleletable:
         if prunetable:
@@ -3521,7 +3598,9 @@ def hyperpartition(hypergraph,
                             allelic_similarity,
                             min_allelic_overlap,
                             ultra_complex,
+                            disable_merge_in_first,
                             exclude_group_to_second,
+                            exclude_group_from_first,
                             whitelist,
                             blacklist,
                             min_contacts,
@@ -4631,35 +4710,37 @@ def pairs2cool(pairs, chromsize, outcool,
     else:
         logger.info(f"Only load pair that minimum quality >= {min_mapq}.")
         cmd1 = ["cphasing-rs", "pairs-filter", 
-                pairs, "-q", f"{min_mapq}"]
+                pairs, "-q", f"{min_mapq}", "2>", "logs/pairs-filter.log"]
         
         cmd2 = ["cooler", "cload", "pairs", 
                 f"{chromsize}:{binsize}", 
                 "-", outcool, 
                 "-c1", "2", "-c2", "4",
-                "-p1", "3", "-p2", "5"]
-        pipelines = []
-        try:
-            pipelines.append(
-                Popen(cmd1, stdout=PIPE, 
-                        stderr=open(f'logs/pairs-filter.log', "w"),
-                        bufsize=-1)
-            )
-
-            pipelines.append(
-                Popen(cmd2, stdin=pipelines[-1].stdout, 
-                      stderr=open("logs/pairs2cool.log", 'w'),
-                      bufsize=-1)
-            )
-            pipelines[-1].wait()
+                "-p1", "3", "-p2", "5", "2>", "logs/pairs2cool.log"]
         
-        finally:
-            for p in pipelines:
-                if p.poll() is None:
-                        p.terminate()
-                else:
-                    assert pipelines != [], \
-                        "Failed to execute command, please check log."
+        os.system(f"{' '.join(cmd1)} | {' '.join(cmd2)}")
+        # pipelines = []
+        # try:
+        #     pipelines.append(
+        #         Popen(cmd1, stdout=PIPE, 
+        #                 stderr=open(f'logs/pairs-filter.log', "w"),
+        #                 bufsize=-1)
+        #     )
+
+        #     pipelines.append(
+        #         Popen(cmd2, stdin=pipelines[-1].stdout, 
+        #               stderr=open("logs/pairs2cool.log", 'w'),
+        #               bufsize=-1)
+        #     )
+        #     pipelines[-1].wait()
+        
+        # finally:
+        #     for p in pipelines:
+        #         if p.poll() is None:
+        #                 p.terminate()
+        #         else:
+        #             assert pipelines != [], \
+        #                 "Failed to execute command, please check log."
 
         
     logger.info(f'Output binning contact matrix into `{outcool}`')

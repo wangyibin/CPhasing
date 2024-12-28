@@ -1,8 +1,9 @@
 # Release notes #
-Date: 2024-12-11
+Date: 2024-12-28
 ## [v0.2.1]
 ## Enhancement
 - `hypergraph`, add hcr_bed filter step.
+- `hyperpartition`, speed up the `phasing` mode
 - `activate_cphasing`, use pixi to activate the environment of CPhasing
 - `plot`, speed up it
 ## Bug fixes    

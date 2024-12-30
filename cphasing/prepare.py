@@ -76,6 +76,8 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
             outprefix=None, skip_pairs2clm=False,
             skip_pairs2contacts=False, log_dir="logs"):
 
+    if pattern is None:
+        pattern = "AAGCTT"
     log_dir = Path(log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
    

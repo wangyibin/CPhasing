@@ -144,6 +144,11 @@ def is_compressed_table_empty(_file):
     return False
 
 def is_file_changed(input_file):
+    if input_file is None:
+        return False
+    
+    if not Path(input_file).exists():
+        return True 
 
     input_file_path = Path(input_file).absolute().parent
     file_name = Path(input_file).name
@@ -961,6 +966,18 @@ def trim_axes(axes, N):
     
     return axes[:N]
 
+def pretty_cmd(cmd_list, n=4):
+    new_cmd = []
+
+    for i, item in enumerate(cmd_list):
+        if i % n == 0 and i != 0:
+            new_cmd.append("\\\n    ")
+            
+        new_cmd.append(item)
+    
+    return list(map(str, new_cmd ))
+
+
 def generate_to_hic_cmd(agp, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
 
     pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
@@ -983,19 +1000,18 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
     with open(output, 'w') as out:
         out.write(cmd)
 
-def generate_plot_cmd(pairs, contigsizes, 
-                        out_small_cool, agp, 
+def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp, 
                         min_quality, init_binsize,
                       binsize, output="plot.cmd.sh"):
-    
-    out_heatmap =  f"groups.q{min_quality}.{to_humanized2(binsize)}.wg.png"
+
+    out_heatmap =  f"groups.q${{min_quality}}.${{binsize}}.wg.png"
     cmd = f"""#!/usr/bin/bash
 
 min_quality={min_quality}
-binsize={binsize}
+binsize={to_humanized2(binsize)}
 
-cphasing pairs2cool {pairs} {contigsizes} {out_small_cool} -q ${{min_quality}} -bs {init_binsize} 
-cphasing plot -a {agp} -m {out_small_cool} -o {out_heatmap} -bs ${{binsize}} -oc
+cphasing pairs2cool {pairs} {contigsizes} {pairs_prefix}.q${{min_quality}}.{init_binsize}.cool -q ${{min_quality}} -bs {init_binsize} 
+cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.{init_binsize}.cool -o {out_heatmap} -bs ${{binsize}} -oc
     """
 
     with open(output, 'w') as out:

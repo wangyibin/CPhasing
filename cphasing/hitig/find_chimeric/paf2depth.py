@@ -130,7 +130,10 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000,
     cmd = f"bedtools makewindows -g {contigsizes} -w {winsize} -s {step} 2>/dev/null > temp.{fasta_prefix}.w{winsize}.s{step}.bed"
     os.system(cmd)
 
-    cmd = "fgrep -v 'tp:A:S' {}".format(paf)
+    if paf[-2:] == "gz":
+        cmd = "LC_ALL=C zgrep -F -v 'tp:A:S' {}".format(paf)
+    else:
+        cmd = "LC_ALL=C fgrep -v 'tp:A:S' {}".format(paf)
     cmd += " | awk '$12>=%d {print $6,$8,$9}' OFS='\t' " % (min_mapq)
     cmd += " > temp.{}.paf.bed".format(output)
     os.system(cmd)
@@ -138,8 +141,8 @@ def calculate_depth_by_bedtools(paf, fastaFile, output, winsize=5000, step=1000,
     cmd = f"bedtools intersect -f 0.5 -a temp.{fasta_prefix}.w{winsize}.s{step}.bed -b temp.{output}.paf.bed -c 2>/dev/null > {output}.q{min_mapq}.depth"
     os.system(cmd)
 
-    os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
-    os.remove(f"temp.{output}.paf.bed")
+    # os.remove(f"temp.{fasta_prefix}.w{winsize}.s{step}.bed")
+    # os.remove(f"temp.{output}.paf.bed")
 
     return contigsizes
 

@@ -119,9 +119,6 @@ class HaplotypeAlign:
 
         contig_pairs = {(contig1, contig2): hap1[contig1] * hap2[contig2]
                             for contig1, contig2 in product(hap1.keys(), hap2.keys())}
-        # for contig1 in hap1.keys():
-        #     for contig2 in hap2.keys():
-        #         contig_pairs[(contig1, contig2)] = hap1[contig1] * hap2[contig2]
 
         contig_pairs_df = pd.DataFrame(list(contig_pairs.items()))
         contig_pairs_df.columns = [0, "value"]
@@ -135,27 +132,25 @@ class HaplotypeAlign:
         tmp_df['mzShared'] = tmp_df['mzShared'].astype(int)
 
         tmp_df['strand2'] = contig_pairs_df.loc[tmp_df.index]
+        # tmp_df = tmp_df[tmp_df['mzShared'] > 2000]
         tmp_df = tmp_df.assign(value=lambda x: x['mzShared'] * x['strand'] * x['strand2'])
-        tmp_df = tmp_df.drop(['mzShared', 'strand', 'strand2'], axis=1)
+        # tmp_df = tmp_df.drop(['mzShared', 'strand', 'strand2'], axis=1)
 
         if tmp_df['value'].sum() < 0:
             tour2.reverse()
             # tour2.rm()
             # tour2.backup("before_reverse")
             tour2.save(f"{workdir}/{tour2.filename}")    
-        
     
     def run(self):
         logger.info("Adjust the tours to parallel among different haplotypes.")
-        args = []
 
-        # for hap, tours in self.hap_tour_db.items():
-        #     for i in range(1, len(tours)):
-        #         args.append((tours[0], tours[i], self.allele_data, self.workdir))
-        
         args = [(tours[0], tours[i], self.allele_data, self.workdir) 
                     for hap, tours in self.hap_tour_db.items() 
                     for i in range(1, len(tours))]
+        
+        # for item in args:
+        #     self.align(*item)
         try:
             Parallel(n_jobs=min(len(args), self.threads))(delayed(
                     self.align)(i, j, k, l) for i, j, k, l in args
@@ -700,11 +695,6 @@ class HapHiCSort:
         
         with multiprocessing.Pool(processes=min(4, self.threads)) as pool:
             pool.map(HapHiCSort._process_group, args)
-        # for group in self.clustertable.data.keys():
-        #     contigs = self.clustertable.data[group]
-        #     tmp_clm = HapHiCSort.extract_clm(group, contigs, clm)
-        #     tmp_count_re = HapHiCSort.extract_count_re(group, contigs, self.count_re)
-        #     args.append((self.allhic_path, tmp_count_re, tmp_clm, workdir))
         
         HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
 
@@ -720,18 +710,16 @@ class HapHiCSort:
         
         os.chdir(workdir)
 
-        tour_res = glob.glob("./*.tour")
+        tour_res = natsorted(glob.glob("./*.tour"))
+        
         if len(tour_res) == 0:
             logger.warning("Failed to run HapHiC sort, please check log file in logs.")
             sys.exit(-1)
 
-
-        
+  
         if self.allele_table and len(tour_res) >= 2:
             hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
             hap_align.run()
-
-
         
         if not self.fasta:
             for file in glob.glob("*.tour"):

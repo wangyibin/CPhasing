@@ -20,6 +20,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from .. import __version__
 from ..utilities import (
+    pretty_cmd,
     run_cmd, 
     calculate_Nx_from_contigsizes,
     to_humanized2,
@@ -27,6 +28,7 @@ from ..utilities import (
     read_chrom_sizes,
     is_empty,
     is_compressed_table_empty,
+    is_file_changed,
     generate_to_hic_cmd,
     generate_plot_cmd
     )
@@ -384,6 +386,23 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
     
+
+    contigsizes = f"{fasta_prefix}.contigsizes"
+    if not Path(contigsizes).exists() or is_empty(contigsizes):
+        
+        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+        flag = run_cmd(cmd, log=os.devnull)
+        assert flag == 0, "Failed to execute command, please check log."
+        
+    if porec_table is not None and not Path(pairs).exists():
+        logger.info("Generating pairs file ...")
+        cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
+                    "-o", pairs, "-q", mapping_quality]
+        
+        flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+        assert flag == 0, "Failed to execute command, please check log."
+
+
     corrected = False
     if chimeric_correct or chimeric_corrected:
         from ..chimeric import run as chimeric_run 
@@ -458,7 +477,6 @@ def run(fasta,
                 corrected_items = chimeric_run(f"../{fasta}", f"../{pairs}", break_pairs=True, 
                                                 outprefix=fasta_prefix, 
                                                 low_memory=low_memory, threads=threads)
-          
             
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
@@ -473,7 +491,6 @@ def run(fasta,
                     pairs_prefix = pairs_prefix.with_suffix('')
         
         
-     
         os.chdir("..")
         
         if corrected:
@@ -491,15 +508,26 @@ def run(fasta,
             pass
             # logger.info(f"Do not need correct, removed `{correct_dir}`")
             # shutil.rmtree(correct_dir)
-        
-        
+    
 
-    contigsizes = f"{fasta_prefix}.contigsizes"
-    if not Path(contigsizes).exists() or is_empty(contigsizes):
-        
-        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
-        flag = run_cmd(cmd, log=os.devnull)
+    ## filtered contig by min length
+    filtered_contig_by_min_length = False
+    if filtered_contig_by_min_length:
+        cmd = f"seqkit seq -m {min_length} {fasta} 2>/dev/null > ml{min_length}.{fasta}"
+        flag = os.system(cmd)
         assert flag == 0, "Failed to execute command, please check log."
+
+        fasta = f"ml{min_length}.{fasta}"
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+        
+        contigsizes = f"{fasta_prefix}.contigsizes"
+        if not Path(contigsizes).exists() or is_empty(contigsizes):
+            cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+            flag = run_cmd(cmd, log=os.devnull)
+            assert flag == 0, "Failed to execute command, please check log."
+
 
     if Nx < 100 and Nx > 0:
         contigsizes_df = read_chrom_sizes(contigsizes)
@@ -518,149 +546,14 @@ def run(fasta,
             out.write("\n".join(whitelist_contigs))
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length} (N{Nx})")
 
+    
     if hcr_flag:
-        hcr_invert_string = "-v" if hcr_invert else ""
-        hcr_dir = Path("03.hcr")
-        hcr_dir.mkdir(exist_ok=True)
-        hcr_dir = str(hcr_dir)
-        os.chdir(hcr_dir)
-        if porec_table or not use_pairs:
-            # hg_input = f"{porec_prefix}_hcr.porec.gz"
+        if porec_table and not use_pairs:
             prepare_input = f"{porec_prefix}.pairs.gz"
-           
-            try:
-                if hcr_invert_string:
-                    hcr.main(
-                        args=["-pct",
-                                f"../{porec_table}",
-                                "-cs",
-                                f"../{contigsizes}",
-                                "-l",
-                                hcr_lower,
-                                "-u",
-                                hcr_upper,
-                                "-cr",
-                                collapsed_contig_ratio,
-                                "-bs",
-                                hcr_bs,
-                                "-b",
-                                hcr_bed,
-                                "-q",
-                                min_quality1,
-                                hcr_invert_string
-                        ],
-                        prog_name="hcr"
-                    )
-                else:
-                    hcr.main(
-                        args=["-pct",
-                                f"../{porec_table}",
-                                "-cs",
-                                f"../{contigsizes}",
-                                "-l",
-                                hcr_lower,
-                                "-u",
-                                hcr_upper,
-                                "-cr",
-                                collapsed_contig_ratio,
-                                "-bs",
-                                hcr_bs,
-                                "-b",
-                                hcr_bed,
-                                
-                        ],
-                        prog_name="hcr"
-                    )
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
-                
-                if exit_code != 0:
-                    raise e
-
-            # if not hcr_bed:
-            #     hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
-            # else:
-            #     logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
-            #     cmd = ["bedtools", "intersect", "-a", hcr_bed, "-b", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed", ">", f".{porec_prefix}.{hcr_bs}.hcr.bed"]
-            #     os.system(" ".join(cmd))
-
-            #     shutil.move(f".{porec_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed")
-            #     hcr_bed = f"../{hcr_dir}/{porec_prefix}.{hcr_bs}.hcr.bed"
-        
         else:
-            # hg_input = f"{pairs_prefix}_hcr.pairs.gz"
-
             prepare_input = f"{pairs_prefix}.pairs.gz"
             input_param = "--pairs"
 
-            try:
-                if hcr_invert_string:
-                    args = ["-prs",
-                                f"../{pairs}",
-                                "-cs",
-                                f"../{contigsizes}",
-                                # "-b",
-                                # hcr_bed,
-                                "-u",
-                                hcr_upper,
-                                "-l",
-                                hcr_lower,
-                                "-q",
-                                min_quality1,
-                                hcr_invert_string]
-                    hcr.main(
-                        args=args,
-                        prog_name="hcr"
-                    )
-                else:
-                    args = ["-prs",
-                                f"../{pairs}",
-                                "-cs",
-                                f"../{contigsizes}",
-                                # "-b",
-                                # hcr_bed,
-                                "-u",
-                                hcr_upper,
-                                "-l",
-                                hcr_lower,
-                                "-q",
-                                min_quality1,]
-                    hcr.main(
-                        args=args,
-                        prog_name="hcr"
-                    )
-
-            except SystemExit as e:
-                exc_info = sys.exc_info()
-                exit_code = e.code
-                if exit_code is None:
-                    exit_code = 0
-                
-                if exit_code != 0:
-                    raise e
-            # else:
-            #     logger.warning(f"Use exists hcr porec table of `{hg_input}`")
-
-            if not hcr_bed:
-                hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
-            else:
-                logger.info("You have specified hcr bed file and -hcr flag, merge two files.")   
-                cmd = ["cat ", hcr_bed, f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed", ">", f".{pairs_prefix}.{hcr_bs}.hcr.bed"]
-                os.system(" ".join(cmd))
-
-                shutil.move(f".{pairs_prefix}.{hcr_bs}.hcr.bed", f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed")
-                hcr_bed = f"../{hcr_dir}/{pairs_prefix}.{hcr_bs}.hcr.bed"
-
-        os.chdir("../")
-        if Path(f"{hcr_dir}/{hg_input}").exists():
-            try:
-                Path(f"{hg_input}").symlink_to(Path(f"{hcr_dir}/{hg_input}"))
-            except FileExistsError:
-                pass
-        
     else:
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
@@ -807,9 +700,7 @@ def run(fasta,
     #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
     #         contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
    
-
     count_re = f"{prepare_dir}/{prepare_prefix}.counts_{pattern}.txt"
-
     clm = f"{prepare_dir}/{prepare_prefix}.clm.gz"
     
     
@@ -840,8 +731,65 @@ def run(fasta,
 #  Running step 3. hyperpartition  #
 #----------------------------------#""")
         Path(hyperpartition_dir).mkdir(exist_ok=True)
-        
         os.chdir(hyperpartition_dir)
+
+        if hcr_flag and "3" not in skip_steps and "3" in steps:
+            hcr_invert_string = "-v" if hcr_invert else ""
+
+            try:
+                if hcr_invert_string:
+                    args = ["-prs",
+                                f"../{pairs}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                "-p", pattern,
+                                "-f", f"../{fasta}",
+                                "-b",
+                                hcr_bed,
+                                "-u",
+                                hcr_upper,
+                                "-l",
+                                hcr_lower,
+                                # "-q",
+                                # min_quality1,
+                                hcr_invert_string]
+                    hcr.main(
+                        args=args,
+                        prog_name="hcr"
+                    )
+                else:
+                    args = ["-prs",
+                                f"../{pairs}",
+                                "-cs",
+                                f"../{contigsizes}",
+                                "-p", pattern,
+                                "-f", f"../{fasta}",
+                                "-b",
+                                hcr_bed,
+                                "-u",
+                                hcr_upper,
+                                "-l",
+                                hcr_lower,
+                                # "-q",
+                                # min_quality1,
+                                ]
+                    hcr.main(
+                        args=args,
+                        prog_name="hcr"
+                    )
+
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                
+            hcr_bed = f"{pairs_prefix}.{hcr_bs}.hcr.bed"
+
+
         hyperpartition_args = [
                                 f"../{hg_input}",
                                 f"../{contigsizes}",
@@ -905,7 +853,7 @@ def run(fasta,
                 hyperpartition_args.append("--hcr-invert")
 
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
-            _out_sh.write('cphasing hyperpartition ')
+            _out_sh.write('cphasing hyperpartition \\\n    ')
             _hyperpartition_args = []
             remove_index = []
             for i in range(4, len(hyperpartition_args), 2):
@@ -920,7 +868,7 @@ def run(fasta,
                 if i not in remove_index:
                     _hyperpartition_args.append(j)
 
-            _out_sh.write(" ".join(map(str, _hyperpartition_args)))
+            _out_sh.write(" ".join(pretty_cmd(map(str, _hyperpartition_args))))
             _out_sh.write("\n")
 
         try:
@@ -957,6 +905,7 @@ def run(fasta,
                 f"../{hyperpartition_dir}/{output_cluster}",
                 f"../{count_re}",
                 f"../{clm}",
+                " ",
                 "-at",
                 f"../{allele_table}" if allele_table else None,
                 "-sc",
@@ -976,6 +925,7 @@ def run(fasta,
                 f"../{hyperpartition_dir}/{output_cluster}",
                 f"../{count_re}",
                 f"../{clm}",
+                " ",
                 "-at",
                 f"../{allele_table}" if allele_table else None,
                 "-sc",
@@ -990,10 +940,11 @@ def run(fasta,
                 scaffolding_method]
             
         with open("scaffolding.cmd.sh", "w") as _out_sh:
-            _out_sh.write("cphasing scaffolding ")
-            _out_sh.write(" ".join(map(str, args)))
+            _out_sh.write("cphasing scaffolding \\\n    ")
+            _out_sh.write(" ".join(pretty_cmd(map(str, args), n=2)))
             _out_sh.write("\n")
 
+        args = list(filter(lambda x: x != " ", args))
         try:
             scaffolding.main(args=args,
                             prog_name='scaffolding')
@@ -1034,7 +985,7 @@ def run(fasta,
             init_binsize = 10000
 
         out_small_cool = f"{pairs_prefix}.q{min_quality1}.{init_binsize}.cool"
-        if Path(out_small_cool).exists():
+        if not is_file_changed(pairs) and Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
             args = [
                     f"../{pairs}",
@@ -1095,8 +1046,9 @@ def run(fasta,
                 ]
         
         generate_plot_cmd(f"../{pairs}",
+                          f"{pairs_prefix}",
                         f"../{contigsizes}",
-                        out_small_cool, f"../{scaffolding_dir}/{input_agp}", 
+                        f"../{scaffolding_dir}/{input_agp}", 
                         min_quality1, init_binsize,
                         binsize)
         try:

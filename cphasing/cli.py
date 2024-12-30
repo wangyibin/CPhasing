@@ -138,7 +138,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HCR",
-            "options": ["--hcr", "--hcr-lower", "--hcr-upper",
+            "options": ["--hcr", "--pattern", "--hcr-lower", "--hcr-upper",
                          "--collapsed-contigs-ratio", "--hcr-binsize",
                          "--hcr-bed", "--hcr-invert"]
         },
@@ -146,7 +146,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of Alleles",
             "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d"]
         },
-        {
+    {
             "name": "Options of HyperPartition",
             "options": ["-n", "--use-pairs", "--min-contacts",
                         "--Nx", "--min-length", "--min-weight",
@@ -203,7 +203,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of HCR",
-            "options": ["--hcr", "--hcr-lower", "--hcr-upper", 
+            "options": ["--hcr", "--pattern", "--hcr-lower", "--hcr-upper", 
                         "--collapsed-contigs-ratio", "--hcr-binsize",
                          "--hcr-bed", "--hcr-invert"]
         },
@@ -406,11 +406,11 @@ def cli(verbose, quiet):
     '-p',
     '--pattern',
     help="Pattern of restriction enzyme. Comma separated for multiple pattern."
-    " Don't need to specified.",
+    " Restriction enzyme used to normalization the hcr bins, if not use the `-hcr`, do not need specified.",
     metavar="STR",
-    default="AAGCTT",
+    default=None,
     show_default=True,
-    hidden=True,
+    # hidden=True,
 )
 @click.option(
     '-mapper-k',
@@ -495,7 +495,7 @@ def cli(verbose, quiet):
     "hcr_upper",
     help="Upper value of peak value.",
     type=float,
-    default=1.75,
+    default=1.5,
     show_default=True,
 )
 @click.option(
@@ -998,8 +998,8 @@ def pipeline(fasta,
     assert any([(porec_data is not None), (porectable is not None), 
                 (pairs is not None), ((hic1 is not None) and (hic2 is not None))]), \
         "PoreC data or PoreC table or Hi-C data or Pairs must specified"
-
-    if all([(porec_data is not None), ((hic1 is not None) and (hic2 is not None))]):
+    
+    if all([(len(porec_data) > 0), ((hic1 is not None) and (hic2 is not None))]):
         logger.warning("Simulataneously process Pore-C and Hi-C is not yet supported, only use Pore-C data for subsequently steps.")
         
     
@@ -1860,6 +1860,13 @@ def chimeric(fasta, pairs, depth, window_size,
 @cli.command(cls=RichCommand, epilog=__epilog__, 
                 short_help='Only retain the HCRs from Pore-C data')
 @click.option(
+    "-f",
+    "--fasta",
+    metavar="FILE",
+    help="polyploid contig-level fasta.",
+    type=click.Path(exists=True),
+)
+@click.option(
     '-pct',
     '--porectable',
     metavar="PoreC-Table",
@@ -1886,6 +1893,16 @@ def chimeric(fasta, pairs, depth, window_size,
     required=True
 )
 @click.option(
+    '-p',
+    '--pattern',
+    help="Pattern of restriction enzyme. Comma separated for multiple pattern."
+        "  If specified, depth will normalization by RE counts, "
+        "which will increase the performance of `HindIII` or other distribution biased RE.",
+    metavar="STR",
+    default=None,
+    show_default=True,
+)
+@click.option(
     "-bs",
     "--binsize",
     help="Bin size in bp.",
@@ -1906,7 +1923,7 @@ def chimeric(fasta, pairs, depth, window_size,
     "--upper",
     help="Upper value of peak value.",
     type=float,
-    default=1.75,
+    default=1.5,
     show_default=True,
 )
 @click.option(
@@ -1942,7 +1959,7 @@ def chimeric(fasta, pairs, depth, window_size,
     help='Minimum quality of mapping `[0, 60]`.',
     metavar='INT',
     type=click.IntRange(0, 60, clamp=True),
-    default=1,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -1964,7 +1981,8 @@ def chimeric(fasta, pairs, depth, window_size,
     default=None,
     show_default=True
 )
-def hcr(porectable, pairs, contigsize, binsize, 
+def hcr(fasta, porectable, pairs, contigsize, 
+        pattern, binsize, 
         lower, upper, collapsed_contig_ratio,
           bed, invert, min_quality, fofn, output):
     """
@@ -2021,43 +2039,19 @@ def hcr(porectable, pairs, contigsize, binsize,
             while prefix.suffix in {'.gz', 'gz', '.pairs'}:
                 prefix = prefix.with_suffix('')
 
-    # out_small_cool = f"{prefix}.{binsize}.cool"
-    # if not bed:
-    #     if not Path(out_small_cool).exists():
-    #         try: 
-    #             pairs2cool.main(args=[
-    #                                 pairs,
-    #                                 contigsize,
-    #                                 out_small_cool,
-    #                                 "-bs",
-    #                                 binsize
-    #                             ],
-    #                             prog_name='pairs2cool')
-    #         except SystemExit as e:
-    #             exc_info = sys.exc_info()
-    #             exit_code = e.code
-    #             if exit_code is None:
-    #                 exit_code = 0
-                
-    #             if exit_code != 0:
-    #                 raise e
-            
-    #     else:
-    #         logger.warning(f"Use exists cool file of `{out_small_cool}`.")
-
     depth_file = f"{prefix}.{binsize}.depth"
 
-    
-    
     if bed:
         if is_file_changed(str(pairs)) or is_file_changed(bed) or not Path(depth_file).exists():
             is_file_changed(bed)
-            cmd = ['cphasing-rs', 'pairs-intersect', str(pairs), str(bed),
+            logger.info("Calculating the depth of pairs ...")
+            cmd = ['cphasing-rs', 'pairs-intersect', 
+                   '-q', str(min_quality),
+                    str(pairs), str(bed),
                     f"2>logs/pairs2intersect.1.log", "|",
                    'cphasing-rs', 'pairs2depth', "-", "-o", depth_file, 
                     f"2>logs/pairs2depth.log",]
 
-            
             flag = os.system(" ".join(cmd))
             assert flag == 0, "Failed to execute command, please check log."
 
@@ -2067,15 +2061,53 @@ def hcr(porectable, pairs, contigsize, binsize,
     else:
         
         if is_file_changed(str(pairs)) or not Path(depth_file).exists():
-            cmd = ['cphasing-rs', 'pairs2depth', str(pairs), "-o", depth_file]
+            cmd = ['cphasing-rs', 'pairs2depth', 
+                   '-q', str(min_quality),
+                   str(pairs), "-o", depth_file]
             flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
             assert flag == 0, "Failed to execute command, please check log."
 
         else:
             logger.warning(f"Use exists depth file of `{depth_file}`.")
 
+    if pattern and fasta:
+        logger.info("Normalized each bin by RE counts.")
+        cmd = ["bedtools", "getfasta", "-fi", str(fasta), 
+               "-bed", str(depth_file), "2>/dev/null",
+               ">", "tmp.depth.fasta"]
+        os.system(" ".join(cmd))
+        cmd = ["cphasing-rs", "count_re", "--pattern", str(pattern), "tmp.depth.fasta", 
+               "2>/dev/null", "-o", "tmp.depth.countre.txt"]
+        os.system(" ".join(cmd))
+        cmd = ["LC_ALL=C", "grep", "-v", "RE", "tmp.depth.countre.txt", "|", 
+               "awk", "'{print $1,$2}'", "OFS='\t'", ">", "tmp.countre.bed"]
+        os.system(" ".join(cmd))
+        df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
+                            names=['chrom', 'start', 'end', 'depth'])
+        df2 = pd.read_csv("tmp.countre.bed", sep='\s+', header=None, index_col=None, 
+                            names=['item', "count"])
+        
+        if Path("tmp.depth.fasta").exists():
+            os.remove("tmp.depth.fasta")
+        if Path("tmp.countre.bed").exists():
+            os.remove("tmp.countre.bed")
+        if Path("tmp.depth.countre.txt").exists():
+            os.remove("tmp.depth.countre.txt")
+
+        df1['item'] = df1.apply(lambda x: f"{x.chrom}:{x.start}-{x.end}", axis=1)
+        df1.set_index(['item'], inplace=True)
+        df2.set_index(['item'], inplace=True)
+        
+        df = pd.concat([df1, df2], axis=1).dropna().reset_index().drop('item', axis=1)
+        df['depth'] = df['depth'] / df['count']
+        df = df.fillna(0)
+        df.drop('count', axis=1, inplace=True)
+        depth_file = depth_file.replace(".depth", ".norm.depth")
+        df.to_csv(depth_file, header=None, index=None, sep='\t')
+        
+       
     hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
-                    lower, upper, collapsed_contig_ratio)
+                        lower, upper, collapsed_contig_ratio)
     bed =  f"{prefix}.{binsize}.hcr.bed"
 
     if invert:
@@ -2102,31 +2134,6 @@ def hcr(porectable, pairs, contigsize, binsize,
             logger.info(f"Total length of inverted regions is {total_length / total_length_of_contigs:.02%}.")
         bed_df.to_csv(bed, sep='\t', header=None, index=None)
         
-    # if porectable:
-    #     cmd = ["cphasing-rs", "porec-intersect", porectable, bed,
-    #            "-o", f"{prefix}_hcr.porec.gz"]
-    #     if invert:
-    #         cmd.append("-v")
-    #     flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
-    #     assert flag == 0, "Failed to execute command, please check log."
-    #     logger.info(f'Successful out high confidence high-orrder '
-    #                 f'contacts into `{f"{prefix}_hcr.porec.gz"}`')
-        # cmd = ["cphasing-rs", "porec2pairs", f"{prefix}_hcr.porec.gz", contigsize,
-        #        "-o", f"{prefix}_hcr.pairs.gz", "-q", str(min_quality)]
-        
-        # flag = run_cmd(cmd, log=f"logs/hcr_porec2pairs.log")
-        # assert flag == 0, "Failed to execute command, please check log."
-        # logger.info(f'Successful out high confidence contacts into `{f"{prefix}_hcr.pairs.gz"}`')
-
-    # else:
-    #     cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, 
-    #            "-q", str(min_quality), "-o", f"{prefix}_hcr.pairs.gz"]
-    #     if invert:
-    #         cmd.append("-v")
-    #     flag = run_cmd(cmd, log=f"logs/hcr_intersect.log")
-    #     assert flag == 0, "Failed to execute command, please check log."
-    #     logger.info(f'Successful out high confidence contacts into '
-    #                 f'`{prefix}_hcr.pairs.gz`')
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, short_help='Prepare data for subsequence analysis.')
@@ -2515,10 +2522,6 @@ def alleles3(fasta, ploidy,
                             output=output)
     
     aa.run()
-
-
-
-
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, short_help="Generate the allelic contig and cross-allelic contig table.")
@@ -3478,7 +3481,7 @@ def hyperpartition(hypergraph,
 
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
+        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
             he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
@@ -3498,7 +3501,7 @@ def hyperpartition(hypergraph,
         contigs = list(map(str, contigs))
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if not Path(f"{prefix}.q{min_quality1}.hg").exists() or is_file_changed(hypergraph):
+        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
             he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
                            min_quality=min_quality1, hcr_bed=hcr_bed, 
@@ -5107,12 +5110,12 @@ def plot(matrix,
         binsize = humanized2numeric(binsize)
         if binsize < cool_binsize:
             logger.warning(f"The matrix's binsize is larger than the specified binsize, "
-                        f"set the heatmap's `binsize` to `{to_humanized2(cool_binsize)}`.")
+                        f"set the heatmap's `{binsize}` to `{to_humanized2(cool_binsize)}`.")
             binsize = cool_binsize
             factor = 1
         elif binsize > cool_binsize:
             factor = binsize // cool_binsize
-            logger.info(f"The matrix's binsize is smaller than the heatmap's `binsize`, "
+            logger.info(f"The matrix's binsize is smaller than the heatmap's `{binsize}`, "
                         f"coarsen the matrix'binsize to {cool_binsize * factor}.")
             coarsen = True
     else:

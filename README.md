@@ -104,9 +104,9 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 ## run 3.hyperpartition 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```
-- Add the `-hcr` parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality.
+- Add the `-hcr` parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality, recommend specified `--pattern` to improve the performance of high confidence region identification.
 ```bash
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT
 ```
     
 ### Curation by Juicebox

@@ -18,7 +18,9 @@ from pathlib import Path
 from pyranges import PyRanges
 from cphasing.utilities import ( cmd_exists,
                                  get_contig_length,
-                                 xopen)
+                                 get_contig_size_from_fasta,
+                                 xopen
+                                 )
 
 from line_profiler import profile
 
@@ -87,6 +89,7 @@ class OverlapFinder2:
         self.aligner = aligner
         self.threads = threads
         self.contigsizes = get_contig_length(fasta)
+        self.contigsizes = get_contig_size_from_fasta(self.fasta)
 
         self.paf = f"{self.prefix}.self.mapping.paf"
         self.log_dir = Path(log_dir)
@@ -99,12 +102,13 @@ class OverlapFinder2:
     def mapping(self):
         
         if self.aligner == "minigraph":
-            cmd = ["minigraph", "-cxasm", str(self.fasta), str(self.fasta),
+            cmd = ["minigraph", "-xasm", "-N", str(100), 
+                        "--secondary=yes",
+                        str(self.fasta), str(self.fasta),
                         "-t", str(self.threads)]
-
+            
     def read_paf(self):
         logger.info(f"Load alignments results `{self.paf}`")
-
 
         try:
             df = pd.read_csv(self.paf, sep='\s+', header=None, usecols=list(range(12)) + [16],
@@ -112,7 +116,6 @@ class OverlapFinder2:
             
             df = df.dropna().astype(self.META)
 
-            
         except pd.errors.ParserError:
             df = pd.read_csv(self.paf, sep='\s+', header=None, usecols=list(range(12))  + [16],
                              index_col=None, names=self.PAF_HADER)
@@ -124,24 +127,23 @@ class OverlapFinder2:
         df['identity'] = df['matches'] / df['aligns']
         
         df.query('dv < 0.01', inplace=True)
-        df.query("identity > 0.80", inplace=True)
-
+        df.query("identity > 0.85", inplace=True)
 
         return df
     
     @profile
     def get_overlap_regions(self):  
+        min_length = 5000
 
-        min_length = 10000
         def func(row):
-            
             return (((row['start1'] - min_length) < 0 or (row['length1'] - row['end1'] < min_length))
                      and 
                      ((row['start2'] - min_length) < 0 or (row['length2'] - row['end2'] < min_length))
-                     )
+                    )
+        
         self.paf_df = self.paf_df[self.paf_df.apply(func, axis=1)]
         
-        
+
         self.paf_df.loc[(self.paf_df['start1'] - min_length) < 0, 'start1'] = 0
         self.paf_df.loc[(self.paf_df['start2'] - min_length) < 0, 'start2'] = 0
 
@@ -150,40 +152,33 @@ class OverlapFinder2:
 
         idx = self.paf_df.loc[(self.paf_df['length2'] - self.paf_df['end2']) < min_length].index
         self.paf_df.loc[idx, 'end2'] = self.paf_df.loc[idx, 'length2']
-        
-        # self.paf_df.to_csv("test.paf", sep='\t', header=None, index=None)
-        # print("done")
 
         df1 = self.paf_df[['contig1', 'start1', 'end1']]
         df1.columns = ["Chromosome", "Start", "End"]
         df2 = self.paf_df[['contig2', 'start2', 'end2']]
         df2.columns = ["Chromosome", "Start", "End"]
         df = pd.concat([df1, df2], axis=0)
+        df.to_csv(f"{self.prefix}.tmp.overlap.bed", sep="\t", index=False, header=False)
 
-        # gr = PyRanges(df)
-        # contigsizes = pd.DataFrame(self.contigsizes.items())
-        # contigsizes.columns = ["Chromosome", "End"]
-        # contigsizes["Start"] = 0
-        # contigsizes = contigsizes[["Chromosome", "Start", "End"]]
-        # cr = PyRanges(contigsizes)
+        cmd = (f"sort -k1,1V -k 2,2n {self.prefix}.tmp.overlap.bed | "
+                f"bedtools merge -i - 2>/dev/null > {self.prefix}.tmp2.overlap.bed")
 
-        # res_df = cr.subtract(gr).df
-        # res_df['length'] = res_df['End'] - res_df['Start']
-        # res_df['Chromosome'] = res_df['Chromosome'].astype(str)
-        # contig_df = res_df.groupby("Chromosome", as_index=False)["length"].sum()
-        # contig_df = contig_df[contig_df['length'] > 5000]
-        # contigs = set(contig_df['Chromosome'].tolist())
-        # res_df = res_df[res_df["Chromosome"].isin(contigs)]
-        # res_df.drop(columns=["length"], inplace=True)
-        res_df = df 
+        os.system(cmd)
+        
+        cmd = (f"awk '{{print $1,0,$2}}' OFS='\\t' {self.contigsizes} | "
+               f"bedtools subtract -a - -b {self.prefix}.tmp2.overlap.bed 2>/dev/null > {self.prefix}.overlap.bed")
 
+        os.system(cmd)
+
+        if Path(f"{self.prefix}.tmp.overlap.bed").exists():
+            os.remove(f"{self.prefix}.tmp.overlap.bed")
+        if Path(f"{self.prefix}.tmp2.overlap.bed").exists():
+            os.remove(f"{self.prefix}.tmp2.overlap.bed")
        
-        return res_df
-
+        return f"{self.prefix}.overlap.bed"
 
 
     def run(self):
         self.paf_df = self.read_paf()
         self.overlap_df = self.get_overlap_regions()
         
-        self.overlap_df.to_csv(f"{self.prefix}.overlap.bed", sep="\t", index=False, header=False)

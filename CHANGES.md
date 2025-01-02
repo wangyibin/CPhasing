@@ -5,6 +5,7 @@ Date: 2024-12-28
 - `hypergraph`, add hcr_bed filter step.
 - `hyperpartition`, speed up the `phasing` mode
 - `activate_cphasing`, use pixi to activate the environment of CPhasing
+- `pairs2cool`, speed up it at the expense of memory consumption
 - `plot`, speed up it
 ## Bug fixes    
 - `rename`, bug of read agp

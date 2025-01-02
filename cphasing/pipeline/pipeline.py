@@ -977,14 +977,16 @@ def run(fasta,
         Path(plot_dir).mkdir(exist_ok=True)
 
         os.chdir(plot_dir)
+
         if binsize == "auto" or binsize is None:
             init_binsize, binsize = recommend_binsize_by_genomesize(genomesize)
             
-            logger.info(f"Recommended binsize: `{to_humanized2(binsize)}`, initial binsize: `{to_humanized2(init_binsize)}`")
+            logger.info(f"Recommended cool's binsize: `{to_humanized2(init_binsize)}`, heatmap's binsizs: `{to_humanized2(binsize)}`")
         else:
             init_binsize = 10000
 
-        out_small_cool = f"{pairs_prefix}.q{min_quality1}.{init_binsize}.cool"
+        out_small_cool = f"{pairs_prefix}.q{min_quality1}.{to_humanized2(init_binsize)}.cool"
+
         if not is_file_changed(pairs) and Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
             args = [
@@ -1033,6 +1035,12 @@ def run(fasta,
         else:
             input_agp = out_agp
 
+        generate_plot_cmd(f"../{pairs}",
+                        f"{pairs_prefix}",
+                        f"../{contigsizes}",
+                        f"../{scaffolding_dir}/{input_agp}", 
+                        min_quality1, init_binsize,
+                        binsize)
         args = [
                 "-a",
                 f"../{scaffolding_dir}/{input_agp}",
@@ -1045,12 +1053,7 @@ def run(fasta,
                 "-oc",
                 ]
         
-        generate_plot_cmd(f"../{pairs}",
-                          f"{pairs_prefix}",
-                        f"../{contigsizes}",
-                        f"../{scaffolding_dir}/{input_agp}", 
-                        min_quality1, init_binsize,
-                        binsize)
+       
         try:
             plot.main(args=args,
                             prog_name='plot')

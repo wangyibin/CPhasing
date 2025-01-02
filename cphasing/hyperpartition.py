@@ -752,7 +752,7 @@ class HyperPartition:
         
         if k and len(new_K) > k:
             new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
-            logger.info(f"Merging {len(new_K)} groups into {k} groups ...")
+            logger.info(f"FirstGroup{num}: Merging {len(new_K)} groups into {k} groups ...")
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
                                             sub_prune_pair_df, allelic_similarity, 
                                             min_allelic_overlap, method=merge_method)
@@ -1076,7 +1076,7 @@ class HyperPartition:
             #             self.min_scaffold_length, self.threshold, self.max_round, num,
             #             self.kprune_norm_method, sub_threads))
         
-        results = Parallel(n_jobs=min(self.threads, len(args) + 1))(
+        results = Parallel(n_jobs=min(self.threads, len(args)))(
                         delayed(HyperPartition._incremental_partition)(*a) for a in args)
         
         os.chdir("..")

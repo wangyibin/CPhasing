@@ -6,6 +6,7 @@ import logging
 import sys 
 import os
 import os.path as op
+import psutil 
 import re
 
 import numpy as np
@@ -4652,10 +4653,36 @@ def pairs2mnd(pairs, output, min_mapq):
     """,
     is_flag=True,
     default=False,
+    show_default=True,
+    hidden=True
+)
+@click.option(
+    '--low-memory',
+    help="Reduce memory usage.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
+    '-cs',
+    '--chunksize',
+    help='Chunk size of loading pairs.',
+    type=float,
+    default=100000000,
+    metavar='Float',
     show_default=True
 )
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
 def pairs2cool(pairs, chromsize, outcool,
-               binsize, min_mapq, fofn):
+               binsize, min_mapq, fofn, 
+               low_memory, chunksize, threads):
     """
     Convert pairs file into a specified resolution cool file.
 
@@ -4667,13 +4694,27 @@ def pairs2cool(pairs, chromsize, outcool,
     """
     from subprocess import PIPE, Popen
     from cooler.cli.cload import pairs as cload_pairs
-    from .utilities import merge_matrix
+    from .core import Pairs2
+    
 
     Path("logs").mkdir(exist_ok=True)
 
     logger.info(f"Load pairs: `{pairs}`.")
-    logger.info(f"Bin size: {binsize}")
+    logger.info(f"Matrix's bin size: {binsize}")
     binsize = humanized2numeric(binsize)
+    if not low_memory:
+        available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
+        pairs_size = op.getsize(pairs) / 1024 / 1024 / 1024
+
+        if pairs_size * 20 > available_memory:
+            logger.warning(f"Memory usage is too high, use low memory mode.")
+            low_memory = True
+
+    if not low_memory:
+        p = Pairs2(pairs, min_mapq=min_mapq, threads=threads, chunksize=chunksize)
+        p.to_cool(outcool, binsize=binsize)
+        return 
+
     if fofn:
         pairs_files = [i.strip() for i in open(pairs) if i.strip()]
         pid = os.getpid()
@@ -4754,6 +4795,72 @@ def pairs2cool(pairs, chromsize, outcool,
             os.remove(f'temp.{pid}.header')
 
     # merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
+
+
+@cli.command(cls=RichCommand, epilog=__epilog__, hidden=True)
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "outcool",
+    metavar="OUT_COOL_PATH"
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    help="Bin size in bp. Enabled with suffix of [k, m]",
+    type=str,
+    default="10000",
+    show_default=True
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    '-cs',
+    '--chunksize',
+    help='Chunk size of loading pairs.',
+    type=float,
+    default=100000000,
+    metavar='Float',
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def pairs2cool2(pairs, outcool,
+               binsize, min_mapq,
+               chunksize, threads):
+    """
+    Convert pairs file into a specified resolution cool file.
+
+        INPUT_PAIRS_PATH : Path of pairs file, can be compressed.
+
+        OUT_COOL_PATH : Output path of cool file.
+    """
+    from .core import Pairs2 
+
+    logger.info(f"Load pairs: `{pairs}`.")
+    logger.info(f"Output cool's bin size: {binsize}")
+    binsize = humanized2numeric(binsize)
+    p = Pairs2(pairs, min_mapq=min_mapq, 
+               chunksize=chunksize, threads=threads)
+    p.to_cool(outcool, binsize=binsize)
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
@@ -5100,7 +5207,11 @@ def plot(matrix,
         logger.error(f"Input file `{matrix}` is not a cool file.")
         sys.exit(-1)
 
-    cool_binsize = cooler.Cooler(matrix).info['bin-size']
+    cool = cooler.Cooler(matrix)
+    cool_binsize = cool.info['bin-size']
+    bins = cool.bins()[:]
+    if cool_binsize is None:
+        cool_binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
    
         
     if binsize is None and agp is not None:
@@ -5115,8 +5226,15 @@ def plot(matrix,
             factor = 1
         elif binsize > cool_binsize:
             factor = binsize // cool_binsize
-            logger.info(f"The matrix's binsize is smaller than the heatmap's `{binsize}`, "
-                        f"coarsen the matrix'binsize to {cool_binsize * factor}.")
+            
+            
+            if cool_binsize * factor < binsize:
+                logger.warning(f"The input matrix's binsize is smaller than the heatmap's `{to_humanized2(binsize)}`, "
+                                f"the specified binsize ({to_humanized2(binsize)}) should be a `factor * {to_humanized2(cool_binsize)}`, "
+                               f" automaticly set the binsize to {to_humanized2(cool_binsize * factor)}.")
+            else:
+                logger.info(f"The input matrix's binsize is smaller than the heatmap's `{to_humanized2(binsize)}`, "
+                        f"coarsen the matrix'binsize to {to_humanized2(cool_binsize * factor)}.")
             coarsen = True
     else:
         factor = 1

@@ -15,6 +15,7 @@ import sys
 
 import numpy as np
 import pandas as pd 
+import polars as pl
 import pyranges as pr 
 import tempfile
 
@@ -35,6 +36,9 @@ from .utilities import (
     read_chrom_sizes,
     parse_corrected_contig
 )
+
+# from line_profiler import profile
+# from memory_profiler import profile as mprofile
 
 logger = logging.getLogger(__name__)
 
@@ -2181,6 +2185,193 @@ class Pairs:
             ).to_csv(output, sep=' ', header=False, index=False, single_file=True)
 
         logger.info(f"Successful output mnd file intp `{output}`.")
+
+class Pairs2:
+    def __init__(self, pairs, min_mapq=0,
+                 chunksize=1e8, threads=10):
+        
+        self.file = Path(pairs)
+        self.filename = self.file.name
+        self.header = self._get_header()
+        self.chunksize = int(chunksize)
+        self.threads = threads
+        os.environ['POLARS_THREADS'] = str(self.threads)
+        self.min_mapq = min_mapq
+        
+        if self.min_mapq > 0:
+            logger.info(f"Only load pairs with minimum quality >= {self.min_mapq}.")
+
+    def _get_header(self):
+        ph = PairHeader([])
+        ph.from_file(self.file)
+
+        return ph
+
+    @property
+    def chromsize(self):
+
+        return pd.DataFrame(self.header.chromsize.items(), 
+                            columns=['chrom', 'length'])
+    
+    @property
+    def chromsizes(self):
+
+        return pd.DataFrame(self.header.chromsize.items(), 
+                            columns=['chrom', 'length'])
+
+    @property
+    def chromnames(self):
+
+        return self.chromsize['chrom']
+    
+    @property
+    def columns(self):
+
+        return self.header.columns
+    
+    @property
+    def meta(self):
+        max_value = self.chromsize['length'].max()
+        if max_value < 2**8:
+            pos_dtype = pl.UInt8
+        elif max_value < 2**16:
+            pos_dtype = pl.UInt16
+        elif max_value < 2**32:
+            pos_dtype = pl.UInt32
+        else:
+            pos_dtype = pl.UInt64 
+        
+        return {
+                'chrom1': pl.Categorical, 
+                'pos1': pos_dtype,
+                'chrom2': pl.Categorical, 
+                'pos2': pos_dtype,
+                'mapq': pl.Int8
+                }
+    
+    def chunks(self):
+        dtype = self.meta 
+        offset = 0
+
+        columns = [1, 2, 3, 4, 7] if self.min_mapq > 0 else [1, 2, 3, 4]
+        new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if self.min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
+
+        # try:
+        #     reader = pl.read_csv_batched(self.file, separator='\t', has_header=False,
+        #                                     comment_prefix='#', columns=columns,
+        #                                     new_columns=new_columns, 
+        #                                     dtypes=dtype,
+        #                                     n_threads=self.threads)
+        #     chunks = reader.next_batches(1000)
+        #     while chunks:
+        #         chunk = pl.concat(chunks)
+
+        #         if self.min_mapq > 0:
+        #             chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
+                
+        #         chunks = reader.next_batches(1000)
+        #         yield chunk
+    
+        #     yield chunk
+        # except pl.exceptions.ComputeError:
+        while True:
+            try:
+                chunk = (pl.read_csv(self.file, separator='\t', has_header=False, 
+                            comment_prefix='#', columns=columns, 
+                            new_columns=new_columns, 
+                            dtypes=dtype, 
+                            n_rows=self.chunksize, 
+                            skip_rows=offset,
+                            n_threads=self.threads)
+                        )
+        
+            except pl.exceptions.NoDataError: 
+                break
+
+            if chunk.height == 0:
+                break
+            if chunk.height < self.chunksize:
+                break
+
+            offset += chunk.height
+            if self.min_mapq > 0:
+                chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
+
+            yield chunk
+        
+        if self.min_mapq > 0:
+            chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
+
+        yield chunk
+
+    def process_chunk(self, chunk, bin_offset_db, binsize):
+        # bin1_id = (chunk['pos1'] // binsize) + chunk['chrom1'].map_elements(bin_offset_db.get)
+        # bin2_id = (chunk['pos2'] // binsize) + chunk['chrom2'].map_elements(bin_offset_db.get)
+        # chunk = chunk.with_columns([
+        #     bin1_id.alias('bin1_id'),
+        #     bin2_id.alias('bin2_id')
+        # ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+        chunk = chunk.with_columns([
+            (pl.col('pos1') // binsize + pl.col('chrom1').map_elements(
+                            bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin1_id'),
+            (pl.col('pos2') // binsize + pl.col('chrom2').map_elements(
+                            bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin2_id'),
+        ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+
+        chunk = (
+            chunk.group_by(['bin1_id', 'bin2_id'], maintain_order=True)
+                .agg(pl.count('bin1_id').alias('count'))
+        )
+    
+        chunk = chunk.sort(['bin1_id', 'bin2_id'])
+        
+        return chunk.to_pandas()
+    
+    def process_chunk_to_cool(self, bin_offset_db, binsize=10000):
+        
+        # with Pool(4) as pool:
+        #     results = []
+        #     for chunk in self.chunks():
+            
+        #         # return self.process_chunk(chunk, bin_offset_db, binsize)
+        #         result = pool.apply_async(self.process_chunk, 
+        #                                   args=(chunk, bin_offset_db, binsize))
+        #         results.append(result)
+            
+        #     for result in results:
+        #         yield result.get()
+        for chunk in self.chunks():
+            yield self.process_chunk(chunk, bin_offset_db, binsize)
+    
+    def to_cool(self, output, binsize=10000):
+        import cooler
+        from cooler.create import create, create_cooler
+
+        if self.chromsize is None or self.chromsize.empty:
+            raise ValueError("Chromsize in pairs file is required.")
+        
+        bins = cooler.binnify(
+                        pd.DataFrame(self.chromsizes.set_index('chrom'))['length'], 
+                        binsize=binsize)
+        if len(bins) > 2**32:
+            self.bin_id_dtype = pl.UInt64
+        elif len(bins) > 2**16:
+            self.bin_id_dtype = pl.UInt32
+        elif len(bins) > 2**8:
+            self.bin_id_dtype = pl.UInt16
+        else:
+            self.bin_id_dtype = pl.UInt8
+
+        bin_offset = bins.groupby('chrom').size().cumsum()
+        bin_offset = bin_offset.shift(1).fillna(0).astype(int)
+        bin_offset_db = bin_offset.to_dict()
+   
+        iterator = self.process_chunk_to_cool(bin_offset_db, binsize)
+
+        create(output, bins, iterator, 
+                triucheck=False, dupcheck=False, boundscheck=False,)
+        
+        logger.info(f"Successful output cooler file into `{output}`.")
 
 class MndTable:
     HEADER = ["str1", "chr1", "pos1", "frag1",

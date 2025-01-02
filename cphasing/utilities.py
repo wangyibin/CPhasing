@@ -796,6 +796,7 @@ def chrom_ticks_convert(ticks, add_suffix=True):
 def cool2depth(coolfile, output):
     cool = cooler.Cooler(coolfile)
     binsize = cool.binsize
+    
     bins = cool.bins()[:]
     
     contigsizes = cool.chromsizes
@@ -1004,14 +1005,16 @@ def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp,
                         min_quality, init_binsize,
                       binsize, output="plot.cmd.sh"):
 
-    out_heatmap =  f"groups.q${{min_quality}}.${{binsize}}.wg.png"
+    out_heatmap =  f"groups.q${{min_quality}}.${{heatmap_binsize}}.wg.png"
     cmd = f"""#!/usr/bin/bash
 
 min_quality={min_quality}
-binsize={to_humanized2(binsize)}
+cool_binsize={to_humanized2(init_binsize)}
+heatmap_binsize={to_humanized2(binsize)}
 
-cphasing pairs2cool {pairs} {contigsizes} {pairs_prefix}.q${{min_quality}}.{init_binsize}.cool -q ${{min_quality}} -bs {init_binsize} 
-cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.{init_binsize}.cool -o {out_heatmap} -bs ${{binsize}} -oc
+
+cphasing pairs2cool {pairs} {contigsizes} {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -q ${{min_quality}} -bs ${{cool_binsize}}
+cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -o {out_heatmap} -bs ${{heatmap_binsize}} -oc
     """
 
     with open(output, 'w') as out:
@@ -1040,7 +1043,7 @@ def recommend_binsize_by_genomesize(genomesize):
 
     else:
         binsize = 5000000
-        init_binsize = 100000
+        init_binsize = 50000
     
     return init_binsize, binsize
 

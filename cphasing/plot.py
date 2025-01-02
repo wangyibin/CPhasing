@@ -262,10 +262,16 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     _file3.close()
 
     df = df[~df.where(df == '.').any(axis=1)]
+
+    # df_duplicated = df[df.duplicated([6, 7, 8], keep=False)]
+    # df = df.drop(df_duplicated.groupby([6, 7, 8])[10].idxmin().values, axis=0)
+    # df_duplicated = df[df.duplicated([0, 1, 2], keep=False)]
+    # df = df.drop(df_duplicated.groupby([0, 1, 2])[10].idxmin().values, axis=0)
     df.drop([3, 4, 5, 10], axis=1, inplace=True)
     df.columns = ['chrom', 'start', 'end', 'contig',
                   'tig_start', 'tig_end', 'orientation']
 
+    
 
     return df 
 
@@ -397,7 +403,6 @@ class sumSmallContig(object):
         new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
         new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
         
-
         chunk = chunk.with_columns([
             pl.Series('bin1_id', new_bin1_id),
             pl.Series('bin2_id', new_bin2_id)
@@ -412,7 +417,6 @@ class sumSmallContig(object):
                             .agg(self.agg)
                             .reset_index())
             
-        
         return result
 
     def aggregate(self, span):
@@ -531,7 +535,6 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         chrom_bin_interval_df, new_agp.drop(['number', 'type'], axis=1))
     split_contig_on_chrom_df.drop(['orientation'], inplace=True, axis=1)
 
-
     
     contig_bins_index = contig_bins[:][['chrom', 'start' ,'end']].parallel_apply(
         lambda x: chrRangeID(x.values), axis=1)
@@ -573,24 +576,22 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                                    'contig', 'tig_start', 'tig_end',
                                    'chrom_region', 'contig_region'],
                                   inplace=True, axis=1)
-
-
+    chrom_bin_interval_df = chrom_bin_interval_df.loc[split_contig_on_chrom_df['chromidx'].drop_duplicates()]
+    chrom_bin_interval_df.reset_index(drop=True, inplace=True)
+    
     logger.info('Starting to reorder matrix ...')
 
     matrix = cool.matrix(balance=False, sparse=True)
   
     dtypes = dict(cool.pixels().dtypes)
-    
+   
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
     contig2chrom.set_index('chromidx', inplace=True)
-    
     # reorder matrix 
     reordered_contigidx = contig2chrom['contigidx'].values
     reordered_matrix = matrix[:].tocsr(
                          )[:, reordered_contigidx][reordered_contigidx, :]
-    
     reordered_matrix = triu(reordered_matrix).tocoo()
-    
     os.environ["POLARS_MAX_THREADS"]  = str(threads)
 
     chrom_pixels = pl.DataFrame({
@@ -778,7 +779,11 @@ def plot_heatmap(matrix, output,
         bins = cool.bins()[:].reset_index(drop=False)
         bins['chrom'] = bins['chrom'].astype('str')
         bins = bins.set_index('chrom')
+        if binsize is None:
+            binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
 
+            
+            
         chromnames = cool.chromnames
 
         if chromosomes:
@@ -798,11 +803,13 @@ def plot_heatmap(matrix, output,
 
                 chrom_offset = [0, len(new_idx)]
                 chromnames = chromosomes
+                chromsizes = chromsizes.loc[chromnames]
             else:
                 bins = bins.loc[chromosomes]
                 new_idx = bins['index']
                 matrix = matrix[new_idx, :][:, new_idx]
                 chromnames = chromosomes
+                chromsizes = chromsizes.loc[chromnames]
             
                 chrom_offset = np.r_[0, 
                                     np.cumsum(new_idx
@@ -823,9 +830,10 @@ def plot_heatmap(matrix, output,
                     chromnames = retain_chroms.tolist()
                     grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
                     chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
+                    chromsizes = chromsizes.loc[chromnames]
                 else:
                     chrom_offset = chrom_offset.tolist()
-
+     
         matrix = matrix.todense()
 
         if log1p or log:
@@ -881,6 +889,7 @@ def plot_heatmap(matrix, output,
 
         
         ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
+                               chromsizes=chromsizes,
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,
                             xticks=xticks, yticks=yticks, 
@@ -923,10 +932,13 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
     bins = cool.bins()[:].reset_index(drop=False)
     bins['chrom'] = bins['chrom'].astype('str')
     bins = bins.set_index('chrom')
+    if binsize is None:
+        binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
 
     matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
 
     if chromosomes:
+        chromsizes = chromsizes.loc[chromosomes]
         bins = bins.loc[chromosomes]
         new_idx = bins['index']
         matrix = matrix[new_idx, :][:, new_idx]
@@ -947,6 +959,7 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             chromosomes = retain_chroms.tolist()
             grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
             chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
+            chromsizes = chromsizes.loc[chromosomes]
 
     matrix = matrix.todense()
     chromosomes = chromosomes if chromosomes else cool.chromnames
@@ -1006,9 +1019,9 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             norm = None
 
 
-        plot_heatmap_core(chrom_matrix, ax, bins=bins, chrom_offset=chrom_offset,
+        plot_heatmap_core(chrom_matrix, ax, chromsizes=chromsizes.loc[chrom], bins=bins, chrom_offset=chrom_offset,
                           norm=norm, xlabel=chrom, triangle=triangle,
-                            cmap=cmap, xticks=False, yticks=False)
+                            cmap=cmap, xticks=True, yticks=False)
     args = []
     for i, chrom in enumerate(chromosomes):
         row = i // chrom_per_row
@@ -1028,6 +1041,7 @@ def plot_heatmap_core(matrix,
                         ax,
                         bins=None,
                         chromnames=None,
+                        chromsizes=None,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
                         triangle=False,
@@ -1136,8 +1150,8 @@ def plot_heatmap_core(matrix,
         cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
                             interpolation=None)
         
-    
-    binsize = (bins['end'] - bins['start']).median()
+    binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
+
     # tmp_chrom_offset = np.array(chrom_offset.copy())
     # tmp_chrom_range = list(zip(bins.iloc[tmp_chrom_offset[:-1]]['start'].values, bins.iloc[(tmp_chrom_offset - 1)[1:]]['end'].values))
     # tmp_chrom_start = tmp_chrom_range[0][0]
@@ -1188,7 +1202,7 @@ def plot_heatmap_core(matrix,
         _xticks = np.r_[_xticks, ax.get_xlim()[1]]
         ax.set_xticks(_xticks)
         _xticks = _xticks * binsize 
-        total_size = sum(bins['end'] - bins['start'])
+        total_size = chromsizes.sum()
         _xticks[-1] = total_size
         xticklabels = chrom_ticks_convert(_xticks)
 

@@ -2305,18 +2305,18 @@ class Pairs2:
         yield chunk
 
     def process_chunk(self, chunk, bin_offset_db, binsize):
-        # bin1_id = (chunk['pos1'] // binsize) + chunk['chrom1'].map_elements(bin_offset_db.get)
-        # bin2_id = (chunk['pos2'] // binsize) + chunk['chrom2'].map_elements(bin_offset_db.get)
-        # chunk = chunk.with_columns([
-        #     bin1_id.alias('bin1_id'),
-        #     bin2_id.alias('bin2_id')
-        # ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+        bin1_id = (chunk['pos1'] // binsize) + chunk['chrom1'].map_elements(bin_offset_db.get)
+        bin2_id = (chunk['pos2'] // binsize) + chunk['chrom2'].map_elements(bin_offset_db.get)
         chunk = chunk.with_columns([
-            (pl.col('pos1') // binsize + pl.col('chrom1').map_elements(
-                            bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin1_id'),
-            (pl.col('pos2') // binsize + pl.col('chrom2').map_elements(
-                            bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin2_id'),
+            bin1_id.alias('bin1_id'),
+            bin2_id.alias('bin2_id')
         ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+        # chunk = chunk.with_columns([
+        #     (pl.col('pos1') // binsize + pl.col('chrom1').map_elements(
+        #                     bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin1_id'),
+        #     (pl.col('pos2') // binsize + pl.col('chrom2').map_elements(
+        #                     bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin2_id'),
+        # ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
 
         chunk = (
             chunk.group_by(['bin1_id', 'bin2_id'], maintain_order=True)

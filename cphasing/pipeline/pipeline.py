@@ -569,13 +569,14 @@ def run(fasta,
                     logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
                 prepare_input = hg_input
 
-    if (not Path(prepare_input).exists() and (hic1 is None )) or is_compressed_table_empty(prepare_input):
-        logger.info("Generating pairs file ...")
-        cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                    "-o", pairs, "-q", "0"]
-        
-        flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
-        assert flag == 0, "Failed to execute command, please check log."
+    if porec_table or porec_data:
+        if (not Path(prepare_input).exists() and (hic1 is None )) or ((hic1 is None) and is_compressed_table_empty(prepare_input)):
+            logger.info("Generating pairs file ...")
+            cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
+                        "-o", pairs, "-q", "0"]
+            
+            flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+            assert flag == 0, "Failed to execute command, please check log."
 
 
     alleles_dir = str("1.alleles")

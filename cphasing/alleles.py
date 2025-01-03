@@ -658,7 +658,126 @@ class AlignmentAlleles:
             self.save(output)
        
         self.export_allele2()
+
+
+class AlignmentAlleles2:
+    PAF_HADER = ["contig1", "length1", "start1", "end1", "strand",
+                 "contig2", "length2", "start2", "end2", "matches",
+                 "alignment", "mapq", "dv"]
+    META = {
+        "contig1": "object",
+        "length1": int,
+        "start1": int,
+        "end1": int,
+        "strand": "category",
+        "contig2": "object",
+        "length2": int,
+        "start2": int,
+        "end2": int,
+        "matches": int,
+        "aligns": int,
+        "mapq": int,
+        "dv": "object"
+    }
+    def __init__(self, fasta, k=19, w=19, c=100,
+                 output=None, log_dir="logs", threads=4):
+                 
+        self.file = fasta
+        self.fasta = fasta
+
+        self.k = k
+        self.w = w
+
+        self.c = c 
+
+        self.threads = threads
+        if not cmd_exists("minigraph"):
+            logger.error(f'No such command of `minigraph`.')
+            sys.exit()
+
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+
+        self.prefix = fasta_prefix
+
+        self.paf = f"{self.prefix}.selfalign.paf"
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        if not output:
+            self.output = f"{self.prefix}.allele.table"
+        else:
+            self.output = output
+
+    def align(self):
+        cmd = ["minigraph", "-x", "asm", "-k", str(self.k), "-w", str(self.w),
+               "-N", str(self.c), "-t", str(self.threads), "--secondary=yes",
+                 self.fasta, self.fasta,
+              f"2>{str(self.log_dir)}/alleles.align.log", ">", self.paf ]
+        
+        logger.info("Self mapping ...")
+        os.system(" ".join(cmd))
     
+    def read_paf(self):
+        logger.info(f"Load alignments results `{self.paf}`")
+        df = pd.read_csv(self.paf, sep='\t', header=None, usecols=list(range(12)) + [16],
+                         names=self.PAF_HADER, index_col=None, dtype=self.META)
+
+        df = df[df['contig1'] < df['contig2']]
+        df = df[df['matches'] > 5000]
+        df['dv'] = df['dv'].str.split(":").map(lambda x: x[-1]).astype(np.float64)
+        df['identity'] = df['matches'] / df['alignment']
+        df.reset_index(drop=True, inplace=True)
+
+
+        def func(df):
+            strand = df.groupby(['strand']).apply(lambda x: x['matches'].sum()).idxmax()
+            tmp_df = df.sort_values('matches', ascending=False).head(1)
+            tmp_df['dv'] = df['dv'].mean()
+            tmp_df['matches'] = df['matches'].sum()
+            tmp_df['alignment'] = df['alignment'].sum()
+            tmp_df['start1'] = df['start1'].min()
+            tmp_df['end1'] = df['end1'].max()
+            tmp_df['mapq'] = df['mapq'].max()
+            tmp_df['start2'] = df['start2'].min()
+            tmp_df['end2'] = df['end2'].max()
+            tmp_df['identity'] = tmp_df['matches'] / tmp_df['alignment']
+            tmp_df['strand'] = strand
+            
+            return tmp_df
+
+        df = df.groupby(['contig1', 'contig2']).apply(func).reset_index(drop=True)
+        df['identity'] = 1- df['dv']
+
+        return df 
+    
+
+    def export_allele(self):
+        
+        df = self.paf_df[['contig1', 'contig2', 'length1', 'length2', 'matches', 'strand', 'identity']]
+        df2 = df.copy()
+        df2.columns = ['contig2', 'contig1', 'length2', 'length1', 'matches', 'strand', 'identity']
+        df = pd.concat([df, df2], axis=0)
+        df = df.dropna()
+
+
+        df = df.reset_index(drop=True).reset_index().reset_index()
+        df['strand'] = df['strand'].map(lambda x: 1 if x == "+" else -1)
+        if not self.output:
+            output = f"{self.prefix}.allele.table"
+        else:
+            output = self.output
+
+        df.to_csv(output, sep='\t',
+                    index=None, header=None)
+        logger.info(f"Export the allele table `{output}`")
+
+
+    def run(self):
+        self.paf_df = self.read_paf()
+        self.export_allele() 
+
 
 class ANIAlleles:
     def __init__(self, fasta, ploidy, percent,

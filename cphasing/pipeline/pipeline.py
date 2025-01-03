@@ -397,8 +397,8 @@ def run(fasta,
     if porec_table is not None and not Path(pairs).exists():
         logger.info("Generating pairs file ...")
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                    "-o", pairs, "-q", mapping_quality]
-        
+                    "-o", pairs, "-q", str(mapping_quality)]
+
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
 

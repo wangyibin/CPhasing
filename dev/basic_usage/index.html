@@ -854,7 +854,7 @@
 <p class="admonition-title">Note</p>
 <ul>
 <li><strong>1</strong> | If you want to run multiple samples, you can use <code>cphasing hic mapper</code> and <code>cphasing-rs pairs-merge</code> to generate the merged <code>pairs.gz</code> file, and input it by <code>-prs</code> parameter.  </li>
-<li><strong>2</strong> | If the total length of your input genome is larger than 8 Gb, the <code>-hic-mapper-k 27 -hic-mapper-w 14</code> should be specified, to avoid the error of chromap. </li>
+<li><strong>2</strong> | If the total length of your input genome is larger than 8 Gb, the <code>-hic-mapper-k 27 -hic-mapper-w 14</code> should be specified, to avoid the error of <code>chromap</code>. </li>
 </ul>
 </div>
 <h4 id="start-from-a-4dn-pairs-file">Start from a 4DN pairs file,<a class="headerlink" href="#start-from-a-4dn-pairs-file" title="Permanent link">#</a></h4>
@@ -869,8 +869,8 @@
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
 </span></code></pre></div>
 <h4 id="improve-performance">Improve performance<a class="headerlink" href="#improve-performance" title="Permanent link">#</a></h4>
-<p>Add the <code>-hcr</code> parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality.
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr
+<p>Add the <code>-hcr</code> parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality. And specified <code>-p AAGCTT</code> to normalize the depth calculation to avoid biased of RE's distribution, which <code>AAGCTT</code> is the pattern of restriction enzyme. 
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT
 </span></code></pre></div></p>
 <h3 id="curation-by-juicebox">Curation by Juicebox<a class="headerlink" href="#curation-by-juicebox" title="Permanent link">#</a></h3>
 <ul>

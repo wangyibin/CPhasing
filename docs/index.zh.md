@@ -13,11 +13,11 @@
 ## 安装
 
 === "recommended" 
-    从GitHub官网下载`C-Phasing`软件，并运行`activate_cphasing`激活环境。
+    从GitHub官网下载`C-Phasing`软件，并加载`activate_cphasing`激活环境。
     ```shell
     git clone https://github.com/wangyibin/CPhasing.git
     
-    ./CPhasing/bin/activate_cphasing
+    source ./CPhasing/bin/activate_cphasing
     ```
     !!! note
         第一次配置需要在有网络的情况下运行`./CPhasing/bin/activate_cphasing`.

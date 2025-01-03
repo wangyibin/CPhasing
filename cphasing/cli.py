@@ -2072,7 +2072,7 @@ def hcr(fasta, porectable, pairs, contigsize,
             logger.warning(f"Use exists depth file of `{depth_file}`.")
 
     if pattern and fasta:
-        logger.info("Normalized each bin by RE counts.")
+        logger.info("Normalizing each bin by RE counts ...")
         cmd = ["bedtools", "getfasta", "-fi", str(fasta), 
                "-bed", str(depth_file), "2>/dev/null",
                ">", "tmp.depth.fasta"]

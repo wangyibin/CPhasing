@@ -32,7 +32,7 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
 ```
 !!! note
     - **1** | If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.  
-    - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of chromap. 
+    - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of `chromap`. 
 
 
 #### Start from a 4DN pairs file,
@@ -50,9 +50,9 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```
 #### Improve performance
-Add the `-hcr` parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality.
+Add the `-hcr` parameter to remove the greedy contacts (several regions contact with the whole genome) to improve the phasing quality. And specified `-p AAGCTT` to normalize the depth calculation to avoid biased of RE's distribution, which `AAGCTT` is the pattern of restriction enzyme. 
 ```bash
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT
 ```
     
 ### Curation by Juicebox  

@@ -1064,17 +1064,7 @@ class HyperPartition:
                         self.kprune_norm_method, sub_threads))
             
             
-            # results.append(HyperPartition._incremental_partition( # sub_raw_k, raw_A, raw_idx_to_vertices, 
-            #              sub_k, 
-            #              idx_to_vertices, 
-            #              sub_group_number, self.alleletable, prune_pair_df,
-            #              self.H, vertices_idx_sizes, self.NW,
-            #             self.resolution2, self.init_resolution2, self.min_weight, 
-            #             self.allelic_similarity,  self.min_allelic_overlap, 
-            #             self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
-            #             self.is_recluster_contigs,
-            #             self.min_scaffold_length, self.threshold, self.max_round, num,
-            #             self.kprune_norm_method, sub_threads))
+            # results.append(HyperPartition._incremental_partition(args[-1])
         
         results = Parallel(n_jobs=min(self.threads, len(args)))(
                         delayed(HyperPartition._incremental_partition)(*a) for a in args)

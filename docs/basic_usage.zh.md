@@ -48,9 +48,9 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```
 #### 提升组装质量
-大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。
+大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定`-p AAGCTT` 进行标准化。
 ```bash
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT 
 ```  
 
 ### 通过Juicebox 人工调整基因组组装

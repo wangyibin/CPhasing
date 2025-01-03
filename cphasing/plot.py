@@ -250,7 +250,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     contig_on_chrom_bins.to_csv(_file2.name,
                                 sep='\t', index=True, header=None)
 
-    os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
+    os.system('bedtools intersect -a {} -b {} -F 0.05 -wo > {} 2>/dev/null'.format(
         _file1.name, _file2.name, _file3.name))
 
     df = pd.read_csv(_file3.name, sep='\t',
@@ -263,8 +263,8 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
 
     df = df[~df.where(df == '.').any(axis=1)]
 
-    # df_duplicated = df[df.duplicated([6, 7, 8], keep=False)]
-    # df = df.drop(df_duplicated.groupby([6, 7, 8])[10].idxmin().values, axis=0)
+    df_duplicated = df[df.duplicated([6, 7, 8], keep=False)]
+    df = df.drop(df_duplicated.groupby([6, 7, 8])[10].idxmin().values, axis=0)
     # df_duplicated = df[df.duplicated([0, 1, 2], keep=False)]
     # df = df.drop(df_duplicated.groupby([0, 1, 2])[10].idxmin().values, axis=0)
     df.drop([3, 4, 5, 10], axis=1, inplace=True)

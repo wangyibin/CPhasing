@@ -2249,12 +2249,27 @@ class Pairs2:
                 'mapq': pl.Int8
                 }
     
+    def is_contain_mapq(self):
+        df = pd.read_csv(self.file, sep='\t', header=None, index_col=None, comment="#", nrows=1)
+        if df.shape[1] >= 8 and (df[7].dtype == np.int8 or df[7].dtype == np.int16 or df[7].dtype == np.int32 or df[7].dtype == np.int64):
+            return True
+        else:
+            return False
+        
     def chunks(self):
         dtype = self.meta 
         offset = 0
-
-        columns = [1, 2, 3, 4, 7] if self.min_mapq > 0 else [1, 2, 3, 4]
-        new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if self.min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
+        is_contain_mapq = self.is_contain_mapq()
+        columns = (
+                    [1, 2, 3, 4, 7] 
+                   if (self.min_mapq > 0 and is_contain_mapq) 
+                   else [1, 2, 3, 4]
+                   )
+        new_columns = (
+                        ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] 
+                       if (self.min_mapq > 0 and is_contain_mapq) 
+                       else ['chrom1', 'pos1', 'chrom2', 'pos2']
+                       )
 
         # try:
         #     reader = pl.read_csv_batched(self.file, separator='\t', has_header=False,
@@ -2294,12 +2309,12 @@ class Pairs2:
                 break
 
             offset += chunk.height
-            if self.min_mapq > 0:
+            if self.min_mapq > 0 and is_contain_mapq:
                 chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
 
             yield chunk
         
-        if self.min_mapq > 0:
+        if self.min_mapq > 0 and is_contain_mapq:
             chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
 
         yield chunk

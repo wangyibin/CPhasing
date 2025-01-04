@@ -700,7 +700,8 @@ def run(fasta,
     #         else:
     #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
     #         contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
-   
+    if pattern is None:
+        pattern = "AAGCTT"
     count_re = f"{prepare_dir}/{prepare_prefix}.counts_{pattern}.txt"
     clm = f"{prepare_dir}/{prepare_prefix}.clm.gz"
     

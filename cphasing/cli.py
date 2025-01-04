@@ -545,7 +545,7 @@ def cli(verbose, quiet):
     '--mode',
     metavar="STR",
     help="mode of hyperpartition, the basal equal to haploid. "
-    "`['basal', 'haploid', 'phasing', 'basal_with_prune']`",
+    "`['basal', 'haploid', 'phasing', 'basal_withprune']`",
     default='phasing',
     show_default=True,
     type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),

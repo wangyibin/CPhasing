@@ -153,7 +153,9 @@ class PartigRecords:
         
         return db
 
-    def to_alleletable(self, fasta, output, fmt="allele2", k=0, filter_value=5000):
+    def to_alleletable(self, fasta, output, fmt="allele2", k=0, 
+                       is_filter=True,
+                       filter_value=5000):
         """
         convert partig table to allele table
 
@@ -193,18 +195,19 @@ class PartigRecords:
                 # if k:
                 #     if int(record.mzShared) * k * float(record.kmerSimilarity) < filter_value:
                 #         continue 
-                record.kmerSimilarity = float(record.kmerSimilarity)
-                similarity1 = int(record.mzShared) / int(record.mzConsidered1)
-                similarity2 = int(record.mzShared) / int(record.mzConsidered2)
-                if similarity1 > record.kmerSimilarity or similarity2 > record.kmerSimilarity:
-                    record.kmerSimilarity = max([similarity1, similarity2])
-                    if record.kmerSimilarity  > 1.0:
-                        record.kmerSimilarity = 1.0
+                if is_filter:
+                    record.kmerSimilarity = float(record.kmerSimilarity)
+                    similarity1 = int(record.mzShared) / int(record.mzConsidered1)
+                    similarity2 = int(record.mzShared) / int(record.mzConsidered2)
+                    if similarity1 > record.kmerSimilarity or similarity2 > record.kmerSimilarity:
+                        record.kmerSimilarity = max([similarity1, similarity2])
+                        if record.kmerSimilarity  > 1.0:
+                            record.kmerSimilarity = 1.0
 
-                if record.kmerSimilarity < 0.80:
-                    continue
+                    if record.kmerSimilarity < 0.80:
+                        continue
 
-                record.kmerSimilarity = f"{record.kmerSimilarity:.4}"
+                    record.kmerSimilarity = f"{record.kmerSimilarity:.4}"
 
                 print(i, i, record.seqName1, 
                             record.seqName2, 
@@ -243,6 +246,7 @@ class PartigAllele:
         self.m = m 
         self.d = d
         self.filter_value = filter_value
+        self.slide_window = 100_000_000
 
         self.output = output
         self.threads = threads
@@ -254,6 +258,27 @@ class PartigAllele:
             logger.error(f'No such command of `{self.path}`.')
             sys.exit()
 
+    def split_contig(self):
+        """
+        Split contig when contig > 130 Mb to fix error of partig
+        """
+        from .utilities import get_contig_length
+
+        contigsize = get_contig_length(self.fasta)
+        if any(list(map(lambda x: x > 130_000_000, contigsize.values()))):
+            
+            cmd = ["cphasing-rs", "slidefastq", "-w", str(self.slide_window), str(self.fasta),
+                    "-o", f"tmp.{self.prefix}.slide.fasta"]
+            flag = run_cmd(cmd, log=f"logs/{self.prefix}.fasta.slide.log")
+            assert flag == 0, "Failed to execute command, please check log."
+            
+            self.fasta = f"tmp.{self.prefix}.slide.fasta"
+
+            return True 
+    
+        else:
+            return False
+        
     def partig(self):
         """
         get partig record
@@ -290,15 +315,66 @@ class PartigAllele:
         self.pr.convert(self.fasta)
 
     def to_alleletable(self, fmt="allele2"):
-        with open(self.output, 'w') as output:
-            self.pr.to_alleletable(self.fasta, output, fmt, self.k, self.filter_value)
+        
+        if self.is_split:
+            with open(f"tmp.{self.prefix}.allele.table", 'w') as output:
+                self.pr.to_alleletable(self.fasta, output, fmt, self.k, 
+                                       is_filter=True)
+            
+            header_lines = []
+            lines = []
+            with open(f"tmp.{self.prefix}.allele.table", 'r') as fp:
+                for line in fp:
+                    if line.strip().startswith("#"):
+                        header_lines.append(line.strip().split())
+                    else:
+                        lines.append(line.strip().split())
+            header = pd.DataFrame(header_lines).astype({1: np.int64, 2: np.int64, 3: np.int64})
+            data = pd.DataFrame(lines).astype({4: np.int64, 5: np.int64,
+                                               6: np.int64, 7: np.float64,
+                                               8: np.int8})
+            
+            data[2] = data[2].str.rsplit('_', n=1).map(lambda x: x[0])
+            data[3] = data[3].str.rsplit('_', n=1).map(lambda x: x[0])
+            data = data[(data[4] > 1000) & (data[5] > 1000)]
+            max_idx = data.groupby([2, 3, 8], as_index=False).agg({6: "sum"})
+            
+            max_idx = max_idx.loc[max_idx.groupby([2, 3])[6].idxmax()].drop(6, axis=1)
+            max_idx.set_index([2, 3], inplace=True)
+            data = data.groupby([2, 3]).agg(
+                                            {4: "sum", 5: "sum",
+                                             6: "sum", 7: "mean", 
+                                            })
+
+            data = pd.concat([data, max_idx], axis=1).reset_index()
+            data = data[data[6] > 500]
+            data = data[data[7] > 0.8]
+            data[7] = data[7].map(lambda x: f'{x: .4f}')
+            header[0] = header[0].str.rsplit('_', n=1).map(lambda x: x[0])
+            header = header.groupby([0]).agg("sum").reset_index()
+
+            header.to_csv(self.output, sep=' ', header=None, index=None)
+            data.reset_index().reset_index().to_csv(self.output, mode='a', sep='\t', header=None, index=None)
+            # if Path(f"tmp.{self.prefix}.allele.table").exists():
+            #     os.remove(f"tmp.{self.prefix}.allele.table")
+    
+        else:
+            with open(self.output, 'w') as output:
+                self.pr.to_alleletable(self.fasta, output, fmt, self.k, 
+                                       is_filter=True, filter_value=self.filter_value)
         logger.info(f'Successful output allele table in `{self.output}`.')
 
     def run(self):
+        self.is_split = self.split_contig()
         self.partig()
         self.get_pr()
         self.to_alleletable()
 
+        if self.is_split:
+            if Path(f"tmp.{self.prefix}.slide.fasta").exists():
+                os.remove(f"tmp.{self.prefix}.slide.fasta")
+            if Path(f"tmp.{self.prefix}.slide.fasta.fai").exists():
+                os.remove(f"tmp.{self.prefix}.slide.fasta.fai")
     
 class GmapAllele:
     def __init__(self, 

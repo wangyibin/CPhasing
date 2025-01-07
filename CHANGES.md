@@ -1,5 +1,5 @@
 # Release notes #
-Date: 2024-12-28
+Date: 2025-01-07
 ## [v0.2.1]
 ## Enhancement
 - `hypergraph`, add hcr_bed filter step.
@@ -8,6 +8,7 @@ Date: 2024-12-28
 - `pairs2cool`, speed up it at the expense of memory consumption
 - `plot`, speed up it
 ## Bug fixes    
+- `alleles`, a cheat method to fix bug of partig can not parse contig > 130 Mb
 - `rename`, bug of read agp
 - `pipeline`
     - input hic with `_1` or `_2` suffix can not load successful

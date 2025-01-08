@@ -4763,28 +4763,6 @@ def pairs2cool(pairs, chromsize, outcool,
                 "-p1", "3", "-p2", "5", "2>", "logs/pairs2cool.log"]
         
         os.system(f"{' '.join(cmd1)} | {' '.join(cmd2)}")
-        # pipelines = []
-        # try:
-        #     pipelines.append(
-        #         Popen(cmd1, stdout=PIPE, 
-        #                 stderr=open(f'logs/pairs-filter.log', "w"),
-        #                 bufsize=-1)
-        #     )
-
-        #     pipelines.append(
-        #         Popen(cmd2, stdin=pipelines[-1].stdout, 
-        #               stderr=open("logs/pairs2cool.log", 'w'),
-        #               bufsize=-1)
-        #     )
-        #     pipelines[-1].wait()
-        
-        # finally:
-        #     for p in pipelines:
-        #         if p.poll() is None:
-        #                 p.terminate()
-        #         else:
-        #             assert pipelines != [], \
-        #                 "Failed to execute command, please check log."
 
         
     logger.info(f'Output binning contact matrix into `{outcool}`')
@@ -4793,8 +4771,6 @@ def pairs2cool(pairs, chromsize, outcool,
             os.remove(f'temp.{pid}.pairs')
         if op.exists(f'temp.{pid}.header'):
             os.remove(f'temp.{pid}.header')
-
-    # merge_matrix(outcool, outcool=f"{outcool.rsplit('.', 2)[0]}.whole.cool")
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, hidden=True)

@@ -73,7 +73,7 @@ class Extractor:
 
     @staticmethod
     def _process_df(df, contig_idx, threads=1):
-        pandarallel.initialize(nb_workers=threads, verbose=0)
+        pandarallel.initialize(nb_workers=min(10, threads), verbose=0)
         df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
         df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
         df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
@@ -880,6 +880,7 @@ class HyperExtractorSplit:
         logger.info("Processing Pore-C table ...")
     
         threads_2 = self.threads // len(self.pore_c_tables) + 1
+        threads_2 = min(10, threads_2)
         threads_1 = int(self.threads / threads_2)
         if threads_1 == 0:
             threads_1 = 1

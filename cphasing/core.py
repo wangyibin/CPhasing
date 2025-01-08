@@ -25,7 +25,7 @@ from itertools import combinations
 from multiprocessing import Process, Pool
 from pathlib import Path
 from pandarallel import pandarallel
-from subprocess import check_call
+from subprocess import check_call, Popen, PIPE
 
 from ._config import *
 from .utilities import (
@@ -2289,35 +2289,55 @@ class Pairs2:
     
         #     yield chunk
         # except pl.exceptions.ComputeError:
-        while True:
-            try:
-                chunk = (pl.read_csv(self.file, separator='\t', has_header=False, 
+        # while True:
+        #     try:
+        #         chunk = (pl.read_csv(self.file, separator='\t', has_header=False, 
+        #                     comment_prefix='#', columns=columns, 
+        #                     new_columns=new_columns, 
+        #                     dtypes=dtype, 
+        #                     n_rows=self.chunksize, 
+        #                     skip_rows=offset,
+        #                     n_threads=self.threads)
+        #                 )
+        
+        #     except pl.exceptions.NoDataError: 
+        #         break
+
+        #     if chunk.height == 0:
+        #         break
+        #     if chunk.height < self.chunksize:
+        #         break
+
+        #     offset += chunk.height
+        #     if self.min_mapq > 0 and is_contain_mapq:
+        #         chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
+
+        #     yield chunk
+        
+        # if self.min_mapq > 0 and is_contain_mapq:
+        #     chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
+
+        # yield chunk
+        if self.min_mapq > 0 and is_contain_mapq:
+            input_file = self.file
+            # cmd = f"cphasing-rs pairs-filter {self.file}  -q {self.min_mapq}"
+            # process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+            # stdout, stderr = process.communicate()
+            # input_file = stdout
+            
+        else:
+            input_file = self.file
+
+        chunk = (pl.read_csv(input_file, separator='\t', has_header=False, 
                             comment_prefix='#', columns=columns, 
                             new_columns=new_columns, 
                             dtypes=dtype, 
-                            n_rows=self.chunksize, 
-                            skip_rows=offset,
                             n_threads=self.threads)
                         )
-        
-            except pl.exceptions.NoDataError: 
-                break
-
-            if chunk.height == 0:
-                break
-            if chunk.height < self.chunksize:
-                break
-
-            offset += chunk.height
-            if self.min_mapq > 0 and is_contain_mapq:
-                chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
-
-            yield chunk
-        
         if self.min_mapq > 0 and is_contain_mapq:
             chunk = chunk.filter(pl.col('mapq') >= self.min_mapq).drop(['mapq'])
-
-        yield chunk
+        
+        return chunk
 
     def process_chunk(self, chunk, bin_offset_db, binsize):
         bin1_id = (chunk['pos1'] // binsize) + chunk['chrom1'].map_elements(bin_offset_db.get)
@@ -2355,8 +2375,9 @@ class Pairs2:
             
         #     for result in results:
         #         yield result.get()
-        for chunk in self.chunks():
-            yield self.process_chunk(chunk, bin_offset_db, binsize)
+        # for chunk in self.chunks():
+        #     yield self.process_chunk(chunk, bin_offset_db, binsize)
+        return  self.process_chunk(self.chunks(), bin_offset_db, binsize)
     
     def to_cool(self, output, binsize=10000):
         import cooler

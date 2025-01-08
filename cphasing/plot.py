@@ -800,10 +800,15 @@ def plot_heatmap(matrix, output,
             if len(chromosomes) == 1:
                 bins = cool.bins().fetch(chromosomes[0])
                 new_idx = bins.index.values.tolist()
-
+               
                 chrom_offset = [0, len(new_idx)]
                 chromnames = chromosomes
-                chromsizes = chromsizes.loc[chromnames]
+                try:
+                    chromsizes = chromsizes.loc[chromnames]
+                except KeyError:
+                    size =  bins['end'].max() - bins['start'].min()
+                    chromsizes = pd.DataFrame({"chrom": chromnames, "length": size}).set_index('chrom')
+                   
             else:
                 bins = bins.loc[chromosomes]
                 new_idx = bins['index']

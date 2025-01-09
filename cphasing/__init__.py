@@ -35,4 +35,4 @@ __epilog__ =  f"""
             Version: {__version__} | \n
             Author: tanger-lab | \n
             Please check out the docs at: [https://wangyibin.github.io/CPhasing](https://wangyibin.github.io/CPhasing)
-            """ 
+            """

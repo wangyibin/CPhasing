@@ -151,8 +151,10 @@ class HaplotypeAlign:
         
         # for item in args:
         #     self.align(*item)
+        total_machine_cpu = cpu_count()
+        
         try:
-            Parallel(n_jobs=min(len(args), self.threads), backend='multiprocessing')(delayed(
+            Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend='multiprocessing')(delayed(
                     self.align)(i, j, k, l) for i, j, k, l in args
             )
         except ValueError:

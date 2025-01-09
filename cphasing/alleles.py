@@ -292,7 +292,7 @@ class PartigAllele:
         try:
             pipelines.append(
                 Popen(cmd, stdout=open(self.partig_res, 'w'),
-                stderr=open(f"{self.log_dir}/alleles.core.log", 'w'),
+                stderr=open(f"{self.log_dir}/{self.prefix}.alleles.core.log", 'w'),
                 bufsize=-1)
             )
             pipelines[-1].wait()
@@ -355,8 +355,8 @@ class PartigAllele:
 
             header.to_csv(self.output, sep=' ', header=None, index=None)
             data.reset_index().reset_index().to_csv(self.output, mode='a', sep='\t', header=None, index=None)
-            # if Path(f"tmp.{self.prefix}.allele.table").exists():
-            #     os.remove(f"tmp.{self.prefix}.allele.table")
+            if Path(f"tmp.{self.prefix}.allele.table").exists():
+                os.remove(f"tmp.{self.prefix}.allele.table")
     
         else:
             with open(self.output, 'w') as output:

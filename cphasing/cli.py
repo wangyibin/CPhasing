@@ -2310,6 +2310,18 @@ def prepare(fasta, pairs, min_mapq,
     show_default=True,
     hidden=True
 )
+# @click.option(
+#     "-wl",
+#     "--whitelist",
+#     metavar="PATH",
+#     help="""
+#     Path to 1-column list file containing
+#     contigs to include in hypergraph to partition.  
+#     """,
+#     default=None,
+#     show_default=True,
+#     type=click.Path(exists=True)
+# )
 @click.option(
     '-t',
     '--threads',
@@ -2323,6 +2335,7 @@ def alleles(fasta, output,
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
                 minimum_similarity, diff_thres,
+                # whitelist, 
                 min_length, threads):
     """
     Build allele table by kmer similarity.
@@ -5050,6 +5063,16 @@ def pairs2cool2(pairs, outcool,
     show_default=True
 )
 @click.option(
+    '-wr',
+    '--whitered',
+    help="""
+    Preset of `--scale none --colormap whitered`
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '--balance',
     help="""
     balance the matrix.
@@ -5131,6 +5154,7 @@ def plot(matrix,
             fontsize,
             dpi, 
             cmap,
+            whitered,
             balance,
             balanced,
             no_lines,
@@ -5205,12 +5229,12 @@ def plot(matrix,
             
             
             if cool_binsize * factor < binsize:
-                logger.warning(f"The input matrix's binsize is smaller than the heatmap's `{to_humanized2(binsize)}`, "
+                logger.warning(f"The input matrix's binsize is smaller than the heatmap's {to_humanized2(binsize)}, "
                                 f"the specified binsize ({to_humanized2(binsize)}) should be a `factor * {to_humanized2(cool_binsize)}`, "
                                f" automaticly set the binsize to {to_humanized2(cool_binsize * factor)}.")
             else:
-                logger.info(f"The input matrix's binsize is smaller than the heatmap's `{to_humanized2(binsize)}`, "
-                        f"coarsen the matrix'binsize to {to_humanized2(cool_binsize * factor)}.")
+                logger.info(f"The input matrix's binsize is smaller than the heatmap's {to_humanized2(binsize)}, "
+                        f"coarsen the matrix's binsize to {to_humanized2(cool_binsize * factor)}.")
             coarsen = True
     else:
         factor = 1
@@ -5284,6 +5308,11 @@ def plot(matrix,
             logger.warning("There is not column of `bins/weight` in cool file, set `balanced=False`")
             balanced = False
     
+    if whitered:
+        logger.info("You have specified `--whitered`, set `--scale none --cmap whitered`.")
+        scale = "none"
+        cmap = "whitered"
+
     if not only_coarsen:
         plot_heatmap(matrix,
                  output,

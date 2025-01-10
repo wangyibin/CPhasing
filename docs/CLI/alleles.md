@@ -49,5 +49,5 @@ cphasing alleles -f draft.asm.fasta
 cphasing alleles -f draft.asm.fasta -k 27 -w 14
 ```
 
-!!! warning
-    Now, `alleles` do not support contig with a length larger than 135 Mb. 
+<!-- !!! warning
+    Now, `alleles` do not support contig with a length larger than 135 Mb.  -->

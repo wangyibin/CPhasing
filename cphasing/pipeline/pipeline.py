@@ -24,6 +24,7 @@ from ..utilities import (
     run_cmd, 
     calculate_Nx_from_contigsizes,
     to_humanized2,
+    to_humanized3,
     recommend_binsize_by_genomesize,
     read_chrom_sizes,
     is_empty,
@@ -216,7 +217,11 @@ def run(fasta,
     if mode == 'basal':
         skip_steps.add("1")
         allele_table = None
-        logger.info("The mode is `haploid`, skip step 1. alleles.")
+        logger.info("The mode is `haploid`, skip step '1. alleles.'")
+    elif mode == "phasing":
+        skip_steps.add("1")
+        allele_table = None
+        logger.info("The mode is `phasing`, the step '1. alleles' will be intergated into '3. hyparpartion'.")
 
     filtered_pairs = None
    
@@ -582,7 +587,7 @@ def run(fasta,
     alleles_dir = str("1.alleles")
     
     genomesize = read_chrom_sizes(contigsizes)['length'].sum()
-    logger.info(f"Total size of contig-level assembly: {to_humanized2(genomesize)}")
+    logger.info(f"Total size of contig-level assembly: {to_humanized3(genomesize)}")
     if "1" not in skip_steps and "1" in steps:
         logger.info("""
 #----------------------------------#
@@ -791,16 +796,15 @@ def run(fasta,
                 
             hcr_bed = f"{pairs_prefix}.{hcr_bs}.hcr.bed"
 
-
+        _mode = mode
+        _mode = "phasing" if _mode == "phasing2" else _mode
         hyperpartition_args = [
                                 f"../{hg_input}",
                                 f"../{contigsizes}",
                                 output_cluster,
                                 input_param,
                                 "--mode",
-                                mode,
-                                "-at",
-                                f"../{allele_table}" if allele_table else None,
+                                _mode,
                                 "-c",
                                 hyperpartition_contacts,
                                 "-r1",
@@ -854,6 +858,13 @@ def run(fasta,
             if hcr_invert:
                 hyperpartition_args.append("--hcr-invert")
 
+        if mode == "phasing":
+            hyperpartition_args.extend(["-f", fasta_path])
+
+        else:
+            hyperpartition_args.extend(["-at",
+                         f"../{allele_table}" if allele_table else None,])
+            
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
             _out_sh.write('cphasing hyperpartition \\\n    ')
             _hyperpartition_args = []
@@ -901,7 +912,8 @@ def run(fasta,
 #----------------------------------#""")
         Path(scaffolding_dir).mkdir(exist_ok=True)
         os.chdir(scaffolding_dir)
-
+        if mode == "phasing":
+            allele_table = f"{hyperpartition_dir}/{fasta_prefix}.allele.table"
         if corrected:
             args = [
                 f"../{hyperpartition_dir}/{output_cluster}",

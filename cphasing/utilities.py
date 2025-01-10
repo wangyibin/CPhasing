@@ -763,6 +763,27 @@ def to_humanized2(size):
 
     return label
 
+def to_humanized3(size):
+    """
+    Convert the unit of chromosome size to suitable unit.
+    >>> chrom_size_convert(100000)
+    100 Kbp
+    >>> chrom_size_convert(1000000)
+    1 Mbp
+    """
+    size = int(size)
+    if size <= 1e3:
+        label = "{:,.0f}".format((size)) + ""
+    elif size < 1e6:
+        label = "{:,.2f}".format((size / 1e3)) + "k"
+    elif size < 1e9:
+        label = "{:,.2f}".format((size / 1e6)) + "m"
+    
+    else:
+        label = "{:,.2f}".format((size / 1e9)) + "g"
+
+    return label
+
 def chrom_ticks_convert(ticks, add_suffix=True):
     """
     Convert a list of  chromosome size to suitable unit.

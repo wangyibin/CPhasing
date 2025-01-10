@@ -234,8 +234,8 @@ class Extractor:
             
         number_of_contigs = len(self.contig_idx)
         length = res['col'].max()
-        logger.info(f"Result of {length} raw "
-                    f"hyperedges of {number_of_contigs} contigs. "
+        logger.info(f"Result of {length:,} raw "
+                    f"edges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
         
         logger.debug("Generating hyperedges ...")
@@ -396,7 +396,7 @@ class ExtractorSplit:
         
         number_of_contigs = len(self.contig_idx)
         length = res['row'].shape[0] * res['row'].shape[1]
-        logger.info(f"Result of {length} raw "
+        logger.info(f"Result of {length:,} raw "
                     f"hyperedges of {number_of_contigs} contigs. "
                     "Note: it's not the final statistics for hypergraph.")
         return HyperEdges(idx=self.split_contig_idx, 

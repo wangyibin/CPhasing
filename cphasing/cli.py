@@ -64,7 +64,7 @@ click.rich_click.APPEND_METAVARS_HELP = True
 click.rich_click.SHOW_METAVARS_COLUMN = False
 click.rich_click.STYLE_ERRORS_SUGGESTION = "magenta italic"
 click.rich_click.ERRORS_SUGGESTION = "Try running the '--help' flag for more information."
-click.rich_click.ERRORS_EPILOGUE = f"Version: {__version__} | To find out more, visit [https://github.com/wangyibin/CPhasing](https://github.com/wangyibin/CPhasing)"
+click.rich_click.ERRORS_EPILOGUE = f"Version: {__version__} | To find out more, visit [https://wangyibin.github.io/CPhasing](https://wangyibin.github.io/CPhasing)"
 
 click.rich_click.COMMAND_GROUPS = {
     "cphasing": [
@@ -264,7 +264,7 @@ click.rich_click.OPTION_GROUPS = {
                         "--scale", 
                         "--triangle",
                         "--fontsize",
-                        "--dpi", "--cmap", 
+                        "--dpi", "--cmap", "--whitered",
                         "--no-lines", "--no-ticks", 
                         "--rotate-xticks", "--rotate-yticks"]
             
@@ -548,7 +548,7 @@ def cli(verbose, quiet):
     "`['basal', 'haploid', 'phasing', 'basal_withprune']`",
     default='phasing',
     show_default=True,
-    type=click.Choice(['basal', 'haploid', 'phasing', 'basal_withprune']),
+    type=click.Choice(['basal', 'haploid', 'phasing', 'phasing2', 'basal_withprune']),
 )
 @click.option(
     '-s',
@@ -2080,28 +2080,26 @@ def hcr(fasta, porectable, pairs, contigsize,
         cmd = ["cphasing-rs", "count_re", "--pattern", str(pattern), "tmp.depth.fasta", 
                "2>/dev/null", "-o", "tmp.depth.countre.txt"]
         os.system(" ".join(cmd))
-        cmd = ["LC_ALL=C", "grep", "-v", "RE", "tmp.depth.countre.txt", "|", 
-               "awk", "'{print $1,$2}'", "OFS='\t'", ">", "tmp.countre.bed"]
-        os.system(" ".join(cmd))
+
         df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
                             names=['chrom', 'start', 'end', 'depth'])
-        df2 = pd.read_csv("tmp.countre.bed", sep='\s+', header=None, index_col=None, 
+        df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', header=0, index_col=None, 
+                            usecols=[0, 2],
                             names=['item', "count"])
-        
+
         if Path("tmp.depth.fasta").exists():
             os.remove("tmp.depth.fasta")
-        if Path("tmp.countre.bed").exists():
-            os.remove("tmp.countre.bed")
         if Path("tmp.depth.countre.txt").exists():
             os.remove("tmp.depth.countre.txt")
 
-        df1['item'] = df1.apply(lambda x: f"{x.chrom}:{x.start}-{x.end}", axis=1)
-        df1.set_index(['item'], inplace=True)
-        df2.set_index(['item'], inplace=True)
+        df1['item'] = df1['chrom'] + ':' + df1['start'].astype(str) + '-' + df1['end'].astype(str)
+        df1.set_index('item', inplace=True)
+        df2.set_index('item', inplace=True)
         
         df = pd.concat([df1, df2], axis=1).dropna().reset_index().drop('item', axis=1)
+
         df['depth'] = df['depth'] / df['count']
-        df = df.fillna(0)
+        df.fillna(0, inplace=True)
         df.drop('count', axis=1, inplace=True)
         depth_file = depth_file.replace(".depth", ".norm.depth")
         df.to_csv(depth_file, header=None, index=None, sep='\t')
@@ -2310,18 +2308,29 @@ def prepare(fasta, pairs, min_mapq,
     show_default=True,
     hidden=True
 )
-# @click.option(
-#     "-wl",
-#     "--whitelist",
-#     metavar="PATH",
-#     help="""
-#     Path to 1-column list file containing
-#     contigs to include in hypergraph to partition.  
-#     """,
-#     default=None,
-#     show_default=True,
-#     type=click.Path(exists=True)
-# )
+@click.option(
+    "-wl",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in hypergraph to partition.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True),
+    hidden=True
+)
+@click.option(
+    '-fc',
+    '--first-cluster',
+    'first_cluster',
+    metavar="PATH",
+    help='Use the first cluster results to execute alleles',
+    default=None,
+    show_default=True,
+    hidden=True
+)
 @click.option(
     '-t',
     '--threads',
@@ -2335,7 +2344,7 @@ def alleles(fasta, output,
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
                 minimum_similarity, diff_thres,
-                # whitelist, 
+                whitelist, first_cluster,
                 min_length, threads):
     """
     Build allele table by kmer similarity.
@@ -2343,6 +2352,8 @@ def alleles(fasta, output,
     """
     
     from .alleles import PartigAllele
+    from .core import AlleleTable, ClusterTable
+    from joblib import Parallel, delayed 
 
     if not output:
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
@@ -2351,10 +2362,70 @@ def alleles(fasta, output,
     
         output = f"{fasta_prefix}.allele.table"
     
-    pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
-                        min_cnt, minimum_similarity, diff_thres,
-                         filter_value=min_length, output=output, threads=threads)
-    pa.run()
+    # if whitelist:
+    #     whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
+
+    if not first_cluster:
+        pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
+                            min_cnt, minimum_similarity, diff_thres,
+                            filter_value=min_length, output=output, threads=threads)
+        pa.run()
+    else:
+        ct = ClusterTable(first_cluster)
+        
+        fastas = ct.to_fasta(fasta)
+        args = []
+        allele_tables = []
+        for fa in fastas:
+            fasta_prefix2 = Path(Path(fa).name).with_suffix("")
+            while fasta_prefix2.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
+                fasta_prefix2 = fasta_prefix2.with_suffix("")
+        
+            output2 = f"{fasta_prefix2}.allele.table"
+            allele_tables.append(output2)
+            args.append((fa, kmer_size, window_size, max_occurance, 
+                            min_cnt, minimum_similarity, diff_thres,
+                            min_length, output2, 4))
+            
+        def func(fa, kmer_size, window_size, max_occurance, 
+                    min_cnt, minimum_similarity, diff_thres,
+                    min_length, output,threads):
+            
+            pa = PartigAllele(fa, kmer_size, window_size, max_occurance, 
+                            min_cnt, minimum_similarity, diff_thres,
+                            min_length, output, threads)
+            pa.run()
+
+        logger.info("Identifing allelic contig pairs in each homologous group ...")
+        Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
+           
+        for fa in fastas:
+            if Path(fa).exists():
+                os.remove(fa)
+            if Path(f"{fa}.fai").exists():
+                os.remove(f"{fa}.fai")
+
+        ## merge allele table 
+        logger.setLevel(logging.WARNING)
+        allele_df = pd.concat([AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables], axis=0)
+        allele_df = allele_df.reset_index(drop=True).reset_index().reset_index()
+        logger.setLevel(logging.INFO)
+
+        with open(output, 'w') as out:
+            for at in allele_tables:
+                with open(at) as fp:
+                    for line in fp:
+                        if line.startswith("#"):
+                            print(line.strip(), file=out)
+
+            allele_df.to_csv(out, sep='\t', header=None, index=None)
+
+        logger.info(f"Successful output allele table in `{output}`")
+        for at in allele_tables:
+            if Path(at).exists():
+                os.remove(at)
+            if Path(f"{at.replace('.allele.table', '')}.similarity.res").exists():
+                os.remove(f"{at.replace('.allele.table', '')}.similarity.res")
 
 
 @cli.command(cls=RichCommand, short_help="Build allele table by self mapping, lower memory usage, but higher errors.")
@@ -2984,6 +3055,53 @@ def hypergraph(contacts,
     show_default=True,
 )
 @click.option(
+    "-f",
+    "--fasta",
+    metavar="FILE",
+    help="polyploid contig-level fasta. if input fasta, allele table will generate in this step when alleletable is None and prune table is None.",
+    type=click.Path(exists=True),
+)
+@click.option(
+    '-alleles-k',
+    '--alleles-k',
+    '--alleles-kmer-size',
+    'alleles_kmer_size',
+    metavar="INT",
+    help="kmer size for `alleles` similarity calculation.",
+    default=19,
+    show_default=True,
+)
+@click.option(
+    '-alleles-w',
+    '--alleles-w',
+    '--alleles-window-size',
+    'alleles_window_size',
+    metavar="INT",
+    help="minimizer window size for `alleles` similarity calculation.",
+    default=19,
+    show_default=True,
+)
+@click.option(
+    '-alleles-m',
+    '--alleles-m',
+    '--alleles-minimum-similarity',
+    'alleles_minimum_similarity',
+    metavar="FLOAT",
+    help="minimum k-mer similarity for `alleles` similarity calculation.",
+    default=0.5,
+    show_default=True,
+)
+@click.option(
+    "-alleles-d",
+    '--alleles-d',
+    '--alleles-diff-thres',
+    "alleles_diff_thres",
+    help="minimum different threshold between contig pairs.",
+    type=click.FloatRange(0, 1),
+    default=.1,
+    show_default=True
+)
+@click.option(
     "-at",
     "--alleletable",
     metavar="PATH",
@@ -3333,6 +3451,11 @@ def hyperpartition(hypergraph,
                     ul_weight,
                     mode,
                     n,
+                    fasta,
+                    alleles_kmer_size,
+                    alleles_window_size,
+                    alleles_minimum_similarity,
+                    alleles_diff_thres,
                     alleletable,
                     prunetable,
                     normalize,
@@ -3411,8 +3534,8 @@ def hyperpartition(hypergraph,
             prunetable = None  
     elif mode == "phasing":
         incremental = True 
-        assert alleletable or prunetable,\
-            "phasing mode must add `-pt` or `-at` param"
+        assert alleletable or prunetable or fasta,\
+            "phasing mode must add `--fasta` or `-pt` or `-at` param"
         logger.info("Running hyperpartition with `phasing` mode.")
 
     elif mode == "basal_withprune":
@@ -3595,7 +3718,7 @@ def hyperpartition(hypergraph,
     if incremental is False and first_cluster is not None:
         logger.warning("First cluster only support for incremental method, will be not used.")
     
-    if not prunetable and not alleletable:
+    if not prunetable and not alleletable and not fasta:
         logger.info("Not inplement the allelic and cross-allelic reweight algorithm")
     
     is_remove_misassembly = False if enable_misassembly_remove else True
@@ -3605,6 +3728,11 @@ def hyperpartition(hypergraph,
                             None,
                             ul_weight,
                             n,
+                            fasta,
+                            alleles_kmer_size,
+                            alleles_window_size,
+                            alleles_minimum_similarity,
+                            alleles_diff_thres,
                             alleletable,
                             prunetable,
                             normalize,
@@ -4433,9 +4561,9 @@ def bam2pairs(bam, min_quality, output):
 @click.option(
     '-q',
     '--min_quality',
-    help='Minimum quality of mapping [0, 255].',
+    help='Minimum quality of mapping [0, 60].',
     metavar='INT',
-    type=click.IntRange(0, 255, clamp=True),
+    type=click.IntRange(0, 60, clamp=True),
     default=1,
     show_default=True
 )
@@ -4455,11 +4583,14 @@ def bam2pairs(bam, min_quality, output):
     default="-",
     show_default=True
 )
-def pairs2bam(pairs, min_quality, threads, output):
-    cmd = ["cphasing-rs", "pairs2bam", f"{pairs}", "-t", f"{threads}",
+def pairs_filter(pairs, min_quality, threads, output):
+    cmd = ["cphasing-rs", "pairs-filter", f"{pairs}", "-t", f"{threads}",
             "-q", f"{min_quality}", "-o", f"{output}"]
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
+
+
+
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
 @click.argument(
@@ -4713,7 +4844,7 @@ def pairs2cool(pairs, chromsize, outcool,
     Path("logs").mkdir(exist_ok=True)
 
     logger.info(f"Load pairs: `{pairs}`.")
-    logger.info(f"Matrix's bin size: {binsize}")
+    logger.info(f"Matrix's bin size: {to_humanized2(binsize)}")
     binsize = humanized2numeric(binsize)
     if not low_memory:
         available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
@@ -5956,6 +6087,26 @@ def cluster2count(cluster, count_re):
     ct = ClusterTable(cluster)
  
     ct.to_countRE(count_re)
+
+
+@utils.command(cls=RichCommand, short_help='Extract fasta by cluster table')
+@click.argument(
+    "cluster",
+    metavar='Cluster',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'fasta',
+    metavar='Fasta',
+    type=click.Path(exists=True)
+)
+def cluster2fasta(cluster, fasta):
+    """
+    Extract fasta by cluster table
+    """
+    from .core import ClusterTable
+    ct = ClusterTable(cluster)
+    ct.to_fasta(fasta=fasta)
 
 @utils.command(cls=RichCommand, short_help='Convert cluster to pseudo assembly file.')
 @click.argument(

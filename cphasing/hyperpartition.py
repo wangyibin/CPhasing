@@ -88,6 +88,11 @@ class HyperPartition:
                     ultra_long=None,
                     ul_weight=1.0,
                     k=None,
+                    fasta=None,
+                    alleles_kmer_size=19,
+                    alleles_window_size=19,
+                    alleles_minimum_similarity=0.5,
+                    alleles_diff_thres=0.2,
                     alleletable=None,
                     prunetable=None,
                     normalize=False,
@@ -127,7 +132,12 @@ class HyperPartition:
         self.ultra_long = ultra_long
         self.ul_weight = ul_weight
         self.k = k
-
+        
+        self.fasta = fasta
+        self.alleles_kmer_size = alleles_kmer_size
+        self.alleles_window_size = alleles_window_size
+        self.alleles_minimum_similarity = alleles_minimum_similarity
+        self.alleles_diff_thres = alleles_diff_thres
         self.prunetable = prunetable
         # self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
         if alleletable:
@@ -295,7 +305,7 @@ class HyperPartition:
             vertices = self.HG.nodes
 
         logger.info(f"Generated filtered hypergraph that containing {H.shape[0]} vertices"    
-                    f" and {H.shape[1]} hyperedges.")
+                    f" and {H.shape[1]:,} hyperedges.")
 
         return H, vertices
 
@@ -318,7 +328,7 @@ class HyperPartition:
         if len(remove_contigs) == 0:
             return
     
-        logger.info(f"Total {len(remove_contigs)} contigs were removed,")
+        logger.info(f"Total {len(remove_contigs):,} contigs were removed,")
         logger.info(f"\tbecause it's length too short (<{self.min_length}) "
                         "or your specified in blacklist or not in whitelist.")
 
@@ -612,7 +622,6 @@ class HyperPartition:
             merge_method = "mean"
 
         K = np.array(list(K))
-   
         sub_H, _, sub_edge_idx = extract_incidence_matrix2(H, K)
         del H 
         gc.collect() 
@@ -640,7 +649,8 @@ class HyperPartition:
                                     alleletable, f"{num}.hypergraph.expansion.contacts",
                                     sub_vertives_idx, kprune_norm_method=kprune_norm_method,
                                     threads=threads)
-        elif  prune_pair_df is not None:
+
+        elif  prune_pair_df is not None:      
             sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
 
             sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(sub_old2new_idx.get)
@@ -847,6 +857,44 @@ class HyperPartition:
         self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
 
     @staticmethod
+    def alleles(fasta, first_cluster, 
+                k=19, w=19, m=0.5, d=0.2, c=60, 
+                threads=4):
+        from .cli import alleles
+        try:
+            alleles.main(
+                args=[
+                    "-f",
+                    str(fasta),
+                    "-fc",
+                    str(first_cluster),
+                    "-t",
+                    str(threads),
+                    "-c", str(c),
+                    "-k", str(k),
+                    "-w", str(w),
+                    "-m", str(m),
+                    "-d", str(d)
+                ],
+                prog_name='alleles'
+            )
+
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+
+        return f"{fasta_prefix}.allele.table"
+
+    @staticmethod
     def kprune_func(alleletable, 
                     contacts,
                     vertices_idx,
@@ -912,7 +960,7 @@ class HyperPartition:
                     self.K = list(map(list, self.K))
                     self.K = self.filter_cluster(verbose=0)
                     result_K_length = len(self.K)
-                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution}`.")
+                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.1f}`.")
                     tmp_resolution += 0.2
                     auto_round += 1
             else:
@@ -1010,7 +1058,7 @@ class HyperPartition:
                             filter(lambda y: y in vertices_idx, x )), tmp_K))
             self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
 
-        W = ((self.HG.mapq + 1) / 60).astype(np.float32)
+        # W = ((self.HG.mapq + 1) / 60).astype(np.float32)
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
@@ -1036,8 +1084,17 @@ class HyperPartition:
         self.exclude_groups = []
         idx_to_vertices = self.idx_to_vertices
 
+        if self.fasta is not None and self.alleletable is None and self.prunetable is None:
+            self.alleletable = str(Path(self.alleles(self.fasta, first_cluster_file, 
+                                                    k=self.alleles_kmer_size,
+                                                    w=self.alleles_window_size,
+                                                    d=self.alleles_diff_thres,
+                                                    m=self.alleles_minimum_similarity,
+                                                    threads=self.threads)).absolute())
+            
         Path("kprune_workdir").mkdir(exist_ok=True)
         os.chdir("kprune_workdir")
+
         for num, sub_k in enumerate(self.K, 1):
             if isinstance(k[1], dict):
                 sub_group_number = int(k[1][num - 1])
@@ -1063,10 +1120,9 @@ class HyperPartition:
                         self.min_scaffold_length, self.threshold, self.max_round, num,
                         self.kprune_norm_method, sub_threads))
             
-            
             # results.append(HyperPartition._incremental_partition(args[-1])
         
-        results = Parallel(n_jobs=min(self.threads, len(args)))(
+        results = Parallel(n_jobs=min(self.threads, len(args)), backend="multiprocessing")(
                         delayed(HyperPartition._incremental_partition)(*a) for a in args)
         
         os.chdir("..")

@@ -1128,9 +1128,29 @@ class ClusterTable:
 
 
 
+    def to_fasta(self, fasta):
+        """
+        extract fasta by cluster table 
+        """
+        from Bio import SeqIO 
+        db = self.contig_groups
         
+        fasta = SeqIO.parse(xopen(fasta), 'fasta')
         
+        file_db = {}
+        files = []
+        for group in self.groups:
+            file_db[group] = open(f"{group}.contigs.fasta", 'w')
+            files.append(f"{group}.contigs.fasta")
+
+        for record in fasta:
+            if record.id in db:
+                file_db[db[record.id]].write(f'>{record.id}\n{record.seq}\n')
         
+        for group in file_db:
+            file_db[group].close()
+
+        return files
 
     def to_tour(self):
         """

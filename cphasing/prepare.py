@@ -69,7 +69,7 @@ def split_contacts_to_contacts(split_contacts, output):
                              'count': pl.UInt32})
     df = df.with_columns(pl.col('contig1').str.strip_suffix("_0").str.strip_suffix("_1"),
                          pl.col('contig2').str.strip_suffix("_0").str.strip_suffix("_1"))
-    df.group_by(['contig1', 'contig2']).sum().write_csv(output, separator='\t', has_header=False)
+    df.group_by(['contig1', 'contig2']).sum().write_csv(output, separator='\t', include_header=False)
 
 def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3, 
             threads=4, low_memory=False,

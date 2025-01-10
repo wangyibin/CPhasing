@@ -186,7 +186,7 @@ class HyperGraph:
             self.remove_contigs = self.nodes[~non_zero_contig_idx]
             self.nodes = self.nodes[non_zero_contig_idx]
            
-            logger.info(f"Total {self.shape[0] - matrix.shape[0]} "
+            logger.info(f"Total {self.shape[0] - matrix.shape[0]:,} "
                         f"low-singal (contacts < {min_contacts}) contigs were removed")
             
             non_zero_edges_idx = matrix.sum(axis=0).A1 >= 2

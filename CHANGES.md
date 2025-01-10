@@ -1,4 +1,11 @@
 # Release notes #
+Data: 2025-01-10
+## [v0.2.2]
+## Enhancement
+- `pipeline`, integrate 1.alleles into 3.hyperpartition to speed up
+## Bug fixes
+- `prepare`, fixed bug of "got unexpected keyword argument `has_header`'
+
 Date: 2025-01-07
 ## [v0.2.1]
 ## Enhancement

@@ -1122,7 +1122,7 @@ class HyperPartition:
             
             # results.append(HyperPartition._incremental_partition(args[-1])
         
-        results = Parallel(n_jobs=min(self.threads, len(args)), backend="multiprocessing")(
+        results = Parallel(n_jobs=min(self.threads, len(args)), backend='multiprocessing')(
                         delayed(HyperPartition._incremental_partition)(*a) for a in args)
         
         os.chdir("..")

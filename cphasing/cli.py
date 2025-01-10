@@ -2084,7 +2084,7 @@ def hcr(fasta, porectable, pairs, contigsize,
         df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
                             names=['chrom', 'start', 'end', 'depth'])
         df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', header=0, index_col=None, 
-                            usecols=[0, 2],
+                            usecols=[0, 1],
                             names=['item', "count"])
 
         if Path("tmp.depth.fasta").exists():

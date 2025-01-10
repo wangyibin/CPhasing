@@ -556,7 +556,7 @@ def run(fasta,
         if porec_table and not use_pairs:
             prepare_input = f"{porec_prefix}.pairs.gz"
         else:
-            prepare_input = f"{pairs_prefix}.pairs.gz"
+            prepare_input = f"{pairs}"
             input_param = "--pairs"
 
     else:

@@ -103,7 +103,7 @@ class HyperGraph:
             remove_idx = np.isin(np.arange(0, len(self.nodes)), self.idx)
             # self.mapq = self.mapq[retain_idx]
             self.remove_contigs = self.nodes[~remove_idx]
-            logger.info(f"Removed `{total_edge_counts - np.count_nonzero(retain_idx)}` "
+            logger.info(f"Removed `{total_edge_counts - np.count_nonzero(retain_idx):,}` "
                             f"hyperedges that mapq < {self.min_quality}.")
         
         else:

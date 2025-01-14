@@ -12,8 +12,6 @@ import re
 import sys
 import shutil
 import time 
-# import tracemalloc
-
 
 from datetime import date
 from logging.handlers import RotatingFileHandler
@@ -31,10 +29,11 @@ from ..utilities import (
     is_compressed_table_empty,
     is_file_changed,
     generate_to_hic_cmd,
-    generate_plot_cmd
+    generate_plot_cmd,
+    MemoryMonitor
     )
 
-
+monitor = MemoryMonitor()
 logger = logging.getLogger(__name__)
 
 # file_handler = RotatingFileHandler("app.log", maxBytes=10**6, backupCount=3)
@@ -89,6 +88,7 @@ def run(fasta,
         allelic_similarity=0.85,
         min_allelic_overlap=0.3,
         min_weight=0.1,
+        min_cis_weight=1.0,
         min_quality1=1,
         min_quality2=2,
         min_contacts=5,
@@ -827,6 +827,8 @@ def run(fasta,
                                 min_allelic_overlap,
                                 "-mw",
                                 min_weight,
+                                "-mcw",
+                                min_cis_weight,
                                 "-q1",
                                 min_quality1,
                                 "-q2",
@@ -1085,8 +1087,10 @@ def run(fasta,
 
     today = date.today().strftime("%Y-%m-%d")
     end_time = time.time() - start_time
-    # peak_memory = tracemalloc.get_traced_memory()[1] / 1024 / 1024 / 1024
-    # peak_memory = 0
-    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f} s. ") #Peak memory: {peak_memory:2f} Gb")
+    monitor.join()
+    peak_memory = max(monitor.memory_buffer) / 1024 / 1024 / 1024
+
+    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f} s. "
+                f"Peak memory: {peak_memory:.2f} Gb"
+                )
     logger.info(f"Results are store in `{outdir}`")
-    # tracemalloc.stop()

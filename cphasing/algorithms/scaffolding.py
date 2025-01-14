@@ -41,11 +41,11 @@ from ..agp import agp2fasta, agp2tour
 from ..algorithms.hypergraph import IRMM
 from .._config import *
 from ..core import (
-                AlleleTable, 
-                CountRE, 
-                ClusterTable, 
-                Tour
-                )
+                    AlleleTable, 
+                    CountRE, 
+                    ClusterTable, 
+                    Tour
+                    )
 from ..utilities import (
     cmd_exists,
     choose_software_by_platform, 
@@ -154,8 +154,8 @@ class HaplotypeAlign:
         total_machine_cpu = cpu_count()
         
         try:
-            Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend='multiprocessing')(delayed(
-                    self.align)(i, j, k, l) for i, j, k, l in args
+            Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend='multiprocessing')(
+                        delayed(self.align)(*a) for a in args
             )
         except ValueError:
             logger.warning("Failed to run HaplotypeAlign. skipped")

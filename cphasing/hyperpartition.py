@@ -19,7 +19,7 @@ from itertools import (
     groupby,
     cycle
     )
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_backend
 from scipy.sparse import hstack, csr_matrix
 from pathlib import Path
 from pprint import pformat
@@ -115,6 +115,7 @@ class HyperPartition:
                     init_resolution1=0.8,
                     init_resolution2=0.8,
                     min_weight=1.0,
+                    min_cis_weight=1.0,
                     min_quality1=1,
                     min_quality2=2,
                     mapq_filter_1_to_2=False,
@@ -168,6 +169,7 @@ class HyperPartition:
         self.init_resolution1 = init_resolution1
         self.init_resolution2 = init_resolution2
         self.min_weight = min_weight
+        self.min_cis_weight = min_cis_weight
         self.min_quality1 = min_quality1
         self.min_quality2 = min_quality2
         self.min_scaffold_length = int(min_scaffold_length)
@@ -304,7 +306,7 @@ class HyperPartition:
             H = self.HG.incidence_matrix(self.min_contacts)
             vertices = self.HG.nodes
 
-        logger.info(f"Generated filtered hypergraph that containing {H.shape[0]} vertices"    
+        logger.info(f"Generated filtered hypergraph that containing {H.shape[0]:,} vertices"    
                     f" and {H.shape[1]:,} hyperedges.")
 
         return H, vertices
@@ -492,11 +494,26 @@ class HyperPartition:
         if self.alleletable and not self.prunetable:
             self.kprune(self.alleletable, contacts=self.contacts)
 
-        idx_to_vertices = self.idx_to_vertices
+
         A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
                                           NW=self.NW,
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
+        
+        dia = A.diagonal()
+        raw_contig_counts = A.shape[0]
+        retain_idx = np.where(dia > self.min_cis_weight )[0]
+        contig_counts = len(retain_idx)
+
+        if len(retain_idx) < raw_contig_counts:
+            A = A[retain_idx, :][:, retain_idx]
+            self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
+            self.vertices = self.vertices[retain_idx]
+
+            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that weight < {self.min_cis_weight} (--min-cis-weight).")
+
+        idx_to_vertices = self.idx_to_vertices
+
         if self.resolution1 == -1:
             result_K_length = 0
             tmp_resolution = self.init_resolution1
@@ -600,16 +617,18 @@ class HyperPartition:
 
     @staticmethod
     def _incremental_partition(
-                            # raw_K, raw_A, raw_idx_to_vertices, 
-                               K, 
-                               idx_to_vertices, 
-                               k, alleletable, prune_pair_df,
-                               H, vertices_idx_sizes, NW,
-                            resolution, init_resolution=0.8, min_weight=1, allelic_similarity=0.8, 
-                            min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
-                            is_remove_misassembly=False, is_recluster_contigs=False,
-                           min_scaffold_length=10000, threshold=0.01, max_round=1, num=None,
-                           kprune_norm_method='cis', threads=1):
+                                # raw_K, raw_A, raw_idx_to_vertices, 
+                                K, 
+                                idx_to_vertices, 
+                                k, alleletable, prune_pair_df,
+                                H, 
+                                vertices_idx_sizes, NW,
+                                resolution, init_resolution=0.8, min_weight=1, 
+                                min_cis_weight = 1.0, allelic_similarity=0.8, 
+                                min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
+                                is_remove_misassembly=False, is_recluster_contigs=False,
+                                min_scaffold_length=10000, threshold=0.01, max_round=1, num=None,
+                                kprune_norm_method='cis', threads=1):
         """
         single function for incremental_partition.
         """
@@ -623,6 +642,20 @@ class HyperPartition:
 
         K = np.array(list(K))
         sub_H, _, sub_edge_idx = extract_incidence_matrix2(H, K)
+        
+        ## remove low weigth contigs
+        sub_A = HyperGraph.clique_expansion_init(sub_H, min_weight=min_weight)
+        dia = sub_A.diagonal()
+        raw_contig_counts = len(K)
+        K = K[np.where(dia > min_cis_weight)[0]]
+        contig_counts = len(K)
+        if contig_counts == 0:
+            return None, None, None
+        if (raw_contig_counts - contig_counts) > 0:
+            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {min_cis_weight} (--min-cis-weight).")
+            sub_H, _, sub_edge_idx = extract_incidence_matrix2(H, K)
+
+
         del H 
         gc.collect() 
 
@@ -630,25 +663,25 @@ class HyperPartition:
             sub_NW = NW[list(K)][:, list(K)]
         else:
             sub_NW = None
-        
+
+        sub_A = HyperGraph.clique_expansion_init(sub_H, NW=sub_NW, min_weight=min_weight)
+
         sub_old2new_idx = dict(zip(K, range(len(K))))
         
         sub_vertices_idx_sizes = vertices_idx_sizes.reindex(K)
         sub_vertices_new_idx_sizes = sub_vertices_idx_sizes
         sub_vertices_new_idx_sizes.index = sub_vertices_idx_sizes.index.map(sub_old2new_idx.get)
 
-        
         sub_vertices = np.array(list(idx_to_vertices[i] for i in K))
         sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
-        sub_A = HyperGraph.clique_expansion_init(sub_H, NW=sub_NW, min_weight=min_weight)
-
+        
         if alleletable:
             HyperGraph.to_contacts(sub_A, sub_vertices, NW=sub_NW, min_weight=min_weight,
                                 output=f"{num}.hypergraph.expansion.contacts")
             sub_P_allelic_idx, sub_P_weak_idx, sub_prune_pair_df = HyperPartition.kprune_func(
                                     alleletable, f"{num}.hypergraph.expansion.contacts",
                                     sub_vertives_idx, kprune_norm_method=kprune_norm_method,
-                                    threads=threads)
+                                    threads=threads*2)
 
         elif  prune_pair_df is not None:      
             sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
@@ -932,14 +965,25 @@ class HyperPartition:
         if not first_cluster:
             logger.info("Starting first round partition ...")
         
-        vertices_idx_sizes = self.vertices_idx_sizes
-        vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
-        
         self.P_allelic_idx, self.P_weak_idx = None, None
         A = HyperGraph.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
                                           NW=self.NW,
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
+        
+        dia = A.diagonal()
+        raw_contig_counts = A.shape[0]
+        retain_idx = np.where(dia > self.min_cis_weight )[0]
+        contig_counts = len(retain_idx)
+
+        if len(retain_idx) < raw_contig_counts:
+            A = A[retain_idx, :][:, retain_idx]
+            self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
+            self.vertices = self.vertices[retain_idx]
+            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that weight < {self.min_cis_weight} (--min-cis-weight).")
+
+        vertices_idx_sizes = self.vertices_idx_sizes
+        vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
         
         if not first_cluster:
             
@@ -1105,15 +1149,17 @@ class HyperPartition:
                 if num in self.exclude_group_to_second:
                     self.exclude_groups.append(sub_k)
                     continue
-            
+    
             # sub_raw_k = raw_K[num - 1]
             args.append((
                         # sub_raw_k, raw_A, raw_idx_to_vertices, 
-                         sub_k, 
-                         idx_to_vertices, 
-                         sub_group_number, self.alleletable, prune_pair_df,
-                         self.H, vertices_idx_sizes, self.NW,
-                        self.resolution2, self.init_resolution2, self.min_weight, 
+                        sub_k, 
+                        idx_to_vertices, 
+                        sub_group_number, self.alleletable, prune_pair_df,
+                        self.H, 
+                        vertices_idx_sizes, self.NW,
+                        self.resolution2, self.init_resolution2, 
+                        self.min_weight, self.min_cis_weight,
                         self.allelic_similarity,  self.min_allelic_overlap, 
                         self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
                         self.is_recluster_contigs,
@@ -1122,9 +1168,12 @@ class HyperPartition:
             
             # results.append(HyperPartition._incremental_partition(args[-1])
         
-        results = Parallel(n_jobs=min(self.threads, len(args)), backend='multiprocessing')(
-                        delayed(HyperPartition._incremental_partition)(*a) for a in args)
-        
+        with parallel_backend('loky'):
+            results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
+                            delayed(HyperPartition._incremental_partition)(*a) for a in args)
+            
+            results = list(filter(lambda x: x[2] is not None, results))
+
         os.chdir("..")
 
         self.sub_A_list, self.cluster_assignments, results = zip(*results)
@@ -1762,7 +1811,7 @@ class HyperPartition:
     
     def filter_cluster(self, verbose=1):
         if verbose == 1:
-            logger.info(f"Removed scaffolding less than {self.min_scaffold_length} in length.")
+            logger.info(f"Removed groups less than {self.min_scaffold_length} in length.")
 
         try: 
             self.inc_chr_idx 

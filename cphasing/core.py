@@ -1128,7 +1128,7 @@ class ClusterTable:
 
 
 
-    def to_fasta(self, fasta):
+    def to_fasta(self, fasta, outdir="./"):
         """
         extract fasta by cluster table 
         """
@@ -1140,8 +1140,8 @@ class ClusterTable:
         file_db = {}
         files = []
         for group in self.groups:
-            file_db[group] = open(f"{group}.contigs.fasta", 'w')
-            files.append(f"{group}.contigs.fasta")
+            file_db[group] = open(f"{outdir}/{group}.contigs.fasta", 'w')
+            files.append(f"{outdir}/{group}.contigs.fasta")
 
         for record in fasta:
             if record.id in db:
@@ -2365,7 +2365,7 @@ class Pairs2:
         chunk = chunk.with_columns([
             bin1_id.alias('bin1_id'),
             bin2_id.alias('bin2_id')
-        ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+        ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2']).filter(pl.col('bin1_id') < pl.col('bin2_id'))
         # chunk = chunk.with_columns([
         #     (pl.col('pos1') // binsize + pl.col('chrom1').map_elements(
         #                     bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin1_id'),
@@ -2406,9 +2406,11 @@ class Pairs2:
         if self.chromsize is None or self.chromsize.empty:
             raise ValueError("Chromsize in pairs file is required.")
         
+
         bins = cooler.binnify(
                         pd.DataFrame(self.chromsizes.set_index('chrom'))['length'], 
                         binsize=binsize)
+
         if len(bins) > 2**32:
             self.bin_id_dtype = pl.UInt64
         elif len(bins) > 2**16:

@@ -10,6 +10,7 @@ import os
 import os.path as op
 import sys
 import re
+import time
 
 import cooler
 import numpy as np
@@ -19,8 +20,43 @@ from Bio import SeqIO
 from collections import OrderedDict
 from pathlib import Path, PosixPath
 
+from psutil import Process
+from threading import Thread
 
 logger = logging.getLogger(__name__)
+
+## https://joblib.readthedocs.io/en/latest/auto_examples/parallel_generator.html#sphx-glr-auto-examples-parallel-generator-py
+class MemoryMonitor(Thread):
+    """Monitor the memory usage in MB in a separate thread.
+
+    Note that this class is good enough to highlight the memory profile of
+    Parallel in this example, but is not a general purpose profiler fit for
+    all cases.
+    """
+    def __init__(self):
+        super().__init__()
+        self.stop = False
+        self.memory_buffer = []
+        self.start()
+
+    def get_memory(self):
+        "Get memory of a process and its children."
+        p = Process()
+        memory = p.memory_info().rss
+        for c in p.children():
+            memory += c.memory_info().rss
+        return memory
+
+    def run(self):
+        memory_start = self.get_memory()
+        while not self.stop:
+            self.memory_buffer.append(self.get_memory() - memory_start)
+            time.sleep(0.2)
+
+    def join(self):
+        self.stop = True
+        super().join()
+
 
 def listify(item):
     """

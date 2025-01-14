@@ -25,11 +25,11 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 __author__ = ("Yibin Wang", "Xingtan Zhang")
-__copyright__ = "Copyright (c) 2024, Yibin Wang"
+__copyright__ = "Copyright (c) 2025, tanger-lab"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.2.2.r285"
+__version__ = "0.2.3.r286"
 __epilog__ =  f"""
             \b
             Version: {__version__} | \n

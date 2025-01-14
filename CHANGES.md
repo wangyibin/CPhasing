@@ -1,4 +1,14 @@
 # Release notes #
+Data: 2025-01-14
+## Enhancement
+- `pipeline`, report peak memory usage
+- `hyperpartition`
+    - add `--min-cis-weight=5.0` to remove low contacts contigs
+    - increase `--min-contacts` to `25.0` to remove low contacts contigs
+
+## Bug fixes
+- `pairs2cool`, fixed bug that "bin1_id > bin2_id" in some cases
+
 Data: 2025-01-10
 ## [v0.2.2]
 ## Enhancement

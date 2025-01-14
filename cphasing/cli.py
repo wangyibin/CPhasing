@@ -151,7 +151,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of HyperPartition",
             "options": ["-n", "--use-pairs", "--min-contacts",
                         "--Nx", "--min-length", "--min-weight",
-                        "--whitelist",
+                        "--min-cis-weight", "--whitelist",
                         "--resolution1", "--resolution2",
                          "--init-resolution1",  "--init-resolution2",
                           "--first-cluster", "--normalize", 
@@ -216,7 +216,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of HyperPartition",
             "options": ["-n", "--use-pairs", "--min-contacts", 
                         "--Nx", "--min-length", "--min-weight",
-                        "--whitelist",
+                        "--min-cis-weight", "--whitelist",
                         "--resolution1", "--resolution2",
                          "--init-resolution1",  "--init-resolution2",
                           "--first-cluster", "--normalize", 
@@ -756,6 +756,15 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-mcw",
+    "--min-cis-weight",
+    "min_cis_weight",
+    help="Minimum conitg's cis weight of graph",
+    type=float,
+    default=5.0,
+    show_default=True
+)
+@click.option(
     "-q1",
     "--min-quality1",
     "min_quality1",
@@ -780,7 +789,7 @@ def cli(verbose, quiet):
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=5,
+    default=25,
     show_default=True
 )
 @click.option(
@@ -934,6 +943,7 @@ def pipeline(fasta,
             allelic_similarity,
             min_allelic_overlap,
             min_weight,
+            min_cis_weight,
             min_quality1,
             min_quality2,
             min_contacts,
@@ -1065,6 +1075,7 @@ def pipeline(fasta,
         allelic_similarity=allelic_similarity,
         min_allelic_overlap=min_allelic_overlap,
         min_weight=min_weight,
+        min_cis_weight=min_cis_weight,
         min_quality1=min_quality1,
         min_quality2=min_quality2,
         min_contacts=min_contacts,
@@ -2353,6 +2364,7 @@ def alleles(fasta, output,
     
     from .alleles import PartigAllele
     from .core import AlleleTable, ClusterTable
+    from .utilities import is_file_changed
     from joblib import Parallel, delayed 
 
     if not output:
@@ -2372,17 +2384,25 @@ def alleles(fasta, output,
         pa.run()
     else:
         ct = ClusterTable(first_cluster)
+        fasta = Path(fasta).absolute()
+        Path("alleles_workdir/").mkdir(exist_ok=True)
+        fastas = ct.to_fasta(fasta, outdir="alleles_workdir")
+        fastas = list(map(lambda x: Path(x).name, fastas))
+        os.chdir("alleles_workdir")
         
-        fastas = ct.to_fasta(fasta)
         args = []
         allele_tables = []
         for fa in fastas:
             fasta_prefix2 = Path(Path(fa).name).with_suffix("")
             while fasta_prefix2.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
                 fasta_prefix2 = fasta_prefix2.with_suffix("")
-        
             output2 = f"{fasta_prefix2}.allele.table"
-            allele_tables.append(output2)
+            allele_tables.append(f"alleles_workdir/{output2}")
+            if Path(output2).exists():
+                is_file_changed(output2)
+            if not is_file_changed(fa) and Path(output2).exists() and not is_file_changed(output2):
+                continue
+            
             args.append((fa, kmer_size, window_size, max_occurance, 
                             min_cnt, minimum_similarity, diff_thres,
                             min_length, output2, 4))
@@ -2397,7 +2417,10 @@ def alleles(fasta, output,
             pa.run()
 
         logger.info("Identifing allelic contig pairs in each homologous group ...")
-        Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
+        if len(args) > 0:
+            Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
+        else:
+            logger.info("Load existing allele table to generate total allele table.")
            
         for fa in fastas:
             if Path(fa).exists():
@@ -2405,6 +2428,7 @@ def alleles(fasta, output,
             if Path(f"{fa}.fai").exists():
                 os.remove(f"{fa}.fai")
 
+        os.chdir('..')
         ## merge allele table 
         logger.setLevel(logging.WARNING)
         allele_df = pd.concat([AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables], axis=0)
@@ -2421,11 +2445,11 @@ def alleles(fasta, output,
             allele_df.to_csv(out, sep='\t', header=None, index=None)
 
         logger.info(f"Successful output allele table in `{output}`")
-        for at in allele_tables:
-            if Path(at).exists():
-                os.remove(at)
-            if Path(f"{at.replace('.allele.table', '')}.similarity.res").exists():
-                os.remove(f"{at.replace('.allele.table', '')}.similarity.res")
+        # for at in allele_tables:
+        #     if Path(at).exists():
+        #         os.remove(at)
+        #     if Path(f"{at.replace('.allele.table', '')}.similarity.res").exists():
+        #         os.remove(f"{at.replace('.allele.table', '')}.similarity.res")
 
 
 @cli.command(cls=RichCommand, short_help="Build allele table by self mapping, lower memory usage, but higher errors.")
@@ -3300,7 +3324,7 @@ def hypergraph(contacts,
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=5,
+    default=25,
     show_default=True
 )
 @click.option(
@@ -3360,6 +3384,15 @@ def hypergraph(contacts,
     help="Minimum weight of graph",
     type=float,
     default=0.1,
+    show_default=True
+)
+@click.option(
+    "-mcw",
+    "--min-cis-weight",
+    "min_cis_weight",
+    help="Minimum conitg's cis weight of graph",
+    type=float,
+    default=5.0,
     show_default=True
 )
 @click.option(
@@ -3482,6 +3515,7 @@ def hyperpartition(hypergraph,
                     init_resolution1,
                     init_resolution2,
                     min_weight,
+                    min_cis_weight,
                     min_quality1,
                     min_quality2,
                     min_scaffold_length,
@@ -3755,6 +3789,7 @@ def hyperpartition(hypergraph,
                             init_resolution1,
                             init_resolution2,
                             min_weight,
+                            min_cis_weight,
                             min_quality1,
                             min_quality2,
                             mapq_filter_1_to_2,
@@ -4843,9 +4878,10 @@ def pairs2cool(pairs, chromsize, outcool,
 
     Path("logs").mkdir(exist_ok=True)
 
+    binsize = humanized2numeric(binsize)
     logger.info(f"Load pairs: `{pairs}`.")
     logger.info(f"Matrix's bin size: {to_humanized2(binsize)}")
-    binsize = humanized2numeric(binsize)
+    
     if not low_memory:
         available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
         pairs_size = op.getsize(pairs) / 1024 / 1024 / 1024

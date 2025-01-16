@@ -1,4 +1,7 @@
 # Release notes #
+Data: 2025-01-15
+## Bug fixes
+- `activate_cphasing`, fixed bug that exit shell window when pixi failed to install
 Data: 2025-01-14
 ## Enhancement
 - `pipeline`, report peak memory usage

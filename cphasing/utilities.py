@@ -20,7 +20,7 @@ from Bio import SeqIO
 from collections import OrderedDict
 from pathlib import Path, PosixPath
 
-from psutil import Process
+from psutil import Process, NoSuchProcess
 from threading import Thread
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,10 @@ class MemoryMonitor(Thread):
     def run(self):
         memory_start = self.get_memory()
         while not self.stop:
-            self.memory_buffer.append(self.get_memory() - memory_start)
+            try:
+                self.memory_buffer.append(self.get_memory() - memory_start)
+            except NoSuchProcess:
+                continue 
             time.sleep(0.2)
 
     def join(self):

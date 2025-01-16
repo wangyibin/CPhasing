@@ -2047,7 +2047,8 @@ def hcr(fasta, porectable, pairs, contigsize,
             pairs_files = [pairs]
         
         for pairs in pairs_files:
-            prefix = Path(Path(pairs).stem).with_suffix("")
+
+            prefix = Path(Path(pairs).name).with_suffix("")
             while prefix.suffix in {'.gz', 'gz', '.pairs'}:
                 prefix = prefix.with_suffix('')
 
@@ -2085,12 +2086,14 @@ def hcr(fasta, porectable, pairs, contigsize,
     if pattern and fasta:
         logger.info("Normalizing each bin by RE counts ...")
         cmd = ["bedtools", "getfasta", "-fi", str(fasta), 
-               "-bed", str(depth_file), "2>/dev/null",
+               "-bed", str(depth_file), "2>logs/hcr_bed2fasta.log",
                ">", "tmp.depth.fasta"]
-        os.system(" ".join(cmd))
+        flag = os.system(" ".join(cmd))
+        assert flag == 0, "Failed to execute command, please check log."
         cmd = ["cphasing-rs", "count_re", "--pattern", str(pattern), "tmp.depth.fasta", 
-               "2>/dev/null", "-o", "tmp.depth.countre.txt"]
-        os.system(" ".join(cmd))
+               "2>logs/hcr_countre.log", "-o", "tmp.depth.countre.txt"]
+        flag = os.system(" ".join(cmd))
+        assert flag == 0, "Failed to execute command, please check log."
 
         df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
                             names=['chrom', 'start', 'end', 'depth'])
@@ -5112,7 +5115,7 @@ def pairs2cool2(pairs, outcool,
 @click.option(
     '-t',
     '--threads',
-    help='Number of threads. (unused)',
+    help='Number of threads. Used in matrix balance.',
     type=int,
     default=8,
     metavar='INT',

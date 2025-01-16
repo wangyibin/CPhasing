@@ -510,7 +510,7 @@ class HyperPartition:
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
             self.vertices = self.vertices[retain_idx]
 
-            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that weight < {self.min_cis_weight} (--min-cis-weight).")
+            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
         idx_to_vertices = self.idx_to_vertices
 
@@ -980,7 +980,7 @@ class HyperPartition:
             A = A[retain_idx, :][:, retain_idx]
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
             self.vertices = self.vertices[retain_idx]
-            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that weight < {self.min_cis_weight} (--min-cis-weight).")
+            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
@@ -1169,9 +1169,12 @@ class HyperPartition:
             # results.append(HyperPartition._incremental_partition(args[-1])
         
         with parallel_backend('loky'):
-            results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
+            try:
+                results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
                             delayed(HyperPartition._incremental_partition)(*a) for a in args)
-            
+            except TypeError:
+                results = Parallel(n_jobs=min(self.threads, len(args)))(
+                            delayed(HyperPartition._incremental_partition)(*a) for a in args)
             results = list(filter(lambda x: x[2] is not None, results))
 
         os.chdir("..")

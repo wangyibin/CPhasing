@@ -19,6 +19,7 @@ from pyranges import PyRanges
 from shutil import which
 
 from cphasing.utilities import cmd_exists
+from cphasing.agp import import_agp
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,
@@ -29,6 +30,7 @@ def main(args):
     pOpt = p.add_argument_group('Optional arguments')
     pReq.add_argument('tsv', 
             help='tsv from paftools.js misjoin -e ')
+    pReq.add_argument("agp", help="agp file")
     pOpt.add_argument('-m', '--min_count', default=2, type=int, 
             help='minimum support of read count [default: %(default)s]')
     pOpt.add_argument('-h', '--help', action='help',
@@ -67,8 +69,26 @@ def main(args):
     res_df = res_df.sort_values(['Chromosome', 'Start', 'End'])
     res_df = res_df[res_df['Count'] >= args.min_count]
     output = Path(args.tsv).stem
-    res_df.to_csv(f'{output}.misassembly.txt', sep='\t', header=None, index=None)
-    print(f"No. misassemblies: {int(len(res_df) / 2)}", file=sys.stderr)
+    res_df.to_csv(f'.{output}.misassembly.txt', sep='\t', header=None, index=None)
+
+    agp_df, _ = import_agp(args.agp)
+    chrom_sizes = agp_df.groupby(agp_df.index)['end'].max()
+    chrom_sizes.to_csv(f".{output}.sizes", sep='\t', header=None, index=True)
+
+    cmd = f"grep -v -w U {args.agp} | grep '^Chr' | bedtools flank -g .{output}.sizes -i /dev/stdin  -l 2000 -r 0  | bedtools slop -i /dev/stdin -g .{output}.sizes -r 2000 -l 0 | bedtools intersect -a /dev/stdin  -b .{output}.misassembly.txt -wa 2>/dev/null | bedtools merge -i /dev/stdin  > {output}.misassembly.txt"
+    
+    os.system(cmd)
+
+
+    if Path(f".{output}.sizes").exists():
+        os.remove(f".{output}.sizes")
+    if Path(f".{output}.missassembly").exists():
+        os.remove(f".{output}.missassembly")
+
+
+    res_df = pd.read_csv(f"{output}.misassembly.txt", header=None, index_col=None, sep='\t')
+
+    print(f"No. misassemblies: {int(len(res_df))}", file=sys.stderr)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

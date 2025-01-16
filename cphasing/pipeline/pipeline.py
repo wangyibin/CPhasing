@@ -203,6 +203,7 @@ def run(fasta,
         pairs = Path(pairs).name
 
 
+
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     steps = set(steps)
@@ -981,7 +982,7 @@ def run(fasta,
         
         os.chdir("..")
 
-   
+
 
     plot_dir = str("5.plot")
     

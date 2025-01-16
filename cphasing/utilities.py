@@ -37,6 +37,7 @@ class MemoryMonitor(Thread):
         super().__init__()
         self.stop = False
         self.memory_buffer = []
+        self.daemon = True
         self.start()
 
     def get_memory(self):

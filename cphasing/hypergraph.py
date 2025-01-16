@@ -312,7 +312,7 @@ class ExtractorSplit:
 
     @staticmethod
     def _process_df(df, contig_sizes, split_contig_idx, split=2, threads=1):
-        pandarallel.initialize(nb_workers=threads, verbose=0)
+        pandarallel.initialize(nb_workers=min(10, threads), verbose=0)
         # df['chrom1'] = df['chrom1'].parallel_map(contig_idx.get)
         # df['chrom2'] = df['chrom2'].parallel_map(contig_idx.get)
         # df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")

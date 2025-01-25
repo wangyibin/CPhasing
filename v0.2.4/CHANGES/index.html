@@ -1,0 +1,3022 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/v0.2.4/CHANGES/">
+      
+      
+        <link rel="prev" href="../faq/">
+      
+      
+      
+      <link rel="icon" href="../logo/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
+    
+    
+      
+        <title>Change logs - C-Phasing Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Red+Hat+Text:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Red Hat Text";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../styles/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#change-logs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-header__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
+      
+  <img src="../logo/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            C-Phasing Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Change logs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="prefix-light" data-md-color-accent="prefix-light"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="prefix" data-md-color-accent="prefix"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../zh/CHANGES/" hreflang="zh" class="md-select__link">
+              中文
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-nav__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
+      
+  <img src="../logo/logo.png" alt="logo">
+
+    </a>
+    C-Phasing Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../basic_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Pore-C
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Pore-C
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/porec/porec_decaploid/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble autodecaploid by Pore-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/porec/porec_sugarcane/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Pore-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Hi-C
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Hi-C
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/hic/hic_decaploid/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble autodecaploid by Hi-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/hic/hic_sugarcane/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Hi-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    CLI
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/mapper/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mapper
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/alleles/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Alleles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/plot/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Plot
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Misc
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Misc
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Change logs
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Change logs
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v024-2025-01-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.4] - 2025-01-25
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v023-2025-01-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.3] - 2025-01-14
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v022-2025-01-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.2] - 2025-01-10
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v021-2025-01-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.1] - 2025-01-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v020-2024-10-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.0] - 2024-10-1
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v019-2024-07-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.9] - 2024-07-09
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v018-2024-05-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.8] - 2024-05-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v017-2024-05-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.7] - 2024-05-11
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v016-2024-05-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.6] - 2024-05-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v015-2024-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.5] - 2024-04-29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v014-2024-04-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.4] - 2024-04-23
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v013-2024-04-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.3] - 2024-04-22
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v012-2024-04-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.2] - 2024-04-18
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v011-2024-04-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.1] - 2024-04-11
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v010-2024-04-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.0] - 2024-04-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0060" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.60]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0059" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.59]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0058" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.58]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0057" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.57]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0056" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.56]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0055" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.55]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0054" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.54]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0053" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.53]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0052" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.52]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0051" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.51]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.50]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0049" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.49]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0048" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.48]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0047" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.47]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.46]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0045" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.45]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.44]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0043-2023-09-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.43] - 2023-09-24
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0042-2023-09-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.42] - 2023-09-22
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0041-2023-08-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.41] - 2023-08-25
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0040" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.40]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0039" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.39]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0038" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.38]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0037" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.37]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0036" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.36]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0035" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.35]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0034" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.34]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0032" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.32]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0031" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.31]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0030" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.30]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.29]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0028" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.28]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0027" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.27]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0026" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.26]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0025" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.25]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0024" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.24]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0023" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.23]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0022" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.22]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0021" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.21]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0020" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.20]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0019" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.19]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0018" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.18]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0017" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.17]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.16]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0015" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.15]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0014" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.14]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0013" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.13]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0012" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.12]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0011" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.11]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0010" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.10]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v009" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.9]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v008" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.8]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v007" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.7]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v006" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.6]
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v024-2025-01-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.4] - 2025-01-25
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v023-2025-01-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.3] - 2025-01-14
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v022-2025-01-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.2] - 2025-01-10
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v021-2025-01-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.1] - 2025-01-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v020-2024-10-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.0] - 2024-10-1
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v019-2024-07-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.9] - 2024-07-09
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v018-2024-05-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.8] - 2024-05-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v017-2024-05-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.7] - 2024-05-11
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v016-2024-05-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.6] - 2024-05-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v015-2024-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.5] - 2024-04-29
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v014-2024-04-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.4] - 2024-04-23
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v013-2024-04-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.3] - 2024-04-22
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v012-2024-04-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.2] - 2024-04-18
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v011-2024-04-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.1] - 2024-04-11
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v010-2024-04-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.1.0] - 2024-04-07
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0060" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.60]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0059" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.59]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0058" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.58]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0057" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.57]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0056" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.56]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0055" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.55]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0054" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.54]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0053" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.53]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0052" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.52]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0051" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.51]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.50]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0049" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.49]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0048" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.48]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0047" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.47]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0046" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.46]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0045" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.45]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0044" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.44]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0043-2023-09-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.43] - 2023-09-24
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0042-2023-09-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.42] - 2023-09-22
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0041-2023-08-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.41] - 2023-08-25
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0040" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.40]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0039" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.39]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0038" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.38]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0037" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.37]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0036" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.36]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0035" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.35]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0034" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.34]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0032" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.32]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0031" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.31]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0030" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.30]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0029" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.29]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0028" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.28]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0027" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.27]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0026" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.26]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0025" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.25]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0024" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.24]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0023" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.23]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0022" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.22]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0021" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.21]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0020" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.20]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0019" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.19]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0018" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.18]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0017" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.17]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.16]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0015" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.15]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0014" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.14]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0013" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.13]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0012" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.12]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0011" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.11]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0010" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.10]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v009" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.9]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v008" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.8]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v007" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.7]
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v006" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.0.6]
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CHANGES.md" title="Edit this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="change-logs">Change logs<a class="headerlink" href="#change-logs" title="Permanent link">#</a></h1>
+<h2 id="v024-2025-01-25">[v0.2.4] - 2025-01-25<a class="headerlink" href="#v024-2025-01-25" title="Permanent link">#</a></h2>
+<h4 id="enhancement">Enhancement<a class="headerlink" href="#enhancement" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pairs2depth</code>, speed up by pipeline</li>
+<li><code>alleles</code>, add <code>--trim-length</code> to trim the both end of contigs to remove the 
+                effect of overlapping from hifiasm assembly graph.</li>
+<li><code>pipeline</code>
+    - <code>--preset precision</code>: Optimize parameters to improve accuracy at the expense of anchor rate
+    - <code>--preset sensitive</code>: Using in some complex genome,  which contain many fragmented contigs and low signals contigs</li>
+</ul>
+<h4 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">#</a></h4>
+<ul>
+<li><code>activate_cphasing</code>, fixed bug that exit shell window when pixi failed to install</li>
+<li><code>pipeline</code>
+    - fixed bug that program can not exit when error occurred 
+    - fixed bug that alleles parameters cannot affect in phasing mode
+    - fixed bug that reported in issue #14, which <code>--chimeric-correct</code> mode cannot use correct fasta in 3.hyperpartition</li>
+<li><code>plot</code>, fixed bug that program can not coarsen adjusted matrix to plot another binsize matrix</li>
+</ul>
+<h2 id="v023-2025-01-14">[v0.2.3] - 2025-01-14<a class="headerlink" href="#v023-2025-01-14" title="Permanent link">#</a></h2>
+<h4 id="enhancement_1">Enhancement<a class="headerlink" href="#enhancement_1" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>, report peak memory usage</li>
+<li><code>hyperpartition</code>
+    - add <code>--min-cis-weight=5.0</code> to remove low contacts contigs
+    - increase <code>--min-contacts</code> to <code>25.0</code> to remove low contacts contigs</li>
+</ul>
+<h4 id="bug-fixes_1">Bug fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pairs2cool</code>, fixed bug that "bin1_id &gt; bin2_id" in some cases</li>
+</ul>
+<h2 id="v022-2025-01-10">[v0.2.2] - 2025-01-10<a class="headerlink" href="#v022-2025-01-10" title="Permanent link">#</a></h2>
+<h4 id="enhancement_2">Enhancement<a class="headerlink" href="#enhancement_2" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>, When mode=phasing, pipeline integrating 1.alleles into 3.hyperpartition to speed up</li>
+</ul>
+<h4 id="bug-fixes_2">Bug fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">#</a></h4>
+<ul>
+<li><code>prepare</code>, fixed bug of "got unexpected keyword argument <code>has_header</code>'</li>
+</ul>
+<h2 id="v021-2025-01-07">[v0.2.1] - 2025-01-07<a class="headerlink" href="#v021-2025-01-07" title="Permanent link">#</a></h2>
+<h4 id="enhancement_3">Enhancement<a class="headerlink" href="#enhancement_3" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, add hcr_bed filter step.</li>
+<li><code>hyperpartition</code>, speed up the <code>phasing</code> mode</li>
+<li><code>activate_cphasing</code>, use pixi to activate the environment of CPhasing</li>
+<li><code>pairs2cool</code>, speed up it at the expense of memory consumption</li>
+<li><code>plot</code>, speed up it</li>
+</ul>
+<h4 id="bug-fixes_3">Bug fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">#</a></h4>
+<ul>
+<li><code>alleles</code>, a cheat method to fix bug of partig can not parse contig &gt; 130 Mb</li>
+<li><code>rename</code>, bug of read agp</li>
+<li><code>pipeline</code>
+    - input hic with <code>_1</code> or <code>_2</code> suffix can not load successful
+    - input hic can not find fastq path in <code>output dir</code></li>
+</ul>
+<h2 id="v020-2024-10-1">[v0.2.0] - 2024-10-1<a class="headerlink" href="#v020-2024-10-1" title="Permanent link">#</a></h2>
+<h4 id="enhancement_4">Enhancement<a class="headerlink" href="#enhancement_4" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>
+    - change the normalization method of the hic pipeline
+    - change pipeline output directories</li>
+<li><code>hyperpartition</code>, improve the performance of cluster merge</li>
+</ul>
+<h4 id="bug-fixes_4">Bug fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, fixed bug of split contigs</li>
+</ul>
+<h2 id="v019-2024-07-09">[v0.1.9] - 2024-07-09<a class="headerlink" href="#v019-2024-07-09" title="Permanent link">#</a></h2>
+<h4 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">#</a></h4>
+<ul>
+<li><code>collapsed-rescue</code>, init a collapsed contigs rescue function</li>
+</ul>
+<h4 id="enhancement_5">Enhancement<a class="headerlink" href="#enhancement_5" title="Permanent link">#</a></h4>
+<ul>
+<li><code>higig</code>
+    - support for hifi data. Moreover, support for junk and collapsed identification
+    - <code>correct-alignments</code>, increase performance by filtering low quality LIS</li>
+<li><code>pairs2cool</code>, add min_mapq filtering</li>
+<li><code>plot</code>, add triangle plot </li>
+<li><code>scaffolding</code>, speed up split clm by <code>cphasing-rs splitclm</code></li>
+<li><code>alleles</code>, speed up</li>
+</ul>
+<h4 id="bug-fixes_5">Bug fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code> 
+    - fixed bug of contacts generating
+    - fixed bug of the <code>corrected.agp</code> not output when chimeric correct mode</li>
+<li><code>scaffolding</code>, fixed bug of countre extract not found contigs </li>
+<li><code>hcr_from_contacts</code>, find error peak in low coverage regions</li>
+</ul>
+<h2 id="v018-2024-05-15">[v0.1.8] - 2024-05-15<a class="headerlink" href="#v018-2024-05-15" title="Permanent link">#</a></h2>
+<h4 id="enhancement_6">Enhancement<a class="headerlink" href="#enhancement_6" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, <code>Extractor</code>, add mapq to hypergraph</li>
+<li><code>remove_misassembly</code>, add remove_misassembly of error between homologous chromosome</li>
+</ul>
+<h4 id="bug-fixes_6">Bug fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, fixed bug of resolution not in filename</li>
+</ul>
+<h2 id="v017-2024-05-11">[v0.1.7] - 2024-05-11<a class="headerlink" href="#v017-2024-05-11" title="Permanent link">#</a></h2>
+<h4 id="enhancement_7">Enhancement<a class="headerlink" href="#enhancement_7" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, speed up data loading</li>
+<li><code>scaffolding</code>, speed up clm loadding </li>
+</ul>
+<h2 id="v016-2024-05-07">[v0.1.6] - 2024-05-07<a class="headerlink" href="#v016-2024-05-07" title="Permanent link">#</a></h2>
+<h4 id="enhancement_8">Enhancement<a class="headerlink" href="#enhancement_8" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hcr_by_contacts</code>, remove whole collapsed contigs </li>
+<li><code>stat_porec_table</code>, reduce memory usage</li>
+</ul>
+<h4 id="bug-fixes_7">Bug fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, length db not load contig that RE count &lt; 3</li>
+<li><code>simulate_collapse</code>, fixed bug of contig position in collapsed contigs</li>
+</ul>
+<h2 id="v015-2024-04-29">[v0.1.5] - 2024-04-29<a class="headerlink" href="#v015-2024-04-29" title="Permanent link">#</a></h2>
+<h4 id="enhancement_9">Enhancement<a class="headerlink" href="#enhancement_9" title="Permanent link">#</a></h4>
+<ul>
+<li>environment, add pigz </li>
+<li><code>hic mapper</code>, add "remove pcr duplicates" as default parameters</li>
+</ul>
+<h2 id="v014-2024-04-23">[v0.1.4] - 2024-04-23<a class="headerlink" href="#v014-2024-04-23" title="Permanent link">#</a></h2>
+<h4 id="enhancement_10">Enhancement<a class="headerlink" href="#enhancement_10" title="Permanent link">#</a></h4>
+<ul>
+<li>colorful the help text</li>
+<li><code>hcr</code>, use kde peaks </li>
+<li><code>pipeline</code>, use </li>
+</ul>
+<h2 id="v013-2024-04-22">[v0.1.3] - 2024-04-22<a class="headerlink" href="#v013-2024-04-22" title="Permanent link">#</a></h2>
+<h4 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">#</a></h4>
+<ul>
+<li><code>_chromap</code>, add a modified <code>chromap</code></li>
+</ul>
+<h4 id="enhancement_11">Enhancement<a class="headerlink" href="#enhancement_11" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, reduce memory usage</li>
+</ul>
+<h2 id="v012-2024-04-18">[v0.1.2] - 2024-04-18<a class="headerlink" href="#v012-2024-04-18" title="Permanent link">#</a></h2>
+<h4 id="enhancement_12">Enhancement<a class="headerlink" href="#enhancement_12" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, optimized</li>
+<li><code>cphasing-rs pairs2clm</code>, speed up</li>
+</ul>
+<h2 id="v011-2024-04-11">[v0.1.1] - 2024-04-11<a class="headerlink" href="#v011-2024-04-11" title="Permanent link">#</a></h2>
+<h4 id="new-features_2">New features<a class="headerlink" href="#new-features_2" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hitig</code>
+    - <code>scaffolding</code>, which enable to scaffolding by ultra-long reads.</li>
+</ul>
+<h4 id="enhancement_13">Enhancement<a class="headerlink" href="#enhancement_13" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, speed up</li>
+<li><code>alleles</code>, remove filter function</li>
+<li><code>hypergraph</code>, speed up by porec table load.</li>
+</ul>
+<h2 id="v010-2024-04-07">[v0.1.0] - 2024-04-07<a class="headerlink" href="#v010-2024-04-07" title="Permanent link">#</a></h2>
+<h4 id="new-features_3">New features<a class="headerlink" href="#new-features_3" title="Permanent link">#</a></h4>
+<ul>
+<li><code>alleles2</code>, a method for allelic contig identification by self mapping</li>
+<li><code>cphasing-rs prune</code>, a method to prune by raw allele table (ALLHiC allele table)</li>
+</ul>
+<h4 id="enhancement_14">Enhancement<a class="headerlink" href="#enhancement_14" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, increase the performance of long contigs</li>
+</ul>
+<h4 id="bug-fixes_8">Bug fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, fixed bug that it can not be used in pandas v2.0</li>
+</ul>
+<h4 id="v0064-2024-03-11">[v0.0.64] - 2024-03-11<a class="headerlink" href="#v0064-2024-03-11" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_9">Bug fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, fixed the inconsistent of phasing results, when specified alleletable and prunetable</li>
+<li><code>alleles</code>, filterring by valid kmer length of contigs</li>
+</ul>
+<h4 id="v0062-2024-02-18">[v0.0.62] - 2024-02-18<a class="headerlink" href="#v0062-2024-02-18" title="Permanent link">#</a></h4>
+<h4 id="new-features_4">New features<a class="headerlink" href="#new-features_4" title="Permanent link">#</a></h4>
+<ul>
+<li><code>cphasing-rs</code> <code>kprune</code>, increase the recall of cross-allelic</li>
+</ul>
+<h4 id="v0061-2024-01-19">[v0.0.61] - 2024-01-19<a class="headerlink" href="#v0061-2024-01-19" title="Permanent link">#</a></h4>
+<h4 id="new-features_5">New features<a class="headerlink" href="#new-features_5" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot_high_order_distribution.py</code>, plot the contact order distribution of pore-c alignments</li>
+</ul>
+<h4 id="enhancement_15">Enhancement<a class="headerlink" href="#enhancement_15" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, adopt the HapHiC_sort to scaffolding, and add HaplotypeAlign</li>
+<li><code>partig</code>, change <code>d</code> to <code>0.1</code></li>
+<li><code>AlleleTable</code>, add <code>strand</code> column to the format of <code>allele2</code></li>
+<li><code>Tour</code>, add <code>to_dict</code>, <code>backup</code>, <code>save</code></li>
+</ul>
+<h2 id="v0060">[v0.0.60]<a class="headerlink" href="#v0060" title="Permanent link">#</a></h2>
+<h4 id="enhancement_16">Enhancement<a class="headerlink" href="#enhancement_16" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, add prune based on hypergraph</li>
+<li><code>hyperpartition</code>, add different n setting</li>
+<li><code>pipeline</code>, remove single kprune, change it to hypergraph prune</li>
+</ul>
+<h2 id="v0059">[v0.0.59]<a class="headerlink" href="#v0059" title="Permanent link">#</a></h2>
+<h4 id="enhancement_17">Enhancement<a class="headerlink" href="#enhancement_17" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, add automatic search resolution</li>
+<li><code>kprune</code>, update the formulate of normalization</li>
+</ul>
+<h2 id="v0058">[v0.0.58]<a class="headerlink" href="#v0058" title="Permanent link">#</a></h2>
+<h4 id="enhancement_18">Enhancement<a class="headerlink" href="#enhancement_18" title="Permanent link">#</a></h4>
+<ul>
+<li><code>mapper</code>, add restriction site filter and realign</li>
+<li><code>hyperpartition</code>, new mode by phasing</li>
+<li><code>hyperpartition</code>, support import pore-c table or pairs</li>
+<li><code>HyperEdges</code>, add contigsizes, mapq</li>
+</ul>
+<h2 id="v0057">[v0.0.57]<a class="headerlink" href="#v0057" title="Permanent link">#</a></h2>
+<h4 id="enhancement_19">Enhancement<a class="headerlink" href="#enhancement_19" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>, add <code>hcr</code></li>
+<li><code>hcr</code>, optimized</li>
+</ul>
+<h2 id="v0056">[v0.0.56]<a class="headerlink" href="#v0056" title="Permanent link">#</a></h2>
+<h4 id="enhancement_20">Enhancement<a class="headerlink" href="#enhancement_20" title="Permanent link">#</a></h4>
+<ul>
+<li><code>cphasing-rs</code>, update <code>pairs-intersect</code> and <code>porec-intersect</code></li>
+<li><code>kprune</code>, remove <code>count_re</code> argument</li>
+</ul>
+<h2 id="v0055">[v0.0.55]<a class="headerlink" href="#v0055" title="Permanent link">#</a></h2>
+<h4 id="new-features_6">New features<a class="headerlink" href="#new-features_6" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hcr_from_contacts</code>, add new function of hcr</li>
+<li><code>plot_lines</code>, plot lines of evaluation</li>
+</ul>
+<h2 id="v0054">[v0.0.54]<a class="headerlink" href="#v0054" title="Permanent link">#</a></h2>
+<h4 id="bug-fixes_10">Bug fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>, fixed bugs</li>
+</ul>
+<h2 id="v0053">[v0.0.53]<a class="headerlink" href="#v0053" title="Permanent link">#</a></h2>
+<h4 id="new-features_7">New features<a class="headerlink" href="#new-features_7" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pipeline</code>, add a pipeline of C-Phasing</li>
+</ul>
+<h4 id="enhancement_21">Enhancement<a class="headerlink" href="#enhancement_21" title="Permanent link">#</a></h4>
+<ul>
+<li><code>prepare</code>, restruct </li>
+<li><code>pairs2cool</code>, move to second command</li>
+</ul>
+<h2 id="v0052">[v0.0.52]<a class="headerlink" href="#v0052" title="Permanent link">#</a></h2>
+<h4 id="enhancement_22">Enhancement<a class="headerlink" href="#enhancement_22" title="Permanent link">#</a></h4>
+<ul>
+<li><code>kprune</code>, load data into tempfile to decrease the memory usage.</li>
+</ul>
+<h2 id="v0051">[v0.0.51]<a class="headerlink" href="#v0051" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-11-11</li>
+</ul>
+<h4 id="new-features_8">New features<a class="headerlink" href="#new-features_8" title="Permanent link">#</a></h4>
+<ul>
+<li><code>agp</code>, add <code>pseudo-agp</code>, create a pseudo agp from simulation contigs</li>
+</ul>
+<h4 id="bug-fixed">Bug fixed<a class="headerlink" href="#bug-fixed" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, add <code>cross_allelic_factor</code></li>
+</ul>
+<h2 id="v0050">[v0.0.50]<a class="headerlink" href="#v0050" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-11-10</li>
+</ul>
+<h4 id="enhancement_23">Enhancement<a class="headerlink" href="#enhancement_23" title="Permanent link">#</a></h4>
+<ul>
+<li><code>kprune</code>, add multiprocessing</li>
+</ul>
+<h2 id="v0049">[v0.0.49]<a class="headerlink" href="#v0049" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-11-10</li>
+</ul>
+<h4 id="enhancement_24">Enhancement<a class="headerlink" href="#enhancement_24" title="Permanent link">#</a></h4>
+<ul>
+<li><code>cphasing-rs</code>, update it into v0.0.10</li>
+</ul>
+<h4 id="new-features_9">New features<a class="headerlink" href="#new-features_9" title="Permanent link">#</a></h4>
+<ul>
+<li><code>porec2csv</code>, import porec table into pao csv</li>
+<li><code>PoreCTable.binnify</code>, binnify the contig by binsize</li>
+<li><code>PoreCTable.divide_contig_by_nparts</code>, divide contig by the number of parts</li>
+</ul>
+<h4 id="bug-fixed_1">Bug fixed<a class="headerlink" href="#bug-fixed_1" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, fixed bug that phasing mode report error when the prune table not apply</li>
+</ul>
+<h2 id="v0048">[v0.0.48]<a class="headerlink" href="#v0048" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-11-05</li>
+</ul>
+<h4 id="enhancement_25">Enhancement<a class="headerlink" href="#enhancement_25" title="Permanent link">#</a></h4>
+<ul>
+<li><code>kprune</code>, advanced it to identity more cross-allelic </li>
+</ul>
+<h4 id="new-features_10">New features<a class="headerlink" href="#new-features_10" title="Permanent link">#</a></h4>
+<ul>
+<li><code>evaluate_prune.py</code>, evaluate the result of <code>kprune</code></li>
+<li><code>methalign/pipe</code>, init the pipeline of methalign</li>
+</ul>
+<h2 id="v0047">[v0.0.47]<a class="headerlink" href="#v0047" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-10-15</li>
+</ul>
+<h4 id="enhancement_26">Enhancement<a class="headerlink" href="#enhancement_26" title="Permanent link">#</a></h4>
+<ul>
+<li><code>higig</code>, mv <code>ontig</code> to <code>hitig</code>.</li>
+</ul>
+<h2 id="v0046">[v0.0.46]<a class="headerlink" href="#v0046" title="Permanent link">#</a></h2>
+<h4 id="enhancement_27">Enhancement<a class="headerlink" href="#enhancement_27" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hcr</code>, add <code>break_pos</code> to correct hcr by break positions</li>
+</ul>
+<h4 id="bug-fixed_2">Bug fixed<a class="headerlink" href="#bug-fixed_2" title="Permanent link">#</a></h4>
+<ul>
+<li><code>mapper</code>, fixed min_quality can not be adopt</li>
+</ul>
+<h2 id="v0045">[v0.0.45]<a class="headerlink" href="#v0045" title="Permanent link">#</a></h2>
+<h4 id="enhancement_28">Enhancement<a class="headerlink" href="#enhancement_28" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hcr</code>, intergated <code>bed2depth</code> into <code>hcr</code></li>
+</ul>
+<h4 id="bug-fixed_3">Bug fixed<a class="headerlink" href="#bug-fixed_3" title="Permanent link">#</a></h4>
+<ul>
+<li><code>bed2depth</code>, fixed bug</li>
+</ul>
+<h2 id="v0044">[v0.0.44]<a class="headerlink" href="#v0044" title="Permanent link">#</a></h2>
+<h4 id="enhancement_29">Enhancement<a class="headerlink" href="#enhancement_29" title="Permanent link">#</a></h4>
+<ul>
+<li><code>ontig</code>, restruct the framework and add <code>split-reads</code>, <code>find-chimeric</code>, <code>hcr</code> three functions.</li>
+</ul>
+<h2 id="v0043-2023-09-24">[v0.0.43] - 2023-09-24<a class="headerlink" href="#v0043-2023-09-24" title="Permanent link">#</a></h2>
+<h4 id="new-features_11">New features<a class="headerlink" href="#new-features_11" title="Permanent link">#</a></h4>
+<ul>
+<li><code>methalign</code>, init</li>
+</ul>
+<h4 id="enhancement_30">Enhancement<a class="headerlink" href="#enhancement_30" title="Permanent link">#</a></h4>
+<ul>
+<li>rename <code>ultra_long</code> to <code>ontig</code></li>
+</ul>
+<h2 id="v0042-2023-09-22">[v0.0.42] - 2023-09-22<a class="headerlink" href="#v0042-2023-09-22" title="Permanent link">#</a></h2>
+<h4 id="enhancement_31">Enhancement<a class="headerlink" href="#enhancement_31" title="Permanent link">#</a></h4>
+<ul>
+<li><code>ultra_long</code>, expose ultra_long tutorial to C-Phasing README.md</li>
+</ul>
+<h2 id="v0041-2023-08-25">[v0.0.41] - 2023-08-25<a class="headerlink" href="#v0041-2023-08-25" title="Permanent link">#</a></h2>
+<h4 id="bug-fixed_4">Bug fixed<a class="headerlink" href="#bug-fixed_4" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, fixed cp groups.agp error when change the name of agp</li>
+</ul>
+<h2 id="v0040">[v0.0.40]<a class="headerlink" href="#v0040" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-19</li>
+</ul>
+<h4 id="enhancement_32">Enhancement<a class="headerlink" href="#enhancement_32" title="Permanent link">#</a></h4>
+<ul>
+<li>add <code>pyproject.toml</code></li>
+</ul>
+<h4 id="bug-fixed_5">Bug fixed<a class="headerlink" href="#bug-fixed_5" title="Permanent link">#</a></h4>
+<ul>
+<li><code>setup.py</code>, fixed the setup_helper error.</li>
+</ul>
+<h2 id="v0039">[v0.0.39]<a class="headerlink" href="#v0039" title="Permanent link">#</a></h2>
+<h4 id="enhancement_33">Enhancement<a class="headerlink" href="#enhancement_33" title="Permanent link">#</a></h4>
+<ul>
+<li>before this version <code>cphasing-rs</code> can not found</li>
+</ul>
+<h2 id="v0038">[v0.0.38]<a class="headerlink" href="#v0038" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-18</li>
+</ul>
+<h4 id="bug-fixed_6">Bug fixed<a class="headerlink" href="#bug-fixed_6" title="Permanent link">#</a></h4>
+<ul>
+<li><code>build</code>, fixed bug that can not specify the output of agp</li>
+<li><code>scaffolding</code>, fixed bug that can not specify the output of agp</li>
+</ul>
+<h2 id="v0037">[v0.0.37]<a class="headerlink" href="#v0037" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-16</li>
+</ul>
+<h4 id="enhancement_34">Enhancement<a class="headerlink" href="#enhancement_34" title="Permanent link">#</a></h4>
+<ul>
+<li><code>README.md</code>, add detail describtions</li>
+<li><code>scaffolding</code>, directly output <code>groups.agp</code></li>
+</ul>
+<h4 id="bug-fixed_7">Bug fixed<a class="headerlink" href="#bug-fixed_7" title="Permanent link">#</a></h4>
+<ul>
+<li>fixed bug that resulted some misassembly from v0.0.17</li>
+</ul>
+<h2 id="v0036">[v0.0.36]<a class="headerlink" href="#v0036" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-14</li>
+</ul>
+<h4 id="bug-fixed_8">Bug fixed<a class="headerlink" href="#bug-fixed_8" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code><br />
+    - fixed bug from v0.0.35 that default run ultra-complex mode
+    - fixed bug that whitelist can not used in single partition</li>
+<li><code>recluster</code>
+    - fixed bug of <code>KeyError</code></li>
+</ul>
+<h2 id="v0035">[v0.0.35]<a class="headerlink" href="#v0035" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-12</li>
+</ul>
+<h4 id="enhancement_35">Enhancement<a class="headerlink" href="#enhancement_35" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pairs2cool</code>, add <code>--fofn</code> parameter</li>
+<li><code>hyperpartition</code>, mask <code>ultra-complex</code> parameter</li>
+</ul>
+<h2 id="v0034">[v0.0.34]<a class="headerlink" href="#v0034" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-11</li>
+</ul>
+<h4 id="enhancement_36">Enhancement<a class="headerlink" href="#enhancement_36" title="Permanent link">#</a></h4>
+<ul>
+<li><code>mapper</code>, compress hic mapper result</li>
+<li><code>hyperpartition</code>, add contig filter when import first cluster result</li>
+<li>2023-08-04</li>
+</ul>
+<h4 id="bug-fixed_9">Bug fixed<a class="headerlink" href="#bug-fixed_9" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, fixed the column index error</li>
+</ul>
+<h2 id="v0032">[v0.0.32]<a class="headerlink" href="#v0032" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-04</li>
+</ul>
+<h4 id="bug-fixed_10">Bug fixed<a class="headerlink" href="#bug-fixed_10" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, fixed it can not parse single porec table </li>
+</ul>
+<h2 id="v0031">[v0.0.31]<a class="headerlink" href="#v0031" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-02</li>
+</ul>
+<h4 id="new-features_12">New features<a class="headerlink" href="#new-features_12" title="Permanent link">#</a></h4>
+<ul>
+<li><code>ultra_long</code>, add v1 pipeline</li>
+</ul>
+<h2 id="v0030">[v0.0.30]<a class="headerlink" href="#v0030" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-08-02</li>
+</ul>
+<h4 id="enhancement_37">Enhancement<a class="headerlink" href="#enhancement_37" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, speed up</li>
+</ul>
+<h4 id="bug-fixed_11">Bug fixed<a class="headerlink" href="#bug-fixed_11" title="Permanent link">#</a></h4>
+<ul>
+<li><code>porec-intersection</code>, fixed it can not output result</li>
+</ul>
+<h2 id="v0029">[v0.0.29]<a class="headerlink" href="#v0029" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-07-31</li>
+</ul>
+<h4 id="bug-fixed_12">Bug fixed<a class="headerlink" href="#bug-fixed_12" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, fixed key word of <code>edges</code> not yet change to <code>hypergraph</code></li>
+</ul>
+<h2 id="v0028">[v0.0.28]<a class="headerlink" href="#v0028" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-07-29</li>
+</ul>
+<h4 id="new-features_13">New features<a class="headerlink" href="#new-features_13" title="Permanent link">#</a></h4>
+<ul>
+<li><code>collapse</code>, create a collapse rescued contact matrix</li>
+</ul>
+<h4 id="enhancement_38">Enhancement<a class="headerlink" href="#enhancement_38" title="Permanent link">#</a></h4>
+<ul>
+<li>update <code>environment.yml</code></li>
+<li>update <code>cphasing-rs</code>, which reduce the size of binary and update to <code>v0.0.4</code></li>
+</ul>
+<h4 id="bug-fixed_13">Bug fixed<a class="headerlink" href="#bug-fixed_13" title="Permanent link">#</a></h4>
+<ul>
+<li><code>scaffolding</code>, fixed path error</li>
+</ul>
+<h2 id="v0027">[v0.0.27]<a class="headerlink" href="#v0027" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-07-14</li>
+</ul>
+<h4 id="enhancement_39">Enhancement<a class="headerlink" href="#enhancement_39" title="Permanent link">#</a></h4>
+<ul>
+<li>remove <code>check_allhic_version</code></li>
+</ul>
+<h2 id="v0026">[v0.0.26]<a class="headerlink" href="#v0026" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-07-12</li>
+</ul>
+<h4 id="new-features_14">New features<a class="headerlink" href="#new-features_14" title="Permanent link">#</a></h4>
+<ul>
+<li><code>statcluster</code>, stat the clustertable</li>
+<li><code>plot_hist</code>, plot the distribution of somethings</li>
+</ul>
+<h4 id="enhancement_40">Enhancement<a class="headerlink" href="#enhancement_40" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, add prune allelic hyperedges</li>
+<li><code>statagp</code>, change <code>agpstat</code> to <code>statagp</code></li>
+<li>change <code>extract</code> to <code>hypergraph</code></li>
+<li>change <code>optimize</code> to <code>scaffolding</code></li>
+<li><code>hyperpartition</code>, out "Chr??g?" as chromosome name</li>
+</ul>
+<h4 id="bug-fixed_14">Bug fixed<a class="headerlink" href="#bug-fixed_14" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyprpartition</code>, not add <code>-pt</code> or <code>at</code>, the <code>-inc</code> not work</li>
+</ul>
+<h2 id="v0025">[v0.0.25]<a class="headerlink" href="#v0025" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-07-05</li>
+</ul>
+<h4 id="new-features_15">New features<a class="headerlink" href="#new-features_15" title="Permanent link">#</a></h4>
+<ul>
+<li><code>evalutate_known_assembly.py</code>, evalutate the simulated human genome</li>
+<li><code>cis_trans_by_contigs.py</code>, calculate the cis and trans contacts by pairs</li>
+<li><code>logo</code>, add logo</li>
+</ul>
+<h4 id="enhancement_41">Enhancement<a class="headerlink" href="#enhancement_41" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, automatic using the exists first clusters results</li>
+</ul>
+<h2 id="v0024">[v0.0.24]<a class="headerlink" href="#v0024" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-20</li>
+</ul>
+<h4 id="new-features_16">New features<a class="headerlink" href="#new-features_16" title="Permanent link">#</a></h4>
+<ul>
+<li><code>ultra_long</code>, init ultra_long method</li>
+</ul>
+<h4 id="enhancement_42">Enhancement<a class="headerlink" href="#enhancement_42" title="Permanent link">#</a></h4>
+<ul>
+<li><code>mapper</code>, add <code>outprefix</code> prameter</li>
+</ul>
+<h2 id="v0023">[v0.0.23]<a class="headerlink" href="#v0023" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-17</li>
+</ul>
+<h4 id="new-features_17">New features<a class="headerlink" href="#new-features_17" title="Permanent link">#</a></h4>
+<ul>
+<li><code>pictures</code>, add the heatmap of M1</li>
+</ul>
+<h4 id="enhancement_43">Enhancement<a class="headerlink" href="#enhancement_43" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, expose <code>--min-allelic-overlap</code></li>
+<li><code>kprune</code>, add sort and normalize function</li>
+</ul>
+<h2 id="v0022">[v0.0.22]<a class="headerlink" href="#v0022" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-16</li>
+</ul>
+<h4 id="new-features_18">New features<a class="headerlink" href="#new-features_18" title="Permanent link">#</a></h4>
+<ul>
+<li><code>tmpoptimze</code>, a temp function for order and orientation</li>
+<li><code>PoreCMapper</code>, based on minimap2 and cphasing-rs</li>
+</ul>
+<h4 id="enhancement_44">Enhancement<a class="headerlink" href="#enhancement_44" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, add <code>--no-ticks</code> to remove ticks from picture</li>
+</ul>
+<h2 id="v0021">[v0.0.21]<a class="headerlink" href="#v0021" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-12</li>
+</ul>
+<h4 id="enhancement_45">Enhancement<a class="headerlink" href="#enhancement_45" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>
+    - change <code>zero-allelic</code> to <code>allelic-factor</code>
+    - add <code>merge_cluster</code>
+    - init <code>ultra_complex</code></li>
+</ul>
+<h6 id="bug-fixed_15">Bug fixed<a class="headerlink" href="#bug-fixed_15" title="Permanent link">#</a></h6>
+<ul>
+<li><code>plot</code>, enable <code>factor</code> can set to 1</li>
+</ul>
+<h2 id="v0020">[v0.0.20]<a class="headerlink" href="#v0020" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-07</li>
+</ul>
+<h4 id="enhancement_46">Enhancement<a class="headerlink" href="#enhancement_46" title="Permanent link">#</a></h4>
+<ul>
+<li><code>AlleleTable</code>, load info</li>
+<li><code>PartigRecord</code>, output allele table with additional information</li>
+</ul>
+<h4 id="new-features_19">New features<a class="headerlink" href="#new-features_19" title="Permanent link">#</a></h4>
+<ul>
+<li><code>AlleleInfo</code>, object function of allele table information</li>
+</ul>
+<h4 id="bug-fixed_16">Bug fixed<a class="headerlink" href="#bug-fixed_16" title="Permanent link">#</a></h4>
+<ul>
+<li><code>HyperPartition</code>, fixed bug of prunt -&gt; prunetable</li>
+</ul>
+<h2 id="v0019">[v0.0.19]<a class="headerlink" href="#v0019" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-06</li>
+</ul>
+<h4 id="enhancement_47">Enhancement<a class="headerlink" href="#enhancement_47" title="Permanent link">#</a></h4>
+<ul>
+<li><code>KPruneHyperGraph</code>, speed up</li>
+<li><code>HyperPartition</code>, add the get_prunetable_KPrune</li>
+</ul>
+<h2 id="v0018">[v0.0.18]<a class="headerlink" href="#v0018" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-06</li>
+</ul>
+<h4 id="enhancement_48">Enhancement<a class="headerlink" href="#enhancement_48" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>
+    - <code>min_weight</code>, add a parameter of the graph minimum weight </li>
+<li><code>IRMM</code>, add a function of the graph filter by minimum weight</li>
+</ul>
+<h4 id="new-features_20">New features<a class="headerlink" href="#new-features_20" title="Permanent link">#</a></h4>
+<ul>
+<li><code>KPruneHyperGraph</code>, add a function that implement pruning on hypergraph</li>
+</ul>
+<h2 id="v0017">[v0.0.17]<a class="headerlink" href="#v0017" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-06-01</li>
+</ul>
+<h4 id="enhancement_49">Enhancement<a class="headerlink" href="#enhancement_49" title="Permanent link">#</a></h4>
+<ul>
+<li><code>environment.yml</code>, update</li>
+<li><code>hyperpartition</code>
+    - add <code>--first-cluster</code> to load exists first cluster results
+    - expose <code>--zero-allelic</code> parameter
+    - expose <code>--allelic-similarity</code> parameter</li>
+<li><code>PoreCTable</code>, change to cphasing-rs porec table</li>
+</ul>
+<h4 id="new-features_21">New features<a class="headerlink" href="#new-features_21" title="Permanent link">#</a></h4>
+<ul>
+<li><code>docs</code>, add docs</li>
+<li><code>utils</code>
+    - <code>extract_matrix</code>, extract matrix by th contig list
+    - <code>prune_matrix</code>, prune matrix by prune table</li>
+</ul>
+<h4 id="bug-fixes_11">Bug fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">#</a></h4>
+<ul>
+<li><code>merge-matrix</code>, fixed the empty contact in result</li>
+</ul>
+<h2 id="v0016">[v0.0.16]<a class="headerlink" href="#v0016" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-05-05</li>
+</ul>
+<h4 id="enhancement_50">Enhancement<a class="headerlink" href="#enhancement_50" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, add mutual exclusion merge</li>
+</ul>
+<h4 id="bug-fixes_12">Bug fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hyperpartition</code>, fixed the bug that incorrect scaffold length in<code>_incremental_partition</code> </li>
+</ul>
+<h2 id="v0015">[v0.0.15]<a class="headerlink" href="#v0015" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-05-01</li>
+</ul>
+<h4 id="new-features_22">New features<a class="headerlink" href="#new-features_22" title="Permanent link">#</a></h4>
+<ul>
+<li><code>PruneTable</code>, Object for prune table.</li>
+</ul>
+<h4 id="enhancement_51">Enhancement<a class="headerlink" href="#enhancement_51" title="Permanent link">#</a></h4>
+<ul>
+<li><code>kprune</code>, output prune table</li>
+<li><code>hyperpartition</code>
+    - add k parameter to output the specified number groups</li>
+</ul>
+<h2 id="v0014">[v0.0.14]<a class="headerlink" href="#v0014" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-03-22</li>
+</ul>
+<h4 id="new-features_23">New features<a class="headerlink" href="#new-features_23" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot_heatmap</code>, custom function to plot heatmap </li>
+</ul>
+<h4 id="enhancement_52">Enhancement<a class="headerlink" href="#enhancement_52" title="Permanent link">#</a></h4>
+<ul>
+<li><code>HyperPartition</code>
+    - add post check to increase the accuracy of partition
+    - add min-contacts parameters to remove low contact contig pairs
+    - add negative allelic algorithm
+    - change multi to incremental
+    - add <code>whitelist</code> and <code>blacklist</code> parameters</li>
+</ul>
+<h4 id="bug-fixes_13">Bug fixes<a class="headerlink" href="#bug-fixes_13" title="Permanent link">#</a></h4>
+<ul>
+<li><code>KPrune</code>, dropna in pixels which will let igraph fall into loops</li>
+</ul>
+<h2 id="v0013">[v0.0.13]<a class="headerlink" href="#v0013" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-03-15</li>
+</ul>
+<h4 id="new-features_24">New features<a class="headerlink" href="#new-features_24" title="Permanent link">#</a></h4>
+<ul>
+<li><code>KPruner</code>, prune contig contacts according similarity allele table</li>
+</ul>
+<h4 id="enhancement_53">Enhancement<a class="headerlink" href="#enhancement_53" title="Permanent link">#</a></h4>
+<ul>
+<li><code>extract_incidence_matrix</code>, restruct to speed up </li>
+<li><code>extract</code>, <code>hyperpartition</code>, import contig sizes instead of fasta</li>
+<li><code>HyperPartition</code>, add filter function of minimum scaffolding length  </li>
+<li><code>build</code>, add only-agp option</li>
+</ul>
+<h5 id="bug-fixes_14">Bug fixes<a class="headerlink" href="#bug-fixes_14" title="Permanent link">#</a></h5>
+<ul>
+<li><code>HyperExtractor</code>, fixed the problem of read index for multi dataframe concat</li>
+</ul>
+<h2 id="v0012">[v0.0.12]<a class="headerlink" href="#v0012" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-03-11</li>
+</ul>
+<h4 id="new-features_25">New features<a class="headerlink" href="#new-features_25" title="Permanent link">#</a></h4>
+<ul>
+<li><code>HyperGraph</code>, instead of hypernetx to speed up </li>
+<li><code>prepare</code>, a cli function for some preparation for C-Phasing</li>
+<li><code>optimize.cpp</code>, optimize algorithm v1</li>
+</ul>
+<h4 id="enhancement_54">Enhancement<a class="headerlink" href="#enhancement_54" title="Permanent link">#</a></h4>
+<ul>
+<li><code>HyperEdges</code>, restruct to {idx, row, col}</li>
+<li><code>Extractor</code> and <code>HyperExtractor</code>, change to export <code>HyperEdges</code> </li>
+<li><code>process_pore_c_table</code>, speed up</li>
+<li><code>HyperPartition</code>, use custom <code>HyperGraph</code> to speed up</li>
+<li><code>merge_matrix</code>, merge binning matrix into whole contigs</li>
+<li><code>optimize</code>, cli for optimize score cacluation</li>
+</ul>
+<h4 id="bug-fixes_15">Bug fixes<a class="headerlink" href="#bug-fixes_15" title="Permanent link">#</a></h4>
+<ul>
+<li><code>alleles</code>, fix the bug of empty allele table</li>
+</ul>
+<h2 id="v0011">[v0.0.11]<a class="headerlink" href="#v0011" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-03-08</li>
+</ul>
+<h4 id="enhancement_55">Enhancement<a class="headerlink" href="#enhancement_55" title="Permanent link">#</a></h4>
+<ul>
+<li><code>Extractor</code> and <code>HyperExtractor</code>, change to export dict to list</li>
+<li><code>HyperPartition</code>, add parallel in hypergraph generation </li>
+</ul>
+<h2 id="v0010">[v0.0.10]<a class="headerlink" href="#v0010" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-03-08</li>
+</ul>
+<h4 id="new-features_26">New features<a class="headerlink" href="#new-features_26" title="Permanent link">#</a></h4>
+<ul>
+<li><code>Extractor</code>, extract edges from pairs file</li>
+<li><code>HyperExtractor</code>, extract hyperedges from pore-c table</li>
+<li><code>HyperEdges</code>, msgspec Struct for hyperedges serialization</li>
+</ul>
+<h4 id="enhancement_56">Enhancement<a class="headerlink" href="#enhancement_56" title="Permanent link">#</a></h4>
+<ul>
+<li><code>HyperPartition</code>, divesting edges extract function to improve usability</li>
+</ul>
+<h2 id="v009">[v0.0.9]<a class="headerlink" href="#v009" title="Permanent link">#</a></h2>
+<ul>
+<li>2023-01-06
+<code>refactor the frame of cphasing that seperating the hic and pore-c pipelines</code></li>
+</ul>
+<h4 id="new-features_27">New features<a class="headerlink" href="#new-features_27" title="Permanent link">#</a></h4>
+<ul>
+<li><code>agp2assembly</code>, convert agp to assembly file</li>
+<li><code>pairs2mnd</code>, convert pairs to mnd file</li>
+<li><code>paf2table</code>, convert paf to table</li>
+<li><code>pore_c_cchrom2contig</code>, convert chromosome-level to contig-level</li>
+<li><code>pairs_chrom2contig</code>, convert chromosome-level to contig-level</li>
+<li><code>optimzie</code>, init add optimize</li>
+</ul>
+<h4 id="enhancement_57">Enhancement<a class="headerlink" href="#enhancement_57" title="Permanent link">#</a></h4>
+<ul>
+<li><code>PAFTable</code>, speed up</li>
+<li><code>PoreCTable</code>, speed up and add <code>chrom2contig</code></li>
+<li><code>HyperPartition</code>, speed up the pore-c reads process</li>
+<li><code>paf2pairs</code>, speed up</li>
+</ul>
+<h4 id="bug-fixes_16">Bug fixes<a class="headerlink" href="#bug-fixes_16" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, to humanized</li>
+</ul>
+<h2 id="v008">[v0.0.8]<a class="headerlink" href="#v008" title="Permanent link">#</a></h2>
+<ul>
+<li>2022-11-17</li>
+</ul>
+<h4 id="new-features_28">New features<a class="headerlink" href="#new-features_28" title="Permanent link">#</a></h4>
+<ul>
+<li><code>hypergraph</code>, contain a hypergraph cluster algorithms</li>
+<li><code>HyperPartition</code>, partition contigs in diploid or allopolyploid</li>
+<li><code>PartigAllele</code>, enable using sequences similarity to generate allele table</li>
+<li><code>PAFTable</code>, filter alignment</li>
+<li><code>PoreCTable</code>, stat alignment information</li>
+</ul>
+<h4 id="enhancement_58">Enhancement<a class="headerlink" href="#enhancement_58" title="Permanent link">#</a></h4>
+<ul>
+<li><code>agp2fasta</code>, <code>build</code>, using dictory instead of faidx to speed up</li>
+</ul>
+<h4 id="bug-fixes_17">Bug fixes<a class="headerlink" href="#bug-fixes_17" title="Permanent link">#</a></h4>
+<ul>
+<li><code>PairHeader</code>, save header without "\n".</li>
+<li><code>rescue</code>, fix CountRE only default load &gt;=3.</li>
+<li><code>plot</code>, fix bug of hicexplorer outputFilename error.</li>
+</ul>
+<h2 id="v007">[v0.0.7]<a class="headerlink" href="#v007" title="Permanent link">#</a></h2>
+<ul>
+<li>2022-10-31</li>
+</ul>
+<h4 id="new-features_29">New features<a class="headerlink" href="#new-features_29" title="Permanent link">#</a></h4>
+<ul>
+<li><code>plot</code>, provide adjust matrix and plot matrix function.</li>
+<li><code>AdapativePartition</code>, partition by adapative pipeline for find best results</li>
+<li><code>PoreCMapper</code>, Pore-C reads mapping pipeline.</li>
+<li><code>PAFTable</code>, a function for processing paf file. (include <code>to_pairs</code>)</li>
+</ul>
+<h5 id="enhancement_59">Enhancement<a class="headerlink" href="#enhancement_59" title="Permanent link">#</a></h5>
+<ul>
+<li><code>correct</code>, increase recall and precision to 70%</li>
+<li><code>pairs</code>, add <code>chrom2contig</code> to convert a chrom-level pairs to contig-level</li>
+</ul>
+<h2 id="v006">[v0.0.6]<a class="headerlink" href="#v006" title="Permanent link">#</a></h2>
+<ul>
+<li>2022-10-07</li>
+</ul>
+<h4 id="new-features_30">New features<a class="headerlink" href="#new-features_30" title="Permanent link">#</a></h4>
+<ul>
+<li>Change packages name to CPhasing.</li>
+<li>New function of 
+    - <code>correct</code>
+    - <code>alleles</code>
+    - <code>rescue</code>
+    - <code>partition</code></li>
+<li>New API of <code>Pairs</code> in <code>core</code>.</li>
+</ul>
+<h5 id="bug-fixes_18">Bug fixes<a class="headerlink" href="#bug-fixes_18" title="Permanent link">#</a></h5>
+<ul>
+<li>Using normalized signal in <code>prune</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../faq/" class="md-footer__link md-footer__link--prev" aria-label="Previous: FAQ">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                FAQ
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright © 2022-2025 Tanger-lab
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/wangyibin" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+    
+  </body>
+</html>

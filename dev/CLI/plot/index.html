@@ -410,11 +410,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/porec/porec_tetraploid/" class="md-nav__link">
+      <a href="../../tutorials/porec/porec_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Assemble tetraploid by Pore-C
+    Assemble autodecaploid by Pore-C
   </span>
   
 
@@ -497,11 +497,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/hic/hic_tetraploid/" class="md-nav__link">
+      <a href="../../tutorials/hic/hic_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Assemble tetraploid by Hi-C
+    Assemble decaploid by Hi-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/hic/hic_sugarcane/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Hi-C
   </span>
   
 
@@ -669,18 +690,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#plot-from-agp-and-contig-level-cool" class="md-nav__link">
+  <a href="#plot-chromosome-level-heatmap-from-contig-level-mapping-result" class="md-nav__link">
     <span class="md-ellipsis">
-      Plot from .agp and contig-level .cool
+      Plot chromosome-level heatmap from contig-level mapping result
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#plot-heatmap-from-cool-file" class="md-nav__link">
+  <a href="#directly-plot-heatmap-from-cool-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Plot heatmap from .cool file
+      Directly plot heatmap from .cool file
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gallery-of-different-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Gallery of different parameters
     </span>
   </a>
   
@@ -688,6 +718,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters-of-plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters of plot
+    </span>
+  </a>
   
 </li>
       
@@ -762,18 +801,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#plot-from-agp-and-contig-level-cool" class="md-nav__link">
+  <a href="#plot-chromosome-level-heatmap-from-contig-level-mapping-result" class="md-nav__link">
     <span class="md-ellipsis">
-      Plot from .agp and contig-level .cool
+      Plot chromosome-level heatmap from contig-level mapping result
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#plot-heatmap-from-cool-file" class="md-nav__link">
+  <a href="#directly-plot-heatmap-from-cool-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Plot heatmap from .cool file
+      Directly plot heatmap from .cool file
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gallery-of-different-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Gallery of different parameters
     </span>
   </a>
   
@@ -781,6 +829,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters-of-plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters of plot
+    </span>
+  </a>
   
 </li>
       
@@ -809,132 +866,173 @@
 
   <h1>Plot</h1>
 
-<div class="language-shell highlight"><span class="filename">cphasing plot -h</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>plot<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                                 </span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w"> </span>Adjust<span class="w"> </span>or<span class="w"> </span>Plot<span class="w"> </span>the<span class="w"> </span>contacts<span class="w"> </span>matrix<span class="w"> </span>after<span class="w"> </span>assembling.<span class="w">                           </span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w"> </span>▌<span class="w"> </span>Usage:<span class="w">                                                                       </span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp<span class="w"> </span>and<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>heatmap<span class="w">                               </span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-m<span class="w"> </span>sample.10000.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w">        </span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp<span class="w"> </span>and<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>100k<span class="w"> </span>resolution<span class="w"> </span>heatmap<span class="w">               </span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span><span class="se">\ </span><span class="w">                                                </span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">      </span>-m<span class="w"> </span>sample.10000.cool<span class="w"> </span><span class="se">\ </span><span class="w">                                                   </span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">      </span>-o<span class="w"> </span>groups.100k.wg.png<span class="w"> </span><span class="se">\ </span><span class="w">                                                  </span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">      </span>-bs<span class="w"> </span>100k<span class="w">                                                                  </span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>only<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>heatmap<span class="w">                                                       </span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.cool<span class="w"> </span>-o<span class="w"> </span>sample.100k.png<span class="w">                          </span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>Plot<span class="w"> </span>some<span class="w"> </span>chromosomes<span class="w">                                                     </span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.cool<span class="w"> </span>-c<span class="w"> </span>Chr01,Chr02<span class="w"> </span>-o<span class="w"> </span>Chr01_Chr02.100k.png<span class="w">      </span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>Matrix<span class="w"> </span>Operation<span class="w"> </span>────────────────────────────────────────────────╮
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>│<span class="w"> </span>*<span class="w">  </span>--matrix<span class="w">        </span>-m<span class="w">   </span>Contacts<span class="w"> </span>matrix<span class="w"> </span>stored<span class="w"> </span>by<span class="w"> </span>Cool<span class="w"> </span>format.<span class="w">               </span>│
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>│<span class="w">                         </span><span class="o">(</span>COOL<span class="o">)</span><span class="w">                                               </span>│
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>│<span class="w">                         </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                           </span>│
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>│<span class="w">    </span>--binsize<span class="w">       </span>-bs<span class="w">  </span>Bin<span class="w"> </span>size<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>heatmap<span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>plot.<span class="w">  </span>Enabled<span class="w">   </span>│
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>│<span class="w">                         </span>suffix<span class="w"> </span>with<span class="w"> </span>k<span class="w"> </span>or<span class="w"> </span>m.<span class="w"> </span><span class="o">[</span>defalt:<span class="w"> </span>input<span class="w"> </span>matrix<span class="w"> </span>binsize<span class="o">]</span><span class="w">   </span>│
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>│<span class="w">                         </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>│<span class="w">    </span>--only-coarsen<span class="w">       </span>Only<span class="w"> </span>coarsen<span class="w"> </span>the<span class="w"> </span>input<span class="w"> </span>matrix,<span class="w"> </span><span class="k">do</span><span class="w"> </span>not<span class="w"> </span>need<span class="w"> </span>plot<span class="w"> </span>the<span class="w">  </span>│
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>│<span class="w">                         </span>heatmap.<span class="w">                                             </span>│
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>│<span class="w">    </span>--balance<span class="w">            </span>balance<span class="w"> </span>the<span class="w"> </span>matrix.<span class="w">                                  </span>│
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>│<span class="w">    </span>--balanced<span class="w">           </span>Plot<span class="w"> </span>balanced<span class="w"> </span>values,<span class="w"> </span>which<span class="w"> </span>need<span class="w"> </span>cool<span class="w"> </span>have<span class="w"> </span>weights<span class="w">   </span>│
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>│<span class="w">                         </span>columns<span class="w"> </span><span class="k">in</span><span class="w"> </span>bins.<span class="w">                                     </span>│
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>╰──────────────────────────────────────────────────────────────────────────────╯
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>AGP<span class="w"> </span>Adjustment<span class="w"> </span>──────────────────────────────────────────────────╮
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>│<span class="w"> </span>--agp<span class="w">          </span>-a<span class="w">  </span><span class="o">(</span>AGP<span class="o">)</span><span class="w">                                                     </span>│
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>│<span class="w"> </span>--only-adjust<span class="w">      </span>Only<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp,<span class="w"> </span><span class="k">do</span><span class="w"> </span>not<span class="w"> </span>need<span class="w"> </span>plot<span class="w"> </span>the<span class="w">       </span>│
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>│<span class="w">                    </span>heatmap.<span class="w">                                                  </span>│
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>╰──────────────────────────────────────────────────────────────────────────────╯
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>Heatmap<span class="w"> </span>─────────────────────────────────────────────────────────╮
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>│<span class="w"> </span>--chromosomes<span class="w">                     </span>-c<span class="w">         </span>Chromosomes<span class="w"> </span>and<span class="w"> </span>order<span class="w"> </span><span class="k">in</span><span class="w"> </span>which<span class="w">  </span>│
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>│<span class="w">                                              </span>the<span class="w"> </span>chromosomes<span class="w"> </span>should<span class="w"> </span>be<span class="w">       </span>│
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>│<span class="w">                                              </span>plotted.<span class="w"> </span>Comma<span class="w"> </span>seperated.<span class="w"> </span>or<span class="w"> </span>a<span class="w">  </span>│
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>│<span class="w">                                              </span>one<span class="w"> </span>column<span class="w"> </span>file<span class="w">                 </span>│
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>│<span class="w">                                              </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                          </span>│
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>│<span class="w"> </span>--disable-natural-sort<span class="w">            </span>-dns<span class="w">       </span>Disable<span class="w"> </span>natural<span class="w"> </span>sort<span class="w"> </span>of<span class="w">         </span>│
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>│<span class="w">                                              </span>chromosomes,<span class="w"> </span>only<span class="w"> </span>used<span class="w"> </span><span class="k">for</span><span class="w">      </span>│
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>│<span class="w">                                              </span>--chromosomes<span class="w"> </span>or<span class="w"> </span>--only-chr<span class="w">     </span>│
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>│<span class="w"> </span>--per-chromosomes,--per-chromos…<span class="w">  </span>-pc<span class="w">        </span>Instead<span class="w"> </span>of<span class="w"> </span>plotting<span class="w"> </span>the<span class="w"> </span>whole<span class="w">   </span>│
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a>│<span class="w">                                              </span>matrix,<span class="w"> </span>each<span class="w"> </span>chromosome<span class="w"> </span>is<span class="w">      </span>│
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>│<span class="w">                                              </span>plotted<span class="w"> </span>next<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>other.<span class="w">      </span>│
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a>│<span class="w"> </span>--only-chr<span class="w">                        </span>-oc<span class="w">        </span>Only<span class="w"> </span>plot<span class="w"> </span>the<span class="w"> </span>chromosomes<span class="w"> </span>that<span class="w">  </span>│
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a>│<span class="w">                                              </span>ignore<span class="w"> </span>unanchored<span class="w"> </span>contigs.<span class="w"> </span>When<span class="w"> </span>│
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a>│<span class="w">                                              </span>--chromosomes<span class="w"> </span>specifed,<span class="w"> </span>this<span class="w">    </span>│
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a>│<span class="w">                                              </span>parameter<span class="w"> </span>will<span class="w"> </span>be<span class="w"> </span>ignored.<span class="w"> </span>The<span class="w">  </span>│
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a>│<span class="w">                                              </span>default<span class="w"> </span>use<span class="w"> </span>prefix<span class="w"> </span>of<span class="w"> </span>Chr<span class="w"> </span>to<span class="w">    </span>│
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a>│<span class="w">                                              </span>find<span class="w"> </span>the<span class="w"> </span>chromosomes.<span class="w">           </span>│
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>│<span class="w">                                              </span>--chr-prefix<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>used<span class="w"> </span>to<span class="w">     </span>│
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>│<span class="w">                                              </span>change<span class="w"> </span>this.<span class="w">                    </span>│
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>│<span class="w"> </span>--chr-prefix<span class="w">                      </span>-cp<span class="w">        </span>Prefix<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>chromosomes,<span class="w"> </span>only<span class="w"> </span>│
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>│<span class="w">                                              </span>used<span class="w"> </span><span class="k">for</span><span class="w"> </span>--only-chr<span class="w">             </span>│
-</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73" href="#__codelineno-0-73"></a>│<span class="w">                                              </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                           </span>│
-</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74" href="#__codelineno-0-74"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span>Chr<span class="o">]</span><span class="w">                  </span>│
-</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75" href="#__codelineno-0-75"></a>│<span class="w"> </span>--chrom-per-row<span class="w">                   </span>-cpr<span class="w">       </span>Number<span class="w"> </span>of<span class="w"> </span>chromosome<span class="w"> </span>plot<span class="w"> </span><span class="k">in</span><span class="w">    </span>│
-</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76" href="#__codelineno-0-76"></a>│<span class="w">                                              </span>each<span class="w"> </span>row<span class="w">                        </span>│
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77" href="#__codelineno-0-77"></a>│<span class="w">                                              </span><span class="o">(</span>INTEGER<span class="o">)</span><span class="w">                       </span>│
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78" href="#__codelineno-0-78"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                    </span>│
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79" href="#__codelineno-0-79"></a>│<span class="w"> </span>--vmin<span class="w">                            </span>-vmin<span class="w">      </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                         </span>│
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80" href="#__codelineno-0-80"></a>│<span class="w"> </span>--vmax<span class="w">                            </span>-vmax<span class="w">      </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                         </span>│
-</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a>│<span class="w"> </span>--scale<span class="w">                           </span>-s<span class="w">         </span>Method<span class="w"> </span>of<span class="w"> </span>contact<span class="w"> </span>normalization<span class="w"> </span>│
-</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82" href="#__codelineno-0-82"></a>│<span class="w">                                              </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                           </span>│
-</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83" href="#__codelineno-0-83"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span>log1p<span class="o">]</span><span class="w">                </span>│
-</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84" href="#__codelineno-0-84"></a>│<span class="w"> </span>--triangle<span class="w">                                   </span>Plot<span class="w"> </span>the<span class="w"> </span>heatmap<span class="w"> </span><span class="k">in</span><span class="w"> </span>triangle<span class="w">    </span>│
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85" href="#__codelineno-0-85"></a>│<span class="w"> </span>--fontsize<span class="w">                                   </span>Fontsize<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>ticks,<span class="w"> </span>default<span class="w">  </span>│
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86" href="#__codelineno-0-86"></a>│<span class="w">                                              </span>is<span class="w"> </span>auto<span class="w">                         </span>│
-</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87" href="#__codelineno-0-87"></a>│<span class="w">                                              </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                           </span>│
-</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88" href="#__codelineno-0-88"></a>│<span class="w"> </span>--dpi<span class="w">                             </span>-dpi<span class="w">       </span>Resolution<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>image.<span class="w">       </span>│
-</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89" href="#__codelineno-0-89"></a>│<span class="w">                                              </span><span class="o">(</span>INTEGER<span class="o">)</span><span class="w">                       </span>│
-</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90" href="#__codelineno-0-90"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span><span class="m">600</span><span class="o">]</span><span class="w">                  </span>│
-</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91" href="#__codelineno-0-91"></a>│<span class="w"> </span>--cmap,--colormap<span class="w">                 </span>-cmap,-cm<span class="w">  </span>Colormap<span class="w"> </span>of<span class="w"> </span>heatmap.<span class="w"> </span>Available<span class="w">  </span>│
-</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92" href="#__codelineno-0-92"></a>│<span class="w">                                              </span>values<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>seen<span class="w"> </span>:<span class="w">            </span>│
-</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93" href="#__codelineno-0-93"></a>│<span class="w">                                              </span>https://pratiman-91.github.io/…<span class="w"> </span>│
-</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94" href="#__codelineno-0-94"></a>│<span class="w">                                              </span>and<span class="w">                             </span>│
-</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95" href="#__codelineno-0-95"></a>│<span class="w">                                              </span>http://matplotlib.org/examples…<span class="w"> </span>│
-</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96" href="#__codelineno-0-96"></a>│<span class="w">                                              </span>and<span class="w"> </span>whitered<span class="w"> </span>.<span class="w">                  </span>│
-</span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97" href="#__codelineno-0-97"></a>│<span class="w">                                              </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                          </span>│
-</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98" href="#__codelineno-0-98"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span>redp1_r<span class="o">]</span><span class="w">              </span>│
-</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99" href="#__codelineno-0-99"></a>│<span class="w"> </span>--no-lines<span class="w">                        </span>-nl<span class="w">        </span>Don<span class="s1">&#39;t add dash line in          │</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100" href="#__codelineno-0-100"></a><span class="s1">│                                              chromosome boundaries.          │</span>
-</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101" href="#__codelineno-0-101"></a><span class="s1">│ --no-ticks                        -nt        Don&#39;</span>t<span class="w"> </span>add<span class="w"> </span>ticks<span class="w"> </span>both<span class="w"> </span><span class="k">in</span><span class="w"> </span>x<span class="w"> </span>axis<span class="w">  </span>│
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102" href="#__codelineno-0-102"></a>│<span class="w">                                              </span>and<span class="w"> </span>y<span class="w"> </span>axis.<span class="w">                     </span>│
-</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103" href="#__codelineno-0-103"></a>│<span class="w"> </span>--rotate-xticks<span class="w">                   </span>-rx<span class="w">        </span>Rotate<span class="w"> </span>the<span class="w"> </span>x<span class="w"> </span>ticks<span class="w">              </span>│
-</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104" href="#__codelineno-0-104"></a>│<span class="w">                                              </span><span class="o">[</span>default:<span class="w"> </span>True<span class="o">]</span><span class="w">                 </span>│
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105" href="#__codelineno-0-105"></a>│<span class="w"> </span>--rotate-yticks<span class="w">                   </span>-ry<span class="w">        </span>Rotate<span class="w"> </span>the<span class="w"> </span>x<span class="w"> </span>ticks<span class="w">              </span>│
-</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106" href="#__codelineno-0-106"></a>╰──────────────────────────────────────────────────────────────────────────────╯
-</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107" href="#__codelineno-0-107"></a>╭─<span class="w"> </span>Global<span class="w"> </span>Options<span class="w"> </span>─────────────────────────────────────────────────────────────╮
-</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108" href="#__codelineno-0-108"></a>│<span class="w"> </span>--output<span class="w">   </span>-o<span class="w">        </span>Output<span class="w"> </span>path<span class="w"> </span>of<span class="w"> </span>file.<span class="w">                                    </span>│
-</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109" href="#__codelineno-0-109"></a>│<span class="w">                      </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                                                  </span>│
-</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110" href="#__codelineno-0-110"></a>│<span class="w">                      </span><span class="o">[</span>default:<span class="w"> </span>plot.heatmap.png<span class="o">]</span><span class="w">                             </span>│
-</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111" href="#__codelineno-0-111"></a>│<span class="w"> </span>--threads<span class="w">  </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w"> </span><span class="o">(</span>unused<span class="o">)</span><span class="w">                             </span>│
-</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112" href="#__codelineno-0-112"></a>│<span class="w">                      </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                   </span>│
-</span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113" href="#__codelineno-0-113"></a>│<span class="w">                      </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                            </span>│
-</span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114" href="#__codelineno-0-114"></a>│<span class="w"> </span>--help<span class="w">     </span>-help,-h<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                             </span>│
-</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115" href="#__codelineno-0-115"></a>╰──────────────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">#</a></h2>
-<h3 id="plot-from-agp-and-contig-level-cool">Plot from <code>.agp</code> and contig-level <code>.cool</code><a class="headerlink" href="#plot-from-agp-and-contig-level-cool" title="Permanent link">#</a></h3>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-m<span class="w"> </span>sample.10000.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w">   </span>
+<h3 id="plot-chromosome-level-heatmap-from-contig-level-mapping-result">Plot chromosome-level heatmap from contig-level mapping result<a class="headerlink" href="#plot-chromosome-level-heatmap-from-contig-level-mapping-result" title="Permanent link">#</a></h3>
+<ul>
+<li>Convert pairs to cool file
+    <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing-rs<span class="w"> </span>contigsizes<span class="w"> </span>contigs.fa<span class="w"> </span>&gt;<span class="w"> </span>contigs.contigsizes
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cphasing<span class="w"> </span>pairs2cool<span class="w"> </span>sample.pairs.gz<span class="w"> </span>contigs.contigsizes<span class="w"> </span>sample.10k.cool
+</span></code></pre></div></li>
+<li>Adjust contig-level matrix to chromosome-level by agp file<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-m<span class="w"> </span>sample.10k.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w">   </span>
 </span></code></pre></div>
+</li>
+</ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This function will generate two intermedia <code>sample.10000.chrom.cool</code> and <code>sample.500k.chrom.cool</code>.</p>
 </div>
-<h3 id="plot-heatmap-from-cool-file">Plot heatmap from <code>.cool</code> file<a class="headerlink" href="#plot-heatmap-from-cool-file" title="Permanent link">#</a></h3>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.500k.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w"> </span>
+<p><center>
+    <img src="https://pic.superbed.cc/item/6791ff5efa9f77b4dce26304.png" width=30%>
+    <br>
+    <font color="black">groups.500k.wg.png</font>
+</center></p>
+<h3 id="directly-plot-heatmap-from-cool-file">Directly plot heatmap from <code>.cool</code> file<a class="headerlink" href="#directly-plot-heatmap-from-cool-file" title="Permanent link">#</a></h3>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.chrom.cool<span class="w"> </span>-o<span class="w"> </span>groups.100k.wg.png<span class="w"> </span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>--binsize</code> can be specified when you want to plot a larger resolution, e.g., 500k, <code>plot</code> will automatically generate a 1m matrix from the input matrix. Still, the binsize of the output matrix should be in integer multiples than the binsize of the input matrix.</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.chrom.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w"> </span>-bs<span class="w"> </span>500k
+</span></code></pre></div>
+</div>
+<p><center>
+    <img src="https://pic.superbed.cc/item/679201c8fa9f77b4dce27b64.png" width=30% >
+    <img src="https://pic.superbed.cc/item/6791ff5efa9f77b4dce26304.png" width=30% >
+    <br>
+    <font color="black">groups.100k.wg.png</font>
+    &emsp; &emsp; &emsp; &emsp; 
+    <font color="black">groups.500k.wg.png</font></p>
+<p></center></p>
+<h3 id="gallery-of-different-parameters">Gallery of different parameters<a class="headerlink" href="#gallery-of-different-parameters" title="Permanent link">#</a></h3>
+<p><img alt="different_parameters" src="https://pic.superbed.cc/item/67921867fa9f77b4dce3785c.png" /></p>
+<h4 id="plot-specified-chromosome">Plot specified chromosome<a class="headerlink" href="#plot-specified-chromosome" title="Permanent link">#</a></h4>
+<p><img alt="chrom_plot" src="https://pic.superbed.cc/item/67921640fa9f77b4dce3654f.png" /></p>
+<h4 id="plot-all-chromosome-split-in-one-picture">Plot all chromosome split in one picture<a class="headerlink" href="#plot-all-chromosome-split-in-one-picture" title="Permanent link">#</a></h4>
+<p><img alt="per_chrom" src="https://pic.superbed.cc/item/67921812fa9f77b4dce37540.png" /></p>
+<h2 id="parameters-of-plot">Parameters of plot<a class="headerlink" href="#parameters-of-plot" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><span class="filename">cphasing plot -h</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>plot<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                             </span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w"> </span>Adjust<span class="w"> </span>or<span class="w"> </span>Plot<span class="w"> </span>the<span class="w"> </span>contacts<span class="w"> </span>matrix<span class="w"> </span>after<span class="w"> </span>assembling.<span class="w">                       </span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w"> </span>▌<span class="w"> </span>Usage:<span class="w">                                                                   </span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp<span class="w"> </span>and<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>heatmap<span class="w">                           </span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-m<span class="w"> </span>sample.10000.cool<span class="w"> </span>-o<span class="w"> </span>groups.500k.wg.png<span class="w">    </span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp<span class="w"> </span>and<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>100k<span class="w"> </span>resolution<span class="w"> </span>heatmap<span class="w">           </span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span><span class="se">\ </span><span class="w">                                            </span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span>-m<span class="w"> </span>sample.10000.cool<span class="w"> </span><span class="se">\ </span><span class="w">                                               </span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">      </span>-o<span class="w"> </span>groups.100k.wg.png<span class="w"> </span><span class="se">\ </span><span class="w">                                              </span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">      </span>-bs<span class="w"> </span>100k<span class="w">                                                              </span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>only<span class="w"> </span>plot<span class="w"> </span>a<span class="w"> </span>heatmap<span class="w">                                                   </span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.cool<span class="w"> </span>-o<span class="w"> </span>sample.100k.png<span class="w">                      </span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w"> </span>▌<span class="w">  </span>•<span class="w"> </span>Plot<span class="w"> </span>some<span class="w"> </span>chromosomes<span class="w">                                                 </span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">  </span>cphasing<span class="w"> </span>plot<span class="w"> </span>-m<span class="w"> </span>sample.100k.cool<span class="w"> </span>-c<span class="w"> </span>Chr01,Chr02<span class="w"> </span>-o<span class="w"> </span>Chr01_Chr02.100k.png<span class="w">  </span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>Matrix<span class="w"> </span>Operation<span class="w"> </span>────────────────────────────────────────────╮
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>│<span class="w"> </span>*<span class="w">  </span>--matrix<span class="w">        </span>-m<span class="w">   </span>Contacts<span class="w"> </span>matrix<span class="w"> </span>stored<span class="w"> </span>by<span class="w"> </span>Cool<span class="w"> </span>format.<span class="w">           </span>│
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>│<span class="w">                         </span><span class="o">(</span>COOL<span class="o">)</span><span class="w">                                           </span>│
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>│<span class="w">                         </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>│<span class="w">    </span>--binsize<span class="w">       </span>-bs<span class="w">  </span>Bin<span class="w"> </span>size<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>heatmap<span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>plot.<span class="w">        </span>│
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>│<span class="w">                         </span>Enabled<span class="w"> </span>suffix<span class="w"> </span>with<span class="w"> </span>k<span class="w"> </span>or<span class="w"> </span>m.<span class="w"> </span><span class="o">[</span>defalt:<span class="w"> </span>input<span class="w">       </span>│
+</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>│<span class="w">                         </span>matrix<span class="w"> </span>binsize<span class="o">]</span><span class="w">                                  </span>│
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>│<span class="w">                         </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                            </span>│
+</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>│<span class="w">    </span>--only-coarsen<span class="w">       </span>Only<span class="w"> </span>coarsen<span class="w"> </span>the<span class="w"> </span>input<span class="w"> </span>matrix,<span class="w"> </span><span class="k">do</span><span class="w"> </span>not<span class="w"> </span>need<span class="w"> </span>plot<span class="w">  </span>│
+</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>│<span class="w">                         </span>the<span class="w"> </span>heatmap.<span class="w">                                     </span>│
+</span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>│<span class="w">    </span>--balance<span class="w">            </span>balance<span class="w"> </span>the<span class="w"> </span>matrix.<span class="w">                              </span>│
+</span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>│<span class="w">    </span>--balanced<span class="w">           </span>Plot<span class="w"> </span>balanced<span class="w"> </span>values,<span class="w"> </span>which<span class="w"> </span>need<span class="w"> </span>cool<span class="w"> </span>have<span class="w">       </span>│
+</span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a>│<span class="w">                         </span>weights<span class="w"> </span>columns<span class="w"> </span><span class="k">in</span><span class="w"> </span>bins.<span class="w">                         </span>│
+</span><span id="__span-4-46"><a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>╰──────────────────────────────────────────────────────────────────────────╯
+</span><span id="__span-4-47"><a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>AGP<span class="w"> </span>Adjustment<span class="w"> </span>──────────────────────────────────────────────╮
+</span><span id="__span-4-48"><a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a>│<span class="w"> </span>--agp<span class="w">          </span>-a<span class="w">  </span><span class="o">(</span>AGP<span class="o">)</span><span class="w">                                                 </span>│
+</span><span id="__span-4-49"><a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>│<span class="w"> </span>--only-adjust<span class="w">      </span>Only<span class="w"> </span>adjust<span class="w"> </span>the<span class="w"> </span>matrix<span class="w"> </span>by<span class="w"> </span>agp,<span class="w"> </span><span class="k">do</span><span class="w"> </span>not<span class="w"> </span>need<span class="w"> </span>plot<span class="w"> </span>the<span class="w">   </span>│
+</span><span id="__span-4-50"><a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>│<span class="w">                    </span>heatmap.<span class="w">                                              </span>│
+</span><span id="__span-4-51"><a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a>╰──────────────────────────────────────────────────────────────────────────╯
+</span><span id="__span-4-52"><a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>╭─<span class="w"> </span>Options<span class="w"> </span>of<span class="w"> </span>Heatmap<span class="w"> </span>─────────────────────────────────────────────────────╮
+</span><span id="__span-4-53"><a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>│<span class="w"> </span>--chromosomes<span class="w">                   </span>-c<span class="w">         </span>Chromosomes<span class="w"> </span>and<span class="w"> </span>order<span class="w"> </span><span class="k">in</span><span class="w">      </span>│
+</span><span id="__span-4-54"><a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a>│<span class="w">                                            </span>which<span class="w"> </span>the<span class="w"> </span>chromosomes<span class="w"> </span>should<span class="w">  </span>│
+</span><span id="__span-4-55"><a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a>│<span class="w">                                            </span>be<span class="w"> </span>plotted.<span class="w"> </span>Comma<span class="w"> </span>seperated.<span class="w">  </span>│
+</span><span id="__span-4-56"><a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a>│<span class="w">                                            </span>or<span class="w"> </span>a<span class="w"> </span>one<span class="w"> </span>column<span class="w"> </span>file<span class="w">          </span>│
+</span><span id="__span-4-57"><a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a>│<span class="w">                                            </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                        </span>│
+</span><span id="__span-4-58"><a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>│<span class="w"> </span>--regex<span class="w">                         </span>-r<span class="w">         </span>Regular<span class="w"> </span>expression<span class="w"> </span>of<span class="w">         </span>│
+</span><span id="__span-4-59"><a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a>│<span class="w">                                            </span>chromosomes,<span class="w"> </span>only<span class="w"> </span>used<span class="w"> </span><span class="k">for</span><span class="w">    </span>│
+</span><span id="__span-4-60"><a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a>│<span class="w">                                            </span>--chromosomes,<span class="w"> </span>e.g.<span class="w"> </span>Chr01g.*<span class="w">  </span>│
+</span><span id="__span-4-61"><a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a>│<span class="w"> </span>--disable-natural-sort<span class="w">          </span>-dns<span class="w">       </span>Disable<span class="w"> </span>natural<span class="w"> </span>sort<span class="w"> </span>of<span class="w">       </span>│
+</span><span id="__span-4-62"><a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a>│<span class="w">                                            </span>chromosomes,<span class="w"> </span>only<span class="w"> </span>used<span class="w"> </span><span class="k">for</span><span class="w">    </span>│
+</span><span id="__span-4-63"><a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a>│<span class="w">                                            </span>--chromosomes<span class="w"> </span>or<span class="w"> </span>--only-chr<span class="w">   </span>│
+</span><span id="__span-4-64"><a id="__codelineno-4-64" name="__codelineno-4-64" href="#__codelineno-4-64"></a>│<span class="w"> </span>--per-chromosomes,--per-chrom…<span class="w">  </span>-pc<span class="w">        </span>Instead<span class="w"> </span>of<span class="w"> </span>plotting<span class="w"> </span>the<span class="w"> </span>whole<span class="w"> </span>│
+</span><span id="__span-4-65"><a id="__codelineno-4-65" name="__codelineno-4-65" href="#__codelineno-4-65"></a>│<span class="w">                                            </span>matrix,<span class="w"> </span>each<span class="w"> </span>chromosome<span class="w"> </span>is<span class="w">    </span>│
+</span><span id="__span-4-66"><a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a>│<span class="w">                                            </span>plotted<span class="w"> </span>next<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>other.<span class="w">    </span>│
+</span><span id="__span-4-67"><a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>│<span class="w"> </span>--only-chr<span class="w">                      </span>-oc<span class="w">        </span>Only<span class="w"> </span>plot<span class="w"> </span>the<span class="w"> </span>chromosomes<span class="w">     </span>│
+</span><span id="__span-4-68"><a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a>│<span class="w">                                            </span>that<span class="w"> </span>ignore<span class="w"> </span>unanchored<span class="w">        </span>│
+</span><span id="__span-4-69"><a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a>│<span class="w">                                            </span>contigs.<span class="w"> </span>When<span class="w"> </span>--chromosomes<span class="w">   </span>│
+</span><span id="__span-4-70"><a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>│<span class="w">                                            </span>specifed,<span class="w"> </span>this<span class="w"> </span>parameter<span class="w"> </span>will<span class="w"> </span>│
+</span><span id="__span-4-71"><a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a>│<span class="w">                                            </span>be<span class="w"> </span>ignored.<span class="w"> </span>The<span class="w"> </span>default<span class="w"> </span>use<span class="w">   </span>│
+</span><span id="__span-4-72"><a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>│<span class="w">                                            </span>prefix<span class="w"> </span>of<span class="w"> </span>Chr<span class="w"> </span>to<span class="w"> </span>find<span class="w"> </span>the<span class="w">     </span>│
+</span><span id="__span-4-73"><a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a>│<span class="w">                                            </span>chromosomes.<span class="w"> </span>--chr-prefix<span class="w"> </span>can<span class="w"> </span>│
+</span><span id="__span-4-74"><a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a>│<span class="w">                                            </span>be<span class="w"> </span>used<span class="w"> </span>to<span class="w"> </span>change<span class="w"> </span>this.<span class="w">       </span>│
+</span><span id="__span-4-75"><a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a>│<span class="w"> </span>--chr-prefix<span class="w">                    </span>-cp<span class="w">        </span>Prefix<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>chromosomes,<span class="w">    </span>│
+</span><span id="__span-4-76"><a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a>│<span class="w">                                            </span>only<span class="w"> </span>used<span class="w"> </span><span class="k">for</span><span class="w"> </span>--only-chr<span class="w">      </span>│
+</span><span id="__span-4-77"><a id="__codelineno-4-77" name="__codelineno-4-77" href="#__codelineno-4-77"></a>│<span class="w">                                            </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                         </span>│
+</span><span id="__span-4-78"><a id="__codelineno-4-78" name="__codelineno-4-78" href="#__codelineno-4-78"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span>Chr<span class="o">]</span><span class="w">                </span>│
+</span><span id="__span-4-79"><a id="__codelineno-4-79" name="__codelineno-4-79" href="#__codelineno-4-79"></a>│<span class="w"> </span>--chrom-per-row<span class="w">                 </span>-cpr<span class="w">       </span>Number<span class="w"> </span>of<span class="w"> </span>chromosome<span class="w"> </span>plot<span class="w"> </span><span class="k">in</span><span class="w">  </span>│
+</span><span id="__span-4-80"><a id="__codelineno-4-80" name="__codelineno-4-80" href="#__codelineno-4-80"></a>│<span class="w">                                            </span>each<span class="w"> </span>row<span class="w">                      </span>│
+</span><span id="__span-4-81"><a id="__codelineno-4-81" name="__codelineno-4-81" href="#__codelineno-4-81"></a>│<span class="w">                                            </span><span class="o">(</span>INTEGER<span class="o">)</span><span class="w">                     </span>│
+</span><span id="__span-4-82"><a id="__codelineno-4-82" name="__codelineno-4-82" href="#__codelineno-4-82"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                  </span>│
+</span><span id="__span-4-83"><a id="__codelineno-4-83" name="__codelineno-4-83" href="#__codelineno-4-83"></a>│<span class="w"> </span>--vmin<span class="w">                          </span>-vmin<span class="w">      </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                       </span>│
+</span><span id="__span-4-84"><a id="__codelineno-4-84" name="__codelineno-4-84" href="#__codelineno-4-84"></a>│<span class="w"> </span>--vmax<span class="w">                          </span>-vmax<span class="w">      </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                       </span>│
+</span><span id="__span-4-85"><a id="__codelineno-4-85" name="__codelineno-4-85" href="#__codelineno-4-85"></a>│<span class="w"> </span>--scale<span class="w">                         </span>-s<span class="w">         </span>Method<span class="w"> </span>of<span class="w"> </span>contact<span class="w">             </span>│
+</span><span id="__span-4-86"><a id="__codelineno-4-86" name="__codelineno-4-86" href="#__codelineno-4-86"></a>│<span class="w">                                            </span>normalization<span class="w">                 </span>│
+</span><span id="__span-4-87"><a id="__codelineno-4-87" name="__codelineno-4-87" href="#__codelineno-4-87"></a>│<span class="w">                                            </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                         </span>│
+</span><span id="__span-4-88"><a id="__codelineno-4-88" name="__codelineno-4-88" href="#__codelineno-4-88"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span>log1p<span class="o">]</span><span class="w">              </span>│
+</span><span id="__span-4-89"><a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a>│<span class="w"> </span>--triangle<span class="w">                                 </span>Plot<span class="w"> </span>the<span class="w"> </span>heatmap<span class="w"> </span><span class="k">in</span><span class="w"> </span>triangle<span class="w">  </span>│
+</span><span id="__span-4-90"><a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a>│<span class="w"> </span>--fontsize<span class="w">                                 </span>Fontsize<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>ticks,<span class="w">        </span>│
+</span><span id="__span-4-91"><a id="__codelineno-4-91" name="__codelineno-4-91" href="#__codelineno-4-91"></a>│<span class="w">                                            </span>default<span class="w"> </span>is<span class="w"> </span>auto<span class="w">               </span>│
+</span><span id="__span-4-92"><a id="__codelineno-4-92" name="__codelineno-4-92" href="#__codelineno-4-92"></a>│<span class="w">                                            </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                         </span>│
+</span><span id="__span-4-93"><a id="__codelineno-4-93" name="__codelineno-4-93" href="#__codelineno-4-93"></a>│<span class="w"> </span>--dpi<span class="w">                           </span>-dpi<span class="w">       </span>Resolution<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>image.<span class="w">     </span>│
+</span><span id="__span-4-94"><a id="__codelineno-4-94" name="__codelineno-4-94" href="#__codelineno-4-94"></a>│<span class="w">                                            </span><span class="o">(</span>INTEGER<span class="o">)</span><span class="w">                     </span>│
+</span><span id="__span-4-95"><a id="__codelineno-4-95" name="__codelineno-4-95" href="#__codelineno-4-95"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span><span class="m">600</span><span class="o">]</span><span class="w">                </span>│
+</span><span id="__span-4-96"><a id="__codelineno-4-96" name="__codelineno-4-96" href="#__codelineno-4-96"></a>│<span class="w"> </span>--cmap,--colormap<span class="w">               </span>-cmap,-cm<span class="w">  </span>Colormap<span class="w"> </span>of<span class="w"> </span>heatmap.<span class="w">          </span>│
+</span><span id="__span-4-97"><a id="__codelineno-4-97" name="__codelineno-4-97" href="#__codelineno-4-97"></a>│<span class="w">                                            </span>Available<span class="w"> </span>values<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>seen<span class="w">  </span>│
+</span><span id="__span-4-98"><a id="__codelineno-4-98" name="__codelineno-4-98" href="#__codelineno-4-98"></a>│<span class="w">                                            </span>:<span class="w">                             </span>│
+</span><span id="__span-4-99"><a id="__codelineno-4-99" name="__codelineno-4-99" href="#__codelineno-4-99"></a>│<span class="w">                                            </span>https://pratiman-91.github.i…<span class="w"> </span>│
+</span><span id="__span-4-100"><a id="__codelineno-4-100" name="__codelineno-4-100" href="#__codelineno-4-100"></a>│<span class="w">                                            </span>and<span class="w">                           </span>│
+</span><span id="__span-4-101"><a id="__codelineno-4-101" name="__codelineno-4-101" href="#__codelineno-4-101"></a>│<span class="w">                                            </span>http://matplotlib.org/exampl…<span class="w"> </span>│
+</span><span id="__span-4-102"><a id="__codelineno-4-102" name="__codelineno-4-102" href="#__codelineno-4-102"></a>│<span class="w">                                            </span>and<span class="w"> </span>whitered<span class="w"> </span>.<span class="w">                </span>│
+</span><span id="__span-4-103"><a id="__codelineno-4-103" name="__codelineno-4-103" href="#__codelineno-4-103"></a>│<span class="w">                                            </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                        </span>│
+</span><span id="__span-4-104"><a id="__codelineno-4-104" name="__codelineno-4-104" href="#__codelineno-4-104"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span>redp1_r<span class="o">]</span><span class="w">            </span>│
+</span><span id="__span-4-105"><a id="__codelineno-4-105" name="__codelineno-4-105" href="#__codelineno-4-105"></a>│<span class="w"> </span>--whitered<span class="w">                      </span>-wr<span class="w">        </span>Preset<span class="w"> </span>of<span class="w"> </span>--scale<span class="w"> </span>none<span class="w">        </span>│
+</span><span id="__span-4-106"><a id="__codelineno-4-106" name="__codelineno-4-106" href="#__codelineno-4-106"></a>│<span class="w">                                            </span>--colormap<span class="w"> </span>whitered<span class="w">           </span>│
+</span><span id="__span-4-107"><a id="__codelineno-4-107" name="__codelineno-4-107" href="#__codelineno-4-107"></a>│<span class="w"> </span>--no-lines<span class="w">                      </span>-nl<span class="w">        </span>Don<span class="s1">&#39;t add dash line in        │</span>
+</span><span id="__span-4-108"><a id="__codelineno-4-108" name="__codelineno-4-108" href="#__codelineno-4-108"></a><span class="s1">│                                            chromosome boundaries.        │</span>
+</span><span id="__span-4-109"><a id="__codelineno-4-109" name="__codelineno-4-109" href="#__codelineno-4-109"></a><span class="s1">│ --no-ticks                      -nt        Don&#39;</span>t<span class="w"> </span>add<span class="w"> </span>ticks<span class="w"> </span>both<span class="w"> </span><span class="k">in</span><span class="w"> </span>x<span class="w">     </span>│
+</span><span id="__span-4-110"><a id="__codelineno-4-110" name="__codelineno-4-110" href="#__codelineno-4-110"></a>│<span class="w">                                            </span>axis<span class="w"> </span>and<span class="w"> </span>y<span class="w"> </span>axis.<span class="w">              </span>│
+</span><span id="__span-4-111"><a id="__codelineno-4-111" name="__codelineno-4-111" href="#__codelineno-4-111"></a>│<span class="w"> </span>--rotate-xticks<span class="w">                 </span>-rx<span class="w">        </span>Rotate<span class="w"> </span>the<span class="w"> </span>x<span class="w"> </span>ticks<span class="w">            </span>│
+</span><span id="__span-4-112"><a id="__codelineno-4-112" name="__codelineno-4-112" href="#__codelineno-4-112"></a>│<span class="w">                                            </span><span class="o">[</span>default:<span class="w"> </span>True<span class="o">]</span><span class="w">               </span>│
+</span><span id="__span-4-113"><a id="__codelineno-4-113" name="__codelineno-4-113" href="#__codelineno-4-113"></a>│<span class="w"> </span>--rotate-yticks<span class="w">                 </span>-ry<span class="w">        </span>Rotate<span class="w"> </span>the<span class="w"> </span>x<span class="w"> </span>ticks<span class="w">            </span>│
+</span><span id="__span-4-114"><a id="__codelineno-4-114" name="__codelineno-4-114" href="#__codelineno-4-114"></a>╰──────────────────────────────────────────────────────────────────────────╯
+</span><span id="__span-4-115"><a id="__codelineno-4-115" name="__codelineno-4-115" href="#__codelineno-4-115"></a>╭─<span class="w"> </span>Global<span class="w"> </span>Options<span class="w"> </span>─────────────────────────────────────────────────────────╮
+</span><span id="__span-4-116"><a id="__codelineno-4-116" name="__codelineno-4-116" href="#__codelineno-4-116"></a>│<span class="w"> </span>--output<span class="w">   </span>-o<span class="w">        </span>Output<span class="w"> </span>path<span class="w"> </span>of<span class="w"> </span>file.<span class="w">                                </span>│
+</span><span id="__span-4-117"><a id="__codelineno-4-117" name="__codelineno-4-117" href="#__codelineno-4-117"></a>│<span class="w">                      </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                                              </span>│
+</span><span id="__span-4-118"><a id="__codelineno-4-118" name="__codelineno-4-118" href="#__codelineno-4-118"></a>│<span class="w">                      </span><span class="o">[</span>default:<span class="w"> </span>plot.heatmap.png<span class="o">]</span><span class="w">                         </span>│
+</span><span id="__span-4-119"><a id="__codelineno-4-119" name="__codelineno-4-119" href="#__codelineno-4-119"></a>│<span class="w"> </span>--threads<span class="w">  </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w"> </span>Used<span class="w"> </span><span class="k">in</span><span class="w"> </span>matrix<span class="w"> </span>balance.<span class="w">          </span>│
+</span><span id="__span-4-120"><a id="__codelineno-4-120" name="__codelineno-4-120" href="#__codelineno-4-120"></a>│<span class="w">                      </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                               </span>│
+</span><span id="__span-4-121"><a id="__codelineno-4-121" name="__codelineno-4-121" href="#__codelineno-4-121"></a>│<span class="w">                      </span><span class="o">[</span>default:<span class="w"> </span><span class="m">8</span><span class="o">]</span><span class="w">                                        </span>│
+</span><span id="__span-4-122"><a id="__codelineno-4-122" name="__codelineno-4-122" href="#__codelineno-4-122"></a>│<span class="w"> </span>--help<span class="w">     </span>-help,-h<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                         </span>│
+</span><span id="__span-4-123"><a id="__codelineno-4-123" name="__codelineno-4-123" href="#__codelineno-4-123"></a>╰──────────────────────────────────────────────────────────────────────────╯
 </span></code></pre></div>
 
 

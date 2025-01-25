@@ -8,26 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_decaploid/">
       
       
+        <link rel="prev" href="../../porec/porec_sugarcane/">
       
-        <link rel="next" href="basic_usage/">
+      
+        <link rel="next" href="../hic_sugarcane/">
       
       
-      <link rel="icon" href="logo/logo.png">
+      <link rel="icon" href="../../../logo/logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
     
     
       
-        <title>C-Phasing Docs</title>
+        <title>Assemble decaploid by Hi-C - C-Phasing Docs</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="styles/extra.css">
+      <link rel="stylesheet" href="../../../styles/extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -74,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#introduction" class="md-skip">
+        <a href="#assemble-decaploid-by-hi-c" class="md-skip">
           Skip to content
         </a>
       
@@ -96,7 +98,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-header__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="logo/logo.png" alt="logo">
+  <img src="../../../logo/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Assemble decaploid by Hi-C
             
           </span>
         </div>
@@ -170,13 +172,13 @@
       <ul class="md-select__list">
         
           <li class="md-select__item">
-            <a href="/CPhasing/dev/" hreflang="en" class="md-select__link">
+            <a href="./" hreflang="en" class="md-select__link">
               English
             </a>
           </li>
         
           <li class="md-select__item">
-            <a href="/CPhasing/dev/zh/" hreflang="zh" class="md-select__link">
+            <a href="../../../zh/tutorials/hic/hic_decaploid/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -264,7 +266,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-nav__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="logo/logo.png" alt="logo">
+  <img src="../../../logo/logo.png" alt="logo">
 
     </a>
     C-Phasing Docs
@@ -288,28 +290,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Installation
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -318,42 +302,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -365,7 +313,7 @@
   
   
     <li class="md-nav__item">
-      <a href="basic_usage/" class="md-nav__link">
+      <a href="../../../basic_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -382,8 +330,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -393,11 +343,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -411,7 +361,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Tutorials
@@ -462,7 +412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tutorials/porec/porec_decaploid/" class="md-nav__link">
+      <a href="../../porec/porec_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -483,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tutorials/porec/porec_sugarcane/" class="md-nav__link">
+      <a href="../../porec/porec_sugarcane/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -509,6 +459,8 @@
                 
   
   
+    
+  
   
   
     
@@ -517,11 +469,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -535,7 +487,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             Hi-C
@@ -546,10 +498,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="tutorials/hic/hic_decaploid/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -558,6 +519,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -570,7 +532,7 @@
   
   
     <li class="md-nav__item">
-      <a href="tutorials/hic/hic_sugarcane/" class="md-nav__link">
+      <a href="../hic_sugarcane/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="CLI/mapper/" class="md-nav__link">
+      <a href="../../../CLI/mapper/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -667,7 +629,7 @@
   
   
     <li class="md-nav__item">
-      <a href="CLI/alleles/" class="md-nav__link">
+      <a href="../../../CLI/alleles/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -688,7 +650,7 @@
   
   
     <li class="md-nav__item">
-      <a href="CLI/plot/" class="md-nav__link">
+      <a href="../../../CLI/plot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -716,7 +678,7 @@
   
   
     <li class="md-nav__item">
-      <a href="faq/" class="md-nav__link">
+      <a href="../../../faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -746,32 +708,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#introduction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Introduction
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -786,7 +724,7 @@
                   
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/index.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/hic/hic_decaploid.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -794,93 +732,10 @@
   
 
 
-<p><img src="logo/logo.png" alt="C-Phasing logo" width="140px" align="left" /></p>
-<h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>
-<p>.</p>
-<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">#</a></h2>
-<p>One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., <strong>Pore-C</strong>, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely <code>C-Phasing</code>, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C data. It also works on <strong>Hi-C</strong> data and diploid genome assembly.  </p>
-<p>The advantages of <code>C-Phasing</code>: <br />
-    - High speed. <br />
-    - High anchor rate of genome.<br />
-    - High accuracy of polyploid phasing.   </p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">#</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">recommended</label><label for="__tabbed_1_2">conda</label><label for="__tabbed_1_3">custom</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<p>Download the CPhasing and activate environments by the <code>activate_cphasing</code>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git<span class="w"> </span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1">### activate environment</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">source</span><span class="w"> </span>./CPhasing/bin/activate_cphasing
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">### deactivate</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">source</span><span class="w"> </span>deactivate<span class="w"> </span>
-</span></code></pre></div></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For the first configuration, run it when the network is accessible.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If you do not have direct access to the anaconda repository, you can set the mirror for pixi.</p>
-</div>
-</div>
-<div class="tabbed-block">
-<p>Download the CPhasing and install environment by conda
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
+<h1 id="assemble-decaploid-by-hi-c">Assemble decaploid by Hi-C<a class="headerlink" href="#assemble-decaploid-by-hi-c" title="Permanent link">#</a></h1>
+<p>Decaploid (2n=8x=80)</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>decaploid_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>hic_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:10<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
 </span></code></pre></div>
-Add the following to the <code>~/.bash_profile</code>
-<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>/path/to/CPhasing:<span class="nv">$PYTHONPATH</span>
-</span></code></pre></div></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The hic pipeline require GLIBCXX_3.4.29, or you can add the following to the start of cphasing execute script, e.g.: <code>run.sh</code>
-<div class="language-bash highlight"><span class="filename">run.sh</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span>/path/to/anaconda3/envs/cphasing/lib:<span class="nv">$LD_LIBRARY_PATH</span>
-</span></code></pre></div></p>
-</div>
-</div>
-<div class="tabbed-block">
-<h4 id="install-c-phasing">Install C-Phasing<a class="headerlink" href="#install-c-phasing" title="Permanent link">#</a></h4>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1">## Download C-Phasing and install python dependencies</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>pip<span class="w"> </span>install<span class="w"> </span>.
-</span></code></pre></div>
-Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
-<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
-</span></code></pre></div></p>
-<h4 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">#</a></h4>
-<ol>
-<li>For core function<br />
-    - <a href="https://bedtools.readthedocs.io/en/latest/">bedtools</a><br />
-    - <a href="https://bioinf.shenwei.me/seqkit/">seqkit</a><br />
-    - <a href="https://github.com/madler/pigz">pigz</a>  </li>
-<li>For Pore-C pipeline <br />
-    - <a href="https://github.com/lh3/minimap2">minimap2</a>(&gt;= v2.24)  </li>
-</ol>
-</div>
-</div>
-</div>
-<div class="grid cards">
-<ul>
-<li><strong>Basic Usage</strong><hr />
-<p>Use <code>pipeline</code> to run <code>cphasing</code>.  </p>
-<p><a href="basic_usage"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Basic Usage</a></p>
-</li>
-</ul>
-<ul>
-<li><strong>Tutorials</strong><hr />
-<p>Tutorials to help you know how to run <code>cphasing</code>.<br />
-<a href="tutorials/porec/porec_decaploid/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Tutorials</a></p>
-</li>
-</ul>
-</div>
 
 
 
@@ -917,15 +772,31 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
       
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
+          
+          <a href="../../porec/porec_sugarcane/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble hybrid sugarcane by Pore-C">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Assemble hybrid sugarcane by Pore-C
+              </div>
+            </div>
+          </a>
+        
         
           
-          <a href="basic_usage/" class="md-footer__link md-footer__link--next" aria-label="Next: Basic Usage">
+          <a href="../hic_sugarcane/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble hybrid sugarcane by Hi-C">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Basic Usage
+                Assemble hybrid sugarcane by Hi-C
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -980,10 +851,10 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

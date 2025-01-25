@@ -11,10 +11,10 @@
         <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_sugarcane/">
       
       
-        <link rel="prev" href="../porec_tetraploid/">
+        <link rel="prev" href="../porec_decaploid/">
       
       
-        <link rel="next" href="../../hic/hic_tetraploid/">
+        <link rel="next" href="../../hic/hic_decaploid/">
       
       
       <link rel="icon" href="../../../logo/logo.png">
@@ -414,11 +414,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../porec_tetraploid/" class="md-nav__link">
+      <a href="../porec_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Assemble tetraploid by Pore-C
+    Assemble autodecaploid by Pore-C
   </span>
   
 
@@ -444,6 +444,17 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Pore-C
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -453,6 +464,43 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pore-c-data-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pore-C data processing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assembling by cphasing pipeline
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -511,11 +559,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../../hic/hic_tetraploid/" class="md-nav__link">
+      <a href="../../hic/hic_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Assemble tetraploid by Hi-C
+    Assemble decaploid by Hi-C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_sugarcane/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Hi-C
   </span>
   
 
@@ -690,6 +759,32 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pore-c-data-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pore-C data processing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assembling by cphasing pipeline
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -712,6 +807,21 @@
 
 
 <h1 id="assemble-hybrid-sugarcane-by-pore-c">Assemble hybrid sugarcane by Pore-C<a class="headerlink" href="#assemble-hybrid-sugarcane-by-pore-c" title="Permanent link">#</a></h1>
+<p>Aneuploidy (2n=114), estimate genome size ~ 10 Gb </p>
+<h2 id="pore-c-data-processing">Pore-C data processing<a class="headerlink" href="#pore-c-data-processing" title="Permanent link">#</a></h2>
+<p>Due to the huge porec data, we mapped each cell to fasta by submitting this command to cluster, respectively. And merged them into one file by <code>cphasing porec-merge</code>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>porec-1.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>porec-2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>porec-3.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>porec-4.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>porec-5.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span></code></pre></div></p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>porec-merge<span class="w"> </span>porec-*.porec.gz<span class="w"> </span>-o<span class="w"> </span>porec.merge.porec.gz<span class="w"> </span>
+</span></code></pre></div>
+<h2 id="assembling-by-cphasing-pipeline">Assembling by <code>cphasing pipeline</code><a class="headerlink" href="#assembling-by-cphasing-pipeline" title="Permanent link">#</a></h2>
+<p>Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set <code>-n 0:0</code> to automatically output cluster numbers.
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.mrege.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">0</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+</span></code></pre></div></p>
 
 
 
@@ -749,7 +859,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../porec_tetraploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble tetraploid by Pore-C">
+          <a href="../porec_decaploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble autodecaploid by Pore-C">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -759,20 +869,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Assemble tetraploid by Pore-C
+                Assemble autodecaploid by Pore-C
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../hic/hic_tetraploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble tetraploid by Hi-C">
+          <a href="../../hic/hic_decaploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble decaploid by Hi-C">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Assemble tetraploid by Hi-C
+                Assemble decaploid by Hi-C
               </div>
             </div>
             <div class="md-footer__button md-icon">

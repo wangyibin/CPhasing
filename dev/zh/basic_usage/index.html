@@ -467,7 +467,7 @@
             
   
   <span class="md-ellipsis">
-    Pore-C数据
+    Pore-C或HiFi-C数据
   </span>
   
 
@@ -477,7 +477,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
-            Pore-C数据
+            Pore-C或HiFi-C数据
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -936,8 +936,16 @@
 <p>这种文件是由<code>cphasing mapper</code>产生的.
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
+<h4 id="hifi-c">输入<strong>HiFi-C</strong>数据<a class="headerlink" href="#hifi-c" title="Permanent link">#</a></h4>
+<p>仅需比对的时候更改为<code>pipeline</code>或者<code>mapper</code>的<code>--mm2-params "-x map-hifi -k 19 -w 19"</code>参数. 剩下步骤和生成的文件都与Pore-C数据一致。
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>hific.fastq.gz<span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x map-hifi -k 19 -w 19&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
+</span></code></pre></div></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>HiFi-C的比对结果以<code>.porec.gz</code>结尾，处理方式与Pore-C一致，均可用<code>porec-merge</code>、<code>porec-intersect</code>等命令处理。</p>
+</div>
 <h4 id="hi-c-data">输入<strong>Hi-C data</strong>数据<a class="headerlink" href="#hi-c-data" title="Permanent link">#</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -947,27 +955,27 @@
 </ul>
 </div>
 <h4 id="4dn-pairs">输入4DN pairs文件<a class="headerlink" href="#4dn-pairs" title="Permanent link">#</a></h4>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-prs<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-prs<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
 - 跳过一些步骤
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">## skip steps 1.alleles and 2.prepare steps </span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-ss<span class="w"> </span><span class="m">1</span>,2
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">## skip steps 1.alleles and 2.prepare steps </span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-ss<span class="w"> </span><span class="m">1</span>,2
 </span></code></pre></div></p>
 <h4 id="_2">只跑某一步<a class="headerlink" href="#_2" title="Permanent link">#</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">## run 3.hyperpartition </span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">## run 3.hyperpartition </span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
 </span></code></pre></div>
 <h4 id="_3">提升组装质量<a class="headerlink" href="#_3" title="Permanent link">#</a></h4>
 <p>大部分情况下，设置<code>-hcr</code>参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定<code>-p AAGCTT</code> 进行标准化。
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
 </span></code></pre></div></p>
 <h3 id="juicebox">通过Juicebox 人工调整基因组组装<a class="headerlink" href="#juicebox" title="Permanent link">#</a></h3>
 <ul>
 <li>首先需要生成两个文件：<code>.assembly</code> 和 <code>.hic</code>, 以下步骤依赖于<a href="https://github.com/aidenlab/3d-dna">3d-dna</a> 软件，用户需自行安装。</li>
 </ul>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>bash<span class="w"> </span>~/software/3d-dna/visualize/run-assembly-visualizer.sh<span class="w"> </span>sample.assembly<span class="w"> </span>sample.mnd.txt
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>bash<span class="w"> </span>~/software/3d-dna/visualize/run-assembly-visualizer.sh<span class="w"> </span>sample.assembly<span class="w"> </span>sample.mnd.txt
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -975,19 +983,19 @@
 </div>
 <ul>
 <li>调整完后生成agp和fasta文件
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">## convert assembly to agp</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">## or haploid or a homologous group</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1">## extract contigs from agp </span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>contigs.fasta
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">## extract chromosome-level fasta from agp</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">## convert assembly to agp</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1">## or haploid or a homologous group</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1">## extract contigs from agp </span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>contigs.fasta
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1">## extract chromosome-level fasta from agp</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
 </span></code></pre></div></li>
 </ul>
 <h3 id="_4">根据参考基因组重新命名和调整整条染色体的方向<a class="headerlink" href="#_4" title="Permanent link">#</a></h3>
 <p>我们内置了<code>cphasing rename</code>命令，该命令可以根据一套单倍型或者近缘物种的染色体水平基因组去调整多倍体分型组装的染色体编号和整条染色体的方向方向
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

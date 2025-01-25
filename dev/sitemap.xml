@@ -50,6 +50,13 @@
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/plot/"/>
     </url>
     <url>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/rename/</loc>
+        <lastmod>2025-01-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/rename/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/rename/"/>
+    </url>
+    <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_decaploid/</loc>
         <lastmod>2025-01-25</lastmod>
         <changefreq>daily</changefreq>
@@ -139,6 +146,13 @@
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/plot/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/plot/"/>
+    </url>
+    <url>
+        <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/rename/</loc>
+        <lastmod>2025-01-25</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/rename/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/rename/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_decaploid/</loc>

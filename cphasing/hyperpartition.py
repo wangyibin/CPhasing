@@ -38,7 +38,7 @@ from .core import (
     PruneTable
 )
 from .kprune import KPruneHyperGraph
-from .utilities import list_flatten, run_cmd
+from .utilities import list_flatten, run_cmd, to_humanized2
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -93,6 +93,7 @@ class HyperPartition:
                     alleles_window_size=19,
                     alleles_minimum_similarity=0.5,
                     alleles_diff_thres=0.2,
+                    alleles_trim_length=25000,
                     alleletable=None,
                     prunetable=None,
                     normalize=False,
@@ -139,6 +140,8 @@ class HyperPartition:
         self.alleles_window_size = alleles_window_size
         self.alleles_minimum_similarity = alleles_minimum_similarity
         self.alleles_diff_thres = alleles_diff_thres
+        self.alleles_trim_length = alleles_trim_length
+
         self.prunetable = prunetable
         # self.alleletable = AlleleTable(alleletable, sort=False, fmt='allele2') if alleletable else None
         if alleletable:
@@ -510,7 +513,7 @@ class HyperPartition:
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
             self.vertices = self.vertices[retain_idx]
 
-            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
+            logger.info(f"Removed {raw_contig_counts - contig_counts:,} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
         idx_to_vertices = self.idx_to_vertices
 
@@ -652,7 +655,7 @@ class HyperPartition:
         if contig_counts == 0:
             return None, None, None
         if (raw_contig_counts - contig_counts) > 0:
-            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {min_cis_weight} (--min-cis-weight).")
+            logger.info(f"Removed {raw_contig_counts - contig_counts:,} contigs that self edge weight < {min_cis_weight} (--min-cis-weight).")
             sub_H, _, sub_edge_idx = extract_incidence_matrix2(H, K)
 
 
@@ -682,6 +685,7 @@ class HyperPartition:
                                     alleletable, f"{num}.hypergraph.expansion.contacts",
                                     sub_vertives_idx, kprune_norm_method=kprune_norm_method,
                                     threads=threads*2)
+
 
         elif  prune_pair_df is not None:      
             sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
@@ -740,10 +744,10 @@ class HyperPartition:
                                 lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
                                     >= min_scaffold_length, new_K)
                 )
-                filtered_K = list(filter(
-                                lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
-                                    < min_scaffold_length, new_K)
-                )
+                # filtered_K = list(filter(
+                #                 lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
+                #                     < min_scaffold_length, new_K)
+                # )
               
                 new_K = list(map(list, new_K))
                 tmp_resolution += 0.2  
@@ -892,8 +896,9 @@ class HyperPartition:
     @staticmethod
     def alleles(fasta, first_cluster, 
                 k=19, w=19, m=0.5, d=0.2, c=60, 
-                threads=4):
+                tl=25000, threads=4):
         from .cli import alleles
+        cwd = Path.cwd()
         try:
             alleles.main(
                 args=[
@@ -907,7 +912,8 @@ class HyperPartition:
                     "-k", str(k),
                     "-w", str(w),
                     "-m", str(m),
-                    "-d", str(d)
+                    "-d", str(d),
+                    "-tl", str(tl),
                 ],
                 prog_name='alleles'
             )
@@ -920,6 +926,7 @@ class HyperPartition:
             
             if exit_code != 0:
                 raise e
+        
 
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
@@ -971,16 +978,18 @@ class HyperPartition:
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
         
+     
         dia = A.diagonal()
+        
         raw_contig_counts = A.shape[0]
         retain_idx = np.where(dia > self.min_cis_weight )[0]
         contig_counts = len(retain_idx)
-
+        
         if len(retain_idx) < raw_contig_counts:
             A = A[retain_idx, :][:, retain_idx]
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
             self.vertices = self.vertices[retain_idx]
-            logger.info(f"Removed {raw_contig_counts - contig_counts} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
+            logger.info(f"Removed {raw_contig_counts - contig_counts:,} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
@@ -994,7 +1003,7 @@ class HyperPartition:
                 while result_K_length < k[0] and k[0] != 0:
                     if tmp_resolution > 10.0 or auto_round > 50:
                         break
-                    logger.info(f"Automatic search best resolution ... {tmp_resolution:.1f}")
+                    logger.info(f"Automatic search for best resolution ... {tmp_resolution:.1f}")
                     _, A, _, self.K = IRMM(self.H, A, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, tmp_resolution, 
@@ -1127,18 +1136,22 @@ class HyperPartition:
         results = []
         self.exclude_groups = []
         idx_to_vertices = self.idx_to_vertices
-
+  
         if self.fasta is not None and self.alleletable is None and self.prunetable is None:
+           
             self.alleletable = str(Path(self.alleles(self.fasta, first_cluster_file, 
                                                     k=self.alleles_kmer_size,
                                                     w=self.alleles_window_size,
                                                     d=self.alleles_diff_thres,
                                                     m=self.alleles_minimum_similarity,
+                                                    tl=self.alleles_trim_length,
                                                     threads=self.threads)).absolute())
+
+
             
         Path("kprune_workdir").mkdir(exist_ok=True)
         os.chdir("kprune_workdir")
-
+     
         for num, sub_k in enumerate(self.K, 1):
             if isinstance(k[1], dict):
                 sub_group_number = int(k[1][num - 1])
@@ -1167,8 +1180,9 @@ class HyperPartition:
                         self.kprune_norm_method, sub_threads))
             
             # results.append(HyperPartition._incremental_partition(args[-1])
-        
+ 
         with parallel_backend('loky'):
+           
             try:
                 results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
                             delayed(HyperPartition._incremental_partition)(*a) for a in args)
@@ -1176,7 +1190,7 @@ class HyperPartition:
                 results = Parallel(n_jobs=min(self.threads, len(args)))(
                             delayed(HyperPartition._incremental_partition)(*a) for a in args)
             results = list(filter(lambda x: x[2] is not None, results))
-
+ 
         os.chdir("..")
 
         self.sub_A_list, self.cluster_assignments, results = zip(*results)
@@ -1813,8 +1827,8 @@ class HyperPartition:
         return contigsizes.loc[k].sum().values[0]
     
     def filter_cluster(self, verbose=1):
-        if verbose == 1:
-            logger.info(f"Removed groups less than {self.min_scaffold_length} in length.")
+        if verbose == 1: 
+            logger.info(f"Removed groups less than {to_humanized2(self.min_scaffold_length)} in length.")
 
         try: 
             self.inc_chr_idx 

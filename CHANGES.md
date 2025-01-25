@@ -1,8 +1,24 @@
 # Release notes #
-Data: 2025-01-15
+
+## [v0.2.4]
+Data: 2025-01-22
+## Enhancement
+- `pairs2depth`, speed up by pipeline
+- `alleles`, add `--trim-length` to trim the both end of contigs to remove the 
+                effect of overlapping from hifiasm assembly graph.
+- `pipeline`
+    - `--preset precision`: Optimize parameters to improve accuracy at the expense of anchor rate
+    - `--preset sensitive`: Using in some complex genome,  which contain many fragmented contigs and low signals contigs
+
 ## Bug fixes
 - `activate_cphasing`, fixed bug that exit shell window when pixi failed to install
-- `pipeline`, fixed bug that program can not exit when error occurred 
+- `pipeline`
+    - fixed bug that program can not exit when error occurred 
+    - fixed bug that alleles parameters cannot affect in phasing mode
+    - fixed bug that reported in issue #14, which `--chimeric-correct` mode cannot use correct fasta in 3.hyperpartition
+- `plot`, fixed bug that program can not coarsen adjusted matrix to plot another binsize matrix
+
+## [v0.2.3]
 Data: 2025-01-14
 ## Enhancement
 - `pipeline`, report peak memory usage
@@ -13,8 +29,8 @@ Data: 2025-01-14
 ## Bug fixes
 - `pairs2cool`, fixed bug that "bin1_id > bin2_id" in some cases
 
-Data: 2025-01-10
 ## [v0.2.2]
+Data: 2025-01-10
 ## Enhancement
 - `pipeline`, When mode=phasing, pipeline integrating 1.alleles into 3.hyperpartition to speed up
 ## Bug fixes

@@ -62,7 +62,8 @@ cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```
 !!! note
-    if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.gz` by `cphasing-rs pairs-break`  
+    如果contig进行嵌合纠错，请使用`groups.corrected.agp`，并从原始的`pairs.gz`通过`cphasing-rs pairs-break`  生成一个新的 `corrected.pairs.gz`。
+    
 
 - 调整完后生成agp和fasta文件
 ```shell

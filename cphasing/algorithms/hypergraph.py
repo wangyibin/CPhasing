@@ -240,9 +240,10 @@ class HyperGraph:
 
         if min_weight > 0:
             mask = A >= min_weight
-            A.multiply(mask)
-
-        
+            # mask = (A >= min_weight).astype(bool)
+            # mask += (A <= -min_weight).astype(bool)
+            A = A.multiply(mask)
+    
         if P_allelic_idx or P_weak_idx:
             # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
             # P[np.diag_indices_from(P)] = 0
@@ -288,7 +289,7 @@ class HyperGraph:
 
         df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
         df = df[df[0] <= df[1]]
-        df = df[df[2] >= min_weight]
+        df = df[(df[2] >= min_weight) | (df[2] <= -min_weight)]
         df = df[abs(df[2]) != np.inf]
         # df = df.query(f"0 <= 1 & 2 >= {min_weight} & abs(2) != inf")
         df.to_csv(output, sep='\t', header=False, index=False)
@@ -461,6 +462,7 @@ def IRMM(H, A=None,
     --------
     >>> IRMM(H, vertices)
     """
+
     if max_round > 1:
         import dask.array as da 
     # if P_allelic_idx or P_weak_idx:
@@ -497,6 +499,8 @@ def IRMM(H, A=None,
         
         if min_weight > 0:
             mask = A >= min_weight
+            # mask = (A >= min_weight).astype(bool)
+            # mask += (A <= -min_weight).astype(bool)
             A = A.multiply(mask)
         # normalization
         if NW is not None:

@@ -623,7 +623,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     return f'{outprefix}.chrom.cool'
 
-def coarsen_matrix(cool, k, out, threads):
+def coarsen_matrix(cool, cool_binsize, k, out, threads):
     """
     coarsen a matrix
 
@@ -649,7 +649,7 @@ def coarsen_matrix(cool, k, out, threads):
     """
     from cooler.cli.coarsen import coarsen
     if not out:
-        input_resolution = cooler.Cooler(cool).binsize
+        input_resolution = cool_binsize
         out_resolution = f"{k * input_resolution}"
         
         out = cool.replace(str(input_resolution), to_humanized2(out_resolution))
@@ -1182,9 +1182,9 @@ def plot_heatmap_core(matrix,
         cbar.set_label("Contacts", fontsize=12)
 
     if add_lines and chrom_offset:
-        ax.hlines(chrom_offset[1:], *ax.get_xlim(), 
+        ax.hlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_xlim(), 
                     linewidth=0.5, color='black', linestyles="--")
-        ax.vlines(chrom_offset[1:], *ax.get_ylim(), 
+        ax.vlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_ylim(), 
                     linewidth=0.5, color='black', linestyles="--")
     
     if chrom_offset:

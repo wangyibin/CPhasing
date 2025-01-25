@@ -1,5 +1,48 @@
 
-`cphasing mapper` is designed for process Pore-C data, it output two file: (1) porec table (`.porec.gz`) which contain high-order contacts and (2) 4DN pairs (`pairs.gz`) which only retain VPCs.
+`cphasing mapper` is designed for process Pore-C data, its output two files:  
+   (1) porec table (`.porec.gz`) which contain high-order contacts and (2) 4DN pairs (`pairs.gz`) which only retain VPCs.
+
+## Examples
+
+### process one cell porec data
+```shell
+cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 
+```
+
+### process multiple cell porec data
+#### Process together 
+```shell
+cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz sample2.porec.fastq.gz -t 40 
+```
+or 
+```shell
+cphasing mapper draft.contigs.fasta sample*.porec.fastq.gz -t 40 
+```
+!!! note
+    It will output results using the `sample1.porec` as the prefix
+
+
+#### Submit each cell to the cluster 
+
+- use multiple scripts to run mapper for each sample
+```shell title="run_sample1.sh"
+cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz -t 40
+```
+```shell title="run_sample2.sh"
+cphasing mapper draft.contigs.fasta sample2.porec.fastq.gz -t 40
+```
+```shell title="run_sample3.sh"
+cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
+```
+
+- merge results 
+```shell
+cphasing-rs porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
+cphasing-rs pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
+```
+
+
+## Parameters
 ```shell title="cphasing mapper -h"
  Usage: cphasing mapper [OPTIONS] REFERENCE FASTQ...   
  
@@ -50,43 +93,4 @@
 │                           [default: 4]                                  │
 │ --help          -h,-help  Show this message and exit.                   │
 ╰─────────────────────────────────────────────────────────────────────────╯
-```
-
-## Examples
-
-### process one cell porec data
-```shell
-cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 
-```
-
-### process multiple cell porec data
-#### Process together 
-```shell
-cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz sample2.porec.fastq.gz -t 40 
-```
-or 
-```shell
-cphasing mapper draft.contigs.fasta sample*.porec.fastq.gz -t 40 
-```
-!!! note
-    It will output results using the `sample1.porec` as the prefix
-
-
-#### Submit each cell to the cluster 
-
-- use multiple scripts to run mapper for each sample
-```shell title="run_sample1.sh"
-cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz -t 40
-```
-```shell title="run_sample2.sh"
-cphasing mapper draft.contigs.fasta sample2.porec.fastq.gz -t 40
-```
-```shell title="run_sample3.sh"
-cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
-```
-
-- merge results 
-```shell
-cphasing-rs porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
-cphasing-rs pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
 ```

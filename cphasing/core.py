@@ -325,7 +325,10 @@ class AlleleTable:
                             usecols=self.columns, comment="#")
         df.index = df.index.astype('category')
         df = df.dropna(how='all', axis=1)
-
+        if df.empty:
+            self.data = df 
+            return 
+    
         if self.fmt == "allele1":
             df = df.drop(1, axis=1)
             df = df.apply(sort_row, axis=1) if self.sort else df
@@ -1128,7 +1131,7 @@ class ClusterTable:
 
 
 
-    def to_fasta(self, fasta, outdir="./"):
+    def to_fasta(self, fasta, trim_length=25000, outdir="./"):
         """
         extract fasta by cluster table 
         """
@@ -1145,7 +1148,16 @@ class ClusterTable:
 
         for record in fasta:
             if record.id in db:
-                file_db[db[record.id]].write(f'>{record.id}\n{record.seq}\n')
+                seq = record.seq
+                length = len(record.seq)
+                if length > trim_length * 3:
+                    seq = seq[trim_length: length - trim_length + 1]
+                # if length > 1000_000:
+                #     seq1 = seq[:500_000]
+                #     seq2 = seq[500_000:]
+                #     seq = seq1 + seq2
+                
+                file_db[db[record.id]].write(f'>{record.id}\n{seq}\n')
         
         for group in file_db:
             file_db[group].close()

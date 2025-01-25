@@ -75,7 +75,7 @@ def main(args):
     chrom_sizes = agp_df.groupby(agp_df.index)['end'].max()
     chrom_sizes.to_csv(f".{output}.sizes", sep='\t', header=None, index=True)
 
-    cmd = f"grep -v -w U {args.agp} | grep '^Chr' | bedtools flank -g .{output}.sizes -i /dev/stdin  -l 2000 -r 0  | bedtools slop -i /dev/stdin -g .{output}.sizes -r 2000 -l 0 | bedtools intersect -a /dev/stdin  -b .{output}.misassembly.txt -wa 2>/dev/null | bedtools merge -i /dev/stdin  > {output}.misassembly.txt"
+    cmd = f"grep -v -w U {args.agp} | bedtools flank -g .{output}.sizes -i /dev/stdin  -l 2000 -r 0  | bedtools slop -i /dev/stdin -g .{output}.sizes -r 2000 -l 0 | bedtools intersect -a /dev/stdin  -b .{output}.misassembly.txt -wa 2>/dev/null | bedtools merge -i /dev/stdin  > {output}.misassembly.txt"
     
     os.system(cmd)
 

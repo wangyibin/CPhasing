@@ -109,6 +109,48 @@ def cmd_exists(program):
     from shutil import which
     return which(program) is not None
 
+def choose_compressor():
+    if not cmd_exists('crabz') and not cmd_exists('pigz'):
+            raise ValueError(f"pigz or crabz: command not found")
+    
+    if cmd_exists('crabz'):
+        return 'crabz'
+    else:
+        if cmd_exists('pigz'):
+            return 'pigz'
+        else:
+            raise ValueError(f"pigz: command not found")
+
+def compress_cmd(infile, threads=10):
+    compressor = choose_compressor()
+
+    if not Path(infile).exists():
+        raise FileNotFoundError(f"File `{infile}` not found")
+
+    if not Path(infile).is_file():
+        raise ValueError(f"File `{infile}` is not a file")
+
+    if compressor == 'crabz':
+        cmd = ["crabz", "-p", str(threads), infile]
+    else:
+        cmd = ["pigz", "-c", "-p", str(threads), infile]
+
+    return cmd 
+
+def decompress_cmd(infile, threads=10):
+    compressor = choose_compressor()
+
+    if infile.endswith(".gz"):
+        if compressor == "crabz":
+            cmd = ["crabz", "-d", "-p", str(threads), infile]
+        else:
+            cmd = ["pigz", "-c", "-d", "-p", str(threads), infile]
+    else:
+        cmd = ["cat", infile]
+
+    return cmd
+
+
 def run_cmd(command, log=sys.stderr, out2err=False):
     """
     run command on shell
@@ -180,6 +222,8 @@ def is_compressed_table_empty(_file):
         return True 
     except pd.errors.EmptyDataError:
         return True 
+    except UnicodeDecodeError:
+        raise ValueError(f"File `{_file}` is compressed file, you should add `.gz` suffix.")
 
     return False
 
@@ -738,7 +782,12 @@ def humanized2numeric(size):
     >>> humanized2numeric("10k")
     10000
     """
-    if not isinstance(size, str):
+    if isinstance(size, int):
+        return size
+    elif isinstance(size, float):
+        return int(size)
+
+    elif not isinstance(size, str):
         logger.error("Please input correct string")
         raise ValueError("Value error")
     
@@ -747,18 +796,20 @@ def humanized2numeric(size):
 
     try:
         if size[-1] == "k":
-            res_size = int(size[:-1]) * 1000
+            res_size = float(size[:-1]) * 1000
         elif size[-1] == "m":
-            res_size = int(size[:-1]) * 1000000
+            res_size = float(size[:-1]) * 1000000
         elif size[-1] == "g":
-            res_size = int(size[:-1]) * 1000000000
+            res_size = float(size[:-1]) * 1000000000
         else:
-            res_size = int(size) 
+            res_size = float(size) 
     
     except ValueError:
         logger.error("Please input correct string")
         raise ValueError("Value error")
     
+    res_size = int(res_size)
+
     return res_size
 
 def to_humanized(size):
@@ -791,7 +842,7 @@ def to_humanized2(size):
     1 Mbp
     """
     size = int(size)
-    if size <= 1e3:
+    if size < 1e3:
         label = "{:,.0f}".format((size)) + ""
     elif size < 1e6:
         label = "{:,.0f}".format((size / 1e3)) + "k"
@@ -1064,9 +1115,17 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
 
 def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp, 
                         min_quality, init_binsize,
-                      binsize, output="plot.cmd.sh"):
+                      binsize, colormap, whitered,
+                      output="plot.cmd.sh"):
 
     out_heatmap =  f"groups.q${{min_quality}}.${{heatmap_binsize}}.wg.png"
+    plot_another_args = ""
+    if colormap != "redp1_r":
+        plot_another_args += f" -cm {colormap}"
+    if whitered:
+        plot_another_args += " --whitered"
+
+
     cmd = f"""#!/usr/bin/bash
 
 min_quality={min_quality}
@@ -1075,7 +1134,7 @@ heatmap_binsize={to_humanized2(binsize)}
 
 
 cphasing pairs2cool {pairs} {contigsizes} {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -q ${{min_quality}} -bs ${{cool_binsize}}
-cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -o {out_heatmap} -bs ${{heatmap_binsize}} -oc
+cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -o {out_heatmap} -bs ${{heatmap_binsize}} -oc {plot_another_args}
     """
 
     with open(output, 'w') as out:

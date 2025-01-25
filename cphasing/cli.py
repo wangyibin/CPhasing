@@ -22,14 +22,18 @@ from pytools import natsorted
 from shutil import which
 
 from . import __version__, __epilog__
+from ._config import *
 from .core import (
     ClusterTable, 
     CountRE, 
 )
 from .utilities import (
+    compress_cmd,
+    decompress_cmd,
     run_cmd,
     humanized2numeric,
     to_humanized2,
+    to_humanized3,
     is_compressed_table_empty,
     )
 
@@ -81,6 +85,17 @@ click.rich_click.COMMAND_GROUPS = {
                          "alleles", "hyperpartition", "scaffolding",
                          "build", "rename", "pairs2cool", "plot"]
         },
+       
+        {
+            "name": "Formats Converter (link to cphasing-rs)",
+            "commands": ["bam2pairs", "bam2paf", 
+                        
+                         "paf2porec", "paf2pairs",
+                         "porec-merge", "porec2pairs",
+                         "pairs-merge", "pairs-filter",
+                         "pairs2mnd", "pairs2cool",]
+
+        },
         {
             "name": "Other Useful Commands",
             "commands": ["hic", "alignments", "hcr", "alleles2", 
@@ -109,9 +124,7 @@ click.rich_click.COMMAND_GROUPS = {
     ]
 }
 
-
-click.rich_click.OPTION_GROUPS = {
-    "cphasing pipeline": [
+PIPE_OPTION_GROUPS = [
         {
             "name": "Options of Input Files",
             "options": ["--fasta", "--porec-data", "--porectable", 
@@ -145,18 +158,19 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Alleles",
-            "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d"]
+            "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d",
+                        "--alleles-trim-length"]
         },
-    {
+        {
             "name": "Options of HyperPartition",
-            "options": ["-n", "--use-pairs", "--min-contacts",
+            "options": ["-n", "--use-pairs", "--edge-length", "--min-contacts",
                         "--Nx", "--min-length", "--min-weight",
                         "--min-cis-weight", "--whitelist",
                         "--resolution1", "--resolution2",
                          "--init-resolution1",  "--init-resolution2",
                           "--first-cluster", "--normalize", 
                           "--min-quality1", "--min-quality2",
-                           "--min-scaffold-length",
+                           "--min-scaffold-length", "--allelic-factor",
                           "--allelic-similarity", "--min-allelic-overlap",
                           "--disable-merge-in-first", "--exclude-group-from-first",
                           "--exclude-group-to-second", "--enable-misassembly-remove"
@@ -168,79 +182,17 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name": "Options of Plot",
-            "options": ["--binsize"]
+            "options": ["--binsize", "--colormap", "--whitered"]
         },
         {
             "name": "Global Options",
-            "options": ["--low-memory", "--threads", "--help"]
-        }
-       
-    ],
-    "cphasing pipe": [
-        {
-            "name": "Options of Input Files",
-            "options": ["--fasta", "--porec-data", "--porectable", 
-                            "--pairs", "--hic1", "--hic2"]
-        },
-        {
-            "name": "Advance Options of Pipeline",
-            "options": ["--mode", "--steps", "--skip-steps"]
-        },     
-        {
-            "name": "Options of Hitig",
-            "options": ["--ul-data", "--use-existed-hitig"]
-        },
-        {
-            "name": "Options of Pore-C Mapper",
-            "options": ["--mapper-k", "--mapper-w", "--mapping-quality"]
-        },
-         {
-            "name": "Options of Hi-C Mapper",
-            "options": ["--hic-mapper-k", "--hic-mapper-w", "--mapping-quality"]
-        },
-        {   "name": "Options of chimeric correction",
-            "options": ["--chimeric-correct", "--chimeric-corrected"]
+            "options": ["--preset", "--low-memory", "--threads", "--help"]
+        }  
+]
 
-        },
-        {
-            "name": "Options of HCR",
-            "options": ["--hcr", "--pattern", "--hcr-lower", "--hcr-upper", 
-                        "--collapsed-contigs-ratio", "--hcr-binsize",
-                         "--hcr-bed", "--hcr-invert"]
-        },
-        {
-            "name": "Options of Alleles",
-            "options": ["--alleles-k", "--alleles-w", "--alleles-m", "--alleles-d"]
-        },
-        {
-            "name": "Options of HyperPartition",
-            "options": ["-n", "--use-pairs", "--min-contacts", 
-                        "--Nx", "--min-length", "--min-weight",
-                        "--min-cis-weight", "--whitelist",
-                        "--resolution1", "--resolution2",
-                         "--init-resolution1",  "--init-resolution2",
-                          "--first-cluster", "--normalize", 
-                          "--min-quality1", "--min-quality2",
-                           "--min-scaffold-length",
-                          "--allelic-similarity", "--min-allelic-overlap",
-                          "--disable-merge-in-first", "--exclude-group-from-first",
-                          "--exclude-group-to-second", "--enable-misassembly-remove"
-                          ]
-        },
-        {
-            "name": "Options of Scaffolding",
-            "options": ["--scaffolding-method"]
-        },
-        {
-            "name": "Options of Plot",
-            "options": ["--binsize"]
-        },
-        {
-            "name": "Global Options",
-            "options": ["--low-memory", "--threads", "--help"]
-        }
-       
-    ],
+click.rich_click.OPTION_GROUPS = {
+    "cphasing pipeline": PIPE_OPTION_GROUPS,
+    "cphasing pipe": PIPE_OPTION_GROUPS,
     "cphasing plot": [
         {
             "name": "Options of Matrix Operation",
@@ -256,6 +208,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Options of Heatmap",
             "options": [
                         "--chromosomes", 
+                        "--regex",
                         "--disable-natural-sort",
                         "--per-chromosomes",
                         "--only-chr", "--chr-prefix",
@@ -483,20 +436,22 @@ def cli(verbose, quiet):
 )
 @click.option(
     "-hcr-l",
+    "-hcr-lower",
     "--hcr-lower",
     "hcr_lower",
     help="Lower value of peak value.",
     type=float,
-    default=.01,
+    default=HCR_LOWER,
     show_default=True,
 )
 @click.option(
     "-hcr-u",
+    "-hcr-upper",
     "--hcr-upper",
     "hcr_upper",
     help="Upper value of peak value.",
     type=float,
-    default=1.5,
+    default=HCR_UPPER,
     show_default=True,
 )
 @click.option(
@@ -615,6 +570,15 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-alleles-tl",
+    "--alleles-trim-length",
+    help="Trim sequences in the both end of contig when run `alleles`, "
+    "which aim to remove the effect of the overlapping of unitig in the assembly graph from hifiasm or other assembler. "
+    "If set to 0, will not trim.",
+    type=int,
+    default=ALLELES_TRIM_LENGTH,
+)
+@click.option(
     "--use-pairs",
     "use_pairs",
     help="""
@@ -622,6 +586,15 @@ def cli(verbose, quiet):
     """,
     default=False,
     is_flag=True
+)
+@click.option(
+    '-e',
+    '--edge-length',
+    'edge_length',
+    help='Only load contacts that in the both ends of contigs to construct hypergraph',
+    metavar="STR",
+    default="500k",
+    show_default=True
 )
 @click.option(
     "-n",
@@ -653,7 +626,7 @@ def cli(verbose, quiet):
     metavar="FLOAT",
     help="Resolution of the second partition",
     type=click.FloatRange(-1.0, 10.0),
-    default=1.0,
+    default=-1.0,
     show_default=True
 )
 @click.option(
@@ -675,7 +648,7 @@ def cli(verbose, quiet):
     type=float,
     help="Initial resolution of the automatic search resolution in second partition"
     ", only used when `--resolution2=-1`.",
-    default=0.8,
+    default=1.0,
     show_default=True
 )
 @click.option(
@@ -727,6 +700,16 @@ def cli(verbose, quiet):
     default=False,
 )
 @click.option(
+    "-af",
+    "--allelic-factor",
+    "allelic_factor",
+    metavar="INT",
+    help="Factor of inter-allelic weight.",
+    default=-1,
+    type=float,
+    show_default=True
+)
+@click.option(
     "-as",
     "--allelic-similarity",
     "allelic_similarity",
@@ -752,7 +735,7 @@ def cli(verbose, quiet):
     "min_weight",
     help="Minimum weight of graph",
     type=float,
-    default=0.1,
+    default=MIN_WEIGHT,
     show_default=True
 )
 @click.option(
@@ -761,7 +744,7 @@ def cli(verbose, quiet):
     "min_cis_weight",
     help="Minimum conitg's cis weight of graph",
     type=float,
-    default=5.0,
+    default=MIN_CIS_WEIGHT,
     show_default=True
 )
 @click.option(
@@ -789,7 +772,7 @@ def cli(verbose, quiet):
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=25,
+    default=MIN_CONTACTS,
     show_default=True
 )
 @click.option(
@@ -799,7 +782,7 @@ def cli(verbose, quiet):
     help="Minimum length of contigs",
     metavar="INT",
     type=int,
-    default=10000,
+    default=MIN_LENGTH,
     show_default=True
 )
 @click.option(
@@ -817,7 +800,7 @@ def cli(verbose, quiet):
     "min_scaffold_length",
     help="The minimum length of the output scaffolding.",
     type=float,
-    default=5e5,
+    default=MIN_SCAFFOLD_LENGTH,
     show_default=True
 )
 @click.option(
@@ -845,25 +828,16 @@ def cli(verbose, quiet):
     '--scaffolding-method',
     'scaffolding_method',
     metavar='STR',
-    help="The method of scaffolding, `['precision', 'allhic', 'fast']`."
-    "precision: haphic_fastsort + allhic, which will quicker than allhic only. "
-    "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
-    "achieve better results than the previous version",
+    help="""
+    The method of scaffolding, `['precision', 'allhic', 'fast']`.  
+    precision: fast + allhic, which will quicker than allhic only.  
+    It is worth noting that `allhic` in `C-Phasing` is parameterized to 
+    achieve better results than the previous version
+    """,
     default="precision",
     type=click.Choice(["precision", "allhic", "fast"]),
     show_default=True
 )
-# @click.option(
-#     '--factor',
-#     '-k',
-#     metavar="INT",
-#     help='Factor of plot matrix. '
-#             'If you input 10k matrix and want to plot heatmap at 500k, '
-#             'factor should be set with 50.',
-#     type=int,
-#     default=50,
-#     show_default=True
-# )
 @click.option(
     '-bs',
     '--binsize',
@@ -871,6 +845,52 @@ def cli(verbose, quiet):
     help='Bin size of the heatmap you want to plot. Enabled suffix with [k, m].',
     default='auto',
     show_default=True
+)
+@click.option(
+    '-cmap',
+    "-cm",
+    '--cmap',
+    "--colormap",
+    help="""
+    Colormap of heatmap. 
+    Available values can be seen : 
+    https://pratiman-91.github.io/colormaps/ 
+    and http://matplotlib.org/examples/color/colormaps_reference.html and `whitered` .
+    """,
+    default='redp1_r',
+    show_default=True
+)
+@click.option(
+    '-wr',
+    '--whitered',
+    help="""
+    Preset of `--scale none --colormap whitered`
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '-x',
+    '--preset',
+    metavar='STR',
+    help="""Preset of the pipeline:  
+    &emsp; precision: -msc 20 -mc 25 -mw 3 
+    &emsp; **sensitive**: -msc 5 -mc 5 -mw 0.1  
+    &emsp; very-sensitive -e 1m -msc 1.0 -mc 5 -mw 0.1  
+    &emsp; simulation: -e 0 -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
+    
+    > This parameter will overwrite the aboving parameters.  
+    \<precision\> is designed for remove more low quality contigs to increase the precision of the result;
+    \<sensitive\> is designed for cluster more low signal or fragmented contigs;
+    \<very-sensitive\> is designed for cluster more low signal or fragmented contigs, and it is very sensitive;
+    \<simulation\> is designed for simulation data in our study which is simulated from chromosome-level assembly.    
+
+    ["precision", "sensitive", "very-sensitive", "simulation"]
+    """,
+    default="sensitive",
+    show_default=True,
+    type=click.Choice(["precision", "sensitive", "very-sensitive", "simulation"]),
 )
 @click.option(
     '--low-memory',
@@ -895,7 +915,7 @@ def cli(verbose, quiet):
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=8,
     metavar='INT',
     show_default=True,
 )
@@ -929,8 +949,10 @@ def pipeline(fasta,
             alleles_window_size,
             alleles_minimum_similarity,
             alleles_diff_thres,
+            alleles_trim_length,
             n,
             use_pairs,
+            edge_length,
             resolution1,
             resolution2, 
             init_resolution1,
@@ -940,6 +962,7 @@ def pipeline(fasta,
             exclude_group_from_first,
             exclude_group_to_second,
             normalize,
+            allelic_factor,
             allelic_similarity,
             min_allelic_overlap,
             min_weight,
@@ -954,6 +977,9 @@ def pipeline(fasta,
             whitelist,
             scaffolding_method, 
             binsize,
+            cmap,
+            whitered,
+            preset,
             low_memory,
             outdir,
             threads):
@@ -1012,7 +1038,45 @@ def pipeline(fasta,
     
     if all([(len(porec_data) > 0), ((hic1 is not None) and (hic2 is not None))]):
         logger.warning("Simulataneously process Pore-C and Hi-C is not yet supported, only use Pore-C data for subsequently steps.")
-        
+    
+    if preset == "precision":
+        min_contacts = 25
+        min_weight = 2.0
+        min_cis_weight = 20
+        logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
+                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+
+
+    # elif preset == "sensitive":
+    #     min_contacts = 5
+    #     min_weight = 2.0
+    #     min_cis_weight = 5 
+    #     logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
+    #                 f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+    
+    elif preset == "very-sensitive":
+        edge_length = "1m"
+        min_contacts = 5
+        min_weight = 0.1
+        min_cis_weight = 1.0
+        logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
+                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+    elif preset == "simulation":
+        min_contacts = 5
+        min_weight = 0.1
+        min_cis_weight = 0 
+        edge_length = 0 
+        alleles_trim_length = 0
+        logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
+                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, "
+                    f"edge_length={edge_length}, alleles_trim_length={alleles_trim_length}")
+
+
+    if edge_length != "None" and edge_length != "none" and edge_length is not None:
+        edge_length = edge_length
+    else:
+        edge_length = None
+
     
     if steps:
         if steps == "all":
@@ -1059,15 +1123,18 @@ def pipeline(fasta,
         alleles_window_size=alleles_window_size,
         alleles_minimum_similarity=alleles_minimum_similarity,
         alleles_diff_thres=alleles_diff_thres,
+        alleles_trim_length=alleles_trim_length,
         scaffolding_method=scaffolding_method,
         n=n,
         use_pairs=use_pairs,
+        edge_length=edge_length,
         resolution1=resolution1,
         resolution2=resolution2,
         init_resolution1=init_resolution1,
         init_resolution2=init_resolution2,
         first_cluster=first_cluster,
         normalize=normalize,
+        allelic_factor=allelic_factor,
         disable_merge_in_first=disable_merge_in_first,
         exclude_group_to_second=exclude_group_to_second,
         exclude_group_from_first=exclude_group_from_first,
@@ -1084,6 +1151,8 @@ def pipeline(fasta,
         min_scaffold_length=min_scaffold_length,
         enable_misassembly_remove=enable_misassembly_remove,
         binsize=binsize,
+        colormap=cmap,
+        whitered=whitered,
         outdir=outdir,
         threads=threads,
         low_memory=low_memory)
@@ -1647,6 +1716,7 @@ def pairs_intersect(pairs, bed, output):
     # p.intersection(bed, output)
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
+    
     cmd = ["cphasing-rs", "pairs-intersect", pairs, bed, "-o", output]
     flag = run_cmd(cmd, log=f"logs/pairs-intersect.log")
     assert flag == 0, "Failed to execute command, please check log."
@@ -1927,7 +1997,7 @@ def chimeric(fasta, pairs, depth, window_size,
     "--lower",
     help="Lower value of peak value.",
     type=float,
-    default=.01,
+    default=HCR_LOWER,
     show_default=True,
 )
 @click.option(
@@ -1935,7 +2005,7 @@ def chimeric(fasta, pairs, depth, window_size,
     "--upper",
     help="Upper value of peak value.",
     type=float,
-    default=1.5,
+    default=HCR_UPPER,
     show_default=True,
 )
 @click.option(
@@ -2072,12 +2142,20 @@ def hcr(fasta, porectable, pairs, contigsize,
             logger.warning(f"Use exists depth file of `{depth_file}`.")
     
     else:
-        
         if is_file_changed(str(pairs)) or not Path(depth_file).exists():
-            cmd = ['cphasing-rs', 'pairs2depth', 
-                   '-q', str(min_quality),
-                   str(pairs), "-o", depth_file]
-            flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
+            if str(pairs).endswith(".gz"):
+                cmd0 = decompress_cmd(pairs, threads=10)
+                logger.info("Calculating the depth from pairs ...")
+                cmd = ['cphasing-rs', 'pairs2depth',
+                        '-q', str(min_quality),
+                        '-', "-o", depth_file]
+                flag = os.system(" ".join(cmd0) + f" 2>logs/pairs2depth.decompress.log" + " | " + " ".join(cmd) + f" 2>logs/pairs2depth.log")
+                
+            else:
+                cmd = ['cphasing-rs', 'pairs2depth', 
+                    '-q', str(min_quality),
+                    str(pairs), "-o", depth_file]
+                flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
             assert flag == 0, "Failed to execute command, please check log."
 
         else:
@@ -2097,7 +2175,8 @@ def hcr(fasta, porectable, pairs, contigsize,
 
         df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
                             names=['chrom', 'start', 'end', 'depth'])
-        df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', header=0, index_col=None, 
+        df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', 
+                            header=0, index_col=None, 
                             usecols=[0, 1],
                             names=['item', "count"])
 
@@ -2216,7 +2295,7 @@ def hcr(fasta, porectable, pairs, contigsize,
     '--threads',
     help="Number of threads. ",
     type=int,
-    default=4,
+    default=10,
     metavar='INT',
     show_default=True,
 )
@@ -2235,6 +2314,9 @@ def prepare(fasta, pairs, min_mapq,
 
     """
     from .prepare import pipe 
+
+    if pattern == "None" or pattern == "none":
+        pattern = None
 
     pipe(fasta, pairs, pattern, 
          min_mapq,
@@ -2323,6 +2405,15 @@ def prepare(fasta, pairs, min_mapq,
     hidden=True
 )
 @click.option(
+    "-tl",
+    "--trim-length",
+    help="Trim sequences in the both end of contig, "
+    "which aim to remove the effect of the overlapping of unitig in the assembly graph from hifiasm or other assembler. "
+    "If set to 0, will not trim.",
+    type=int,
+    default=25000,
+)
+@click.option(
     "-wl",
     "--whitelist",
     metavar="PATH",
@@ -2358,6 +2449,7 @@ def alleles(fasta, output,
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
                 minimum_similarity, diff_thres,
+                trim_length,
                 whitelist, first_cluster,
                 min_length, threads):
     """
@@ -2368,7 +2460,7 @@ def alleles(fasta, output,
     from .alleles import PartigAllele
     from .core import AlleleTable, ClusterTable
     from .utilities import is_file_changed
-    from joblib import Parallel, delayed 
+    from joblib import Parallel, delayed, parallel_backend
 
     if not output:
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
@@ -2389,7 +2481,7 @@ def alleles(fasta, output,
         ct = ClusterTable(first_cluster)
         fasta = Path(fasta).absolute()
         Path("alleles_workdir/").mkdir(exist_ok=True)
-        fastas = ct.to_fasta(fasta, outdir="alleles_workdir")
+        fastas = ct.to_fasta(fasta, trim_length=trim_length, outdir="alleles_workdir")
         fastas = list(map(lambda x: Path(x).name, fastas))
         os.chdir("alleles_workdir")
         
@@ -2421,10 +2513,11 @@ def alleles(fasta, output,
 
         logger.info("Identifing allelic contig pairs in each homologous group ...")
         if len(args) > 0:
-            Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
+            with parallel_backend('loky'):
+                Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
         else:
             logger.info("Load existing allele table to generate total allele table.")
-           
+        
         for fa in fastas:
             if Path(fa).exists():
                 os.remove(fa)
@@ -2434,7 +2527,10 @@ def alleles(fasta, output,
         os.chdir('..')
         ## merge allele table 
         logger.setLevel(logging.WARNING)
-        allele_df = pd.concat([AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables], axis=0)
+        res = [AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables]
+  
+        res = list(filter(lambda x: len(x) > 0, res))
+        allele_df = pd.concat(res, axis=0)
         allele_df = allele_df.reset_index(drop=True).reset_index().reset_index()
         logger.setLevel(logging.INFO)
 
@@ -2820,6 +2916,15 @@ def kprune(alleletable, contacts,
     hidden=True
 )
 @click.option(
+    '-e',
+    '--edge-length',
+    'edge_length',
+    help='Only load contacts that in the both ends of contigs',
+    metavar="STR",
+    default=EDGE_LENGTH,
+    show_default=True
+)
+@click.option(
     '-q',
     '--min_quality',
     help='Minimum quality of mapping [0, 255].',
@@ -2908,7 +3013,8 @@ def hypergraph(contacts,
             output,
             min_order, 
             max_order, 
-            min_alignments, 
+            min_alignments,
+            edge_length, 
             min_quality,
             pairs, 
             fofn,
@@ -2940,6 +3046,10 @@ def hypergraph(contacts,
     contigsizes = read_chrom_sizes(contigsize)
     contigs = contigsizes.index.values.tolist()
     # contigs = natsorted(contigsizes.index.values.tolist())
+    if edge_length != "None" and edge_length is not None and edge_length != "none":
+        edge_length = humanized2numeric(edge_length)
+    else:
+        edge_length = None
 
     if whitelist:
         whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
@@ -2959,7 +3069,7 @@ def hypergraph(contacts,
         if not split:
             he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
                                 min_order, max_order, min_alignments, 
-                                hcr_bed=hcr_bed, hcr_invert=hcr_invert,
+                                hcr_bed=hcr_bed, hcr_invert=hcr_invert, edge_length=edge_length,
                                 min_quality=min_quality, threads=threads)
             he.save(output)
         else:
@@ -2977,7 +3087,7 @@ def hypergraph(contacts,
         if not split:
             
             e = Extractor(pairs_files, contig_idx, contigsizes.to_dict()['length'], 
-                            hcr_bed= hcr_bed, hcr_invert=hcr_invert,
+                            hcr_bed= hcr_bed, hcr_invert=hcr_invert, edge_length=edge_length,
                             min_quality=min_quality, threads=threads)
             e.save(output)
         else:
@@ -3024,10 +3134,19 @@ def hypergraph(contacts,
     show_default=True,
 )
 @click.option(
+    '-e',
+    '--edge-length',
+    'edge_length',
+    help='Only load contacts that in the both ends of contigs to construct hypergraph',
+    metavar="STR",
+    default=EDGE_LENGTH,
+    show_default=True
+)
+@click.option(
     '-c',
     '--contacts',
     help="""
-    contacts file for kprune, generate from prepare
+    contacts file for kprune, generate from prepare, default generate from graph or hypergraph.
     """,
     default=None, 
     show_default=True,
@@ -3129,6 +3248,15 @@ def hypergraph(contacts,
     show_default=True
 )
 @click.option(
+    "-alleles-tl",
+    "--alleles-trim-length",
+    help="Trim sequences in the both end of contig when run `alleles`, "
+    "which aim to remove the effect of the overlapping of unitig in the assembly graph from hifiasm or other assembler. "
+    "If set to 0, will not trim.",
+    type=int,
+    default=ALLELES_TRIM_LENGTH,
+)
+@click.option(
     "-at",
     "--alleletable",
     metavar="PATH",
@@ -3162,7 +3290,7 @@ def hypergraph(contacts,
     "--allelic-factor",
     "allelic_factor",
     metavar="INT",
-    help="Factor of allelic weight.",
+    help="Factor of inter-allelic weight.",
     default=-1,
     type=float,
     show_default=True
@@ -3327,7 +3455,7 @@ def hypergraph(contacts,
     help="Minimum contacts of contigs",
     metavar="INT",
     type=int,
-    default=25,
+    default=MIN_CONTACTS,
     show_default=True
 )
 @click.option(
@@ -3337,7 +3465,7 @@ def hypergraph(contacts,
     help="Minimum length of contigs",
     metavar="INT",
     type=int,
-    default=10000,
+    default=MIN_LENGTH,
     show_default=True
 )
 @click.option(
@@ -3355,7 +3483,7 @@ def hypergraph(contacts,
     metavar="FLOAT",
     help="Resolution of the second partition",
     type=click.FloatRange(-1.0, 10.0),
-    default=1.0,
+    default=-1.0,
     show_default=True
 )
 @click.option(
@@ -3377,7 +3505,7 @@ def hypergraph(contacts,
     type=float,
     help="Initial resolution of the automatic search resolution in second partition"
     ", only used when `--resolution2=-1`.",
-    default=0.8,
+    default=1.0,
     show_default=True
 )
 @click.option(
@@ -3386,7 +3514,7 @@ def hypergraph(contacts,
     "min_weight",
     help="Minimum weight of graph",
     type=float,
-    default=0.1,
+    default=MIN_WEIGHT,
     show_default=True
 )
 @click.option(
@@ -3395,7 +3523,7 @@ def hypergraph(contacts,
     "min_cis_weight",
     help="Minimum conitg's cis weight of graph",
     type=float,
-    default=5.0,
+    default=MIN_CIS_WEIGHT,
     show_default=True
 )
 @click.option(
@@ -3422,7 +3550,7 @@ def hypergraph(contacts,
     "min_scaffold_length",
     help="The minimum length of the output scaffolding.",
     type=float,
-    default=5e5,
+    default=MIN_SCAFFOLD_LENGTH,
     show_default=True
 )
 @click.option(
@@ -3482,6 +3610,7 @@ def hyperpartition(hypergraph,
                     output,
                     pairs,
                     porec,
+                    edge_length,
                     contacts,
                     ultra_long,
                     ul_weight,
@@ -3492,6 +3621,7 @@ def hyperpartition(hypergraph,
                     alleles_window_size,
                     alleles_minimum_similarity,
                     alleles_diff_thres,
+                    alleles_trim_length,
                     alleletable,
                     prunetable,
                     normalize,
@@ -3547,6 +3677,12 @@ def hyperpartition(hypergraph,
     from .utilities import read_chrom_sizes, is_file_changed
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
+
+    if edge_length != "None" and edge_length is not None and edge_length != "none":
+        edge_length = humanized2numeric(edge_length)
+    else:
+        edge_length = None
+
 
     ultra_complex = None
     # mode = "basal" if mode == "haploid" else mode 
@@ -3655,36 +3791,44 @@ def hyperpartition(hypergraph,
 
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
+        if edge_length:
+            hypergraph_path = f"{prefix}.q{min_quality1}.e{to_humanized2(edge_length)}.hg"
+        else:
+            hypergraph_path = f"{prefix}.q{min_quality1}.hg"
+        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
             he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
-                                min_quality=min_quality1, hcr_bed=hcr_bed, 
+                                min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length,
                                 hcr_invert=hcr_invert, threads=threads)
-            he.save(f"{prefix}.q{min_quality1}.hg")
+            he.save(hypergraph_path)
             hypergraph = he.edges
         else:
             if hcr_bed:
-                logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`, if the {hcr_bed} changed, you should remove this existing hg.")
+                logger.warning(f"Load raw hypergraph from existed file of `{hypergraph_path}`, if the {hcr_bed} changed, you should remove this existing hg.")
             else:
-                logger.warning(f"Load raw hypergraph from existed file of `{prefix}.q{min_quality1}.hg`.")
-            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
+                logger.warning(f"Load raw hypergraph from existed file of `{hypergraph_path}`.")
+            hypergraph = msgspec.msgpack.decode(open(hypergraph_path, 'rb').read(), type=HyperEdges)
 
     elif pairs:
         contigs = contigsizes.index.values.tolist()
         contigs = list(map(str, contigs))
         # contigs = natsorted(contigs)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(f"{prefix}.q{min_quality1}.hg").exists():
+        if edge_length:
+            hypergraph_path = f"{prefix}.q{min_quality1}.e{to_humanized2(edge_length)}.hg" 
+        else:
+            hypergraph_path = f"{prefix}.q{min_quality1}.hg"
+        if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
             he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
-                           min_quality=min_quality1, hcr_bed=hcr_bed, 
+                           min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length,
                            hcr_invert=hcr_invert, threads=threads)
-            he.save(f"{prefix}.q{min_quality1}.hg")
+            he.save(hypergraph_path)
             hypergraph = he.edges
         else:
-            logger.warning(f"Load raw hypergraph from exists file of `{prefix}.q{min_quality1}.hg`, if the input pairs changed, you should remove this existing hg.")
-            hypergraph = msgspec.msgpack.decode(open(f"{prefix}.q{min_quality1}.hg", 'rb').read(), type=HyperEdges)
+            logger.warning(f"Load raw hypergraph from exists file of `{hypergraph_path}`, if the input pairs changed, you should remove this existing hg.")
+            hypergraph = msgspec.msgpack.decode(open(hypergraph_path, 'rb').read(), type=HyperEdges)
         
         
     else:
@@ -3770,6 +3914,7 @@ def hyperpartition(hypergraph,
                             alleles_window_size,
                             alleles_minimum_similarity,
                             alleles_diff_thres,
+                            alleles_trim_length,
                             alleletable,
                             prunetable,
                             normalize,
@@ -4155,7 +4300,39 @@ def scaffolding(clustertable, count_re, clm,
                         allele_table=allele_table, fasta=fasta, output=output, threads=threads)
         hs.run()
 
-@cli.command(hidden=True)
+    if corrected:
+        output_agp = f"{Path(output).stem}.corrected.agp"
+    else:
+        output_agp = output
+    if Path(output_agp).exists():
+        try:
+            statagp.main(args=[
+                        output,
+                        "-o",
+                        f"{output_agp}.stat"],
+                        prog_name='statagp')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+        
+        if Path(f"{output_agp}.stat").exists():
+            df = pd.read_csv(f"{output_agp}.stat", sep='\t', index_col=0)
+            anchor_rate = df.loc["Anchor rate (%):"].iloc[0]
+            ctg_length = df.loc["Total Length of contigs (bp):"].iloc[0]
+            anchored_ctg_length = df.loc["Total Length of anchored contigs (bp):"].iloc[0]
+
+            logger.info(f"Anchor rate: {anchor_rate}%, "
+                        f"Total Length of anchored contigs: {to_humanized3(anchored_ctg_length)}, "
+                        f"Total Length of contigs: {to_humanized3(ctg_length)}"
+                        )
+            logger.info(f"Stat the agp file to `{output}.stat`")
+
+@cli.command(cls=RichCommand, hidden=True)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4310,7 +4487,7 @@ def chromsizes(fasta, output):
     assert flag == 0, "Failed to execute command, please check log."
     
 
-@cli.command(hidden=HIDDEN, short_help="Convert paf to pairs. (hidden)")
+@cli.command(cls=RichCommand, short_help="Convert porec alignment paf to pairs. ")
 @click.argument(
     "paf",
     metavar="INPUT_PAF_PATH",
@@ -4417,7 +4594,7 @@ def paf2pairs(paf, contigsizes,
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert paf to porec table. (hidden)")
+@cli.command(cls=RichCommand, short_help="Convert paf to porec table.")
 @click.argument(
     "paf",
     metavar="INPUT_PAF_PATH",
@@ -4505,7 +4682,41 @@ def paf2porec(paf, bed, min_quality,
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert porec to pairs. (hidden)")
+@cli.command(cls=RichCommand, short_help="Merge multiple porec tables.")
+@click.argument(
+    "porec",
+    metavar="INPUT_POREC_PATH",
+    required=True,
+    nargs=-1,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    help="output path",
+    default="-",
+    show_default=True
+)
+def porec_merge(porec, output):
+    """
+    Merge multiple porec tables.
+
+        INPUT_POREC_PATH: The porec table generated from `cphasing-rs paf2porec`.
+
+    """
+    import shutil
+    if len(porec) == 1:
+        logger.warning("Only one porec table, skip merge.")
+        shutil.copy(porec[0], output)
+    cmd = ["cphasing-rs", "porec-merge", *porec, "-o", output]
+
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+
+
+@cli.command(cls=RichCommand, short_help="Convert porec table to pairs. ")
 @click.argument(
     "porec",
     metavar="INPUT_POREC_PATH",
@@ -4560,8 +4771,37 @@ def porec2pairs(porec, min_mapq,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
+@cli.command(cls=RichCommand, short_help="Convert porec alignment bam to paf file.")
+@click.argument(
+    "bam",
+    metavar="INPUT_BAM_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-s',
+    '--secondary',
+    is_flag=True,
+    default=False,
+    help='Output secondary alignments.'
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def bam2paf(bam, secondary, output):
+    cmd = ["cphasing-rs", "bam2paf", f"{bam}",  
+           
+            "-o", f"{output}"]
+    if secondary:
+        cmd.append("-s")
+    
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to bam file. (hidden)")
+@cli.command(cls=RichCommand, short_help="Convert bwa bam (or another paired bam) to pairs file.")
 @click.argument(
     "bam",
     metavar="INPUT_BAM_PATH",
@@ -4590,7 +4830,7 @@ def bam2pairs(bam, min_quality, output):
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to bam file. (hidden)")
+@cli.command(cls=RichCommand, short_help="Filter pairs by mapping quality.")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -4604,6 +4844,18 @@ def bam2pairs(bam, min_quality, output):
     type=click.IntRange(0, 60, clamp=True),
     default=1,
     show_default=True
+)
+@click.option(
+    "-wl",
+    "--whitelist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to include in pairs file.  
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
 )
 @click.option(
     '-t',
@@ -4621,9 +4873,12 @@ def bam2pairs(bam, min_quality, output):
     default="-",
     show_default=True
 )
-def pairs_filter(pairs, min_quality, threads, output):
+def pairs_filter(pairs, min_quality, whitelist, threads, output):
     cmd = ["cphasing-rs", "pairs-filter", f"{pairs}", "-t", f"{threads}",
             "-q", f"{min_quality}", "-o", f"{output}"]
+    
+    if whitelist:
+        cmd.extend(["-w", f"{whitelist}"])
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
@@ -4650,7 +4905,7 @@ def pairs_filter(pairs, min_quality, threads, output):
     help='Minimum quality of mapping [0, 255].',
     metavar='INT',
     type=click.IntRange(0, 255, clamp=True),
-    default=1,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -4658,7 +4913,7 @@ def pairs_filter(pairs, min_quality, threads, output):
     '--threads',
     help='Number of threads. (unused)',
     type=int,
-    default=4,
+    default=8,
     metavar='INT',
     show_default=True,
 )
@@ -4670,9 +4925,16 @@ def pairs_filter(pairs, min_quality, threads, output):
     show_default=True
 )
 def pairs2clm(pairs, min_contacts, min_quality, threads, output):
-    cmd = ["cphasing-rs", "pairs2clm", f"{pairs}", "-c", f"{min_contacts}", 
-            "-q", f"{min_quality}", "-t", f"{threads}", "-o", f"{output}"]
-    flag = run_cmd(cmd)
+    if pairs.endswith(".gz"):
+        cmd0 = decompress_cmd(pairs, threads=threads)
+        cmd = ["cphasing-rs", "pairs2clm", "-", "-c", f"{min_contacts}", 
+                "-q", f"{min_quality}", "-t", f"{threads}", "-o", f"{output}"]
+        flag = os.system(" ".join(cmd0) + " | " + " ".join(cmd))
+    else:
+        cmd = ["cphasing-rs", "pairs2clm", f"{pairs}", "-c", f"{min_contacts}", 
+                "-q", f"{min_quality}", "-t", f"{threads}", "-o", f"{output}"]
+        flag = run_cmd(cmd)
+
     assert flag == 0, "Failed to execute command, please check log."
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
@@ -4706,10 +4968,27 @@ def pairs2clm(pairs, min_contacts, min_quality, threads, output):
     default="-",
     show_default=True
 )
-def pairs2depth(pairs, binsize, min_quality, output):
-    cmd = ["cphasing-rs", "pairs2depth", f"{pairs}", "-b", f"{binsize}", 
-            "-q", f"{min_quality}", "-o", f"{output}"]
-    flag = run_cmd(cmd)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def pairs2depth(pairs, binsize, min_quality, output, threads):
+    if pairs.endswith(".gz"):
+        cmd0 = decompress_cmd(pairs, threads=threads)
+        cmd = ["cphasing-rs", "pairs2depth", "-", "-b", f"{binsize}",
+                "-t", str(threads), "-q", f"{min_quality}", "-o", f"{output}"]
+        flag = os.system(" ".join(cmd0) + " | " + " ".join(cmd))
+
+    else:
+        cmd = ["cphasing-rs", "pairs2depth", f"{pairs}", "-b", f"{binsize}", 
+               "-t", str(threads), "-q", f"{min_quality}", "-o", f"{output}"]
+        flag = run_cmd(cmd)
+
     assert flag == 0, "Failed to execute command, please check log."
 
 @cli.command(hidden=True, short_help="Convert pairs to contacts. (hidden)")
@@ -4763,7 +5042,7 @@ def pairs2contacts(pairs, min_contacts, split_num,
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to mnd file. (hidden)")
+@cli.command(cls=RichCommand, short_help="Convert pairs to mnd file for generating .hic file.")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -4791,6 +5070,40 @@ def pairs2mnd(pairs, output, min_mapq):
     cmd = ["cphasing-rs", "pairs2mnd", pairs, "-o", output, "-q", str(min_mapq)]
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
+
+
+@cli.command(cls=RichCommand, short_help="Merge multiple pairs file into one.")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default="-",
+    show_default=True
+)
+def pairs_merge(pairs, output):
+    """
+    Merge multiple pairs file into one.
+
+        INPUT_PAIRS_PATH : Path of pairs file, can be compressed.
+
+
+    """
+    if len(pairs) == 0:
+        logger.error("At least one pairs file must be specified.")
+        return 1
+    
+    cmd = ["cphasing-rs", "pairs-merge", *pairs, "-o", output]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
+
+
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
@@ -5160,6 +5473,13 @@ def pairs2cool2(pairs, outcool,
     default=''
 )
 @click.option(
+    '-r',
+    '--regex',
+    is_flag=True,
+    help='Regular expression of chromosomes, only used for `--chromosomes`, e.g. `Chr01g.*`',
+    default=False
+)
+@click.option(
     "-dns",
     "--disable-natural-sort",
     is_flag=True,
@@ -5316,6 +5636,7 @@ def plot(matrix,
             vmin,
             vmax,
             chromosomes, 
+            regex,
             disable_natural_sort,
             per_chromosomes,
             only_chr,
@@ -5368,10 +5689,10 @@ def plot(matrix,
     if agp is None:
         only_plot = True 
         if not only_coarsen:
-            logger.warning( "Only plot the matrix. "
+            logger.info( "Only plot the matrix. "
                     "If you want to adjust matrix to chromosome-level, please provide agp file. ")
         else:
-            logger.warning("Only coarsen the input matrix.")
+            logger.info("Only coarsen the input matrix.")
 
     if not cooler.fileops.is_cooler(matrix):
         logger.error(f"Input file `{matrix}` is not a cool file.")
@@ -5379,6 +5700,7 @@ def plot(matrix,
 
     cool = cooler.Cooler(matrix)
     cool_binsize = cool.info['bin-size']
+    
     bins = cool.bins()[:]
     if cool_binsize is None:
         cool_binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
@@ -5409,6 +5731,7 @@ def plot(matrix,
     else:
         factor = 1
         binsize = cool_binsize
+        
 
 
     if not only_plot:
@@ -5421,11 +5744,11 @@ def plot(matrix,
             sys.exit()
         
         if not no_coarsen and factor > 1:
-            matrix = coarsen_matrix(matrix, factor, None, threads)   
+            matrix = coarsen_matrix(matrix, cool_binsize, factor, None, threads)   
     
     else:
         if only_coarsen or coarsen:
-            matrix = coarsen_matrix(matrix, factor, None, threads)   
+            matrix = coarsen_matrix(matrix, cool_binsize, factor, None, threads)   
 
     if balance:
         cool = cooler.Cooler(matrix)
@@ -5443,23 +5766,45 @@ def plot(matrix,
 
             balance_matrix(matrix, threads)
             balanced = True
+    
 
     if op.exists(chromosomes):
         logger.info(f"Load chromosomes list from the file `{chromosomes}`.")
         chromosomes = [i.strip().split("\t")[0] for i in open(chromosomes) if i.strip()]
         
     else:
+        if chromosomes:
+            chromnames = cooler.Cooler(matrix).chromnames
+            if regex:
+                _regex = re.compile(chromosomes)
+                chromosomes = list(filter(lambda x: _regex.findall(x), chromnames))
+                logger.info(f"Find chromosomes: {' '.join(chromosomes)}")
+
+            else:
+                chromosomes = chromosomes.strip().strip(",").split(',')
+                
+                chromosomes = list(filter(lambda x: x in chromnames, chromosomes))
+                if not chromosomes:
+                    logger.warning(f"Specified chromosomes not found in the matrix, please check the input, plotting all chromosomes.")
+                else:
+                    not_found_chromosomes = list(filter(lambda x: x not in chromnames, chromosomes))
+                    if not_found_chromosomes:
+                        logger.warning(f"These chromosomes not found in the matrix: {', '.join(not_found_chromosomes)}")
+                 
         
-        chromosomes = chromosomes.strip().strip(",").split(',') if chromosomes else None
-    
+
     if not chromosomes and only_chr:
+        logger.info(f"Only plot the chromosomes (--chr-prefix='{chr_prefix}.*') that ignore unanchored contigs.")
         regex = re.compile(f"^{chr_prefix}")
-        chroms = cooler.Cooler(matrix).chromnames 
+        chroms = cooler.Cooler(matrix).chromnames
         chromosomes = list(filter(lambda x: regex.findall(x), chroms))
+        if len(chromosomes) == 0:
+            logger.warning(f"Chromosomes with prefix `{chr_prefix}` not found in the matrix, plotting all chromosomes.")
 
     if chromosomes and only_chr:
         if not disable_natural_sort:
             chromosomes = natsorted(chromosomes)
+
 
     
     if no_ticks:
@@ -6254,6 +6599,91 @@ def cool2depth(coolfile, output):
     """
     from .utilities import cool2depth
     cool2depth(coolfile, output)     
+
+
+@utils.command(cls=RichCommand)
+@click.argument(
+    "hypergraph",
+    metavar="INPUT_HYPERGRAPH_PATH",
+   
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-mc",
+    "--min-contacts",
+    "min_contacts",
+    help="Minimum contacts of contigs",
+    metavar="INT",
+    type=int,
+    default=5,
+    show_default=True
+)
+@click.option(
+    "-pt",
+    "--prunetable",
+    metavar="PATH",
+    help="Path to prune table that is generated from `kprune`. [defualt: None]",
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="PATH",
+    help="Output of expansion contacts",
+    default="file_pefix.expansion.contacts",
+    show_default=True
+)
+def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, output):
+    """
+    Convert hypergraph to contacts.
+    """
+    import msgspec
+    from .algorithms.hypergraph import HyperEdges, HyperGraph
+    from .core import PruneTable
+
+   
+    he = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+    he.to_numpy()
+    hg = HyperGraph(he, min_quality=min_mapq)
+    H = hg.incidence_matrix(min_contacts=min_contacts)
+    nodes = hg.nodes
+
+    if prunetable:
+        vertices_idx = {v: i for i, v in enumerate(nodes)}
+        prunetable = PruneTable(prunetable)
+        pair_df = prunetable.data
+        pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
+        pair_df = pair_df.dropna(axis=0).astype({'contig1': 'int', 'contig2': 'int', 'type': 'int'})
+
+        prunetable.data = pair_df
+        prunetable.symmetric_table()
+        pair_df = prunetable.data
+        pair_df = pair_df.drop_duplicates(subset=['contig1', 'contig2'])
+        pair_df = pair_df.reset_index(drop=True)
+        P_allelic_idx = [pair_df.loc[pair_df['type'] == 0, 'contig1'], pair_df.loc[pair_df['type'] == 0, 'contig2']]
+        P_weak_idx = [pair_df.loc[pair_df['type'] == 1, 'contig1'], pair_df.loc[pair_df['type'] == 1, 'contig2']]
+    else:
+        P_allelic_idx = None
+        P_weak_idx = None
+    min_weight = 2.0
+    A = hg.clique_expansion_init(H, 
+                                 min_weight=min_weight,
+                                 P_allelic_idx=P_allelic_idx, 
+                                 P_weak_idx=P_weak_idx)
+    hg.to_contacts(A, nodes, output=output, min_weight=min_weight)
+
 
 
 @utils.command(cls=RichCommand)

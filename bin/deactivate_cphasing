@@ -13,7 +13,7 @@ software_dir="$(dirname "$script_dir")"
 
 if [ ! -f $software_dir/pixi.toml ]; then
     echo "pixi.toml not found in $software_dir"
-    exit 1
+    return 1
 fi
 
 is_tty=$(tty)   

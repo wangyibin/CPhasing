@@ -82,7 +82,7 @@
         - [bedtools](https://bedtools.readthedocs.io/en/latest/)  
         - [seqkit](https://bioinf.shenwei.me/seqkit/)  
         - [pigz](https://github.com/madler/pigz)  
-    2. Pore-C流程依赖：
+    2. Pore-C流程依赖：   
         - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)  
     
 
@@ -101,6 +101,6 @@
     ---
 
     一些案例教你如何运行 `cphasing`.  
-    [:octicons-arrow-right-24:Tutorials](tutorials)
+    [:octicons-arrow-right-24:Tutorials](tutorials/porec/porec_decaploid.md)
 
 </div>

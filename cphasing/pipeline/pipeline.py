@@ -73,15 +73,18 @@ def run(fasta,
         alleles_window_size=19,
         alleles_minimum_similarity=0.2,
         alleles_diff_thres=0.1,
-        scaffolding_method="haphic",
+        alleles_trim_length=25000,
+        scaffolding_method="precision",
         n="",
         use_pairs=False,
+        edge_length=2e6,
         resolution1=1,
         resolution2=1,
         init_resolution1=1,
         init_resolution2=1,
         first_cluster=None,
         normalize=False,
+        allelic_factor=-1,
         disable_merge_in_first=False,
         exclude_group_to_second=None,
         exclude_group_from_first=None,
@@ -99,6 +102,8 @@ def run(fasta,
         whitelist=None,
         blacklist=None,
         binsize="500k",
+        colormap="viridis",
+        whitered=False,
         low_memory=False,
         outdir="cphasing_output",
         threads=4):
@@ -220,10 +225,13 @@ def run(fasta,
         allele_table = None
         logger.info("The mode is `haploid`, skip step '1. alleles.'")
     elif mode == "phasing":
-        skip_steps.add("1")
-        allele_table = None
-        logger.info("The mode is `phasing`, the step '1. alleles' will be intergated into '3. hyparpartion'.")
-
+        if "1" in steps:
+            skip_steps.add("1")
+            allele_table = None
+            logger.info("The mode is `phasing`, the step '1. alleles' will be intergated into '3. hyparpartion'.")
+        else:
+            allele_table = None
+         
     filtered_pairs = None
    
     if ul_data:
@@ -422,10 +430,11 @@ def run(fasta,
                 corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
                                     f"{fasta_prefix}.corrected.fasta", 
                                    f"{pairs_prefix}.corrected.pairs.gz")
-                if not all(map(lambda x: Path(x).exists, corrected_items)):
+                if not all(map(lambda x: Path(x).exists(), corrected_items)):
                     corrected_items = ()
 
-                if corrected_items and not Path(f"{porec_prefix}.corrected.porec.gz").exists:
+                
+                if corrected_items and not Path(f"{porec_prefix}.corrected.porec.gz").exists():
                     break_bed, fasta, pairs = corrected_items
                     corrected = True
                     cmd = ["cphasing-rs", "porec-break", f"../{porec_table}", 
@@ -474,8 +483,9 @@ def run(fasta,
                 corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
                                     f"{fasta_prefix}.corrected.fasta", 
                                    f"{pairs_prefix}.corrected.pairs.gz")
-                if not all(map(lambda x: Path(x).exists, corrected_items)):
+                if not all(map(lambda x: Path(x).exists(), corrected_items)):
                     corrected_items = ()
+                    logger.warning("The corrected files are not exists, please specify `--chimeric-correct`.")
                 else:
                     logger.info("Using exists corrected results.")
                 
@@ -510,6 +520,14 @@ def run(fasta,
                 Path(fasta).symlink_to(f"{correct_dir}/{fasta}")
             except FileExistsError:
                 pass
+
+            contigsizes = f"{fasta_prefix}.contigsizes"
+            if not Path(contigsizes).exists() or is_empty(contigsizes):
+                cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+                flag = run_cmd(cmd, log=os.devnull)
+                assert flag == 0, "Failed to execute command, please check log."
+            
+            fasta_path = Path(fasta).absolute()
         else:
             pass
             # logger.info(f"Do not need correct, removed `{correct_dir}`")
@@ -758,6 +776,8 @@ def run(fasta,
                                 hcr_upper,
                                 "-l",
                                 hcr_lower,
+                                "-cr",
+                                collapsed_contig_ratio,
                                 # "-q",
                                 # min_quality1,
                                 hcr_invert_string]
@@ -778,6 +798,8 @@ def run(fasta,
                                 hcr_upper,
                                 "-l",
                                 hcr_lower,
+                                "-cr",
+                                collapsed_contig_ratio,
                                 # "-q",
                                 # min_quality1,
                                 ]
@@ -797,6 +819,20 @@ def run(fasta,
                 
             hcr_bed = f"{pairs_prefix}.{hcr_bs}.hcr.bed"
 
+            with open("hcr.cmd.sh", 'w') as _out_sh:
+                _out_sh.write("cphasing hcr \\")
+                _out_sh.write("\n")
+
+                _hcr_args = []
+                for i in range(0, len(args), 2):
+                    if args[i+1] is not None:
+                        _hcr_args.append(args[i])
+                        _hcr_args.append(args[i+1])
+                
+                _out_sh.write(" ".join(pretty_cmd(map(str, _hcr_args))))
+                _out_sh.write("\n")
+
+
         _mode = mode
         _mode = "phasing" if _mode == "phasing2" else _mode
         hyperpartition_args = [
@@ -806,6 +842,8 @@ def run(fasta,
                                 input_param,
                                 "--mode",
                                 _mode,
+                                "-e",
+                                edge_length,
                                 "-c",
                                 hyperpartition_contacts,
                                 "-r1",
@@ -847,6 +885,9 @@ def run(fasta,
                                 "-n",
                                 n,
                             ]
+
+        if allelic_factor != -1:
+            hyperpartition_args.extend(["-af", allelic_factor])
         
         if disable_merge_in_first:
             hyperpartition_args.append("--disable-merge-in-first")
@@ -863,6 +904,11 @@ def run(fasta,
 
         if mode == "phasing":
             hyperpartition_args.extend(["-f", fasta_path])
+            hyperpartition_args.extend(["--alleles-k", alleles_kmer_size, 
+                                        "--alleles-w", alleles_window_size,
+                                        "--alleles-minimum-similarity", alleles_minimum_similarity,
+                                        "--alleles-diff-thres", alleles_diff_thres,
+                                        "--alleles-trim-length", alleles_trim_length])
 
         else:
             hyperpartition_args.extend(["-at",
@@ -1057,7 +1103,7 @@ def run(fasta,
                         f"../{contigsizes}",
                         f"../{scaffolding_dir}/{input_agp}", 
                         min_quality1, init_binsize,
-                        binsize)
+                        binsize, colormap, whitered)
         args = [
                 "-a",
                 f"../{scaffolding_dir}/{input_agp}",
@@ -1070,7 +1116,12 @@ def run(fasta,
                 "-oc",
                 ]
         
-       
+        if colormap != "redp1_r":
+            args.extend(["--colormap", colormap])
+        if whitered:
+            args.append("--whitered")
+
+
         try:
             plot.main(args=args,
                             prog_name='plot')
@@ -1091,7 +1142,7 @@ def run(fasta,
     monitor.join()
     peak_memory = max(monitor.memory_buffer) / 1024 / 1024 / 1024
 
-    logger.info(f"Pipeline finished in {today}. Elapsed time {end_time:.2f} s. "
+    logger.info(f"The pipeline finished in {today}. Elapsed time {end_time:.2f} s. "
                 f"Peak memory: {peak_memory:.2f} Gb"
                 )
     logger.info(f"Results are store in `{outdir}`")

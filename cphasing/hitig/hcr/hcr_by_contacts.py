@@ -147,7 +147,8 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
 
 
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
-                    min_remove_whole_collapsed_contigs_rate=0.9):
+                    min_remove_whole_collapsed_contigs_rate=0.9,
+                    edge_length=None):
 
     
     depth = pl.read_csv(depth_file, separator='\t', has_header=False,
@@ -223,8 +224,39 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
         collapsed_pr = pr.PyRanges(collapsed_df)
         hcr_regions_pr = hcr_regions_pr.intersect(collapsed_pr, invert=True)
 
+    if edge_length:
+        contigsizes = contigsizes.rename("length").to_frame()
+        large_contigs = contigsizes[contigsizes['length'] >= edge_length * 2]
+        small_contigs = contigsizes[contigsizes['length'] < edge_length * 2]
+        def func1(row):
+            row['start'] = 0
+            row['end'] = int(2e6)
 
-    hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
+            return row
+    
+        def func2(row2):
+            row2['start'] = row2['length'] - 2e6
+            row2['end'] = row2['length']
+
+            return row2
+        
+        res_df = pd.concat([large_contigs.reset_index().apply(func1, axis=1),
+              large_contigs.reset_index().apply(func2, axis=1),
+              ], axis=0).drop(['length'], axis=1).astype({"start": np.int64, "end": np.int64})
+        small_contigs['start'] = 0
+        small_contigs = small_contigs.reset_index().rename(columns={"length": "end"})
+        
+        res_df = pd.concat([res_df, small_contigs], axis=0)
+        res_df.columns = ["Chromosome", "Start", "End"]
+
+        edge_gr = pr.PyRanges(res_df)
+        report_regions_pr = edge_gr.join(hcr_regions_pr).new_position("intersection")
+        report_regions_pr.df[['Chromosome', 'Start_b', 'End_b']].to_csv(
+            output, sep='\t', index=None, header=None
+        )
+    
+    else:
+        hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
 
 def main(args):

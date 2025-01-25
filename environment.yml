@@ -41,4 +41,5 @@ dependencies:
 - wfmash 0.17.0.*
 - matplotlib >=3.9.3,<4
 - line_profiler >=4.1.3,<5
+- crabz >=0.9.0,<0.10 
 

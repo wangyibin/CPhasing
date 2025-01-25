@@ -116,6 +116,8 @@ plugins:
             Installation: 安装
             Basic Usage: 基本用法
             Tutorials: 教程
+            Pore-C: Pore-C数据
+            Hi-C: Hi-C数据
             FAQ: 常见问题
 
 
@@ -123,12 +125,13 @@ plugins:
 nav:
   - Installation: index.md
   - Basic Usage: basic_usage.md
-  - Tutorials:
+  - Tutorials: 
     - Pore-C:
-      - tutorials/porec/porec_tetraploid.md
+      - tutorials/porec/porec_decaploid.md
       - tutorials/porec/porec_sugarcane.md
     - Hi-C:
-      - tutorials/hic/hic_tetraploid.md
+      - tutorials/hic/hic_decaploid.md
+      - tutorials/hic/hic_sugarcane.md
 
   - CLI: 
     - CLI/mapper.md

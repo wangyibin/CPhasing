@@ -256,9 +256,13 @@ class ChromapMapper:
             else:
                 self._path = self._path.rstrip("_")
 
-
-        if which('pigz') is None:
+        if which('crabz') is None and which('pigz') is None:
             raise ValueError(f"pigz: command not found")
+    
+        if which('crabz') is None:
+            self.compressor = 'pigz'
+        else:
+            self.compressor = 'crabz'
 
         self.prefix = Path(self.read1.stem).with_suffix('')
         while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
@@ -323,7 +327,11 @@ class ChromapMapper:
         logger.info("Done.")
 
     def compress(self):
-        cmd = ['pigz', '-f', '-p', str(self.threads), f'{str(self.output_pairs)}']
+        if self.compressor == 'crabz':
+            cmd = ['crabz', '-I', '-p', str(self.threads), f'{str(self.output_pairs)}']
+        else:
+            cmd = ['pigz', '-f', '-p', str(self.threads), f'{str(self.output_pairs)}']
+
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.compress.log')
         assert flag == 0, "Failed to execute command, please check log."
         logger.info("Done.")

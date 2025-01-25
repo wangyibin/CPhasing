@@ -1,5 +1,22 @@
 
 Alleles aims to identify the allelic contig pairs by pairwise comparison.
+
+## Examples
+### Total length of genome < 10 Gb
+```shell
+cphasing alleles -f draft.asm.fasta
+```
+### Total length of genome >= 10 Gb
+```shell
+cphasing alleles -f draft.asm.fasta -k 27 -w 14
+```
+
+<!-- !!! warning
+    Now, `alleles` do not support contig with a length larger than 135 Mb.  -->
+
+
+## Parameters
+
 ```shell title="cphasing alleles -h"
  Usage: cphasing alleles [OPTIONS]                                              
                                                                                 
@@ -38,16 +55,3 @@ Alleles aims to identify the allelic contig pairs by pairwise comparison.
 ```
 
 
-
-## Examples
-### Total length of genome < 10 Gb
-```shell
-cphasing alleles -f draft.asm.fasta
-```
-### Total length of genome >= 10 Gb
-```shell
-cphasing alleles -f draft.asm.fasta -k 27 -w 14
-```
-
-<!-- !!! warning
-    Now, `alleles` do not support contig with a length larger than 135 Mb.  -->

@@ -116,7 +116,7 @@ plugins:
             Installation: 安装
             Basic Usage: 基本用法
             Tutorials: 教程
-            Pore-C: Pore-C数据
+            Pore-C&HiFi-C: Pore-C或HiFi-C数据
             Hi-C: Hi-C数据
             FAQ: 常见问题
 
@@ -126,7 +126,7 @@ nav:
   - Installation: index.md
   - Basic Usage: basic_usage.md
   - Tutorials: 
-    - Pore-C:
+    - Pore-C&HiFi-C:
       - tutorials/porec/porec_decaploid.md
       - tutorials/porec/porec_sugarcane.md
     - Hi-C:

@@ -24,6 +24,16 @@ cphasing pipeline -f draft.asm.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```
+
+
+#### 输入**HiFi-C**数据
+仅需比对的时候更改为`pipeline`或者`mapper`的`--mm2-params "-x map-hifi -k 19 -w 19" `参数. 剩下步骤和生成的文件都与Pore-C数据一致。
+```bash
+cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi -k 19 -w 19" -t 10 -n 8:4
+```
+!!! note 
+    HiFi-C的比对结果以`.porec.gz`结尾，处理方式与Pore-C一致，均可用`porec-merge`、`porec-intersect`等命令处理。
+
 #### 输入**Hi-C data**数据
 ```bash
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4

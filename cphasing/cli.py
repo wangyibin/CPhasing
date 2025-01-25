@@ -385,6 +385,13 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "--mm2-params",
+    metavar="STR",
+    help="additional parameters for minimap2",
+    default="-x map-ont",
+    show_default=True
+)
+@click.option(
     '-q',
     '--mapping-quality',
     'mapping_quality',
@@ -929,6 +936,7 @@ def pipeline(fasta,
             pattern,
             mapper_k,
             mapper_w,
+            mm2_params,
             mapping_quality,
             chimeric_correct,
             chimeric_corrected,
@@ -1103,6 +1111,7 @@ def pipeline(fasta,
         pattern=pattern,
         mapper_k=mapper_k, 
         mapper_w=mapper_w,
+        mm2_params=mm2_params,
         mapping_quality=mapping_quality,
         hic_mapper_k=hic_mapper_k,
         hic_mapper_w=hic_mapper_w,
@@ -4443,7 +4452,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
     '--threads',
     help='Number of threads.',
     type=int,
-    default=4,
+    default=8,
     metavar='INT',
     show_default=True,
 )
@@ -4824,6 +4833,10 @@ def bam2paf(bam, secondary, output):
     show_default=True
 )
 def bam2pairs(bam, min_quality, output):
+    """
+    Convert bam to pairs file.
+        Don't sort the bam file by coordinate; paired read should be lined up.
+    """
     cmd = ["cphasing-rs", "bam2pairs", f"{bam}",  
            
             "-q", f"{min_quality}", "-o", f"{output}"]

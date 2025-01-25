@@ -137,5 +137,7 @@ nav:
     - CLI/mapper.md
     - CLI/alleles.md
     - CLI/plot.md
-
+  
   - FAQ: faq.md
+  - Misc:
+    - CHANGES.md

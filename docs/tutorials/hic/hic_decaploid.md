@@ -1,6 +1,6 @@
-# Assemble decaploid by Hi-C
+# Assemble autodecaploid by Hi-C
 
-Decaploid (2n=8x=80)
+Autodecaploid (2n=8x=80)
 
 
 ```shell

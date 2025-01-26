@@ -14,7 +14,7 @@
         <link rel="prev" href="../../tutorials/hic/hic_sugarcane/">
       
       
-        <link rel="next" href="../alleles/">
+        <link rel="next" href="../hic_mapper/">
       
       
       <link rel="icon" href="../../logo/logo.png">
@@ -648,18 +648,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#process-one-cell-porec-data" class="md-nav__link">
+  <a href="#process-one-cell-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
-      process one cell porec data
+      Process one cell Pore-C data
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#process-multiple-cell-porec-data" class="md-nav__link">
+  <a href="#process-multiple-cells-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
-      process multiple cell porec data
+      Process multiple cells Pore-C data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-one-cell-hifi-c-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process one cell HiFi-C data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-multiple-cells-hifi-c-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process multiple cells HiFi-C data
     </span>
   </a>
   
@@ -695,11 +713,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../hic_mapper/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HiC Mapper
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../alleles/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Alleles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rename/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Rename
   </span>
   
 
@@ -743,26 +803,6 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    FAQ
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     
     
     
@@ -776,10 +816,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -790,12 +830,33 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Misc
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -860,18 +921,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#process-one-cell-porec-data" class="md-nav__link">
+  <a href="#process-one-cell-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
-      process one cell porec data
+      Process one cell Pore-C data
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#process-multiple-cell-porec-data" class="md-nav__link">
+  <a href="#process-multiple-cells-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
-      process multiple cell porec data
+      Process multiple cells Pore-C data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-one-cell-hifi-c-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process one cell HiFi-C data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-multiple-cells-hifi-c-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process multiple cells HiFi-C data
     </span>
   </a>
   
@@ -916,13 +995,18 @@
 
   <h1>Mapper</h1>
 
-<p><code>cphasing mapper</code> is designed for process Pore-C data, its output two files:<br />
-   (1) porec table (<code>.porec.gz</code>) which contain high-order contacts and (2) 4DN pairs (<code>pairs.gz</code>) which only retain VPCs.</p>
+<p><code>cphasing mapper</code> is designed for process <strong>Pore-C</strong> or <strong>HiFi-C</strong> data, its output two files: <br />
+   (1) porec table (<code>.porec.gz</code>) which contain high-order contacts<br />
+   (2) 4DN pairs (<code>pairs.gz</code>) which only retain VPCs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The output of HiFi-C, still named <code>.porec.gz</code>, contains the same results whether Pore-C or HiFi-C data.</p>
+</div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">#</a></h2>
-<h3 id="process-one-cell-porec-data">process one cell porec data<a class="headerlink" href="#process-one-cell-porec-data" title="Permanent link">#</a></h3>
+<h3 id="process-one-cell-pore-c-data">Process one cell Pore-C data<a class="headerlink" href="#process-one-cell-pore-c-data" title="Permanent link">#</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
 </span></code></pre></div>
-<h3 id="process-multiple-cell-porec-data">process multiple cell porec data<a class="headerlink" href="#process-multiple-cell-porec-data" title="Permanent link">#</a></h3>
+<h3 id="process-multiple-cells-pore-c-data">Process multiple cells Pore-C data<a class="headerlink" href="#process-multiple-cells-pore-c-data" title="Permanent link">#</a></h3>
 <h4 id="process-together">Process together<a class="headerlink" href="#process-together" title="Permanent link">#</a></h4>
 <p><div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>sample2.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
 </span></code></pre></div>
@@ -945,60 +1029,65 @@ or
 </ul>
 <ul>
 <li>merge results 
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>porec-merge<span class="w"> </span>sample1.porec.porec.gz<span class="w"> </span>sample2.porec.porec.gz<span class="w"> </span>sample3.porec.porec.gz<span class="w"> </span>-o<span class="w"> </span>sample.merge.porec.gz
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing-rs<span class="w"> </span>pairs-merge<span class="w"> </span>sample1.porec.pairs.gz<span class="w"> </span>sample2.porec.pairs.gz<span class="w"> </span>sample3.porec.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.merge.pairs.gz
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing<span class="w"> </span>porec-merge<span class="w"> </span>sample1.porec.porec.gz<span class="w"> </span>sample2.porec.porec.gz<span class="w"> </span>sample3.porec.porec.gz<span class="w"> </span>-o<span class="w"> </span>sample.merge.porec.gz
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>sample1.porec.pairs.gz<span class="w"> </span>sample2.porec.pairs.gz<span class="w"> </span>sample3.porec.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.merge.pairs.gz
 </span></code></pre></div></li>
 </ul>
+<h3 id="process-one-cell-hifi-c-data">Process one cell HiFi-C data<a class="headerlink" href="#process-one-cell-hifi-c-data" title="Permanent link">#</a></h3>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x map-hifi&quot;</span>
+</span></code></pre></div>
+<h3 id="process-multiple-cells-hifi-c-data">Process multiple cells HiFi-C data<a class="headerlink" href="#process-multiple-cells-hifi-c-data" title="Permanent link">#</a></h3>
+<p>All the steps of this same with processing in the Pore-C data, with the parameter of <code>--mm2-params "-x map-hifi"</code>.</p>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><span class="filename">cphasing mapper -h</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>mapper<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>REFERENCE<span class="w"> </span>FASTQ...<span class="w">   </span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w"> </span>Mapper<span class="w"> </span><span class="k">for</span><span class="w"> </span>pore-c<span class="w"> </span>reads.<span class="w">                                                  </span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w"> </span>REFERENCE:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>reference<span class="w">                                              </span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w"> </span>FASTQ:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>pore-c<span class="w"> </span>reads,<span class="w"> </span>multiple<span class="w"> </span>file<span class="w"> </span>enabled,<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w"> </span>output<span class="w">  </span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w"> </span>default<span class="w"> </span>only<span class="w"> </span>use<span class="w"> </span>sample<span class="w"> </span><span class="m">1</span>.<span class="w">                                                </span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>╭─<span class="w"> </span>Arguments<span class="w"> </span>─────────────────────────────────────────────────────────────╮
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>│<span class="w"> </span>*<span class="w">  </span>REFERENCE<span class="w">    </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>│<span class="w"> </span>*<span class="w">  </span>FASTQ<span class="w">        </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>╰─────────────────────────────────────────────────────────────────────────╯
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>╭─<span class="w"> </span>Options<span class="w"> </span>───────────────────────────────────────────────────────────────╮
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>│<span class="w"> </span>--enzyme<span class="w">        </span>-e<span class="w">        </span>Restrict<span class="w"> </span>site<span class="w"> </span>pattern,<span class="w"> </span>use<span class="w"> </span>comma<span class="w"> </span>to<span class="w"> </span>separate<span class="w">  </span>│
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>│<span class="w">                           </span>multiple<span class="w"> </span>patterns.<span class="w">                            </span>│
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>│<span class="w">                 </span>-k<span class="w">        </span>kmer<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">                        </span>│
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">15</span><span class="o">]</span><span class="w">                                 </span>│
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>│<span class="w">                 </span>-w<span class="w">        </span>minimizer<span class="w"> </span>window<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">            </span>│
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">10</span><span class="o">]</span><span class="w">                                 </span>│
-</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>│<span class="w"> </span>--mm2-params<span class="w">              </span>additional<span class="w"> </span>parameters<span class="w"> </span><span class="k">for</span><span class="w"> </span>minimap2<span class="w">            </span>│
-</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span>-x<span class="w"> </span>map-ont<span class="o">]</span><span class="w">                         </span>│
-</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>│<span class="w"> </span>--mapq<span class="w">          </span>-q<span class="w">        </span>Minimum<span class="w"> </span>quality<span class="w"> </span>of<span class="w"> </span>mapping<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span><span class="m">60</span><span class="o">]</span>.<span class="w">           </span>│
-</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span><span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">60</span><span class="o">]</span><span class="w">                        </span>│
-</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>│<span class="w"> </span>--min-identity<span class="w">  </span>-p<span class="w">        </span>Minimum<span class="w"> </span>percentage<span class="w"> </span>identity<span class="w"> </span>of<span class="w"> </span>alignments<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span>│
-</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>│<span class="w">                           </span><span class="m">1</span>.0<span class="o">]</span>.<span class="w">                                         </span>│
-</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>│<span class="w">                           </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                                       </span>│
-</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.8<span class="p">;</span><span class="w"> </span><span class="m">0</span>.0&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">1</span>.0<span class="o">]</span><span class="w">                   </span>│
-</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>│<span class="w"> </span>--min-length<span class="w">    </span>-l<span class="w">        </span>Minimum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragments.<span class="w">                  </span>│
-</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">150</span><span class="o">]</span><span class="w">                                </span>│
-</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a>│<span class="w"> </span>--max-edge<span class="w">      </span>-me<span class="w">       </span>Maximum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragment<span class="w"> </span>located<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w">     </span>│
-</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a>│<span class="w">                           </span>edge<span class="w"> </span>of<span class="w"> </span>contigs.<span class="w">                              </span>│
-</span><span id="__span-7-38"><a id="__codelineno-7-38" name="__codelineno-7-38" href="#__codelineno-7-38"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-39"><a id="__codelineno-7-39" name="__codelineno-7-39" href="#__codelineno-7-39"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">2000</span><span class="o">]</span><span class="w">                               </span>│
-</span><span id="__span-7-40"><a id="__codelineno-7-40" name="__codelineno-7-40" href="#__codelineno-7-40"></a>│<span class="w"> </span>--force<span class="w">         </span>-f<span class="w">        </span>Force<span class="w"> </span>run<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>command,<span class="w"> </span>ignore<span class="w"> </span>existing<span class="w">    </span>│
-</span><span id="__span-7-41"><a id="__codelineno-7-41" name="__codelineno-7-41" href="#__codelineno-7-41"></a>│<span class="w">                           </span>results.<span class="w"> </span>The<span class="w"> </span>index<span class="w"> </span>file<span class="w"> </span>also<span class="w"> </span>will<span class="w"> </span>be<span class="w"> </span>removed.<span class="w"> </span>│
-</span><span id="__span-7-42"><a id="__codelineno-7-42" name="__codelineno-7-42" href="#__codelineno-7-42"></a>│<span class="w"> </span>--outprefix<span class="w">     </span>-o<span class="w">        </span>output<span class="w"> </span>prefix,<span class="w"> </span><span class="k">if</span><span class="w"> </span>none<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w">      </span>│
-</span><span id="__span-7-43"><a id="__codelineno-7-43" name="__codelineno-7-43" href="#__codelineno-7-43"></a>│<span class="w">                           </span>fastq<span class="w">                                         </span>│
-</span><span id="__span-7-44"><a id="__codelineno-7-44" name="__codelineno-7-44" href="#__codelineno-7-44"></a>│<span class="w">                           </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                                        </span>│
-</span><span id="__span-7-45"><a id="__codelineno-7-45" name="__codelineno-7-45" href="#__codelineno-7-45"></a>│<span class="w"> </span>--threads<span class="w">       </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                            </span>│
-</span><span id="__span-7-46"><a id="__codelineno-7-46" name="__codelineno-7-46" href="#__codelineno-7-46"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-7-47"><a id="__codelineno-7-47" name="__codelineno-7-47" href="#__codelineno-7-47"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                  </span>│
-</span><span id="__span-7-48"><a id="__codelineno-7-48" name="__codelineno-7-48" href="#__codelineno-7-48"></a>│<span class="w"> </span>--help<span class="w">          </span>-h,-help<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                   </span>│
-</span><span id="__span-7-49"><a id="__codelineno-7-49" name="__codelineno-7-49" href="#__codelineno-7-49"></a>╰─────────────────────────────────────────────────────────────────────────╯
+<div class="language-shell highlight"><span class="filename">cphasing mapper -h</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>mapper<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>REFERENCE<span class="w"> </span>FASTQ...<span class="w">   </span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w"> </span>Mapper<span class="w"> </span><span class="k">for</span><span class="w"> </span>pore-c<span class="w"> </span>reads.<span class="w">                                                  </span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w"> </span>REFERENCE:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>reference<span class="w">                                              </span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w"> </span>FASTQ:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>pore-c<span class="w"> </span>reads,<span class="w"> </span>multiple<span class="w"> </span>file<span class="w"> </span>enabled,<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w"> </span>output<span class="w">  </span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w"> </span>default<span class="w"> </span>only<span class="w"> </span>use<span class="w"> </span>sample<span class="w"> </span><span class="m">1</span>.<span class="w">                                                </span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>╭─<span class="w"> </span>Arguments<span class="w"> </span>─────────────────────────────────────────────────────────────╮
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>│<span class="w"> </span>*<span class="w">  </span>REFERENCE<span class="w">    </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>│<span class="w"> </span>*<span class="w">  </span>FASTQ<span class="w">        </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>╰─────────────────────────────────────────────────────────────────────────╯
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>╭─<span class="w"> </span>Options<span class="w"> </span>───────────────────────────────────────────────────────────────╮
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>│<span class="w"> </span>--enzyme<span class="w">        </span>-e<span class="w">        </span>Restrict<span class="w"> </span>site<span class="w"> </span>pattern,<span class="w"> </span>use<span class="w"> </span>comma<span class="w"> </span>to<span class="w"> </span>separate<span class="w">  </span>│
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>│<span class="w">                           </span>multiple<span class="w"> </span>patterns.<span class="w">                            </span>│
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>│<span class="w">                 </span>-k<span class="w">        </span>kmer<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">                        </span>│
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">15</span><span class="o">]</span><span class="w">                                 </span>│
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>│<span class="w">                 </span>-w<span class="w">        </span>minimizer<span class="w"> </span>window<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">            </span>│
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">10</span><span class="o">]</span><span class="w">                                 </span>│
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>│<span class="w"> </span>--mm2-params<span class="w">              </span>additional<span class="w"> </span>parameters<span class="w"> </span><span class="k">for</span><span class="w"> </span>minimap2<span class="w">            </span>│
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span>-x<span class="w"> </span>map-ont<span class="o">]</span><span class="w">                         </span>│
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>│<span class="w"> </span>--mapq<span class="w">          </span>-q<span class="w">        </span>Minimum<span class="w"> </span>quality<span class="w"> </span>of<span class="w"> </span>mapping<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span><span class="m">60</span><span class="o">]</span>.<span class="w">           </span>│
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span><span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">60</span><span class="o">]</span><span class="w">                        </span>│
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>│<span class="w"> </span>--min-identity<span class="w">  </span>-p<span class="w">        </span>Minimum<span class="w"> </span>percentage<span class="w"> </span>identity<span class="w"> </span>of<span class="w"> </span>alignments<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span>│
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>│<span class="w">                           </span><span class="m">1</span>.0<span class="o">]</span>.<span class="w">                                         </span>│
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>│<span class="w">                           </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                                       </span>│
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.8<span class="p">;</span><span class="w"> </span><span class="m">0</span>.0&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">1</span>.0<span class="o">]</span><span class="w">                   </span>│
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>│<span class="w"> </span>--min-length<span class="w">    </span>-l<span class="w">        </span>Minimum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragments.<span class="w">                  </span>│
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">150</span><span class="o">]</span><span class="w">                                </span>│
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>│<span class="w"> </span>--max-edge<span class="w">      </span>-me<span class="w">       </span>Maximum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragment<span class="w"> </span>located<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w">     </span>│
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>│<span class="w">                           </span>edge<span class="w"> </span>of<span class="w"> </span>contigs.<span class="w">                              </span>│
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">2000</span><span class="o">]</span><span class="w">                               </span>│
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>│<span class="w"> </span>--force<span class="w">         </span>-f<span class="w">        </span>Force<span class="w"> </span>run<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>command,<span class="w"> </span>ignore<span class="w"> </span>existing<span class="w">    </span>│
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>│<span class="w">                           </span>results.<span class="w"> </span>The<span class="w"> </span>index<span class="w"> </span>file<span class="w"> </span>also<span class="w"> </span>will<span class="w"> </span>be<span class="w"> </span>removed.<span class="w"> </span>│
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>│<span class="w"> </span>--outprefix<span class="w">     </span>-o<span class="w">        </span>output<span class="w"> </span>prefix,<span class="w"> </span><span class="k">if</span><span class="w"> </span>none<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w">      </span>│
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>│<span class="w">                           </span>fastq<span class="w">                                         </span>│
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>│<span class="w">                           </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                                        </span>│
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>│<span class="w"> </span>--threads<span class="w">       </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                            </span>│
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                  </span>│
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>│<span class="w"> </span>--help<span class="w">          </span>-h,-help<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                   </span>│
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>╰─────────────────────────────────────────────────────────────────────────╯
 </span></code></pre></div>
 
 
@@ -1054,13 +1143,13 @@ or
         
         
           
-          <a href="../alleles/" class="md-footer__link md-footer__link--next" aria-label="Next: Alleles">
+          <a href="../hic_mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: HiC Mapper">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Alleles
+                HiC Mapper
               </div>
             </div>
             <div class="md-footer__button md-icon">

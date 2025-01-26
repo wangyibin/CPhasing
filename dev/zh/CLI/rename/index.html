@@ -11,6 +11,10 @@
         <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/rename/">
       
       
+        <link rel="prev" href="../alleles/">
+      
+      
+        <link rel="next" href="../plot/">
       
       
       <link rel="icon" href="../../../logo/logo.png">
@@ -18,7 +22,7 @@
     
     
       
-        <title>Rename: rename and reorient the chromosome - C-Phasing 文档</title>
+        <title>Rename - C-Phasing 文档</title>
       
     
     
@@ -72,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#rename-rename-and-reorient-the-chromosome" class="md-skip">
+        <a href="#rename" class="md-skip">
           跳转至
         </a>
       
@@ -111,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Rename: rename and reorient the chromosome
+              Rename
             
           </span>
         </div>
@@ -547,8 +551,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -558,28 +564,28 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
-    CLI
+    工具
   </span>
   
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
-            CLI
+            工具
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -611,6 +617,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../hic_mapper/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HiC Mapper
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../alleles/" class="md-nav__link">
         
   
@@ -620,6 +647,103 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Rename
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Rename
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#phasing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      调整phasing mode的组装结果
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      对所有染色体进行重命名
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      用字母作为不同单倍型的后缀
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -659,26 +783,6 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    常见问题
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     
     
     
@@ -692,26 +796,47 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   <span class="md-ellipsis">
-    Misc
+    其他
   </span>
   
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
-            Misc
+            其他
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    常见问题
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -761,6 +886,50 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#phasing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      调整phasing mode的组装结果
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      对所有染色体进行重命名
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      用字母作为不同单倍型的后缀
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -774,7 +943,7 @@
                   
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/rename.md" title="编辑此页" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/rename.zh.md" title="编辑此页" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -782,9 +951,57 @@
   
 
 
-<h1 id="rename-rename-and-reorient-the-chromosome">Rename: rename and reorient the chromosome<a class="headerlink" href="#rename-rename-and-reorient-the-chromosome" title="Permanent link">#</a></h1>
-<p>According to a monoploid to rename and reorient the chromosome. </p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>
+<h1 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">#</a></h1>
+<p>以单倍型或者近缘物种的参考基因组作为参考，将当前组装的多倍体进行重命名和染色体方向调整.</p>
+<h2 id="phasing-mode">调整<code>phasing</code> mode的组装结果<a class="headerlink" href="#phasing-mode" title="Permanent link">#</a></h2>
+<p>默认情况下<code>phasing</code> mode已经将同源染色体聚成一组，并且不同同源染色体将的方向已经调整至平行，为了节省时间开销，我们仅将第一个单倍型即<code>Chr??.g1</code>比对至参考基因组上，剩下的单倍型命名和方向跟随<code>g1</code>进行调整。如果不符合以上说明，则需加<code>--unphased</code>参数对所有染色体进行比对。
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>
+</span></code></pre></div>
+<img alt="phasing" src="https://pic.superbed.cc/item/67960ddcfa9f77b4dc145ac9.png" /></p>
+<h2 id="_1">对所有染色体进行重命名<a class="headerlink" href="#_1" title="Permanent link">#</a></h2>
+<p><code>basal</code>或者<code>basal_withprune</code> mode，需要对所有染色体进行比对，然后重命名和重新调整方向，需要加<code>--unphased</code>参数。
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>--unphased<span class="w"> </span>
+</span></code></pre></div></p>
+<p><img alt="uphased" src="https://pic.superbed.cc/item/67960d93fa9f77b4dc1458f2.png" /></p>
+<h2 id="_2">用字母作为不同单倍型的后缀<a class="headerlink" href="#_2" title="Permanent link">#</a></h2>
+<blockquote>
+<p><code>Chr01A Chr01B Chr01C ...</code>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>-s<span class="w"> </span>upperletter
+</span></code></pre></div></p>
+</blockquote>
+<p><img alt="upperletter" src="https://pic.superbed.cc/item/67960d32fa9f77b4dc1455ab.png" /></p>
+<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>rename<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                                                      </span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w"> </span>Rename<span class="w"> </span>and<span class="w"> </span>orientation<span class="w"> </span>the<span class="w"> </span>groups<span class="w"> </span>according<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>refernce.<span class="w">                                            </span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w"> </span>To<span class="w"> </span>speed<span class="w"> </span>up<span class="w"> </span>this<span class="w"> </span><span class="k">function</span>,<span class="w"> </span>we<span class="w"> </span>only<span class="w"> </span>align<span class="w"> </span>the<span class="w"> </span>first<span class="w"> </span>haplotype<span class="w"> </span>to<span class="w"> </span>reference,<span class="w"> </span>because<span class="w"> </span>the<span class="w"> </span>orientation<span class="w">    </span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w"> </span>among<span class="w"> </span>different<span class="w"> </span>haplotypes<span class="w"> </span>has<span class="w"> </span>been<span class="w"> </span>paralleled<span class="w"> </span><span class="k">in</span><span class="w"> </span>scaffolding.<span class="w"> </span>If<span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>orient<span class="w"> </span>all<span class="w"> </span>of<span class="w"> </span>the<span class="w">       </span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w"> </span>haplotypes<span class="w"> </span>you<span class="w"> </span>can<span class="w"> </span>specify<span class="w"> </span>the<span class="w"> </span>--unphased<span class="w"> </span>parameters.<span class="w">                                                 </span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>╭─<span class="w"> </span>Options<span class="w"> </span>───────────────────────────────────────────────────────────────────────────────────────────╮
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│<span class="w"> </span>*<span class="w">  </span>--ref<span class="w">           </span>-r<span class="w">         </span>Genome<span class="w"> </span>of<span class="w"> </span>monoploid<span class="w"> </span>or<span class="w"> </span>closely<span class="w"> </span>related<span class="w"> </span>species.<span class="w">                       </span>│
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│<span class="w">                               </span><span class="o">(</span>REFERENCE<span class="w"> </span>FASTA<span class="o">)</span><span class="w">                                                     </span>│
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│<span class="w"> </span>*<span class="w">  </span>--fasta<span class="w">         </span>-f<span class="w">         </span>Path<span class="w"> </span>to<span class="w"> </span>draft<span class="w"> </span>assembly<span class="w">                                                </span>│
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│<span class="w">                               </span><span class="o">(</span>DRAFT<span class="w"> </span>FASTA<span class="o">)</span><span class="w">                                                         </span>│
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>│<span class="w"> </span>*<span class="w">  </span>--agp<span class="w">           </span>-a<span class="w">         </span>agp<span class="w"> </span>file.<span class="w">                                                             </span>│
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│<span class="w">                               </span><span class="o">(</span>AGP<span class="o">)</span><span class="w">                                                                 </span>│
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│<span class="w">    </span>--unphased<span class="w">      </span>-unphased<span class="w">  </span>Haplotypes<span class="w"> </span>are<span class="w"> </span>not<span class="w"> </span>parallel<span class="w"> </span>aligned.<span class="w"> </span>Rename<span class="w"> </span>all<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>chromosomes.<span class="w">   </span>│
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│<span class="w">    </span>--suffix-style<span class="w">  </span>-s<span class="w">         </span>The<span class="w"> </span>suffix<span class="w"> </span>style<span class="w"> </span>of<span class="w"> </span>renamed<span class="w"> </span>chromosome<span class="w"> </span>among<span class="w"> </span>different<span class="w"> </span>haplotypes.<span class="w">    </span>│
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│<span class="w">                                 </span>number:<span class="w"> </span>g1,<span class="w"> </span>g2,<span class="w"> </span>g3,<span class="w"> </span>...<span class="w"> </span><span class="o">(</span>default<span class="o">)</span><span class="w">                                   </span>│
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│<span class="w">                                 </span>upperletter:<span class="w"> </span>A,<span class="w"> </span>B,<span class="w"> </span>C,<span class="w"> </span>...<span class="w">                                           </span>│
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│<span class="w">                                 </span>lowerletter:<span class="w"> </span>a,<span class="w"> </span>b,<span class="w"> </span>c,<span class="w"> </span>...<span class="w">                                           </span>│
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│<span class="w">                               </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                                                 </span>│
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│<span class="w">                               </span><span class="o">[</span>default:<span class="w"> </span>number<span class="o">]</span><span class="w">                                                     </span>│
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>│<span class="w">    </span>--output<span class="w">        </span>-o<span class="w">         </span>Output<span class="w"> </span>path<span class="w"> </span>of<span class="w"> </span>renamed<span class="w"> </span>agp<span class="w"> </span>file<span class="w">                                       </span>│
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>│<span class="w">                               </span><span class="o">(</span>OUTPUT_AGP<span class="o">)</span><span class="w">                                                          </span>│
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>│<span class="w">    </span>--threads<span class="w">       </span>-t<span class="w">         </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                                                    </span>│
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>│<span class="w">                               </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                                 </span>│
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>│<span class="w">                               </span><span class="o">[</span>default:<span class="w"> </span><span class="m">8</span><span class="o">]</span><span class="w">                                                          </span>│
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>│<span class="w">    </span>--help<span class="w">          </span>-h,-help<span class="w">   </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                                           </span>│
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯
 </span></code></pre></div>
 
 
@@ -818,6 +1035,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="页脚" >
+        
+          
+          <a href="../alleles/" class="md-footer__link md-footer__link--prev" aria-label="上一页: Alleles">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                上一页
+              </span>
+              <div class="md-ellipsis">
+                Alleles
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../plot/" class="md-footer__link md-footer__link--next" aria-label="下一页: Plot">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                下一页
+              </span>
+              <div class="md-ellipsis">
+                Plot
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">

@@ -8,28 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_decaploid/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/CLI/hic_mapper/">
       
       
-        <link rel="prev" href="../../../basic_usage/">
+        <link rel="prev" href="../mapper/">
       
       
-        <link rel="next" href="../porec_sugarcane/">
+        <link rel="next" href="../alleles/">
       
       
-      <link rel="icon" href="../../../logo/logo.png">
+      <link rel="icon" href="../../logo/logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.47">
     
     
       
-        <title>Assemble autodecaploid by Pore-C - C-Phasing Docs</title>
+        <title>HiC Mapper - C-Phasing Docs</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../styles/extra.css">
+      <link rel="stylesheet" href="../../styles/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assemble-autodecaploid-by-pore-c" class="md-skip">
+        <a href="#hic-mapper" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-header__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../../../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assemble autodecaploid by Pore-C
+              HiC Mapper
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../../zh/tutorials/porec/porec_decaploid/" hreflang="zh" class="md-select__link">
+            <a href="../../zh/CLI/hic_mapper/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -266,7 +266,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-nav__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../../../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
     C-Phasing Docs
@@ -293,7 +293,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -313,7 +313,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../basic_usage/" class="md-nav__link">
+      <a href="../../basic_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -330,8 +330,6 @@
       
   
   
-    
-  
   
   
     
@@ -343,11 +341,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -361,7 +359,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Tutorials
@@ -372,8 +370,6 @@
                 
   
   
-    
-  
   
   
     
@@ -382,11 +378,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
         
           
           <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
@@ -400,7 +396,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
             Pore-C&HiFi-C
@@ -411,19 +407,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../tutorials/porec/porec_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -432,7 +419,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -445,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../porec_sugarcane/" class="md-nav__link">
+      <a href="../../tutorials/porec/porec_sugarcane/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -511,7 +497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../hic/hic_decaploid/" class="md-nav__link">
+      <a href="../../tutorials/hic/hic_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -532,7 +518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../hic/hic_sugarcane/" class="md-nav__link">
+      <a href="../../tutorials/hic/hic_sugarcane/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -565,8 +551,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -576,11 +564,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
@@ -594,7 +582,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             CLI
@@ -608,7 +596,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/mapper/" class="md-nav__link">
+      <a href="../mapper/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -626,10 +614,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../CLI/hic_mapper/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    HiC Mapper
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -638,6 +646,53 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      one cell
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mutiple-cells" class="md-nav__link">
+    <span class="md-ellipsis">
+      mutiple cells
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -650,7 +705,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/alleles/" class="md-nav__link">
+      <a href="../alleles/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -671,7 +726,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/rename/" class="md-nav__link">
+      <a href="../rename/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -692,7 +747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/plot/" class="md-nav__link">
+      <a href="../plot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -760,7 +815,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../faq/" class="md-nav__link">
+      <a href="../../faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -781,7 +836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CHANGES/" class="md-nav__link">
+      <a href="../../CHANGES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -822,6 +877,41 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      one cell
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mutiple-cells" class="md-nav__link">
+    <span class="md-ellipsis">
+      mutiple cells
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Parameters
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -835,7 +925,7 @@
                   
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/porec/porec_decaploid.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/hic_mapper.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -843,9 +933,68 @@
   
 
 
-<h1 id="assemble-autodecaploid-by-pore-c">Assemble autodecaploid by Pore-C<a class="headerlink" href="#assemble-autodecaploid-by-pore-c" title="Permanent link">#</a></h1>
-<p>Autodecaploid (2n=8x=80)</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>decaploid_hifi.bp.p_utg.fasta<span class="w"> </span>-pcd<span class="w"> </span>porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:10<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<h1 id="hic-mapper">HiC Mapper<a class="headerlink" href="#hic-mapper" title="Permanent link">#</a></h1>
+<h2 id="one-cell">one cell<a class="headerlink" href="#one-cell" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-1<span class="w"> </span>hic_R1.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the total length of your input genome is larger than 8 Gb, the <code>-k 27 -w 14</code> should be specified, to avoid the error of <code>chromap</code>. </p>
+</div>
+<h2 id="mutiple-cells">mutiple cells<a class="headerlink" href="#mutiple-cells" title="Permanent link">#</a></h2>
+<h4 id="submit-each-cell-to-the-cluster">Submit each cell to the cluster<a class="headerlink" href="#submit-each-cell-to-the-cluster" title="Permanent link">#</a></h4>
+<ul>
+<li>use multiple scripts to run mapper for each sample<br />
+<div class="language-shell highlight"><span class="filename">run_sample1.sh</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-1<span class="w"> </span>hic-1_R1.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic-1_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
+</span></code></pre></div><div class="language-shell highlight"><span class="filename">run_sample2.sh</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-1<span class="w"> </span>hic-2_R1.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic-2_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
+</span></code></pre></div>
+<div class="language-shell highlight"><span class="filename">run_sample3.sh</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-1<span class="w"> </span>hic-3_R1.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic-3_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
+</span></code></pre></div>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please submit one first; wait until the index is successfully created and the remaining jobs are enabled to submit to the cluster.</p>
+</div>
+<ul>
+<li>merge results
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>hic-*.pairs.gz<span class="w"> </span>-o<span class="w"> </span>hic.merge.pairs.gz
+</span></code></pre></div></li>
+</ul>
+<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                                             </span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w"> </span>Mapper<span class="w"> </span><span class="k">for</span><span class="w"> </span>reads<span class="w"> </span>mapping.<span class="w">                                                                        </span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>╭─<span class="w"> </span>Options<span class="w"> </span>──────────────────────────────────────────────────────────────────────────────────────╮
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>│<span class="w"> </span>*<span class="w">  </span>--fasta,--reference<span class="w">  </span>-f,-r<span class="w">     </span>Path<span class="w"> </span>of<span class="w"> </span>reference<span class="w"> </span>fasta<span class="w"> </span>file.<span class="w">                                </span>│
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>│<span class="w">                                   </span><span class="o">(</span>FILE<span class="o">)</span><span class="w">                                                       </span>│
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>│<span class="w">                                   </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                   </span>│
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>│<span class="w"> </span>*<span class="w">  </span>--read1<span class="w">              </span>-1<span class="w">        </span>Path<span class="w"> </span>of<span class="w"> </span><span class="nb">read</span><span class="w"> </span><span class="m">1</span>.<span class="w">                                              </span>│
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>│<span class="w">                                   </span><span class="o">(</span>FILE<span class="o">)</span><span class="w">                                                       </span>│
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>│<span class="w">                                   </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                   </span>│
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>│<span class="w"> </span>*<span class="w">  </span>--read2<span class="w">              </span>-2<span class="w">        </span>Path<span class="w"> </span>of<span class="w"> </span><span class="nb">read</span><span class="w"> </span><span class="m">2</span>.<span class="w">                                              </span>│
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>│<span class="w">                                   </span><span class="o">(</span>FILE<span class="o">)</span><span class="w">                                                       </span>│
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>│<span class="w">                                   </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                   </span>│
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>│<span class="w">                         </span>-k<span class="w">        </span>kmer<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">                                       </span>│
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>│<span class="w">                                   </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                        </span>│
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>│<span class="w">                                   </span><span class="o">[</span>default:<span class="w"> </span><span class="m">17</span><span class="o">]</span><span class="w">                                                </span>│
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>│<span class="w">                         </span>-w<span class="w">        </span>minimizer<span class="w"> </span>window<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>mapping.<span class="w">                           </span>│
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>│<span class="w">                                   </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                        </span>│
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>│<span class="w">                                   </span><span class="o">[</span>default:<span class="w"> </span><span class="m">7</span><span class="o">]</span><span class="w">                                                 </span>│
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>│<span class="w">    </span>--mapq<span class="w">               </span>-q<span class="w">        </span>Minimum<span class="w"> </span>quality<span class="w"> </span>of<span class="w"> </span>mapping<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span><span class="m">60</span><span class="o">]</span>.<span class="w">                          </span>│
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>│<span class="w">                                   </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                        </span>│
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>│<span class="w">                                   </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span><span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">60</span><span class="o">]</span><span class="w">                                       </span>│
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>│<span class="w">    </span>--aligner<span class="w">            </span>-a<span class="w">        </span>Aligner<span class="w"> </span>executable.<span class="w"> </span>_chromap<span class="w"> </span>is<span class="w"> </span>the<span class="w"> </span>modifed<span class="w"> </span>version<span class="w"> </span><span class="k">in</span><span class="w">       </span>│
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>│<span class="w">                                   </span>C-Phasing,<span class="w"> </span><span class="k">if</span><span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>offical<span class="w"> </span>version<span class="w"> </span>you<span class="w"> </span>can<span class="w">    </span>│
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>│<span class="w">                                   </span><span class="nb">set</span><span class="w"> </span>aligner<span class="w"> </span>to<span class="w"> </span>chromap<span class="w">                                       </span>│
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>│<span class="w">                                   </span><span class="o">(</span>_chromap<span class="p">|</span>chromap<span class="o">)</span><span class="w">                                           </span>│
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>│<span class="w">                                   </span><span class="o">[</span>default:<span class="w"> </span>_chromap<span class="o">]</span><span class="w">                                          </span>│
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>│<span class="w">    </span>--threads<span class="w">            </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                                           </span>│
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>│<span class="w">                                   </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                        </span>│
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>│<span class="w">                                   </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                                 </span>│
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>│<span class="w">    </span>--help<span class="w">               </span>-h,-help<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                                  </span>│
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>╰────────────────────────────────────────────────────────────────────────────────────────────────╯
 </span></code></pre></div>
 
 
@@ -884,7 +1033,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../../../basic_usage/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Basic Usage">
+          <a href="../mapper/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Mapper">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -894,20 +1043,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Basic Usage
+                Mapper
               </div>
             </div>
           </a>
         
         
           
-          <a href="../porec_sugarcane/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble hybrid sugarcane by Pore-C">
+          <a href="../alleles/" class="md-footer__link md-footer__link--next" aria-label="Next: Alleles">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Assemble hybrid sugarcane by Pore-C
+                Alleles
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -962,10 +1111,10 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

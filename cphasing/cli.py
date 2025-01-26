@@ -882,8 +882,8 @@ def cli(verbose, quiet):
     '--preset',
     metavar='STR',
     help="""Preset of the pipeline:  
-    &emsp; precision: -msc 20 -mc 25 -mw 3 
-    &emsp; **sensitive**: -msc 5 -mc 5 -mw 0.1  
+    &emsp; precision: -msc 20 -mc 25 -mw 3  
+    &emsp; **sensitive**: -msc 5 -mc 5 -mw 0.1 (default)  
     &emsp; very-sensitive -e 1m -msc 1.0 -mc 5 -mw 0.1  
     &emsp; simulation: -e 0 -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
     
@@ -1188,6 +1188,7 @@ from .hitig.cli import hitig
     default="",
     help="Restrict site pattern, use comma to separate multiple patterns.",
     show_default=True,
+    hidden=True,
 )
 @click.option(
     "-k",
@@ -1196,7 +1197,8 @@ from .hitig.cli import hitig
     metavar="INT",
     type=int,
     default=15,
-    show_default=True
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     "-w",
@@ -1205,12 +1207,13 @@ from .hitig.cli import hitig
     metavar="INT",
     type=int,
     default=10,
-    show_default=True
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     "--mm2-params",
     metavar="STR",
-    help="additional parameters for minimap2",
+    help="additional parameters for minimap2, such as '-x map-ont', '-x map-ont -k 27 -w 14' or '-x map-hifi'",
     default="-x map-ont",
     show_default=True
 )
@@ -4435,10 +4438,25 @@ def build(fasta, corrected, output, output_agp, only_agp):
     required=True
 )
 @click.option(
+    '-unphased',
     '--unphased',
-    help="Haplotypes are not parallel align.",
+    help="Haplotypes are not parallel aligned. Rename all of the chromosomes.",
     is_flag=True,
     default=False,
+)
+@click.option(
+    '-s',
+    '--suffix-style',
+    metavar="STR",
+    help="""
+    The suffix style of renamed chromosome among different haplotypes.   
+    &emsp; **number**: g1, g2, g3, ... (default)  
+    &emsp; upperletter: A, B, C, ...  
+    &emsp; lowerletter: a, b, c, ...  
+    """,
+    type=click.Choice(["number", "upperletter", "lowerletter"]),
+    default="number",
+    show_default=True
 )
 @click.option(
     '-o',
@@ -4456,7 +4474,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
     metavar='INT',
     show_default=True,
 )
-def rename(ref, fasta, agp, 
+def rename(ref, fasta, agp, suffix_style,
                 unphased, output, threads):
     """
     Rename and orientation the groups according to a refernce.
@@ -4472,6 +4490,7 @@ def rename(ref, fasta, agp,
                     fasta=fasta,
                     agp=agp,
                     hap_aligned=False if unphased else True,
+                    suffix_style=suffix_style,
                     output=output,
                     threads=threads)
     r.run()
@@ -5798,7 +5817,10 @@ def plot(matrix,
                 
                 chromosomes = list(filter(lambda x: x in chromnames, chromosomes))
                 if not chromosomes:
-                    logger.warning(f"Specified chromosomes not found in the matrix, please check the input, plotting all chromosomes.")
+                    logger.warning(f"Specified chromosomes not found in the matrix, please check the input, "
+                                    f"or add `--regex` to use regular expression to find the chromosomes. "
+                                    f"Plotting all chromosomes.")
+                    
                 else:
                     not_found_chromosomes = list(filter(lambda x: x not in chromnames, chromosomes))
                     if not_found_chromosomes:

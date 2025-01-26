@@ -29,11 +29,12 @@ import polars as pl
 import scipy
 import shutil
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, Counter
 from joblib import Parallel, delayed, cpu_count
 from itertools import combinations, permutations, product
 from pathlib import Path
 from pytools import natsorted
+from string import ascii_uppercase, ascii_lowercase
 from scipy.sparse import tril, coo_matrix
 from subprocess import Popen
 
@@ -168,6 +169,7 @@ class Rename:
     def __init__(self, ref, fasta, agp, 
                     hap_aligned=True,
                     output="groups.renamed.agp",
+                    suffix_style="number",
                     threads=4, log_dir="logs",
                     tmp_dir="rename_tmp"):
         
@@ -177,6 +179,7 @@ class Rename:
         self.agp = Path(agp).absolute()
         self.paf = "ref.align.paf"
         self.hap_aligned = hap_aligned
+        self.suffix_style = suffix_style
         self.output = Path(output).absolute()
         self.output_prefix = Path(self.output.stem).absolute()
         self.threads = threads 
@@ -300,6 +303,8 @@ class Rename:
         tours = list(map(Tour, tours))
 
         renamed_chrom = []
+        hap_idx_db = {}
+        tour_results = {}
         for chrom1 in first_chrom_to_other_chroms:
             try:
                 tmp_res = res[chrom1]
@@ -307,7 +312,7 @@ class Rename:
                 continue 
             
             tour = Tour(f"raw_tour/{chrom1}.tour")
-
+            
             tour_dict = tour.to_dict()
             tmp_df = tmp_res[1]
             tmp_df['tour_strand'] = tmp_df['contig1'].map(tour_dict.get)
@@ -322,18 +327,51 @@ class Rename:
                     tour.reverse()
                 hap = tour.group.rsplit("g", 1)
                 if len(hap) > 1 and self.hap_aligned:
-                    tour.save(f"{workdir}/{tmp_res[0]}g{hap[1]}.tour")
-                    logger.debug(f"Rename {tour.group} to {tmp_res[0]}g{hap[1]}.tour")
-                    renamed_chrom.append(f"{tmp_res[0]}g{hap[1]}")
+                    
+                    if self.suffix_style == "lowerletter":
+                        new_chrom = f"{tmp_res[0]}{ascii_lowercase[int(hap[1]) - 1]}"
+                    elif self.suffix_style == "upperletter":
+                        new_chrom = f"{tmp_res[0]}{ascii_uppercase[int(hap[1]) - 1]}"
+                    else:
+                        new_chrom = f"{tmp_res[0]}g{hap[1]}"
+                    tour_results[chrom2] = (tmp_res[0], new_chrom, tour)
+                    
+                    renamed_chrom.append(f"{tmp_res[0]}")
                 else:
-                    if f"{tmp_res[0]}" not in renamed_chrom:
-                        tour.save(f"{workdir}/{tmp_res[0]}.tour")
-                        
-                        logger.debug(f"Rename {tour.group} to {tmp_res[0]}.tour")
+                    if f"{tmp_res[0]}" not in hap_idx_db:
+                        hap_idx_db[tmp_res[0]] = 1
+                    
                         renamed_chrom.append(f"{tmp_res[0]}")
                     else:
-                        tour.save(f"{workdir}/{tmp_res[0]}_{tour.group}.tour")
-                
+                        hap_idx_db[tmp_res[0]] += 1
+                        renamed_chrom.append(f"{tmp_res[0]}")
+    
+                    if self.suffix_style == "lowerletter":
+                        new_chrom = f"{tmp_res[0]}{ascii_lowercase[int(hap_idx_db[tmp_res[0]]) - 1]}"
+                    elif self.suffix_style == "upperletter":
+                        new_chrom = f"{tmp_res[0]}{ascii_uppercase[int(hap_idx_db[tmp_res[0]]) - 1]}"
+                    else:
+                        new_chrom = f"{tmp_res[0]}g{hap[1]}"
+
+                    tour_results[chrom2] = (tmp_res[0], new_chrom, tour)
+
+        
+        renamed_counts = Counter(renamed_chrom)
+        with open(f"{self.output_prefix}.rename.list", "w") as out:
+            for chrom, (ref_chrom, new_chrom, tour) in tour_results.items():
+                if renamed_counts[ref_chrom] == 1:
+                    logger.debug(f"Rename {chrom} to {ref_chrom}")
+                    tour.save(f"{workdir}/{ref_chrom}.tour")
+                    print(f"{chrom}\t{ref_chrom}", file=out)
+                else:
+                    logger.debug(f"Rename {chrom} to {new_chrom}")
+                    tour.save(f"{workdir}/{new_chrom}.tour")
+                    print(f"{chrom}\t{new_chrom}", file=out)
+
+
+        logger.info("Rename done, output the rename list into "
+                    f"{self.output_prefix}.rename.list")
+
     def run(self):
         from ..cli import build
         tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')

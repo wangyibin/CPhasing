@@ -69,10 +69,10 @@ cphasing pipeline -f draft.asm.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```
 
-#### Start from**HiFi-C data**
-Run `pipeline` or `mapper` with `--mm2-params "-x map-hifi -k 19 -w 19"` parameter. And the output similar to the results of  pore-c data.
+- Start from **HiFi-C data**
+Run `pipeline` or `mapper` with `--mm2-params "-x map-hifi"` parameter. And the output similar to the results of  pore-c data.
 ```bash
-cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi -k 19 -w 19"  -t 10 -n 8:4
+cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi"  -t 10 -n 8:4
 ```
 > [!NOTE]
 > The mapping results of HiFi-C is similar to Pore-C, such as output suffix with `porec.gz`, and process it use `porec-merge`, `porec-intersect`, et al.
@@ -136,7 +136,7 @@ Rename and orient chromosome according a monoploid reference (or genome of close
 cphasing rename -r mono.fasta -f draft.asm.fasta -a groups.review.agp -t 20
 ```
 > [!NOTE]
-> To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the `scaffolding` step. If not, you can set `—unphased` to align all haplotypes to the monoploid to adjust the orientation.  
+> To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the `scaffolding` step. If not, you can set `—-unphased` to align all haplotypes to the monoploid to adjust the orientation.  
 
 
 ----------------------------------------------

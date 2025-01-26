@@ -39,7 +39,8 @@
             "https://mirrors.zju.edu.cn/anaconda/cloud/bioconda"
         ]
         ```
-        3. 按`ctrl + X`，然后再按`Y`, 保存退出
+        3. ++ctrl+x+y++ : 按`ctrl + X`，然后再按`Y`, 保存退出
+        
         
         
 
@@ -101,6 +102,6 @@
     ---
 
     一些案例教你如何运行 `cphasing`.  
-    [:octicons-arrow-right-24:Tutorials](tutorials/porec/porec_decaploid.md)
+    [:octicons-arrow-right-24:Tutorials](tutorials/porec/porec_decaploid.zh.md)
 
 </div>

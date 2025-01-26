@@ -446,8 +446,8 @@ class PoreCMapper:
         if len(self.reads) == 1:
             cmd = [self._path, 
                     '-t', str(self.threads),
-                    '-k', str(self.k),
-                    '-w', str(self.w),
+                    # '-k', str(self.k),
+                    # '-w', str(self.w),
                     '-c',
                     f'--secondary={secondary}',
                     '-I', self.batchsize]
@@ -511,7 +511,7 @@ class PoreCMapper:
             cmd.append("-")
 
 
-            cmd2 = ["pigz", "-c", "-p", "4"]
+            cmd2 = ["pigz", "-c", "-p", "8"]
 
             logger.info('Running command:')
             logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + ' '.join(cmd)  + f' 2 > {self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)

@@ -1,5 +1,10 @@
 # Change logs #
 
+## [v0.2.5] - 2025-01-26
+#### Enhancement
+- `rename`, use g1, g2, g3 ... to rename duplicates chromosomes, when `--unphased` specified.
+
+
 ## [v0.2.4] - 2025-01-25
 #### Enhancement
 - `pairs2depth`, speed up by pipeline

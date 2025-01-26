@@ -29,7 +29,7 @@ __copyright__ = "Copyright (c) 2025, tanger-lab"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.2.4.r289"
+__version__ = "0.2.4.r290"
 __epilog__ =  f"""
             \b
             Version: {__version__} | \n

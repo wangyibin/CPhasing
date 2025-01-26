@@ -61,6 +61,7 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.keys
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.details
@@ -116,9 +117,11 @@ plugins:
             Installation: 安装
             Basic Usage: 基本用法
             Tutorials: 教程
+            CLI: 工具
             Pore-C&HiFi-C: Pore-C或HiFi-C数据
             Hi-C: Hi-C数据
             FAQ: 常见问题
+            Misc: 其他
 
 
 
@@ -135,9 +138,11 @@ nav:
 
   - CLI: 
     - CLI/mapper.md
+    - CLI/hic_mapper.md
     - CLI/alleles.md
+    - CLI/rename.md
     - CLI/plot.md
   
-  - FAQ: faq.md
   - Misc:
+    - FAQ: faq.md
     - CHANGES.md

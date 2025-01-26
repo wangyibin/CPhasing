@@ -1,18 +1,20 @@
 
-`cphasing mapper` is designed for process **Pore-C** or **HiFi-C** data, its output two files:   
-   (1) porec table (`.porec.gz`) which contain high-order contacts  
-   (2) 4DN pairs (`pairs.gz`) which only retain VPCs.
+`cphasing mapper` 是用来处理**Pore-C**或者**HiFi-C**数据的，它输出两个文件：
+is designed for process Pore-C data, its output two files:  
+    （1）存储高阶互作信息的porec table(`.porec.gz`)  
+    （2）存储虚拟成对（VPC）互作的4DN pairs (`pairs.gz`) 
 !!!note
-    The output of HiFi-C, still named `.porec.gz`, contains the same results whether Pore-C or HiFi-C data.
-## Examples
+    HiFi-C数据目前也以`.porec.gz`后缀命名，内容是一样的。
 
-### Process one cell Pore-C data
+## 示例
+
+### 处理单个cell的Pore-C数据
 ```shell
 cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 
 ```
 
-### Process multiple cells Pore-C data
-#### Process together 
+### 处理多个cell的Pore-C数据
+#### 一个脚本完成比对
 ```shell
 cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz sample2.porec.fastq.gz -t 40 
 ```
@@ -21,12 +23,12 @@ or
 cphasing mapper draft.contigs.fasta sample*.porec.fastq.gz -t 40 
 ```
 !!! note
-    It will output results using the `sample1.porec` as the prefix
+    结果使用第一个文件的前缀作为输出前缀
 
 
-#### Submit each cell to the cluster 
+#### 分别提交到集群
 
-- use multiple scripts to run mapper for each sample
+- 使用多个脚本提交任务到不同节点
 ```shell title="run_sample1.sh"
 cphasing mapper draft.contigs.fasta sample1.porec.fastq.gz -t 40
 ```
@@ -37,21 +39,20 @@ cphasing mapper draft.contigs.fasta sample2.porec.fastq.gz -t 40
 cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
 ```
 
-- merge results 
+- 合并结果
 ```shell
-cphasing porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
-cphasing pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
+cphasing-rs porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
+cphasing-rs pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
 ```
 
 
-### Process one cell HiFi-C data
+### 处理单个cell的HiFi-C数据
 ```shell
 cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 --mm2-params "-x map-hifi"
 ```
-### Process multiple cells HiFi-C data
-All the steps of this same with processing in the Pore-C data, with the parameter of `--mm2-params "-x map-hifi"`.
 
-
+### 处理多个cell的HiFi-C数据
+与处理Pore-C数据的步骤一致，但需要加`--mm2-params "-x map-hifi"`参数。
 
 ## Parameters
 ```shell title="cphasing mapper -h"

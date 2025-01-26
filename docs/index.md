@@ -88,6 +88,8 @@ The advantages of `C-Phasing`:
     ---
 
     Tutorials to help you know how to run `cphasing`.  
-    [:octicons-arrow-right-24:Tutorials](tutorials/porec/porec_decaploid.md)
+    [:octicons-arrow-right-24:Tutorials](tutorials/porec/porec_decaploid.md)  
+    &emsp; [:octicons-arrow-right-24: Pore-C](tutorials/porec/porec_decaploid.md)  
+    &emsp; [:octicons-arrow-right-24: Hi-C](tutorials/hic/hic_decaploid.md)
 
 </div>

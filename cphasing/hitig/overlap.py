@@ -131,7 +131,7 @@ class OverlapFinder2:
 
         return df
     
-    @profile
+    # @profile
     def get_overlap_regions(self):  
         min_length = 5000
 

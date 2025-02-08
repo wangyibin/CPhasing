@@ -127,7 +127,6 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
         logger.info(f"Output contacts `{outprefix}.contacts`")
     
 
-
 def pairs2depth(pq):
     """
     backend function for pairs2depth

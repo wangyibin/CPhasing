@@ -2,7 +2,7 @@
 `cphasing mapper` 是用来处理**Pore-C**或者**HiFi-C**数据的，它输出两个文件：
 is designed for process Pore-C data, its output two files:  
     （1）存储高阶互作信息的porec table(`.porec.gz`)  
-    （2）存储虚拟成对（VPC）互作的4DN pairs (`pairs.gz`) 
+    （2）存储虚拟成对（VPC）互作的4DN pairs (`.pairs.gz`) 
 !!!note
     HiFi-C数据目前也以`.porec.gz`后缀命名，内容是一样的。
 
@@ -72,12 +72,6 @@ cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 --mm2-params "-x
 │ --enzyme        -e        Restrict site pattern, use comma to separate  │
 │                           multiple patterns.                            │
 │                           (STR)                                         │
-│                 -k        kmer size for mapping.                        │
-│                           (INT)                                         │
-│                           [default: 15]                                 │
-│                 -w        minimizer window size for mapping.            │
-│                           (INT)                                         │
-│                           [default: 10]                                 │
 │ --mm2-params              additional parameters for minimap2            │
 │                           (STR)                                         │
 │                           [default: -x map-ont]                         │

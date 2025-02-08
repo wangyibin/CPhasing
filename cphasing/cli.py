@@ -11,6 +11,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import polars as pl
 
 import rich_click as click
 from rich_click import RichCommand
@@ -2089,6 +2090,8 @@ def hcr(fasta, porectable, pairs, contigsize,
 
     assert porectable or pairs, "The Pore-C table or 4DN pairs file should be provided at least one."
 
+    os.environ["POLARS_MAX_THREADS"] = "10"
+
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     if porectable:
@@ -2191,6 +2194,19 @@ def hcr(fasta, porectable, pairs, contigsize,
                             header=0, index_col=None, 
                             usecols=[0, 1],
                             names=['item', "count"])
+
+        # df1 = pl.read_csv(
+        #     depth_file,
+        #     separator="\t",
+        #     has_header=False,
+        #     new_columns=["chrom", "start", "end", "depth"],
+        # )
+        # df2 = pl.read_csv(
+        #     "tmp.depth.countre.txt",
+        #     separator="\t",
+        #     has_header=True,
+        #     new_columns=["item", "count"],
+        # )
 
         if Path("tmp.depth.fasta").exists():
             os.remove("tmp.depth.fasta")
@@ -4915,6 +4931,294 @@ def pairs_filter(pairs, min_quality, whitelist, threads, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to pqs.")
+@click.argument(
+    "pairs",
+    metavar="INPUT_PAIRS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-o',
+    '--output',
+    help="Output path, if not specified, print to input_prefix.pairs.pqs.",
+    metavar='OUTPUT',
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-cs',
+    '--chunksize',
+    help='Chunk size of loading pairs.',
+    type=float,
+    default=1000000,
+    metavar='Float',
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=8,
+    metavar='INT',
+    show_default=True,
+)
+def pairs2pqs(pairs, output, chunksize, threads):
+    from .pqs import PQS
+    p = PQS(threads=threads)
+    prefix = Path(pairs).stem
+
+    if output is None:
+        output = f"{prefix}.pqs"
+    
+    p.from_pairs(pairs=pairs, path=output, chunksize=chunksize)
+
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the depth from pqs file.")
+@click.argument(
+    "pqs",
+    metavar="INPUT_PQS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-bs',
+    '--binsize',
+    'binsize',
+    help='Binsize of the depth calculation',
+    default=10000,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output path, if not specified, print to input_prefix.binsize.depth.",
+    metavar="OUTPUT",
+    default=None,
+    show_default=True
+)
+def pqs2depth(pqs, binsize, threads, output):
+    from .pqs import PQS
+    p = PQS(threads=threads)
+    p.init_read(pqs)
+
+    if not p.is_pairs():
+        logger.error("The input file is not a pairs.pqs file.")
+        sys.exit(1)
+
+    if output is None:
+        pairs_prefix = Path(Path(pqs).name )
+        while pairs_prefix.suffix in {".gz", ".pqs", ".pairs"}:
+            pairs_prefix = pairs_prefix.with_suffix("")
+
+        output = f"{pairs_prefix}.{to_humanized2(binsize)}.depth"
+
+    chunks = p.read(return_as='files')
+
+    p.to_depth(chunks, binsize=binsize, output=output)
+
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the depth from pqs file.")
+@click.argument(
+    "pqs",
+    metavar="INPUT_PQS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=0,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def pqs2clm(pqs, min_mapq, output, threads):
+    from .pqs import PQS
+    p = PQS(threads=threads)
+    p.init_read(pqs)
+    if not p.is_pairs():
+        logger.error("The input file is not a pairs.pqs file.")
+        sys.exit(1)
+
+    if output is None:
+        pairs_prefix = Path(Path(pqs).name )
+        while pairs_prefix.suffix in {".gz", ".pqs", ".pairs"}:
+            pairs_prefix = pairs_prefix.with_suffix("")
+
+        output = f"{pairs_prefix}.q{min_mapq}.clm.gz"
+
+    chunks = p.read(min_mapq=min_mapq, return_as='files')
+
+    p.to_clm(chunks, min_mapq=min_mapq, output=output)
+
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the depth from pqs file.")
+@click.argument(
+    "pqs",
+    metavar="INPUT_PQS_PATH",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-bs',
+    '--binsize',
+    'binsize',
+    help='Binsize of the depth calculation',
+    default="10k",
+    show_default=True,
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+@click.option(
+    '--low-memory',
+    help="Reduce memory usage.",
+    is_flag=True,
+    default=False,
+)
+def pqs2cool(pqs, binsize, min_mapq, output, 
+             threads, low_memory):
+    from .pqs import PQS
+    from .utilities import humanized2numeric
+
+    logger.info(f"Matrix's bin size: {binsize}")
+    binsize = humanized2numeric(binsize)
+
+    if output is None:
+        pairs_prefix = Path(Path(pqs).name )
+        while pairs_prefix.suffix in {".gz", ".pqs", ".pairs"}:
+            pairs_prefix = pairs_prefix.with_suffix("")
+
+        output = f"{pairs_prefix}.q{min_mapq}.{to_humanized2(binsize)}.cool"
+
+    p = PQS(threads=threads)
+
+    p.init_read(pqs)
+    if not p.is_pairs():
+        logger.error("The input file is not a pairs.pqs file.")
+        sys.exit(1) 
+
+    
+    if low_memory:
+        chunks = p.read(min_mapq=min_mapq, 
+                        column_names=['chrom1', 'pos1', 
+                                    'chrom2', 'pos2', 
+                                    'mapq'])
+
+        p.to_cool(chunks, binsize=binsize, min_mapq=min_mapq,
+                output=output, low_memory=low_memory)
+    else:
+        chunks = p.read(min_mapq=min_mapq, return_as='files')
+
+        p.to_cool(chunks, binsize=binsize, min_mapq=min_mapq,
+                output=output, low_memory=low_memory)
+
+@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
+@click.argument(
+    "pqs",
+    metavar="INPUT_PQS_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "bed",
+    metavar="BED",
+    type=click.Path(exists=True)
+)
+@click.option(
+    '-q',
+    '--min-mapq',
+    'min_mapq',
+    help='Minimum mapping quality of alignments',
+    metavar='INT',
+    type=click.IntRange(0, 60, clamp=True),
+    default=1,
+    show_default=True
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def pqs_intersect(pqs, bed, min_mapq, output, threads):
+    from .pqs import PQS 
+
+    if output is None:
+        pairs_prefix = Path(Path(pqs).name )
+        while pairs_prefix.suffix in {".gz", ".pqs", ".pairs"}:
+            pairs_prefix = pairs_prefix.with_suffix("")
+
+        output = f"{pairs_prefix}.intersect.pqs"
+
+    p = PQS(threads)
+    p.init_read(pqs)
+    if not p.is_pairs():
+        logger.error("The input file is not a pairs.pqs file.")
+        sys.exit(1)
+
+    chunks = p.read(min_mapq=min_mapq, return_as='files')
+   
+    p.intersect(chunks, bed, min_mapq=min_mapq, output=output)
+
 
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to clm. (hidden)")
@@ -5237,6 +5541,7 @@ def pairs2cool(pairs, chromsize, outcool,
         if pairs_size * 20 > available_memory:
             logger.warning(f"Memory usage is too high, use low memory mode.")
             low_memory = True
+    
 
     if not low_memory:
         p = Pairs2(pairs, min_mapq=min_mapq, threads=threads, chunksize=chunksize)

@@ -1,8 +1,13 @@
 # Change logs #
-
-## [v0.2.5] - 2025-01-26
+## [v0.2.5] - 2025-02-07
+#### New features
+- `PQS`, custom format of contacts to speed up the load and parse, do not used in this version.
 #### Enhancement
+- `cphasing-rs`, slightly speed up `pairs2clm`
 - `rename`, use g1, g2, g3 ... to rename duplicates chromosomes, when `--unphased` specified.
+- `hcr_by_contacts`, speed up it
+#### Bug fixes
+- `hypergraph`, fixed bug that report error of polars prompt of set "skip_nulls=False"
 
 
 ## [v0.2.4] - 2025-01-25
@@ -12,7 +17,7 @@
                 effect of overlapping from hifiasm assembly graph.
 - `pipeline`
     - `--preset precision`: Optimize parameters to improve accuracy at the expense of anchor rate
-    - `--preset sensitive`: Using in some complex genome,  which contain many fragmented contigs and low signals contigs
+    - `--preset sensitive`: Using in some complex genome, which contain many fragmented contigs and low signals contigs
 
 #### Bug fixes
 - `activate_cphasing`, fixed bug that exit shell window when pixi failed to install

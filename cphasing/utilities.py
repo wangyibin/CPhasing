@@ -913,6 +913,9 @@ def cool2depth(coolfile, output):
     
     contigsizes = cool.chromsizes
     matrix = cool.matrix(balance=False, sparse=True)[:]
+    ## symetric 
+    matrix = matrix + matrix.T - np.diag(matrix.diagonal())
+
     sum_values = np.array(matrix.sum(axis=1).T[0])
 
     bins['values'] = sum_values[0]
@@ -1167,3 +1170,63 @@ def recommend_binsize_by_genomesize(genomesize):
     
     return init_binsize, binsize
 
+
+
+def is_pairs_with_mapq(pairs):
+    """
+    Check if the pairs file contains mapq.
+    """
+    with xopen(pairs) as fp:
+        for line in fp:
+            if line.startswith("#"):
+                continue
+            line_list = line.strip().split("\t")
+            if len(line_list) <= 7:
+                return False 
+            else:
+                if line_list[7].isdigit():
+                    return True
+                else:
+                    return False
+
+def binnify(chromsizes, binsize):
+    """
+    Divide a genome into evenly sized bins.
+
+    Parameters
+    ----------
+    chromsizes : Series
+        pandas Series indexed by chromosome name with chromosome lengths in bp.
+    binsize : int
+        size of bins in bp
+
+    Returns
+    -------
+    bins : `pandas.DataFrame`
+        Dataframe with columns: ``chrom``, ``start``, ``end``.
+
+    """
+
+    chrom_list = []
+    start_list = []
+    end_list = []
+
+    for chrom, clen in chromsizes.items():
+        n_bins = int(np.ceil(clen / binsize))
+        binedges = np.arange(0, (n_bins + 1)) * binsize
+        binedges[-1] = clen
+        chrom_list.extend([chrom] * n_bins)
+        start_list.extend(binedges[:-1])
+        end_list.extend(binedges[1:])
+
+    bintable = pd.DataFrame({
+        "chrom": chrom_list,
+        "start": start_list,
+        "end": end_list
+    })
+
+    bintable["chrom"] = pd.Categorical(
+        bintable["chrom"], categories=list(chromsizes.index), ordered=True
+    )
+
+    return bintable

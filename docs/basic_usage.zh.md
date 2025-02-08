@@ -5,6 +5,10 @@
 !!! note
     CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如`-n 8`，染色体数为8，期望程序将contig分成8条染色体。`pipeline`会自动跳过`1.allele`这步，并且只执行一次contig分组.
 
+!!! tip
+    如果是hifiasm组装的contig，组装分型的基因组选择输入`p_utg.fasta`, 或者用户可以尝试合并hifiasm (hic)输出的多个hap*.p_utg.fasta。
+
+
 ### 输入 **Pore-C 测序reads**:
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd sample.fastq.gz -t 10 -n 8:4
@@ -57,6 +61,9 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 ## run 3.hyperpartition 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```
+!!!tips
+    `-s 3,4` to run step 3 and 4.
+
 ### 提升组装质量
 大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定`-p AAGCTT` 进行标准化。
 ```bash

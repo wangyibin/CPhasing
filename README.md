@@ -9,7 +9,7 @@
 ***  
 
 
-[<font size=5>Documentation</font>](https://wangyibin.github.io/CPhasing/latest) | [<font size=5>中文文档</font>](https://wangyibin.github.io/CPhasing/latest/zh)
+[<font size=6>Documentation</font>](https://wangyibin.github.io/CPhasing/latest) | [<font size=6>中文文档</font>](https://wangyibin.github.io/CPhasing/latest/zh)
 
 ## Introduction
 One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and diploid genome assembly.  
@@ -69,7 +69,7 @@ cphasing pipeline -f draft.asm.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```
 
-- Start from **HiFi-C data**
+- Start from **HiFi-C data**  
 Run `pipeline` or `mapper` with `--mm2-params "-x map-hifi"` parameter. And the output similar to the results of  pore-c data.
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi"  -t 10 -n 8:4
@@ -84,6 +84,7 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
 ```
 > [!NOTE]
 > If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.  
+
 > [!NOTE]
 > If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of chromap. 
 

@@ -68,6 +68,14 @@ class Extractor:
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
+
+        max_length = max(self.contigsizes.values())
+        if max_length < 2**32 / 2:
+            self.pos_dtype = pl.Int32
+        else:
+            self.pos_dtype = pl.Int64
+    
+
         self.min_mapq = min_quality
         self.hcr_bed = hcr_bed
         self.hcr_invert = hcr_invert
@@ -123,9 +131,9 @@ class Extractor:
                 
                 if str(self.pairs_pathes[0]).endswith(".gz"):
                     cmd0 = decompress_cmd(str(self.pairs_pathes[0]), str(self.threads))
-                    cmd = f"{' '.join(cmd0)} 2>{self.log_dir}/{pairs_prefix}.decompress.hcr.log | cphasing-rs pairs-intersect - {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs"
+                    cmd = f"{' '.join(cmd0)} 2>{self.log_dir}/{pairs_prefix}.decompress.hcr.log | cphasing-rs pairs-intersect - {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz"
                 else:
-                    cmd = f"cphasing-rs pairs-intersect {self.pairs_pathes[0]} {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs"
+                    cmd = f"cphasing-rs pairs-intersect {self.pairs_pathes[0]} {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz"
 
                 if self.hcr_invert:
                     cmd += " --invert"
@@ -136,7 +144,7 @@ class Extractor:
                 logger.info(f"Generating hcr pairs by {self.hcr_bed} ...")
                 flag = os.system(cmd)
                 assert flag == 0, "Failed to execute command, please check log."
-                input_file = f"temp.{pairs_prefix}.hcr.pairs"      
+                input_file = f"temp.{pairs_prefix}.hcr.pairs.gz"      
 
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
@@ -157,8 +165,8 @@ class Extractor:
                 
                 if self.edge_length:
                     p = p.with_columns([
-                            pl.col('chrom1').map_elements(self.contigsizes.get).alias('length1'),
-                            pl.col('chrom2').map_elements(self.contigsizes.get).alias('length2')
+                            pl.col('chrom1').map_elements(self.contigsizes.get, skip_nulls=False).alias('length1'),
+                            pl.col('chrom2').map_elements(self.contigsizes.get, skip_nulls=False).alias('length2')
                         ]).filter(
                             (pl.col('pos1') < self.edge_length) | (pl.col('pos2') > pl.col('length2') - self.edge_length)
                         ).select(['chrom1', 'chrom2', 'mapq'])
@@ -471,7 +479,7 @@ def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
     df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
     df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
     if edge_length:
-        df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get).alias('length')).drop_nulls()
+        df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
         df = df.with_columns(pl.col('length').cast(pl.UInt32))
         df = df.filter(( pl.col('start') < edge_length) | (pl.col('end') > pl.col('length') - edge_length))
   

@@ -1136,31 +1136,49 @@ class ClusterTable:
         extract fasta by cluster table 
         """
         from Bio import SeqIO 
-        db = self.contig_groups
         
-        fasta = SeqIO.parse(xopen(fasta), 'fasta')
-        
+        cluster_file = Path(self.filename).absolute()
+        os.chdir(outdir)
+        cmd = [
+                "cphasing-rs",
+                "extract-fasta",
+                str(fasta),
+                str(cluster_file),
+                "-l",
+                str(int(trim_length)),
+                " 2>/dev/null",
+                ]
+      
+        flag = os.system(" ".join(cmd))    
+        assert flag == 0, "Error in extracting fasta"
+        os.chdir("../")
+
         file_db = {}
         files = []
         for group in self.groups:
-            file_db[group] = open(f"{outdir}/{group}.contigs.fasta", 'w')
+            # shutil.move(f"{group}.contigs.fasta", f"{outdir}/{group}.contigs.fasta")
+            file_db[group] = "{outdir}/{group}.contigs.fasta"
             files.append(f"{outdir}/{group}.contigs.fasta")
-
-        for record in fasta:
-            if record.id in db:
-                seq = record.seq
-                length = len(record.seq)
-                if length > trim_length * 3:
-                    seq = seq[trim_length: length - trim_length + 1]
-                # if length > 1000_000:
-                #     seq1 = seq[:500_000]
-                #     seq2 = seq[500_000:]
-                #     seq = seq1 + seq2
-                
-                file_db[db[record.id]].write(f'>{record.id}\n{seq}\n')
         
-        for group in file_db:
-            file_db[group].close()
+        # db = self.contig_groups
+        # fasta = SeqIO.parse(xopen(fasta), 'fasta')
+
+        # threshold = trim_length * 3
+        # for record in fasta:
+        #     if record.id in db:
+        #         seq = record.seq
+        #         length = len(record.seq)
+        #         if length > threshold:
+        #             seq = seq[trim_length: length - trim_length + 1]
+        #         if length > 1000_000:
+        #             seq1 = seq[:500_000]
+        #             seq2 = seq[500_000:]
+        #             seq = seq1 + seq2
+                
+        #         file_db[db[record.id]].write(f'>{record.id}\n{seq}\n')
+        
+        # for group in file_db:
+        #     file_db[group].close()
 
         return files
 
@@ -1848,6 +1866,15 @@ class Pairs:
         return self.header.chromsize
     
     @property
+    def chromsizes(self):
+        return self.header.chromsize
+
+    @property
+    def chromsizes_df(self):
+        return pd.DataFrame(self.chromsize.items(), 
+                            columns=["chrom", "length"])  
+    
+    @property
     def chromnames(self):
         return list(self.chromsize.keys())
     
@@ -1887,6 +1914,24 @@ class Pairs:
                             header=None,  dtype=self.meta)
 
         return df
+    
+    def is_pairs_with_mapq(self):
+        """
+        Check if the pairs file contains mapq.
+        """
+        with xopen(self.file) as fp:
+            for line in fp:
+                if line.startswith("#"):
+                    continue
+                line_list = line.strip().split("\t")
+                if len(line_list) <= 7:
+                    return False 
+                else:
+                    if line_list[7].isdigit():
+                        return True
+                    else:
+                        return False
+                
 
     @staticmethod
     def _pos_to_range(df, idx=0):
@@ -2243,13 +2288,18 @@ class Pairs2:
     def chromsize(self):
 
         return pd.DataFrame(self.header.chromsize.items(), 
-                            columns=['chrom', 'length'])
+                            columns=['chrom', 'length']).astype({'length': int})
     
+
     @property
     def chromsizes(self):
 
         return pd.DataFrame(self.header.chromsize.items(), 
-                            columns=['chrom', 'length'])
+                            columns=['chrom', 'length']).astype({'length': int})
+
+    @property
+    def chromsizes_df(self):
+        return self.chromsizes
 
     @property
     def chromnames(self):
@@ -2281,6 +2331,23 @@ class Pairs2:
                 'mapq': pl.Int8
                 }
     
+    def is_pairs_with_mapq(self):
+        """
+        Check if the pairs file contains mapq.
+        """
+        with xopen(self.file) as fp:
+            for line in fp:
+                if line.startswith("#"):
+                    continue
+                line_list = line.strip().split("\t")
+                if len(line_list) <= 7:
+                    return False 
+                else:
+                    if line_list[7].isdigit():
+                        return True
+                    else:
+                        return False
+
     def is_contain_mapq(self):
         df = pd.read_csv(self.file, sep='\t', header=None, index_col=None, comment="#", nrows=1)
         if df.shape[1] >= 8 and (df[7].dtype == np.int8 or df[7].dtype == np.int16 or df[7].dtype == np.int32 or df[7].dtype == np.int64):

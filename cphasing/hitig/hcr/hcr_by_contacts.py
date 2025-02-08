@@ -23,7 +23,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from matplotlib.ticker import MaxNLocator
+from pathlib import Path
 from scipy.signal import find_peaks
+
+from line_profiler import profile
 
 
 logger = logging.getLogger(__name__)
@@ -145,7 +148,7 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
     hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
 
-
+@profile
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
                     min_remove_whole_collapsed_contigs_rate=0.9,
                     edge_length=None):
@@ -201,12 +204,27 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
     logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
     
-    hcr_regions = hcr_regions[['chrom', 'start', 'end']]
-    hcr_regions.columns = ['Chromosome', 'Start', 'End']
-    hcr_regions_pr = pr.PyRanges(hcr_regions)
-    hcr_regions_pr = hcr_regions_pr.merge()
+    hcr_regions.to_csv(f"tmp.{output}", sep='\t', index=None, header=None)
+
+    cmd = f"bedtools merge -i tmp.{output} 2>/dev/null > tmp.merge.{output}"
+    flag = os.system(cmd)
+    assert flag == 0, f"Failed to merge HCRs by `{cmd}`"
+
+    hcr_regions = pd.read_csv(f"tmp.merge.{output}", sep='\t', header=None)
+    if Path(f"tmp.{output}").exists():
+        os.remove(f"tmp.{output}")
+    if Path(f"tmp.merge.{output}").exists():
+        os.remove(f"tmp.merge.{output}")
+
+    hcr_regions_df = hcr_regions
+    # hcr_regions = hcr_regions[['chrom', 'start', 'end']]
+    # hcr_regions.columns = ['Chromosome', 'Start', 'End']
+    # hcr_regions_pr = pr.PyRanges(hcr_regions)
+    # hcr_regions_pr = hcr_regions_pr.merge()
 
     if min_remove_whole_collapsed_contigs_rate:
+        hcr_regions.columns = ['Chromosome', 'Start', 'End']
+        hcr_regions_pr = pr.PyRanges(hcr_regions)
         contigsizes_db = contigsizes.to_dict()
         
         collapsed_regions = collapsed_regions.eval('Length = End - Start')
@@ -223,6 +241,7 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
         collapsed_df = collapsed_df[['Chromosome', 'Start', 'End']]
         collapsed_pr = pr.PyRanges(collapsed_df)
         hcr_regions_pr = hcr_regions_pr.intersect(collapsed_pr, invert=True)
+        hcr_regions_df = hcr_regions_pr.df
 
     if edge_length:
         contigsizes = contigsizes.rename("length").to_frame()
@@ -256,7 +275,7 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
         )
     
     else:
-        hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
+        hcr_regions_df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
 
 def main(args):

@@ -1,7 +1,7 @@
 
 `cphasing mapper` is designed for process **Pore-C** or **HiFi-C** data, its output two files:   
    (1) porec table (`.porec.gz`) which contain high-order contacts  
-   (2) 4DN pairs (`pairs.gz`) which only retain VPCs.
+   (2) 4DN pairs (`.pairs.gz`) which only retain VPCs.
 !!!note
     The output of HiFi-C, still named `.porec.gz`, contains the same results whether Pore-C or HiFi-C data.
 ## Examples
@@ -71,12 +71,6 @@ All the steps of this same with processing in the Pore-C data, with the paramete
 │ --enzyme        -e        Restrict site pattern, use comma to separate  │
 │                           multiple patterns.                            │
 │                           (STR)                                         │
-│                 -k        kmer size for mapping.                        │
-│                           (INT)                                         │
-│                           [default: 15]                                 │
-│                 -w        minimizer window size for mapping.            │
-│                           (INT)                                         │
-│                           [default: 10]                                 │
 │ --mm2-params              additional parameters for minimap2            │
 │                           (STR)                                         │
 │                           [default: -x map-ont]                         │

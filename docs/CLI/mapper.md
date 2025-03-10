@@ -1,7 +1,7 @@
 
 `cphasing mapper` is designed for process **Pore-C** or **HiFi-C** data, its output two files:   
    (1) porec table (`.porec.gz`) which contain high-order contacts  
-   (2) 4DN pairs (`.pairs.gz`) which only retain VPCs.
+   (2) 4DN pairs (`.pairs.pqs`) which only retain VPCs.
 !!!note
     The output of HiFi-C, still named `.porec.gz`, contains the same results whether Pore-C or HiFi-C data.
 ## Examples
@@ -40,7 +40,7 @@ cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
 - merge results 
 ```shell
 cphasing porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
-cphasing pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
+cphasing pairs-merge sample1.porec.pairs.pqs sample2.porec.pairs.pqs sample3.porec.pairs.pqs -o sample.merge.pairs.pqs
 ```
 
 

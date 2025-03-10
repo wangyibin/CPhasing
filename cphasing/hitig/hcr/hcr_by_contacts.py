@@ -148,7 +148,6 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
     hcr_regions_pr.df.to_csv(output, sep='\t', index=None, header=None)
     logger.info(f"Successful output HCRs into `{output}`.")
 
-@profile
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
                     min_remove_whole_collapsed_contigs_rate=0.9,
                     edge_length=None):

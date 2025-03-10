@@ -273,6 +273,8 @@ class ChromapMapper:
         elif str(self.prefix).endswith("_1"):
             self.prefix = Path(str(self.prefix)[:-2])
 
+        self.prefix = Path(str(self.prefix).replace('_R1', '').replace('_1', ''))
+
         self.output_pairs = Path(f'{self.prefix}.pairs')
 
     def get_contig_sizes(self):
@@ -336,6 +338,22 @@ class ChromapMapper:
         assert flag == 0, "Failed to execute command, please check log."
         logger.info("Done.")
 
+    def pairs2pqs(self):
+        from .cli import pairs2pqs
+        
+        args = [str(self.output_pairs) + ".gz", "-t", str(self.threads)]
+        try:
+            pairs2pqs.main(args=args, prog_name='pairs2pqs')
+        except SystemExit as e:
+            exc_info = sys.exc_info()
+            exit_code = e.code
+            if exit_code is None:
+                exit_code = 0
+            
+            if exit_code != 0:
+                raise e
+            
+
     def run(self):
         self.get_contig_sizes()
         if not self.index_path.exists():
@@ -345,6 +363,7 @@ class ChromapMapper:
         
         self.mapping()
         self.compress()
+        self.pairs2pqs()
 
 
 class PoreCMapper:
@@ -402,10 +421,10 @@ class PoreCMapper:
         self.realign_outpaf = f'{self.prefix}.realign.paf.gz'
         if realign:
             self.outporec = f'{self.prefix}.realign.porec.gz'
-            self.outpairs = f'{self.prefix}.realign.pairs.gz'
+            self.outpairs = f'{self.prefix}.realign.pairs.pqs'
         else:
             self.outporec = f'{self.prefix}.porec.gz'
-            self.outpairs = f'{self.prefix}.pairs.gz'
+            self.outpairs = f'{self.prefix}.pairs.pqs'
         
 
     def get_genome_size(self):
@@ -632,7 +651,7 @@ class PoreCMapper:
             self.porec2pairs()
         else:
             if is_compressed_table_empty(self.outpairs):
-                logger.warning(f"Empty existing mapping result: `{self.outpaf}`, force rerun porec2pairs.")
+                logger.warning(f"Empty existing pairs result: `{self.outpairs}`, force rerun porec2pairs.")
                 self.porec2pairs()
             else:
                 logger.warning(f"The pairs of {self.outpairs} existing, skipped `porec2pairs` ...")

@@ -1,15 +1,19 @@
 import logging
 import warnings
+import io 
 import sys
+import click
 
 from rich.logging import Console, RichHandler
 
-
+console = Console(stderr=True, record=True, file=io.StringIO())
+console_html = Console(stderr=True, record=True)
 logging.basicConfig(
     # level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[RichHandler(console=Console(stderr=True))]
+    handlers=[RichHandler(console=console, enable_link_path=False, rich_tracebacks=True), #]
+            RichHandler(console=console_html, rich_tracebacks=True)]
 )
 
 logging.getLogger('matplotlib').setLevel(logging.ERROR)
@@ -29,7 +33,7 @@ __copyright__ = "Copyright (c) 2025, tanger-lab"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"
-__version__ = "0.2.5.r291"
+__version__ = "0.2.6.r292"
 __url__ = "https://github.com/wangyibin/CPhasing"
 __doc_url__ = "https://wangyibin.github.io/CPhasing"
 __epilog__ =  f"""

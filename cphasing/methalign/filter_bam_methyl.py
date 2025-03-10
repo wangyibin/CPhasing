@@ -17,9 +17,6 @@ import numpy as np
 from portion import closed
 
 
-# from line_profiler import profile
-
-
 pysam.set_verbosity(0)
 
 
@@ -59,7 +56,36 @@ def parse_bed(bed, cov_cutoff=75):
 
     return hifi_methylation_dict
 
-# @profile
+def parse_bed_modkit(bed, cov_cutoff=75):
+    
+    hifi_methylation_dict = collections.defaultdict(set)
+    with open(bed) as f:
+        for line in f:
+            if line.startswith('#') or not line.strip():
+                continue
+            cols = line.split()
+            ctg, pos, cov = cols[0], int(cols[1]), float(cols[10])
+            if cov >= cov_cutoff:
+                hifi_methylation_dict[ctg].add(pos)
+
+    return hifi_methylation_dict
+
+
+def parse_bedgraph(bedgraph, cov_cutoff=75):
+    
+    hifi_methylation_dict = collections.defaultdict(set)
+    with open(bedgraph) as f:
+        for line in f:
+            if line.startswith('#') or not line.strip():
+                continue
+            cols = line.split()
+            ctg, pos, cov = cols[0], int(cols[1]), float(cols[3])
+            if cov >= cov_cutoff:
+                hifi_methylation_dict[ctg].add(pos)
+
+    return hifi_methylation_dict
+
+
 def get_5mc_sites_from_read(read_name, read_seq, MM_tag, ML_tag, prob_cutoff, pattern=r'C'):
    
     matches = re.finditer(pattern, read_seq)
@@ -91,7 +117,6 @@ def get_query_alignment_termini(aln):
         read_len = aln.infer_read_length()
         return read_len - aln.query_alignment_end + hard_clip, read_len - aln.query_alignment_start + hard_clip
     
-# @profile    
 def condense_cigar(cigartuples):
     
     lsoft, rsoft, match = 0, 0, 0
@@ -142,7 +167,7 @@ def reconstruct_SA_tag(aln):
 
 def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designate_mapq, recalculate_all, threads):
     
-    print('Read\tRef\tquery_aln_len\tflag\tMAPQ\tPos\tAlignment_score\tInconsistent_5mC\tAdjusted_score')
+    # print('Read\tRef\tquery_aln_len\tflag\tMAPQ\tPos\tAlignment_score\tInconsistent_5mC\tAdjusted_score')
     
     primary_flags = {0, 16}
     cached_aln = []
@@ -185,9 +210,9 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
         score = aln.get_tag('AS')
         adjusted_score = score - inconsistent_5mC * penalty
         aln.set_tag('AS', adjusted_score)
-        print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
-            last_read, ref_name, aln.query_alignment_length, flg,
-            aln.mapping_quality, aln.pos, score, inconsistent_5mC, adjusted_score))
+        # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
+        #     last_read, ref_name, aln.query_alignment_length, flg,
+        #     aln.mapping_quality, aln.pos, score, inconsistent_5mC, adjusted_score))
     
     # @profile
     def analyze_cached_aln(fout, last_read, alignment, flag):
@@ -353,8 +378,9 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                     ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(last_read, read_seq, mm_tag, ml_tag, prob_cutoff)
                     recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
                 else:
-                    print('{}\t{}\t{}\t{}\t{}\t{}\t{}\twhatever'.format(
-                        last_read, aln.reference_name, aln.query_alignment_length, flg, aln.mapping_quality, aln.pos, aln.get_tag('AS')))
+                    pass
+                    # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\twhatever'.format(
+                    #     last_read, aln.reference_name, aln.query_alignment_length, flg, aln.mapping_quality, aln.pos, aln.get_tag('AS')))
                 fout.write(aln)
         last_read = read_name
         cached_aln.clear()
@@ -363,7 +389,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
         return last_read
 
     base_bam = os.path.basename(bam)
-    out_bam = '{}.penalty{}.{}'.format(os.path.splitext(base_bam)[0], penalty, 'methly_filtered.bam')
+    out_bam = '{}.penalty{}.{}'.format(os.path.splitext(base_bam)[0], penalty, 'methy_filtered.bam')
     
     format_options = [b'filter=!flag.unmap']
     
@@ -381,6 +407,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                     cached_aln.append([alignment, flag])
             analyze_cached_aln(fout, last_read, alignment, flag)
 
+    return out_bam
 
 def main():
     parser = argparse.ArgumentParser()

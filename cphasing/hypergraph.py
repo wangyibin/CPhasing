@@ -11,18 +11,19 @@ import msgspec
 import os
 import os.path as op
 import sys
-
+import shutil
 
 import numpy as np
 import pandas as pd
 import polars as pl
-
+pl.enable_string_cache()
 from joblib import Parallel, delayed
 from pathlib import Path
 from pandarallel import pandarallel 
 from pytools import natsorted
 from subprocess import Popen, PIPE
 
+from .pqs import PQS
 from .algorithms.hypergraph import HyperEdges
 from .utilities import (listify, 
                         list_flatten, 
@@ -61,6 +62,7 @@ class Extractor:
     >>> extractor = Extractor(pairs_pathes, contig_idx, contigsizes)
  
     """
+        
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
                  min_quality=1, hcr_bed=None, hcr_invert=False,
                  threads=4, edge_length=2e6, low_memory=True,
@@ -68,18 +70,21 @@ class Extractor:
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
-
+        
         max_length = max(self.contigsizes.values())
         if max_length < 2**32 / 2:
-            self.pos_dtype = pl.Int32
+            self.pos_dtype = pl.UInt32
         else:
-            self.pos_dtype = pl.Int64
+            self.pos_dtype = pl.UInt64
     
 
         self.min_mapq = min_quality
         self.hcr_bed = hcr_bed
         self.hcr_invert = hcr_invert
         self.threads = threads 
+
+        os.environ["POLARA_MAX_THREADS"] = str(threads)
+        
         self.edge_length = edge_length
         self.low_memory = low_memory
 
@@ -115,95 +120,164 @@ class Extractor:
             usecols = [1, 3, 7]
         
         if len(self.pairs_pathes) == 1:
-
-            if is_compressed_table_empty(self.pairs_pathes[0]):
-                logger.error(f"The pairs `{self.pairs_pathes[0]}` is empty, can not load anything, please check it.")
-                sys.exit(-1)    
-
-
-            input_file = ""
-            if not self.hcr_bed:
-                input_file = self.pairs_pathes[0]
-            else:
-                pairs_prefix = Path(Path(self.pairs_pathes[0]).stem).with_suffix('')
-                while pairs_prefix.suffix in {'.pairs', '.gz'}:
-                    pairs_prefix = pairs_prefix.with_suffix('')
-                
-                if str(self.pairs_pathes[0]).endswith(".gz"):
-                    cmd0 = decompress_cmd(str(self.pairs_pathes[0]), str(self.threads))
-                    cmd = f"{' '.join(cmd0)} 2>{self.log_dir}/{pairs_prefix}.decompress.hcr.log | cphasing-rs pairs-intersect - {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz"
-                else:
-                    cmd = f"cphasing-rs pairs-intersect {self.pairs_pathes[0]} {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz"
-
-                if self.hcr_invert:
-                    cmd += " --invert"
-                cmd += f" 2>{self.log_dir}/{pairs_prefix}.pairs.intersect.log"
-                # process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-
-                # stdout, stderr = process.communicate()
-                logger.info(f"Generating hcr pairs by {self.hcr_bed} ...")
-                flag = os.system(cmd)
-                assert flag == 0, "Failed to execute command, please check log."
-                input_file = f"temp.{pairs_prefix}.hcr.pairs.gz"      
-
-            p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
-                                header=None, index_col=None, nrows=1)
-            if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+            pairs_prefix = Path(Path(self.pairs_pathes[0]).name)
+            while pairs_prefix.suffix in {'.pairs', '.gz', '.pqs'}:
+                pairs_prefix = pairs_prefix.with_suffix('')
                     
-                p = pl.read_csv(input_file, separator='\t', has_header=False,
-                                comment_prefix="#", columns=usecols,
-                                new_columns=columns,
-                                dtypes=dtype)
+
+            if Path(self.pairs_pathes[0]).is_dir():
+                p = PQS(path=self.pairs_pathes[0], threads=self.threads)
+                
+                p.init_read()
+                if not p.is_pairs():
+                    logger.error(f"The input `{self.pairs_pathes[0]}` is not a pairs file, please check it.")
+                    sys.exit(-1)
+                
+
                 if self.hcr_bed:
-                    if Path(f"temp.{pairs_prefix}.hcr.pairs").exists():
-                        os.remove(f"temp.{pairs_prefix}.hcr.pairs")
-                
+                    logger.info(f"Filtering pairs by {self.hcr_bed} ...")
+                    cmd = ["cphasing-rs", "pairs-intersect", 
+                           self.pairs_pathes[0], self.hcr_bed, 
+                           "-q", str(self.min_mapq)]
 
-                if self.min_mapq > 0:
-                    p = p.filter(pl.col('mapq') >= self.min_mapq)
+                    if self.hcr_invert:
+                        cmd.append("--invert")
 
-                
-                if self.edge_length:
-                    p = p.with_columns([
-                            pl.col('chrom1').map_elements(self.contigsizes.get, skip_nulls=False).alias('length1'),
-                            pl.col('chrom2').map_elements(self.contigsizes.get, skip_nulls=False).alias('length2')
-                        ]).filter(
-                            (pl.col('pos1') < self.edge_length) | (pl.col('pos2') > pl.col('length2') - self.edge_length)
-                        ).select(['chrom1', 'chrom2', 'mapq'])
+                    cmd.extend(["-o", f"{pairs_prefix}.intersect.pqs"])
+                    cmd.append(f"2>{self.log_dir}/{pairs_prefix}.pairs.intersect.log")
 
-                p = p.to_pandas()
 
-                res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                    flag = os.system(" ".join(cmd))
+                    assert flag == 0, "Failed to execute command, please check log."
+
+                    p = PQS(path=f"{pairs_prefix}.intersect.pqs", threads=self.threads)
+                    p.init_read()
                 
-                res = res.reset_index(drop=True).reset_index()
-        
-                res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
-                                            columns={'chrom1': 'row', 'index': 'col'}),
-                                res[['chrom2', 'index', 'mapq']].rename(
-                                            columns={'chrom2': 'row', 'index': 'col'})], 
-                                axis=0)
+                chunks = p.read(min_mapq=self.min_mapq, return_as='files')
+
+                res = p.to_hg_df(chunks, self.contig_idx, self.min_mapq, 
+                                 edge_length=self.edge_length)
                 
+                if Path(f"{pairs_prefix}.intersect.pqs").exists():
+                    shutil.rmtree(f"{pairs_prefix}.intersect.pqs")  
+                
+                res = res.with_row_count("col")
+                df1 = res.select([
+                    pl.col("chrom1").alias("row"),
+                    pl.col("col"),
+                    pl.col("mapq")
+                ])
+            
+                df2 = res.select([
+                    pl.col("chrom2").alias("row"),
+                    pl.col("col"),
+                    pl.col("mapq")
+                ])
+
+                res = pl.concat([df1, df2]).to_pandas()
+
             else:
+                if is_compressed_table_empty(self.pairs_pathes[0]):
+                    logger.error(f"The pairs `{self.pairs_pathes[0]}` is empty, can not load anything, please check it.")
+                    sys.exit(-1)    
 
-                p = pl.read_csv(input_file, separator='\t', has_header=False,
-                                comment_prefix="#", columns=[1, 3],
-                                new_columns=['chrom1', 'chrom2'],
-                                dtypes=dtype)
+                input_file = ""
+                if not self.hcr_bed:
+                    input_file = self.pairs_pathes[0]
+                else:
+                    
+                    if str(self.pairs_pathes[0]).endswith(".gz"):
+                        cmd0 = decompress_cmd(str(self.pairs_pathes[0]), str(self.threads))
+                        cmd = (f"{' '.join(cmd0)} 2>{self.log_dir}/{pairs_prefix}.decompress.hcr.log | "
+                                f"cphasing-rs pairs-intersect - {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz")
+                    else:
+                        cmd = f"cphasing-rs pairs-intersect {self.pairs_pathes[0]} {self.hcr_bed} -q {self.min_mapq} -o temp.{pairs_prefix}.hcr.pairs.gz"
 
-                if self.hcr_bed:
-                    if Path(f"temp.{pairs_prefix}.hcr.pairs").exists():
-                        os.remove(f"temp.{pairs_prefix}.hcr.pairs")
-                
+                    if self.hcr_invert:
+                        cmd += " --invert"
+                    cmd += f" 2>{self.log_dir}/{pairs_prefix}.pairs.intersect.log"
 
-                p = p.to_pandas()
+                    logger.info(f"Generating hcr pairs by {self.hcr_bed} ...")
+                    flag = os.system(cmd)
+                    assert flag == 0, "Failed to execute command, please check log."
+                    input_file = f"temp.{pairs_prefix}.hcr.pairs.gz"      
 
-                res = Extractor._process_df(p, self.contig_idx, self.threads)   
-                res = res.reset_index(drop=True).reset_index()
-                res = pd.concat([res[['chrom1', 'index']].rename(
-                                            columns={'chrom1': 'row', 'index': 'col'}),
-                                res[['chrom2', 'index']].rename(
-                                            columns={'chrom2': 'row', 'index': 'col'})], 
-                                axis=0)
+                p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
+                                    header=None, index_col=None, nrows=1)
+                if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
+                        
+                    p = pl.read_csv(input_file, separator='\t', has_header=False,
+                                    comment_prefix="#", columns=usecols,
+                                    new_columns=columns,
+                                    dtypes=dtype)
+                    if self.hcr_bed:
+                        if Path(f"temp.{pairs_prefix}.hcr.pairs.gz").exists():
+                            os.remove(f"temp.{pairs_prefix}.hcr.pairs.gz")
+                    
+
+                    if self.min_mapq > 0:
+                        p = p.filter(pl.col('mapq') >= self.min_mapq)
+
+                    
+                    if self.edge_length:
+                        edge_length = self.edge_length
+                        p = (
+                            p.with_columns(
+                                [
+                                    pl.col("chrom1")
+                                    .map_elements(
+                                        self.contigsizes.get, skip_nulls=False
+                                    )
+                                    .alias("length1"),
+                                    pl.col("chrom2")
+                                    .map_elements(
+                                        self.contigsizes.get, skip_nulls=False
+                                    )
+                                    .alias("length2"),
+                                ]
+                            )
+                            .filter(
+                                ((pl.col("pos1") < edge_length)
+                                    | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                                & ((pl.col("pos2") < edge_length)
+                                    | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                            )
+                            .select(["chrom1", "chrom2", "mapq"])
+                        )
+
+                    p = p.to_pandas()
+
+                    res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                    
+                    res = res.reset_index(drop=True).reset_index()
+            
+                    res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
+                                                columns={'chrom1': 'row', 'index': 'col'}),
+                                    res[['chrom2', 'index', 'mapq']].rename(
+                                                columns={'chrom2': 'row', 'index': 'col'})], 
+                                    axis=0)
+                    
+                else:
+
+                    p = pl.read_csv(input_file, separator='\t', has_header=False,
+                                    comment_prefix="#", columns=[1, 3],
+                                    new_columns=['chrom1', 'chrom2'],
+                                    dtypes=dtype)
+
+                    if self.hcr_bed:
+                        if Path(f"temp.{pairs_prefix}.hcr.pairs").exists():
+                            os.remove(f"temp.{pairs_prefix}.hcr.pairs")
+                    
+
+                    p = p.to_pandas()
+
+                    res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                    res = res.reset_index(drop=True).reset_index()
+                    res = pd.concat([res[['chrom1', 'index']].rename(
+                                                columns={'chrom1': 'row', 'index': 'col'}),
+                                    res[['chrom2', 'index']].rename(
+                                                columns={'chrom2': 'row', 'index': 'col'})], 
+                                    axis=0)
 
         else: 
             p_list = self.pairs_pathes
@@ -252,8 +326,8 @@ class Extractor:
                         df = df.filter(pl.col('mapq') >= self.min_mapq)
 
                     return df.to_pandas()
-                
-                res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                with Parallel(backend="loky", n_jobs=min(self.threads, len(p_list))) as parallel:   
+                    res = parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                                 lambda x: read_csv(get_file(x)))(i) for i in p_list)
 
             else:
@@ -271,7 +345,8 @@ class Extractor:
             args = [ (i, self.contig_idx, threads_2) for i in res ]
         
 
-            res = Parallel(n_jobs=threads_1)(delayed(
+            with Parallel(backend="loky", n_jobs=threads_1) as parallel:
+                res = parallel(n_jobs=threads_1)(delayed(
                                 Extractor._process_df)(i, j, k) for i, j, k in args)
             
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
@@ -301,6 +376,7 @@ class Extractor:
             return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
+                            # count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
                             contigsizes=self.contigsizes,
                             mapq=res['mapq'].values.tolist())
 
@@ -308,6 +384,7 @@ class Extractor:
             return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
+                            # count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
                             contigsizes=self.contigsizes,
                             mapq=[])
 
@@ -475,22 +552,35 @@ def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
                             min_alignments=50, is_parquet=False,
                             edge_length=2e6 
                           ):
-
+    
     df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
     df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
     if edge_length:
         df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
-        df = df.with_columns(pl.col('length').cast(pl.UInt32))
-        df = df.filter(( pl.col('start') < edge_length) | (pl.col('end') > pl.col('length') - edge_length))
-  
+        df = df.with_columns(pl.col('length').cast(pl.UInt32),
+                             (pl.col('start') + (pl.col('end') - pl.col('start'))//2).alias('pos')
+                             )
+        df = df.filter((pl.col('pos') < edge_length) | ((pl.col('length') - pl.col('pos')) < edge_length))
+        
     # df = df.with_columns(pl.col('read_idx').cast(pl.UInt32))
     
     df = df.select(['read_idx', 'chrom_idx', 'mapping_quality'])
-    df_grouped_nunique = df.group_by('read_idx').agg(pl.col('chrom_idx').n_unique().alias('chrom_idx_nunique'))
+    df_grouped_nunique = df.group_by(['read_idx']).agg(pl.col('chrom_idx').n_unique().alias('chrom_idx_nunique'))
     df = df.join(df_grouped_nunique, on='read_idx')
+
     df = df.filter((pl.col('chrom_idx_nunique') >= min_order) & (pl.col('chrom_idx_nunique') <= max_order))
 
+    # df_grouped_count = df.group_by(['read_idx', 'chrom_idx']).agg(pl.col('chrom_idx').count().alias('chrom_idx_count'))
+    # df = df.join(df_grouped_count, on=['read_idx', 'chrom_idx'])
+    df = df.select(['read_idx', 'chrom_idx', 'mapping_quality', 
+                    # 'chrom_idx_count'
+                    ])
+    
     df = df.unique(['read_idx', 'chrom_idx'], maintain_order=True)
+    # df_grouped_read_idx_count = df.group_by(['read_idx'], maintain_order=True).count()
+    # print(df_grouped_read_idx_count.with_columns(((pl.col('count') * (pl.col('count') - 1)) // 2 ).alias('contact'))['contact'].to_numpy().sum())
+
+    # df = df.with_columns((pl.col('chrom_idx_count') * (pl.col('chrom_idx_count') - 1) // 2).alias('chrom_idx_count'))
     df = df.with_columns(pl.col('read_idx').cast(pl.Utf8).cast(pl.Categorical).to_physical())
 
     df = df.to_pandas()
@@ -545,6 +635,8 @@ class HyperExtractor:
         self.hcr_bed = hcr_bed
         self.hcr_invert = hcr_invert
         self.threads = threads
+        os.environ["POLARA_MAX_THREADS"] = str(threads)
+
         self.is_parquet = is_parquet
 
         self.log_dir = Path(log_dir)
@@ -559,12 +651,18 @@ class HyperExtractor:
         import pore-c table from pore
         """
         logger.info("Loading Pore-C table ...")
-
+        pl.enable_string_cache()
         if self.edge_length:
             columns = ['read_idx', 'chrom', 'start', 'end', 'mapping_quality']
+            schema = {'read_idx': pl.UInt32, 
+                        'start': pl.UInt32,
+                        'end': pl.UInt32,
+                      'mapping_quality': pl.Int8, 
+                      'chrom': pl.Categorical}
             usecols = [0, 5, 6, 7, 8]
         else:
             columns = ['read_idx', 'chrom', 'mapping_quality']
+            schema = {'read_idx': pl.UInt32, 'mapping_quality': pl.Int8, 'chrom': pl.Categorical}
             usecols = [0, 5, 8]
 
         if len(self.pore_c_table_pathes) == 1:
@@ -574,7 +672,7 @@ class HyperExtractor:
                 porec_prefix = str(Path(self.pore_c_table_pathes[0]).name).replace(".gz", "").rsplit(".", 1)[0]
                 if str(self.pore_c_table_pathes[0]).endswith(".gz"):
                     cmd0 = decompress_cmd(str(self.pore_c_table_pathes[0]), str(self.threads))
-                    cmd = f"{' '.join(cmd0)} 2>{porec_prefix}.decompress.hcr.log | cphasing-rs porec-intersect - {self.hcr_bed} -o temp.{porec_prefix}.hcr.porec"
+                    cmd = f"{' '.join(cmd0)} 2>{self.log_dir}/{porec_prefix}.decompress.hcr.log | cphasing-rs porec-intersect - {self.hcr_bed} -o temp.{porec_prefix}.hcr.porec"
                 else:
                     cmd = f"cphasing-rs porec-intersect {self.pore_c_table_pathes[0]} {self.hcr_bed} -o temp.{porec_prefix}.hcr.porec"
                 if self.hcr_invert:
@@ -601,20 +699,22 @@ class HyperExtractor:
                 try:
                     df = pl.read_csv(infile, separator='\t', has_header=False,
                                     columns=usecols,
-                                    dtypes={'read_idx': pl.UInt32, 'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
-                                    # new_columns=['read_idx', 'chrom', 'mapping_quality'])
+                                    dtypes=schema,
                                     new_columns=columns)
                 except pl.exceptions.NoDataError:
                     logger.error(f"The pore-c table `{infile}` is empty, can not load anything, please check it.")
                     sys.exit(-1)
-                except pl.exceptions.OutOfBoundsError:
-                    logger.error(f"The pore-c table `{infile}` is incorrect, it's not a pore-c table, "
-                                 f"may be it is a pairs, if that you should change `-pct` to `-prs`.")
+                except IsADirectoryError:
+                    logger.error(f"The pore-c table `{infile}` is a directory, may be you want to load pairs.pqs file please specified `--pairs` parameter.")
                     sys.exit(-1)
+                # except pl.exceptions.OutOfBoundsError:
+                #     logger.error(f"The pore-c table `{infile}` is incorrect, it's not a pore-c table, "
+                #                  f"may be it is a pairs, if that you should change `-pct` to `-prs`.")
+                    # sys.exit(-1)
                 
             if self.hcr_bed:
-                    if Path(f"temp.{porec_prefix}.hcr.porec").exists():
-                        os.remove(f"temp.{porec_prefix}.hcr.porec")
+                if Path(f"temp.{porec_prefix}.hcr.porec").exists():
+                    os.remove(f"temp.{porec_prefix}.hcr.porec")
 
             if self.min_quality > 0:
                 df = df.filter(pl.col('mapping_quality') >= self.min_quality)
@@ -775,10 +875,14 @@ class HyperExtractor:
             res_df = res[0]
             mapping_quality_res = res_df['mapping_quality']
             
+        if len(res_df) < 1:
+            raise ValueError("No pore-c reads are retained, please check the pore-c table.")
 
+        
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),
                        col=res_df['read_idx'].values.flatten().tolist(),
+                    #    count=res_df['chrom_idx_count'].values.flatten().tolist(),
                        mapq=mapping_quality_res.to_numpy().flatten().tolist(),
                        contigsizes=self.contigsizes)
         

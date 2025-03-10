@@ -28,7 +28,10 @@ from pandarallel import pandarallel
 from subprocess import check_call, Popen, PIPE
 
 from ._config import *
+from .expection import *
 from .utilities import (
+    binnify,
+    decompress_cmd,
     list_flatten, 
     tail, 
     xopen, 
@@ -1146,7 +1149,7 @@ class ClusterTable:
                 str(cluster_file),
                 "-l",
                 str(int(trim_length)),
-                " 2>/dev/null",
+                " 2>/dev/null"
                 ]
       
         flag = os.system(" ".join(cmd))    
@@ -1761,7 +1764,7 @@ class PairHeader:
     def _get_chromsize(self):
         _res = list(filter(lambda x: x[:10] == "#chromsize", self.header))
         
-        _res = [record.split(":")[1].split() for record in _res]
+        _res = [record.split(":", 1)[1].split() for record in _res]
         db = OrderedDict()
         for chrom, size in _res:
             db[chrom] = int(size)
@@ -2269,7 +2272,7 @@ class Pairs2:
         
         self.file = Path(pairs)
         self.filename = self.file.name
-        self.header = self._get_header()
+        
         self.chunksize = int(chunksize)
         self.threads = threads
         os.environ['POLARS_THREADS'] = str(self.threads)
@@ -2278,12 +2281,23 @@ class Pairs2:
         if self.min_mapq > 0:
             logger.info(f"Only load pairs with minimum quality >= {self.min_mapq}.")
 
+        if Path(self.file).is_dir():
+            raise IsNotPairs("Input file must be a file, not a directory.") 
+        else:
+            try:
+                self.header = self._get_header()
+            except:
+                raise IsNotPairs("Cannot read header of pairs file.")
+            
+            if not self.is_pairs():
+                raise IsNotPairs("Input file is not a pairs file.")
+    
     def _get_header(self):
         ph = PairHeader([])
         ph.from_file(self.file)
 
         return ph
-
+    
     @property
     def chromsize(self):
 
@@ -2330,6 +2344,16 @@ class Pairs2:
                 'pos2': pos_dtype,
                 'mapq': pl.Int8
                 }
+    
+    def is_pairs(self):
+        if Path(self.file).is_dir():
+            return False 
+        else:
+            if self.header.pairs_format:
+                return True
+            else:
+                return False
+            
     
     def is_pairs_with_mapq(self):
         """
@@ -2444,7 +2468,24 @@ class Pairs2:
         chunk = chunk.with_columns([
             bin1_id.alias('bin1_id'),
             bin2_id.alias('bin2_id')
-        ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2']).filter(pl.col('bin1_id') < pl.col('bin2_id'))
+        ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
+        # .filter(pl.col('bin1_id') <= pl.col('bin2_id'))
+
+        # # swap bin1_id and bin2_id if bin1_id > bin2_id
+        chunk = chunk.with_columns([
+                pl.when(chunk['bin1_id'] > chunk['bin2_id'])
+                .then(chunk['bin2_id'])
+                .otherwise(chunk['bin1_id'])
+                .alias('bin1_id'),
+                pl.when(chunk['bin1_id'] > chunk['bin2_id'])
+                .then(chunk['bin1_id'])
+                .otherwise(chunk['bin2_id'])
+                .alias('bin2_id')
+            ])
+        # .filter(pl.col('bin1_id') <= pl.col('bin2_id'))
+        
+
+    
         # chunk = chunk.with_columns([
         #     (pl.col('pos1') // binsize + pl.col('chrom1').map_elements(
         #                     bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin1_id'),
@@ -2452,13 +2493,11 @@ class Pairs2:
         #                     bin_offset_db.get)).cast(self.bin_id_dtype).alias('bin2_id'),
         # ]).drop(['chrom1', 'chrom2', 'pos1', 'pos2'])
 
-        chunk = (
-            chunk.group_by(['bin1_id', 'bin2_id'], maintain_order=True)
-                .agg(pl.count('bin1_id').alias('count'))
-        )
-    
-        chunk = chunk.sort(['bin1_id', 'bin2_id'])
+        chunk = chunk.group_by(['bin1_id', 'bin2_id'], maintain_order=True).agg(
+            pl.count('bin1_id').alias('count'))
         
+        chunk = chunk.sort(['bin1_id', 'bin2_id'])
+     
         return chunk.to_pandas()
     
     def process_chunk_to_cool(self, bin_offset_db, binsize=10000):
@@ -2489,7 +2528,8 @@ class Pairs2:
         bins = cooler.binnify(
                         pd.DataFrame(self.chromsizes.set_index('chrom'))['length'], 
                         binsize=binsize)
-
+        # bins = binnify(pd.DataFrame(self.chromsizes.set_index('chrom'))['length'], binsize=binsize)
+        bins.to_csv('temp.bins', sep='\t', header=None, index=None)
         if len(bins) > 2**32:
             self.bin_id_dtype = pl.UInt64
         elif len(bins) > 2**16:
@@ -2502,9 +2542,9 @@ class Pairs2:
         bin_offset = bins.groupby('chrom').size().cumsum()
         bin_offset = bin_offset.shift(1).fillna(0).astype(int)
         bin_offset_db = bin_offset.to_dict()
-   
+    
         iterator = self.process_chunk_to_cool(bin_offset_db, binsize)
-
+        
         create(output, bins, iterator, 
                 triucheck=False, dupcheck=False, boundscheck=False,)
         

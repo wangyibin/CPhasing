@@ -2,7 +2,7 @@
 `cphasing mapper` 是用来处理**Pore-C**或者**HiFi-C**数据的，它输出两个文件：
 is designed for process Pore-C data, its output two files:  
     （1）存储高阶互作信息的porec table(`.porec.gz`)  
-    （2）存储虚拟成对（VPC）互作的4DN pairs (`.pairs.gz`) 
+    （2）存储虚拟成对（VPC）互作的4DN pairs (`.pairs.pqs`) 
 !!!note
     HiFi-C数据目前也以`.porec.gz`后缀命名，内容是一样的。
 
@@ -42,7 +42,7 @@ cphasing mapper draft.contigs.fasta sample3.porec.fastq.gz -t 40
 - 合并结果
 ```shell
 cphasing-rs porec-merge sample1.porec.porec.gz sample2.porec.porec.gz sample3.porec.porec.gz -o sample.merge.porec.gz
-cphasing-rs pairs-merge sample1.porec.pairs.gz sample2.porec.pairs.gz sample3.porec.pairs.gz -o sample.merge.pairs.gz
+cphasing-rs pairs-merge sample1.porec.pairs.pqs sample2.porec.pairs.pqs sample3.porec.pairs.pqs -o sample.merge.pairs.pqs
 ```
 
 

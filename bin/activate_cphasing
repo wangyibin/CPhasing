@@ -43,9 +43,16 @@ if [ ! -f $software_dir/pixi.toml ]; then
     return 1
 fi
 
-if [ ! -d $software_dir/.pixi/envs/default/bin/ ]; then
+if [ "$1" == "" ]; then
+    env_name="default"
+else 
+    env_name=$1
+fi
+
+
+if [ ! -d $software_dir/.pixi/envs/${env_name}/bin/ ]; then
     echo "Installing cphasing environment..."
-    pixi install --manifest-path $software_dir/pixi.toml
+    pixi install --manifest-path $software_dir/pixi.toml -e $env_name
 fi
 
 export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
@@ -57,12 +64,12 @@ is_tty=$(tty)
 
 if [ "$is_tty" == "not a tty" ]; then
     export PS1="(CPhasing) $PS1"
-    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env
+    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install -e $env_name > $software_dir/.pixi/envs/default/.env
     . $software_dir/.pixi/envs/default/.env
 else 
     # export PS1="(CPhasing) $PS1"
     # pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env
     # . $software_dir/.pixi/envs/default/.env
-    pixi shell --manifest-path $software_dir/pixi.toml --no-install
+    pixi shell --manifest-path $software_dir/pixi.toml --no-install -e $env_name
 fi
 

@@ -26,6 +26,7 @@ import multiprocessing
 import igraph as ig 
 import pandas as pd
 import polars as pl
+import re
 import scipy
 import shutil
 
@@ -48,6 +49,7 @@ from ..core import (
                     Tour
                     )
 from ..utilities import (
+    decompress_cmd,
     cmd_exists,
     choose_software_by_platform, 
     run_cmd,
@@ -121,11 +123,12 @@ class HaplotypeAlign:
         contig_pairs = {(contig1, contig2): hap1[contig1] * hap2[contig2]
                             for contig1, contig2 in product(hap1.keys(), hap2.keys())}
 
-        contig_pairs_df = pd.DataFrame(list(contig_pairs.items()))
-        contig_pairs_df.columns = [0, "value"]
-        contig_pairs_df[[1, 2]] = pd.DataFrame(contig_pairs_df[0].tolist())
-        contig_pairs_df = contig_pairs_df.drop(0, axis=1).set_index([1, 2])
-        
+        # contig_pairs_df = pd.DataFrame(list(contig_pairs.items()))
+        # contig_pairs_df.columns = [0, "value"]
+        # contig_pairs_df[[1, 2]] = pd.DataFrame(contig_pairs_df[0].tolist())
+        # contig_pairs_df = contig_pairs_df.drop(0, axis=1).set_index([1, 2])
+        contig_pairs_df = pd.DataFrame.from_dict(contig_pairs, orient='index', columns=['value'])
+        contig_pairs_df.index = pd.MultiIndex.from_tuples(contig_pairs_df.index)
         tmp_df = data.reindex(list(contig_pairs.keys())).dropna()
 
         tmp_df = tmp_df[tmp_df['similarity'] > 0.85]
@@ -134,7 +137,8 @@ class HaplotypeAlign:
 
         tmp_df['strand2'] = contig_pairs_df.loc[tmp_df.index]
         # tmp_df = tmp_df[tmp_df['mzShared'] > 2000]
-        tmp_df = tmp_df.assign(value=lambda x: x['mzShared'] * x['strand'] * x['strand2'])
+        # tmp_df = tmp_df.assign(value=lambda x: x['mzShared'] * x['strand'] * x['strand2'])
+        tmp_df['value'] = tmp_df['mzShared'] * tmp_df['strand'] * tmp_df['strand2']
         # tmp_df = tmp_df.drop(['mzShared', 'strand', 'strand2'], axis=1)
 
         if tmp_df['value'].sum() < 0:
@@ -155,7 +159,7 @@ class HaplotypeAlign:
         total_machine_cpu = cpu_count()
         
         try:
-            Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend='multiprocessing')(
+            Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend="multiprocessing")(
                         delayed(self.align)(*a) for a in args
             )
         except ValueError:
@@ -167,6 +171,7 @@ class Rename:
                  "matches", "mapq", "identity"]
 
     def __init__(self, ref, fasta, agp, 
+                    hap_pattern=r'(Chr\d+)g(\d+)',
                     hap_aligned=True,
                     output="groups.renamed.agp",
                     suffix_style="number",
@@ -178,6 +183,10 @@ class Rename:
         self.fasta = Path(fasta).absolute()
         self.agp = Path(agp).absolute()
         self.paf = "ref.align.paf"
+        if hap_pattern:
+            self.hap_pattern = r"{}".format(hap_pattern)
+        else:
+            self.hap_pattern = r'(Chr\d+)g(\d+)'
         self.hap_aligned = hap_aligned
         self.suffix_style = suffix_style
         self.output = Path(output).absolute()
@@ -201,7 +210,7 @@ class Rename:
         hap_db = OrderedDict()
 
         contigs_db = OrderedDict()
-        for chrom, cluster in agp_df.groupby('chrom'):
+        for chrom, cluster in agp_df.groupby('chrom', sort=False):
             if cluster.empty:
                 continue
             if chrom == cluster['id'].values[0]:
@@ -209,7 +218,9 @@ class Rename:
             
             try:
                 if self.hap_aligned:
-                    hap = chrom.rsplit("g", 1)
+                 
+                    hap = re.match(self.hap_pattern, chrom)
+                    hap = hap.groups() if hap is not None else [chrom]
                 else:
                     raise AssertionError
             except:
@@ -309,7 +320,10 @@ class Rename:
             try:
                 tmp_res = res[chrom1]
             except KeyError:
-                continue 
+                for chrom2 in first_chrom_to_other_chroms[chrom1]:
+                    tour_results[chrom2] = (f"unrenamed_{chrom2}", f"unrenamed_{chrom2}", Tour(f"raw_tour/{chrom2}.tour"))
+                    renamed_chrom.append(f"unrenamed_{chrom2}")
+                continue
             
             tour = Tour(f"raw_tour/{chrom1}.tour")
             
@@ -325,7 +339,10 @@ class Rename:
                 if v < 0:
                     logger.debug(f"Reverse {tour.group}")
                     tour.reverse()
-                hap = tour.group.rsplit("g", 1)
+                # hap = tour.group.rsplit("g", 1)
+                hap = re.match(self.hap_pattern, tour.group)
+                hap = hap.groups() if hap is not None else [] 
+
                 if len(hap) > 1 and self.hap_aligned:
                     
                     if self.suffix_style == "lowerletter":
@@ -351,7 +368,7 @@ class Rename:
                     elif self.suffix_style == "upperletter":
                         new_chrom = f"{tmp_res[0]}{ascii_uppercase[int(hap_idx_db[tmp_res[0]]) - 1]}"
                     else:
-                        new_chrom = f"{tmp_res[0]}g{hap[1]}"
+                        new_chrom = f"{tmp_res[0]}g{int(hap_idx_db[tmp_res[0]])}"
 
                     tour_results[chrom2] = (tmp_res[0], new_chrom, tour)
 
@@ -402,6 +419,7 @@ class Rename:
                 raise e
 
         os.chdir("../")
+
 
         shutil.rmtree(tmpDir)
 
@@ -456,9 +474,22 @@ class AllhicOptimize:
 
     @staticmethod
     def extract_clm_rust(clm_file, cluster_file, log_dir):
-        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+        if clm_file.endswith(".gz"):
+            cmd0 = decompress_cmd(clm_file, threads=10)
+            cmd = ['cphasing-rs', 'splitclm', '-', cluster_file]
+            logger.info("Splitting clm file ...")
+            flag = os.system(
+                " ".join(cmd0)
+                + f" 2>../{log_dir}/clm_decompress.log"
+                + " | "
+                + " ".join(cmd)
+                + f" 2>../{log_dir}/splitclm.log"
+            )
+        else:
+            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
 
-        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+
         assert flag == 0, "Failed to execute command, please check log."
 
 
@@ -542,8 +573,8 @@ class AllhicOptimize:
         AllhicOptimize.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
         
         total_cpu_of_machine = cpu_count()
-        if self.threads * 8 > total_cpu_of_machine:
-            threads = self.threads // 8
+        if self.threads * 2 > total_cpu_of_machine:
+            threads = self.threads // 2
             logger.info(f"Use {threads} threads to run optimize.")
         else:
             threads = self.threads
@@ -589,6 +620,18 @@ class AllhicOptimize:
 
         logger.info("Scaffolding done.")
 
+
+class AllhicReorient:
+    def __init__(self, clm, tour):
+        self.clm = clm
+        self.tour = tour
+    
+
+
+    def reorient(self):
+        pass
+
+    
 
 class HapHiCSort:
     from cphasing.algorithms.HapHiC_sort import parse_arguments, run
@@ -651,9 +694,21 @@ class HapHiCSort:
 
     @staticmethod
     def extract_clm_rust(clm_file, cluster_file, log_dir):
-        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+        if clm_file.endswith(".gz"):
+            cmd0 = decompress_cmd(clm_file, threads=10)
+            cmd = ["cphasing-rs", "splitclm", "-", cluster_file]
+            logger.info("Splitting clm file ...")
+            flag = os.system(
+                " ".join(cmd0)
+                + f" 2>../{log_dir}/clm_decompress.log"
+                + " | "
+                + " ".join(cmd)
+                + f" 2>../{log_dir}/splitclm.log"
+            )
+        else:
+            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
 
-        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
         assert flag == 0, "Failed to execute command, please check log."
 
     @staticmethod
@@ -665,10 +720,6 @@ class HapHiCSort:
                     for pair in contig_pairs
                     for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
                 )
-            # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-            # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
-            # left_df = pl.LazyFrame(pl.Series("column_1", contig_with_orientation_pairs))
-            # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls().collect()
             tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
 
 
@@ -739,8 +790,8 @@ class HapHiCSort:
         HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
 
         total_cpu_of_machine = cpu_count()
-        if self.threads * 8 > total_cpu_of_machine:
-            threads = total_cpu_of_machine // 8
+        if self.threads * 2 > total_cpu_of_machine:
+            threads = total_cpu_of_machine // 2
             logger.info(f"Use {threads} threads to run optimize.")
         else:
             threads = self.threads
@@ -790,7 +841,6 @@ class HapHiCSort:
         os.chdir("../")
 
         if self.delete_temp:
-
             shutil.rmtree(tmpDir)
             logger.info("Removed temporary directory.")
 

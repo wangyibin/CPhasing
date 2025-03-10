@@ -19,13 +19,13 @@ cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic1 hic-
 ```
 
 ```shell
-cphasing pairs-merge hic-*.pairs.gz -o hic.merge.pairs.gz 
+cphasing pairs-merge hic-*.pairs.pqs -o hic.merge.pairs.pqs 
 ```
 
 
 ## Assembling by `cphasing pipeline`
 Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set `-n 0:0` to automatically output cluster numbers.
 ```shell
-cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.gz -t 40 -n 0:0 -hcr -p AAGCTT 
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 0:0 -hcr -p AAGCTT 
 ```
 

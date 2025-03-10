@@ -11,12 +11,27 @@ import os.path as op
 import re
 import sys
 import shutil
+import glob
 import time 
 
-from datetime import date
-from logging.handlers import RotatingFileHandler
+from datetime import datetime, date
 from pathlib import Path
+
 from .. import __version__
+from ..cli import (mapper as porec_mapper,
+                    hcr,
+                    alleles, 
+                    prepare,
+                    hyperpartition,
+                    scaffolding,
+                    pairs2cool,
+                    pairs2pqs,
+                    plot
+)
+from ..core import Pairs2
+from ..expection import *
+from ..hic.cli import mapper as hic_mapper
+from ..pqs import PQS
 from ..utilities import (
     pretty_cmd,
     run_cmd, 
@@ -36,11 +51,6 @@ from ..utilities import (
 monitor = MemoryMonitor()
 logger = logging.getLogger(__name__)
 
-# file_handler = RotatingFileHandler("app.log", maxBytes=10**6, backupCount=3)
-# file_handler.setLevel(logging.INFO)
-# file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# file_handler.setFormatter(file_formatter)
-# logger.addHandler(file_handler)
 
 def run(fasta,
         ul_data,
@@ -108,24 +118,20 @@ def run(fasta,
         low_memory=False,
         outdir="cphasing_output",
         threads=4):
-    from ..cli import (mapper as porec_mapper,
-                       hcr,
-                       alleles, 
-                       prepare,
-                       hyperpartition,
-                       scaffolding,
-                       pairs2cool,
-                       plot
-    )
-    from ..hic.cli import mapper as hic_mapper
     
-    
-    # tracemalloc.start()
+    is_pairs2pqs = False
     start_time = time.time()
     logger.info(f"C-Phasing version: {__version__}")
     today = date.today().strftime("%Y-%m-%d")
     logger.info(f"Pipeline is started on {today}.")
-
+    
+    outdir = Path(outdir)
+    if outdir.exists():
+        logger.info(f"Working on existing directory: `{outdir}`")
+    else:
+        logger.info(f"Working on new directory: `{outdir}`")
+        outdir.mkdir(parents=True, exist_ok=True)
+    
     _n = re.split(":|x|\|", n) if n else None
     if _n is not None:
         if len(_n) == 2:
@@ -140,14 +146,7 @@ def run(fasta,
         if len(_n) <= 1 and mode != "basal_withprune":
             mode = "haploid"
             logger.info("Mode is set to `haploid` because of the second `n` is not specified.")
-        
-
-    outdir = Path(outdir)
-    if outdir.exists():
-        logger.info(f"Working on existing directory: `{outdir}`")
-    else:
-        logger.info(f"Working on new directory: `{outdir}`")
-        outdir.mkdir(parents=True, exist_ok=True)
+    
 
     fasta_path = str(Path(fasta).absolute())
     fasta = str(Path(fasta).name)
@@ -168,9 +167,20 @@ def run(fasta,
         porec_table_path = Path(porec_table).absolute()
         if not pairs:
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
-            _pairs = Path(f"{pairs_prefix}.pairs.gz")
+            _pqs = Path(f"{pairs_prefix}.pairs.pqs")
+            if _pqs.exists():
+                _p = PQS(str(_pqs))
+                if _p.is_pqs(str(_pqs)):
+                    is_pairs2pqs = True
+                    pqs_file = _pqs
+                    _pairs = _pqs
+                else:
+                    _pairs = Path(f"{pairs_prefix}.pairs.gz")
+            else:
+                _pairs = Path(f"{pairs_prefix}.pairs.gz")
             if _pairs.exists():
                 pairs = str(_pairs)
+
         
     if pairs:
         pairs_path = Path(pairs).absolute()
@@ -207,8 +217,7 @@ def run(fasta,
             pass 
 
         pairs = Path(pairs).name
-
-
+        
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -271,7 +280,9 @@ def run(fasta,
         porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
         pairs_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
         paf = f"{porec_prefix}.paf.gz"
-        pairs = f"{pairs_prefix}.pairs.gz"
+        pairs = f"{pairs_prefix}.pairs.pqs"
+        is_pairs2pqs = True
+        pqs_file = f"{pairs_prefix}.pairs.pqs"
         hg_input = f"{porec_prefix}.porec.gz"
         hg_flag = ""
         porec_table = hg_input
@@ -295,7 +306,6 @@ def run(fasta,
                 
                 os.remove(porec_table)
 
-        
     
     elif hic1 and hic2:
         pairs_prefix = Path(Path(hic1).stem).with_suffix('')
@@ -307,19 +317,26 @@ def run(fasta,
 
         pairs_prefix = str(pairs_prefix).replace('_R1', '').replace('_1', '')
         pairs = f"{pairs_prefix}.pairs.gz"
-        hg_input = f"{pairs_prefix}.pairs.gz"
+        pqs_file = f"{pairs_prefix}.pairs.pqs"
+        is_pairs2pqs = False
+        hg_input = f"{pairs_prefix}.pairs.pqs"
         porec_table = None
         hg_flag = ""
         input_param = "--pairs"
 
-        if not Path(pairs).exists() and "0" not in skip_steps:
+        if not Path(pairs).exists() and not Path(pqs_file).exists() and "0" not in skip_steps:
             steps.add("0")
         
+        if Path(pqs_file).exists() and not is_compressed_table_empty(pqs_file):
+            pairs = pqs_file
+            is_pairs2pqs = True
+            
+
         if Path(pairs).exists():
             if is_compressed_table_empty(pairs):
                 logger.info(f"The existing pairs `{pairs}` is empty, rerun step 0.mapper.")
                 steps.add("0")
-                os.remove(pairs)
+                shutil.rmtree(pairs)
 
     else:
         if "0" in steps:
@@ -333,11 +350,26 @@ def run(fasta,
             hg_flag = ""
             input_param = "--porec"
             if not pairs:
-                pairs = f"{porec_prefix}.pairs.gz"
+                _pqs = Path(f"{porec_prefix}.pairs.pqs")
+                if _pqs.exists():
+                    _pairs = _pqs
+                elif Path(f"{porec_prefix}.pairs.gz").exists():
+                    _pairs = Path(f"{porec_prefix}.pairs.gz")
 
+                else:
+                    _pairs = None
+
+                pairs = _pairs
+                if use_pairs:
+                    hg_input = pairs
+                    hg_flag = "--pairs"
+    
         else:
             if pairs:
-                pairs_prefix = pairs.replace(".gz", "").rsplit(".", 1)[0]
+                pairs_prefix = Path(Path(pairs).name)
+                while pairs_prefix.suffix in {'.pairs', '.gz', ".pqs"}:
+                    pairs_prefix = pairs_prefix.with_suffix('')
+                pairs_prefix = str(pairs_prefix)
                 hg_input = pairs 
                 hg_flag = "--pairs"
                 input_param = hg_flag
@@ -410,14 +442,57 @@ def run(fasta,
         cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
         flag = run_cmd(cmd, log=os.devnull)
         assert flag == 0, "Failed to execute command, please check log."
-        
-    if porec_table is not None and not Path(pairs).exists():
+    
+
+    if porec_table is not None and pairs is None:
         logger.info("Generating pairs file ...")
+        _pairs = Path(f"{porec_prefix}.pairs.pqs")
+        pqs_file = f"{porec_prefix}.pairs.pqs"
+        is_pairs2pqs = True
         cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                    "-o", pairs, "-q", str(mapping_quality)]
+                    "-o", str(_pairs), "-q", str(mapping_quality)]
 
         flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
         assert flag == 0, "Failed to execute command, please check log."
+        pairs = str(_pairs)
+
+    try:
+        _pairs = Pairs2(pairs)
+        if _pairs.is_pairs():
+            if not Path(f"{pairs_prefix}.pairs.pqs").exists() or is_file_changed(pairs):
+                is_file_changed(pairs)
+                logger.info("Coverting pairs or pairs.gz to pairs.pqs ...")
+                args = [pairs, "-t", str(threads), "-o", f"{pairs_prefix}.pairs.pqs"]
+                try:
+                    pairs2pqs.main(args=args, prog_name='pairs2pqs')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+                is_pairs2pqs = True
+                pqs_file = pairs = f"{pairs_prefix}.pairs.pqs"
+                is_file_changed(pairs)
+                if not porec_table or use_pairs:
+                    hg_input = pqs_file
+                    hg_flag = "--pairs"
+            else:
+                _p = PQS(f"{pairs_prefix}.pairs.pqs")
+                if _p.is_pqs(f"{pairs_prefix}.pairs.pqs"):
+                    logger.info("Use exists pairs.pqs file.")
+                    is_pairs2pqs = True
+                    pqs_file = pairs = f"{pairs_prefix}.pairs.pqs"
+                    if not porec_table or use_pairs:
+                        hg_input = pqs_file
+                        hg_flag = "--pairs"
+                else:
+                    logger.info("The pqs file is incorrect, use the pairs.gz file.")
+
+    except IsNotPairs:
+        pass
 
 
     corrected = False
@@ -474,7 +549,7 @@ def run(fasta,
                 fasta_prefix = fasta_prefix.with_suffix("")
 
             pairs_prefix = Path(Path(pairs).stem).with_suffix('')
-            while pairs_prefix.suffix in {'.pairs', '.gz'}:
+            while pairs_prefix.suffix in {'.pairs', '.gz', '.pqs'}:
                 pairs_prefix = pairs_prefix.with_suffix('')
             
             porec_prefix = Path(Path(porec_table).stem).with_suffix('')
@@ -483,9 +558,14 @@ def run(fasta,
 
         elif pairs:
             if chimeric_corrected:
-                corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
-                                    f"{fasta_prefix}.corrected.fasta", 
-                                   f"{pairs_prefix}.corrected.pairs.gz")
+                if is_pairs2pqs:
+                    corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
+                                        f"{fasta_prefix}.corrected.fasta", 
+                                        f"{pairs_prefix}.corrected.pairs.gz")
+                else:
+                    corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
+                                        f"{fasta_prefix}.corrected.fasta", 
+                                        f"{pairs_prefix}.corrected.pairs.pqs")
                 if not all(map(lambda x: Path(x).exists(), corrected_items)):
                     corrected_items = ()
                     logger.warning("The corrected files are not exists, please specify `--chimeric-correct`.")
@@ -506,7 +586,7 @@ def run(fasta,
                     fasta_prefix = fasta_prefix.with_suffix("")
 
                 pairs_prefix = Path(Path(pairs).stem).with_suffix('')
-                while pairs_prefix.suffix in {'.pairs', '.gz'}:
+                while pairs_prefix.suffix in {'.pairs', '.gz', '.pqs'}:
                     pairs_prefix = pairs_prefix.with_suffix('')
         
         
@@ -536,7 +616,6 @@ def run(fasta,
             # logger.info(f"Do not need correct, removed `{correct_dir}`")
             # shutil.rmtree(correct_dir)
     
-
     ## filtered contig by min length
     filtered_contig_by_min_length = False
     if filtered_contig_by_min_length:
@@ -576,7 +655,11 @@ def run(fasta,
     
     if hcr_flag:
         if porec_table and not use_pairs:
-            prepare_input = f"{porec_prefix}.pairs.gz"
+            if is_pairs2pqs:
+                prepare_input = pqs_file
+               
+            else:
+                prepare_input = f"{porec_prefix}.pairs.gz"
         else:
             prepare_input = f"{pairs}"
             input_param = "--pairs"
@@ -584,26 +667,75 @@ def run(fasta,
     else:
         prepare_input = pairs
         if not porec_table and min_quality1 > 0: 
-            if low_memory or mapping_quality > 0:
-                hg_input = f"{pairs_prefix}.q{mapping_quality}.pairs.gz"
-                filtered_pairs = hg_input
-                if not Path(hg_input).exists():
-                    cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
-                        "-o", hg_input , "-q", str(mapping_quality)]
-                    flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
-                    assert flag == 0, "Failed to execute command, please check log."
-                else:
-                    logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
-                prepare_input = hg_input
+            if not Path(prepare_input).is_dir() and not PQS.is_pqs(pairs):
+                if low_memory or mapping_quality > 0:
+                    logger.info("Filtering pairs by mapping quality ...")
+                    hg_input = f"{pairs_prefix}.q{mapping_quality}.pairs.gz"
+                    filtered_pairs = hg_input
+                    if not Path(hg_input).exists():
+                        cmd = ["cphasing-rs", "pairs-filter", prepare_input, 
+                            "-o", hg_input , "-q", str(mapping_quality)]
+                        flag = run_cmd(cmd, log=f'{log_dir}/pairs_filter.log')
+                        assert flag == 0, "Failed to execute command, please check log."
+                    else:
+                        logger.warning(f"Using exists filtered pairs file of `{hg_input}`")
+                    prepare_input = hg_input
+
 
     if porec_table or porec_data:
-        if (not Path(prepare_input).exists() and (hic1 is None )) or ((hic1 is None) and is_compressed_table_empty(prepare_input)):
+        if (not Path(prepare_input).exists() and (hic1 is None )):
+            # or ((hic1 is None) and is_compressed_table_empty(prepare_input))
             logger.info("Generating pairs file ...")
             cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
                         "-o", pairs, "-q", "0"]
             
             flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
             assert flag == 0, "Failed to execute command, please check log."
+
+
+    try:
+        prepare_input_prefix = Path(prepare_input).with_suffix("")
+        while prepare_input_prefix.suffix in {".pairs", ".gz", ".pqs"}:
+            prepare_input_prefix = prepare_input_prefix.with_suffix("")
+
+        _pairs = Pairs2(prepare_input)
+        if _pairs.is_pairs():
+            if not Path(f"{prepare_input_prefix}.pairs.pqs").exists() or is_file_changed(pairs):
+                is_file_changed(pairs)
+                logger.info("Coverting pairs or pairs.gz to pairs.pqs ...")
+                args = [pairs, "-t", str(threads), "-o", f"{prepare_input_prefix}.pairs.pqs"]
+                try:
+                    pairs2pqs.main(args=args, prog_name='pairs2pqs')
+                except SystemExit as e:
+                    exc_info = sys.exc_info()
+                    exit_code = e.code
+                    if exit_code is None:
+                        exit_code = 0
+                    
+                    if exit_code != 0:
+                        raise e
+                
+                is_pairs2pqs = True
+                pqs_file = pairs = f"{prepare_input_prefix}.pairs.pqs"
+                if not porec_table or use_pairs:
+                    hg_input = pqs_file
+                    hg_flag = "--pairs"
+                is_file_changed(pairs)
+            else:
+                
+                _p = PQS(f"{pairs_prefix}.pairs.pqs")
+                if _p.is_pqs(f"{pairs_prefix}.pairs.pqs"):
+                    logger.info("Use exists pairs.pqs file.")
+                    is_pairs2pqs = True
+                    pqs_file = pairs = f"{pairs_prefix}.pairs.pqs"
+                    if not porec_table or use_pairs:
+                        hg_input = pqs_file
+                        hg_flag = "--pairs"
+                else:
+                    logger.info("The pqs file is incorrect, use the pairs.gz file.")
+
+    except IsNotPairs:
+        pass
 
 
     alleles_dir = str("1.alleles")
@@ -652,8 +784,10 @@ def run(fasta,
 
     allele_table = None if mode == "basal" else f"{alleles_dir}/{fasta_prefix}.allele.table" 
 
+    prepare_prefix = Path(Path(prepare_input).name)
+    while prepare_prefix.suffix in {".pairs", ".gz", ".pqs"}:
+        prepare_prefix = prepare_prefix.with_suffix("")
 
-    prepare_prefix = prepare_input.replace(".gz", "").rsplit(".", 1)[0]
     prepare_dir = str("2.prepare")
     
     if "2" not in skip_steps and "2" in steps:
@@ -705,28 +839,6 @@ def run(fasta,
 
         os.chdir("..")
     
-    # if not porec_table:
-    #     if mode == 'phasing' or mode == 'basal_withprune':
-    #         if not Path(f"{prepare_prefix}.q{min_quality2}.contacts").exists():
-    #             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-    #                     "-q", str(min_quality2), 
-    #                 "-o", f"{prepare_prefix}.q{min_quality2}.contacts" ]
-    #             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-    #             assert flag == 0, "Failed to execute command, please check log."
-    #         else:
-    #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality2}.contacts`")
-
-    #         contacts = f"{prepare_prefix}.q{min_quality2}.contacts"
-    #     else:
-    #         if not Path(f"{prepare_prefix}.q{min_quality1}.contacts").exists():
-    #             cmd = ["cphasing-rs", "pairs2contacts", str(hg_input), 
-    #                     "-q", str(min_quality1),
-    #                 "-o", f"{prepare_prefix}.q{min_quality1}.contacts" ]
-    #             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-    #             assert flag == 0, "Failed to execute command, please check log."
-    #         else:
-    #             logger.warning(f"Use exists contacts of `{prepare_prefix}.q{min_quality1}.contacts`")
-    #         contacts = f"{prepare_prefix}.q{min_quality1}.contacts"
     if pattern is None:
         pattern = "AAGCTT"
     count_re = f"{prepare_dir}/{prepare_prefix}.counts_{pattern}.txt"
@@ -747,11 +859,12 @@ def run(fasta,
     else:
         hyperpartition_contacts = None
 
-    if use_pairs and porec_table and not hcr_flag:
+    if use_pairs and porec_table:
         hg_input = pairs 
         hg_flag == "--pairs"
         input_param = "--pairs"
     
+
     hyperpartition_dir = str("3.hyperpartition")
     
     if "3" not in skip_steps and "3" in steps:
@@ -764,11 +877,16 @@ def run(fasta,
 
         if hcr_flag and "3" not in skip_steps and "3" in steps:
             hcr_invert_string = "-v" if hcr_invert else ""
-
+            if Path(f"../2.prepare/{prepare_prefix}.depth").exists():
+                depth = f"../2.prepare/{prepare_prefix}.depth"
+                init_args = ["-d", depth]   
+            else:
+                init_args = ["-prs", f"../{pairs}"]
+                             
             try:
                 if hcr_invert_string:
-                    args = ["-prs",
-                                f"../{pairs}",
+                    args = init_args + \
+                                [
                                 "-cs",
                                 f"../{contigsizes}",
                                 "-p", pattern,
@@ -789,8 +907,7 @@ def run(fasta,
                         prog_name="hcr"
                     )
                 else:
-                    args = ["-prs",
-                                f"../{pairs}",
+                    args = init_args +  [
                                 "-cs",
                                 f"../{contigsizes}",
                                 "-p", pattern,
@@ -834,7 +951,6 @@ def run(fasta,
                 
                 _out_sh.write(" ".join(pretty_cmd(map(str, _hcr_args))))
                 _out_sh.write("\n")
-
 
         _mode = mode
         _mode = "phasing" if _mode == "phasing2" else _mode
@@ -1053,7 +1169,7 @@ def run(fasta,
 
         out_small_cool = f"{pairs_prefix}.q{min_quality1}.{to_humanized2(init_binsize)}.cool"
 
-        if not is_file_changed(pairs) and Path(out_small_cool).exists():
+        if not is_file_changed(f"../{pairs}") and Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
             args = [
                     f"../{pairs}",
@@ -1139,13 +1255,28 @@ def run(fasta,
             
         os.chdir("../")
 
-
     today = date.today().strftime("%Y-%m-%d")
     end_time = time.time() - start_time
     monitor.join()
     peak_memory = max(monitor.memory_buffer) / 1024 / 1024 / 1024
-
-    logger.info(f"The pipeline finished in {today}. Elapsed time {end_time:.2f} s. "
-                f"Peak memory: {peak_memory:.2f} Gb"
-                )
-    logger.info(f"Results are store in `{outdir}`")
+    columns = shutil.get_terminal_size((80, 20)).columns
+    logger.info("\n")
+    today = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"The pipeline finished in {today}")
+    logger.info(f"    Elapsed time: {end_time:.2f} s")
+    logger.info(f"    Peak memory: {peak_memory:.2f} Gb")
+   
+    logger.info("=" * (columns // 2))
+    logger.info(f"Results are store in `{outdir}/`")
+    
+    if "4" in steps or "5" in steps:
+        logger.info("Please check these results:")
+    if "4" in steps:
+        logger.info(f"    {outdir}/4.scaffolding/groups.agp")
+        if corrected:
+            logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")
+    if "5" in steps:
+        res = glob.glob("5.plot/groups.*.wg.png")
+        if res:
+            for i in res:
+                logger.info(f"    {outdir}/{i}")

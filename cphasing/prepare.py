@@ -99,14 +99,14 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
     if not skip_pairs2clm:
         if str(pairs).endswith('.gz'):
             cmd0 = decompress_cmd(str(pairs), str(threads))
-            logger.info(f"\nGenerating clm file from pairs file `{pairs}`")
-            cmd = ["cphasing-rs", "pairs2clm", "-", "-c", str(min_contacts),
+            logger.info(f"Generating clm/depth/splitcontacts file from pairs file `{pairs}`")
+            cmd = ["cphasing-rs", "pairs2clm", "-", "-c", str(min_contacts), "-d",
                     "-t", str(threads), "-o", f"{outprefix}.clm.gz", "-q", str(min_mapq)]
 
             # print(" ".join(cmd0) + f" 2>{log_dir}/prepare.decompress.log" + " | " + " ".join(cmd) + f" 2>{log_dir}/prepare.pairs2clm.log")
             flag = os.system(" ".join(cmd0) + f" 2>{log_dir}/prepare.decompress.log" + " | " + " ".join(cmd) + f" 2>{log_dir}/prepare.pairs2clm.log")
         else:
-            cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts),
+            cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts), "-d",
                     "-t", str(threads), "-o", f"{outprefix}.clm.gz", "-q", str(min_mapq)]
             
             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
@@ -125,60 +125,4 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
         # assert flag == 0, "Failed to execute command, please check log."
         split_contacts_to_contacts(f"{outprefix}.split.contacts", f"{outprefix}.contacts"  )
         logger.info(f"Output contacts `{outprefix}.contacts`")
-    
-
-def pairs2depth(pq):
-    """
-    backend function for pairs2depth
-    """
-    schema = {
-        "read_idx": pl.Utf8,
-        "chrom1": pl.Utf8,
-        "pos1": pl.UInt32,
-        "chrom2": pl.Utf8,
-        "pos2": pl.UInt32,
-        "strand1": pl.Categorical,
-        "strand2": pl.Categorical,
-        "mapq": pl.UInt8
-    }
-
-    os.environ["POLARS_MAX_THREADS"] = str(10)
-    df = pl.scan_parquet(f"{pq}", schema=schema)
-
-    df = df.select([
-        "chrom1", "pos1", "chrom2", "pos2", "mapq"
-    ])
-    df = (df.filter(pl.col("mapq") >= 0)
-            .with_columns(
-        ((pl.col("pos1") - 1) // 10000).alias("pos1"),
-        ((pl.col("pos2") - 1) // 10000).alias("pos2"),
-            )
-    )
-
-    df1 = df.select(["chrom1", "pos1", "mapq"]).group_by(["chrom1", "pos1"]).agg([
-        pl.col("mapq").count().alias("count")
-    ])
-
-    df2 = df.select(["chrom2", "pos2", "mapq"]).group_by(["chrom2", "pos2"]).agg([
-        pl.col("mapq").count().alias("count")
-    ])
-    
-
-    ## merge the two dataframes
-    df = df1.join(df2, left_on=["chrom1", "pos1"], right_on=["chrom2", "pos2"], how="full")
-
-    df = df.drop_nulls(subset=["chrom1", "pos1", "chrom2", "pos2"])
-    df = df.with_columns(
-        (pl.col("count") + pl.col("count_right")).alias("count")
-    )
-    df = df.drop(["count_right"])
-    df  = df.with_columns(
-        ((pl.col("pos1") + 1) * 10000 - 10000).alias("start"),
-        ((pl.col("pos1") + 1) * 10000).alias("end")
-    ).drop(["pos1"])
-
-    df = df.sort(["chrom1", "start"])
-    df = df.select(["chrom1", "start", "end", "count"])
-
-    df.collect().write_csv("output.csv", separator="\t", include_header=False)
     

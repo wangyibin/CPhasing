@@ -10,4 +10,4 @@
 
 
 
-(Waiting)
+Please check the [Doc](https://wangyibin.github.io/CPhasing/CLI/methalign/).

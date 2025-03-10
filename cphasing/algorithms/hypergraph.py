@@ -30,22 +30,29 @@ class HyperEdges(msgspec.Struct):
     idx: contig idx 
     row: contigs
     col: hyperedges
+    # count: contact of a contig in a read (> 2)
+    contigsizes: contig sizes
+    mapq: mapq of alignments
     """
     idx: dict 
     row: list
     col: list
+    # count: list
     contigsizes: dict 
     mapq: list
 
     def to_numpy(self):
         self.row = np.array(self.row, dtype=np.int32)
         self.col = np.array(self.col, dtype=HYPERGRAPH_COL_DTYPE)
+        # self.count = np.array(self.count, dtype=np.uint32)
         self.mapq = np.array(self.mapq, dtype=np.int8)
 
     def to_list(self):
         self.row = self.row.tolist()
         self.col = self.col.tolist()
+        # self.count = self.count.tolist()
         self.mapq = self.mapq.tolist()
+        
 
 def merge_hyperedges(HE_list: list) -> HyperEdges:
     
@@ -61,6 +68,8 @@ def merge_hyperedges(HE_list: list) -> HyperEdges:
         init_HE.col += HE.col 
         if HE.mapq:
             init_HE.mapq += HE.mapq
+        # if HE.count:
+        #     init_HE.count += HE.count
 
     return init_HE
 
@@ -81,12 +90,13 @@ class HyperGraph:
         self.min_quality = min_quality
         self.get_data()
 
-
-
     def get_data(self):
         """
         initial assign row and edges
         """
+        if len(self.edges.row) == 0:
+            raise ValueError("No hyperedges found.")
+
         if self.min_quality > 1 and len(self.edges.mapq) > 1:
             self.mapq = np.array(self.edges.mapq, dtype=np.int8)
 
@@ -97,6 +107,8 @@ class HyperGraph:
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
             self.col = self.edges.col[retain_idx]
+            # self.count = self.edges.count[retain_idx]
+           
 
             # self.idx = np.sort(np.array(pd.unique(self.row)))
             self.idx = np.unique(self.row)
@@ -112,6 +124,7 @@ class HyperGraph:
             self.nodes = np.array([k for k, v in sorted(self.edges.idx.items(), key=lambda item: item[1])])
             self.row = self.edges.row
             self.col = self.edges.col
+            # self.count = self.edges.count
             self.remove_contigs = np.array([])
 
         self.shape = (len(self.nodes), max(self.col) + 1)
@@ -130,6 +143,7 @@ class HyperGraph:
 
         self.row = self.row[~remove_idx]
         self.col = self.col[~remove_idx]
+        # self.count = self.count[~remove_idx]
 
         # if len(self.mapq) > 1:
         #     self.mapq = self.mapq[~remove_idx]
@@ -151,7 +165,7 @@ class HyperGraph:
 
         self.row = self.row[remove_idx]
         self.col = self.col[remove_idx]
-
+        # self.count = self.count[remove_idx]
         # if len(self.mapq) > 1:
         #     self.mapq = self.mapq[remove_idx]
 
@@ -166,19 +180,14 @@ class HyperGraph:
             minimum contacts of contig
 
         """
-        # if len(self.mapq) == 1:
+
         matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
                                 (self.row, self.col)
                                 ), 
                                 shape=self.shape
                                 )
-        # else:
-        #     weight = self.mapq + 1
-        #     matrix = csr_matrix((weight, 
-        #                         (self.row, self.col)
-        #                         ), 
-        #                         shape=self.shape
-        #                         )
+        # matrix = csr_matrix((self.count, (self.row, self.col)), 
+        #                      shape=self.shape)
 
         if min_contacts:
             non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
@@ -197,7 +206,7 @@ class HyperGraph:
         else:
             self.remove_contigs = []
        
-        del self.row, self.col 
+        del self.row, self.col
         gc.collect()
 
         return matrix 
@@ -213,6 +222,8 @@ class HyperGraph:
         clique expansion/reduction
         """
         m = H.shape[1]
+
+        # D_e - I
         D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
         
         # W = identity(m, dtype=np.float32)
@@ -286,7 +297,7 @@ class HyperGraph:
         # A = HyperGraph.clique_expansion_init(H, NW=NW, min_weight=min_weight).tocoo()
         A = A.tocoo()
         V = nodes
-
+       
         df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
         df = df[df[0] <= df[1]]
         df = df[(df[2] >= min_weight) | (df[2] <= -min_weight)]
@@ -482,6 +493,8 @@ def IRMM(H, A=None,
         W = identity(m, dtype=np.float32)
         
         ## D_e - I 
+        # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
+    
         D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
         
         ## inverse diagonal matrix D_e

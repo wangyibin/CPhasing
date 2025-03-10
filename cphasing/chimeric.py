@@ -29,6 +29,7 @@ from sklearn.metrics import mean_squared_error
 
 try: 
     from .core import PairHeader
+    from .pqs import PQS
     from .utilities import read_fasta, xopen, run_cmd
 except ImportError:
     pass
@@ -136,6 +137,7 @@ def import_pairs_chunks(pairs, window_size=500, min_mapq=0,
 
 
 def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
+    os.environ["POLARS_MAX_THREADS"] = str(threads)
     dtype = {'chrom1': pl.Categorical, 
             'pos1': pl.UInt32,
             'chrom2': pl.Categorical, 
@@ -149,7 +151,7 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
     columns = [1, 2, 3, 4, 7] if min_mapq > 0 else [1, 2, 3, 4]
     new_columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq'] if min_mapq > 0 else ['chrom1', 'pos1', 'chrom2', 'pos2']
     
-    os.environ["POLARS_MAX_THREADS"] = str(threads)
+    
     try:
         p = (pl.read_csv(pairs, separator='\t', has_header=False,
                             comment_prefix="#", columns=columns,
@@ -189,6 +191,18 @@ def import_pairs(pairs, window_size=500, min_mapq=0, threads=4):
 
     return p, contigsizes
 
+def import_pairs_pqs(pairs, window_size=500, min_mapq=0, threads=4):
+    p = PQS(pairs, threads=threads)
+    p.init_read()
+
+    chunks = p.read(return_as="files")
+
+    pairs_df = p.to_cis_depth_df(chunks, window_size=window_size, min_mapq=min_mapq)
+    contigsizes = p.contigsizes_db
+
+
+    return pairs_df, contigsizes
+
 def calculate_depth(p, contigsizes, window_size=500, output_depth=False, threads=4):
 
     args = []
@@ -198,14 +212,13 @@ def calculate_depth(p, contigsizes, window_size=500, output_depth=False, threads
     del p
     gc.collect()
 
-    res = Parallel(n_jobs=threads)(
-        delayed(_calculate_depth)(i, j, k, l)
-            for i, j, k, l in args
+    res = Parallel(n_jobs=threads, return_as="generator")(
+        delayed(_calculate_depth)(*arg)
+            for arg in args
     )
 
-    res_db = dict(res)
+    res_db = dict(list(res))
     
-
     return res_db
     
 
@@ -472,14 +485,27 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
         output_depth=False, outprefix="output", 
         low_memory=False, threads=4):
     logger.info("Running chimeric correction ...")
-    if low_memory:
-        depth_dict, contigsizes = import_pairs_chunks(pairs, window_size=window_size, 
-                                                      min_mapq=min_mapq, threads=threads)
-        pairs_df = None
-    else:
-        pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, min_mapq=min_mapq, 
-                                             threads=threads)
+
+    
+    if Path(pairs).is_dir():
+        p = PQS(pairs, threads=threads)
+        p.init_read()
+        assert p.is_pairs(pairs) and p.is_pqs(pairs), "The input directory is not a pairs.pqs directory."
+        
+        pairs_df, contigsizes = import_pairs_pqs(pairs, window_size=window_size, min_mapq=min_mapq, threads=threads)
+        
         depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
+                                    output_depth=output_depth, threads=threads)
+
+    else:
+        if low_memory:
+            depth_dict, contigsizes = import_pairs_chunks(pairs, window_size=window_size, 
+                                                        min_mapq=min_mapq, threads=threads)
+            pairs_df = None
+        else:
+            pairs_df, contigsizes = import_pairs(pairs, window_size=window_size, min_mapq=min_mapq, 
+                                                threads=threads)
+            depth_dict = calculate_depth(pairs_df, contigsizes, window_size=window_size, 
                                             output_depth=output_depth, threads=threads)
     
     if output_depth:
@@ -567,10 +593,15 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
 
         if break_pairs:
             output_pairs_prefix = Path(Path(pairs).stem).with_suffix('')
-            while output_pairs_prefix.suffix in {'.pairs', '.gz'}:
+            while output_pairs_prefix.suffix in {'.pairs', '.gz', '.pqs'}:
                 output_pairs_prefix = output_pairs_prefix.with_suffix('')
-            if_gz = ".gz" if "gz" in pairs else ""
-            output_pairs = f"{output_pairs_prefix}.corrected.pairs{if_gz}"
+            if ".gz" in pairs:
+                suffix = ".gz"
+            elif ".pqs" in pairs:
+                suffix = ".pqs"
+            else:
+                sffix = ""
+            output_pairs = f"{output_pairs_prefix}.corrected.pairs{suffix}"
             corrected_pairs(pairs, output_break_bed, output_pairs)
         else:
             output_pairs = pairs 

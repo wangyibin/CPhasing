@@ -47,11 +47,18 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
     - **2** | 如果基因组的大小大于8Gb，需要提高比对的`k` 和`w`的大小，避免`chromap`报错，例如 `-hic-mapper-k 27 -hic-mapper-w 14`.
 
 
-### 输入4DN pairs (`.pairs.gz`)文件
-```bash
-cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n 8:4
-```
-- 跳过一些步骤
+### 输入4DN pairs (`.pairs.gz` or `.pairs.pqs`)文件
+
+=== "`pairs.pqs`"
+    ```bash
+    cphasing pipeline -f draft.asm.fasta -prs sample.pairs.pqs -t 10 -n 8:4
+    ```
+=== "`pairs.gz`"
+    ```bash
+    cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n 8:4
+    ```
+
+### 跳过一些步骤
 ```bash
 ## skip steps 1.alleles and 2.prepare steps 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2

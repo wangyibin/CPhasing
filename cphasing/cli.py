@@ -15,9 +15,10 @@ import polars as pl
 
 import rich_click as click
 from rich_click import RichCommand
-from click_didyoumean import DYMGroup
+from click_didyoumean import DYMGroup, DYMCommandCollection
 
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from pytools import natsorted
 from shutil import which
@@ -31,6 +32,7 @@ from .core import (
 from .utilities import (
     compress_cmd,
     decompress_cmd,
+    export_log,
     run_cmd,
     humanized2numeric,
     to_humanized2,
@@ -82,7 +84,7 @@ click.rich_click.COMMAND_GROUPS = {
         },
         {
             "name": "Main Commands",
-            "commands": ["hitig", "mapper", "chimeric", "prepare",
+            "commands": ["hitig", "methalign", "mapper", "chimeric", "prepare",
                          "alleles", "hyperpartition", "scaffolding",
                          "build", "rename", "pairs2cool", "plot"]
         },
@@ -90,9 +92,9 @@ click.rich_click.COMMAND_GROUPS = {
         {
             "name": "Formats Converter (link to cphasing-rs)",
             "commands": ["bam2pairs", "bam2paf", 
-                        
                          "paf2porec", "paf2pairs",
                          "porec-merge", "porec2pairs",
+                        "pairs2pqs",
                          "pairs-merge", "pairs-filter",
                          "pairs2mnd", "pairs2cool",]
 
@@ -140,8 +142,8 @@ PIPE_OPTION_GROUPS = [
             "options": ["--ul-data", "--use-existed-hitig"]
         },
         {
-            "name": "Options of Pore-C Mapper",
-            "options": ["--mapper-k", "--mapper-w", "--mapping-quality"]
+            "name": "Options of Pore-C/HiFi-C Mapper",
+            "options": ["--mapper-k", "--mapper-w", "--mapping-quality", "--mm2-params"]
         },
          {
             "name": "Options of Hi-C Mapper",
@@ -219,6 +221,7 @@ click.rich_click.OPTION_GROUPS = {
                         "--triangle",
                         "--fontsize",
                         "--dpi", "--cmap", "--whitered",
+                        "--hap-pattern", "--add-hap-border",
                         "--no-lines", "--no-ticks", 
                         "--rotate-xticks", "--rotate-yticks"]
             
@@ -230,7 +233,7 @@ click.rich_click.OPTION_GROUPS = {
     ]
 }
 
-class CommandGroup(click.RichGroup, RichCommand):
+class CommandGroup(DYMGroup, click.RichGroup, RichCommand):
     """
     List subcommand in the order there were added.
     """
@@ -601,7 +604,7 @@ def cli(verbose, quiet):
     'edge_length',
     help='Only load contacts that in the both ends of contigs to construct hypergraph',
     metavar="STR",
-    default="500k",
+    default=EDGE_LENGTH,
     show_default=True
 )
 @click.option(
@@ -645,7 +648,7 @@ def cli(verbose, quiet):
     help="Initial resolution of the automatic search resolution in first partition"
     ", only used when `--resolution1=-1`.",
     type=float,
-    default=0.8,
+    default=1.0,
     show_default=True
 )
 @click.option(
@@ -883,20 +886,20 @@ def cli(verbose, quiet):
     '--preset',
     metavar='STR',
     help="""Preset of the pipeline:  
-    &emsp; precision: -msc 20 -mc 25 -mw 3  
-    &emsp; **sensitive**: -msc 5 -mc 5 -mw 0.1 (default)  
-    &emsp; very-sensitive -e 1m -msc 1.0 -mc 5 -mw 0.1  
-    &emsp; simulation: -e 0 -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
+    &emsp; **precision**: -msc 20 -mc 25 -mw 2.0 (default)  
+    &emsp; sensitive: -msc 5 -mc 5 -mw 1.0  
+    &emsp; very-sensitive -msc 1.0 -mc 5 -mw 0.1  
+    &emsp; simulation: -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
     
     > This parameter will overwrite the aboving parameters.  
-    \<precision\> is designed for remove more low quality contigs to increase the precision of the result;
-    \<sensitive\> is designed for cluster more low signal or fragmented contigs;
-    \<very-sensitive\> is designed for cluster more low signal or fragmented contigs, and it is very sensitive;
-    \<simulation\> is designed for simulation data in our study which is simulated from chromosome-level assembly.    
+    \<precision\>  for remove more low quality contigs to increase the precision of the result;  
+    \<sensitive\> for cluster more low signal or fragmented contigs;  
+    \<very-sensitive\> for cluster more low signal and fragmented contigs, and it is very sensitive;  
+    \<simulation\> for simulation data in our study which is simulated from chromosome-level assembly.    
 
     ["precision", "sensitive", "very-sensitive", "simulation"]
     """,
-    default="sensitive",
+    default="precision",
     show_default=True,
     type=click.Choice(["precision", "sensitive", "very-sensitive", "simulation"]),
 )
@@ -1048,28 +1051,29 @@ def pipeline(fasta,
     if all([(len(porec_data) > 0), ((hic1 is not None) and (hic2 is not None))]):
         logger.warning("Simulataneously process Pore-C and Hi-C is not yet supported, only use Pore-C data for subsequently steps.")
     
-    if preset == "precision":
-        min_contacts = 25
-        min_weight = 2.0
-        min_cis_weight = 20
-        logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
-                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+    outdir_abs = os.path.abspath(outdir)    
 
-
-    # elif preset == "sensitive":
-    #     min_contacts = 5
-    #     min_weight = 2.0
-    #     min_cis_weight = 5 
+    # if preset == "precision":
+    #     min_contacts = 25
+    #     min_weight = 3.0
+    #     min_cis_weight = 20
     #     logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
-    #                 f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+    #                 f"min_weight={min_weight}, min_cis_weight={min_cis_weight}")
+
+
+    if preset == "sensitive":
+        min_contacts = 5
+        min_weight = 1.0
+        min_cis_weight = 5 
+        logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
+                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}")
     
     elif preset == "very-sensitive":
-        edge_length = "1m"
         min_contacts = 5
         min_weight = 0.1
         min_cis_weight = 1.0
         logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
-                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}, edge_length={edge_length}")
+                    f"min_weight={min_weight}, min_cis_weight={min_cis_weight}")
     elif preset == "simulation":
         min_contacts = 5
         min_weight = 0.1
@@ -1102,74 +1106,86 @@ def pipeline(fasta,
         skip_steps = set(skip_steps.strip().split(","))
     else:
         skip_steps = set()
-    
-    run(fasta, 
-        ul_data,
-        porec_data,
-        porectable, pairs, 
-        hic1=hic1,
-        hic2=hic2,
-        pattern=pattern,
-        mapper_k=mapper_k, 
-        mapper_w=mapper_w,
-        mm2_params=mm2_params,
-        mapping_quality=mapping_quality,
-        hic_mapper_k=hic_mapper_k,
-        hic_mapper_w=hic_mapper_w,
-        chimeric_correct=chimeric_correct,
-        chimeric_corrected=chimeric_corrected,
-        hcr_flag=hcr,
-        hcr_lower=hcr_lower,
-        hcr_upper=hcr_upper,
-        collapsed_contig_ratio=collapsed_contig_ratio,
-        hcr_bs=hcr_bs, 
-        hcr_bed=hcr_bed,
-        hcr_invert=hcr_invert,
-        mode=mode, 
-        steps=steps,
-        skip_steps=skip_steps,
-        use_existed_hitig=use_existed_hitig,
-        alleles_kmer_size=alleles_kmer_size,
-        alleles_window_size=alleles_window_size,
-        alleles_minimum_similarity=alleles_minimum_similarity,
-        alleles_diff_thres=alleles_diff_thres,
-        alleles_trim_length=alleles_trim_length,
-        scaffolding_method=scaffolding_method,
-        n=n,
-        use_pairs=use_pairs,
-        edge_length=edge_length,
-        resolution1=resolution1,
-        resolution2=resolution2,
-        init_resolution1=init_resolution1,
-        init_resolution2=init_resolution2,
-        first_cluster=first_cluster,
-        normalize=normalize,
-        allelic_factor=allelic_factor,
-        disable_merge_in_first=disable_merge_in_first,
-        exclude_group_to_second=exclude_group_to_second,
-        exclude_group_from_first=exclude_group_from_first,
-        whitelist=whitelist,
-        allelic_similarity=allelic_similarity,
-        min_allelic_overlap=min_allelic_overlap,
-        min_weight=min_weight,
-        min_cis_weight=min_cis_weight,
-        min_quality1=min_quality1,
-        min_quality2=min_quality2,
-        min_contacts=min_contacts,
-        min_length=min_length,
-        Nx=nx,
-        min_scaffold_length=min_scaffold_length,
-        enable_misassembly_remove=enable_misassembly_remove,
-        binsize=binsize,
-        colormap=cmap,
-        whitered=whitered,
-        outdir=outdir,
-        threads=threads,
-        low_memory=low_memory)
+
+    today = datetime.now().strftime("%m-%d_%H_%M_%S")
+    try:
+        run(fasta, 
+            ul_data,
+            porec_data,
+            porectable, pairs, 
+            hic1=hic1,
+            hic2=hic2,
+            pattern=pattern,
+            mapper_k=mapper_k, 
+            mapper_w=mapper_w,
+            mm2_params=mm2_params,
+            mapping_quality=mapping_quality,
+            hic_mapper_k=hic_mapper_k,
+            hic_mapper_w=hic_mapper_w,
+            chimeric_correct=chimeric_correct,
+            chimeric_corrected=chimeric_corrected,
+            hcr_flag=hcr,
+            hcr_lower=hcr_lower,
+            hcr_upper=hcr_upper,
+            collapsed_contig_ratio=collapsed_contig_ratio,
+            hcr_bs=hcr_bs, 
+            hcr_bed=hcr_bed,
+            hcr_invert=hcr_invert,
+            mode=mode, 
+            steps=steps,
+            skip_steps=skip_steps,
+            use_existed_hitig=use_existed_hitig,
+            alleles_kmer_size=alleles_kmer_size,
+            alleles_window_size=alleles_window_size,
+            alleles_minimum_similarity=alleles_minimum_similarity,
+            alleles_diff_thres=alleles_diff_thres,
+            alleles_trim_length=alleles_trim_length,
+            scaffolding_method=scaffolding_method,
+            n=n,
+            use_pairs=use_pairs,
+            edge_length=edge_length,
+            resolution1=resolution1,
+            resolution2=resolution2,
+            init_resolution1=init_resolution1,
+            init_resolution2=init_resolution2,
+            first_cluster=first_cluster,
+            normalize=normalize,
+            allelic_factor=allelic_factor,
+            disable_merge_in_first=disable_merge_in_first,
+            exclude_group_to_second=exclude_group_to_second,
+            exclude_group_from_first=exclude_group_from_first,
+            whitelist=whitelist,
+            allelic_similarity=allelic_similarity,
+            min_allelic_overlap=min_allelic_overlap,
+            min_weight=min_weight,
+            min_cis_weight=min_cis_weight,
+            min_quality1=min_quality1,
+            min_quality2=min_quality2,
+            min_contacts=min_contacts,
+            min_length=min_length,
+            Nx=nx,
+            min_scaffold_length=min_scaffold_length,
+            enable_misassembly_remove=enable_misassembly_remove,
+            binsize=binsize,
+            colormap=cmap,
+            whitered=whitered,
+            outdir=outdir,
+            threads=threads,
+            low_memory=low_memory)
+    except Exception as e:
+        os.chdir(outdir_abs)
+        export_log(f"cphasing_{today}.log.txt")
+
+        logger.exception(e)
+        
+
+    os.chdir(outdir_abs)
+    export_log(f"cphasing_{today}.log.txt")
     
 
 ## Subcommand of UL ONT pipeline
 from .hitig.cli import hitig 
+from .methalign.cli import methalign
 
 @cli.command(cls=RichCommand, epilog=__epilog__)
 @click.argument(
@@ -1988,6 +2004,16 @@ def chimeric(fasta, pairs, depth, window_size,
     required=True
 )
 @click.option(
+    '-d',
+    '--depth',
+    metavar="Depth",
+    help="four columns file of contig, start, end, depth, which can genreate from `cphasing pairs2clm` or `cphasing pairs2depth`.",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    hidden=True
+)
+@click.option(
     '-p',
     '--pattern',
     help="Pattern of restriction enzyme. Comma separated for multiple pattern."
@@ -2076,8 +2102,8 @@ def chimeric(fasta, pairs, depth, window_size,
     default=None,
     show_default=True
 )
-def hcr(fasta, porectable, pairs, contigsize, 
-        pattern, binsize, 
+def hcr(fasta, porectable, pairs, depth,
+        contigsize, pattern, binsize, 
         lower, upper, collapsed_contig_ratio,
           bed, invert, min_quality, fofn, output):
     """
@@ -2088,56 +2114,62 @@ def hcr(fasta, porectable, pairs, contigsize,
     from .hitig.hcr.hcr_by_contacts import hcr_by_contacts
     from .utilities import is_file_changed
 
-    assert porectable or pairs, "The Pore-C table or 4DN pairs file should be provided at least one."
+    assert porectable or pairs or depth, "The Pore-C table or 4DN pairs or depth file should be provided at least one."
 
     os.environ["POLARS_MAX_THREADS"] = "10"
 
     log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
-    if porectable:
-        if fofn:
-            pore_c_tables = [i.strip() for i in open(porectable) if i.strip()]
-        else:
-            pore_c_tables = [porectable]
-
-        if not pairs:
-            pairs_files = []
-            for pore_c_table in pore_c_tables:
-                path = Path(pore_c_table).parent
-         
-                prefix = Path(Path(pore_c_table).stem).with_suffix("")
-                
-                while prefix.suffix in {'.gz', 'gz', 'porec', ".porec"}:
-                    prefix = prefix.with_suffix('')
-                
-                pairs = f"{path}/{prefix}.pairs.gz"
-                pairs_files.append(pairs)
-                if not Path(pairs).exists() or is_compressed_table_empty(pairs):
-                    cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
-                    "-o", pairs, "-q", "0"]
-                
-                    flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
-                    assert flag == 0, "Failed to execute command, please check log."
-                else:
-                    logger.warning(f"Use exists 4DN pairs file of `{pairs}`.")
-        else:
-            prefix = Path(pairs).with_suffix("")
-            while prefix.suffix in {'.gz', 'gz', '.pairs'}:
-                prefix = prefix.with_suffix('')
-        
+    if depth:
+        depth_file = depth
+        prefix = Path(Path(depth).stem)
+        while prefix.suffix in {'.gz', 'gz', '.depth'}:
+            prefix = prefix.with_suffix('')
     else:
-        if fofn:
-            pairs_files = [i.strip() for i in open(pairs) if i.strip()]
+        if porectable:
+            if fofn:
+                pore_c_tables = [i.strip() for i in open(porectable) if i.strip()]
+            else:
+                pore_c_tables = [porectable]
+
+            if not pairs:
+                pairs_files = []
+                for pore_c_table in pore_c_tables:
+                    path = Path(pore_c_table).parent
+            
+                    prefix = Path(Path(pore_c_table).stem).with_suffix("")
+                    
+                    while prefix.suffix in {'.gz', 'gz', 'porec', ".porec"}:
+                        prefix = prefix.with_suffix('')
+                    
+                    pairs = f"{path}/{prefix}.pairs.gz"
+                    pairs_files.append(pairs)
+                    if not Path(pairs).exists() or is_compressed_table_empty(pairs):
+                        cmd = ["cphasing-rs", "porec2pairs", porectable, contigsize,
+                        "-o", pairs, "-q", "0"]
+                    
+                        flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
+                        assert flag == 0, "Failed to execute command, please check log."
+                    else:
+                        logger.warning(f"Use exists 4DN pairs file of `{pairs}`.")
+            else:
+                prefix = Path(pairs).with_suffix("")
+                while prefix.suffix in {'.gz', 'gz', '.pairs'}:
+                    prefix = prefix.with_suffix('')
+            
         else:
-            pairs_files = [pairs]
-        
-        for pairs in pairs_files:
+            if fofn:
+                pairs_files = [i.strip() for i in open(pairs) if i.strip()]
+            else:
+                pairs_files = [pairs]
+            
+            for pairs in pairs_files:
 
-            prefix = Path(Path(pairs).name).with_suffix("")
-            while prefix.suffix in {'.gz', 'gz', '.pairs'}:
-                prefix = prefix.with_suffix('')
+                prefix = Path(Path(pairs).name).with_suffix("")
+                while prefix.suffix in {'.gz', 'gz', '.pairs'}:
+                    prefix = prefix.with_suffix('')
 
-    depth_file = f"{prefix}.{binsize}.depth"
+        depth_file = f"{prefix}.{binsize}.depth"
 
     if bed:
         if is_file_changed(str(pairs)) or is_file_changed(bed) or not Path(depth_file).exists():
@@ -2157,35 +2189,36 @@ def hcr(fasta, porectable, pairs, contigsize,
             logger.warning(f"Use exists depth file of `{depth_file}`.")
     
     else:
-        if is_file_changed(str(pairs)) or not Path(depth_file).exists():
-            if str(pairs).endswith(".gz"):
-                cmd0 = decompress_cmd(pairs, threads=10)
-                logger.info("Calculating the depth from pairs ...")
-                cmd = ['cphasing-rs', 'pairs2depth',
+        if depth is None:
+            if is_file_changed(str(pairs)) or not Path(depth_file).exists():
+                if str(pairs).endswith(".gz"):
+                    cmd0 = decompress_cmd(pairs, threads=10)
+                    logger.info("Calculating the depth from pairs ...")
+                    cmd = ['cphasing-rs', 'pairs2depth',
+                            '-q', str(min_quality),
+                            '-', "-o", depth_file]
+                    flag = os.system(" ".join(cmd0) + f" 2>logs/pairs2depth.decompress.log" + " | " + " ".join(cmd) + f" 2>logs/pairs2depth.log")
+                    
+                else:
+                    cmd = ['cphasing-rs', 'pairs2depth', 
                         '-q', str(min_quality),
-                        '-', "-o", depth_file]
-                flag = os.system(" ".join(cmd0) + f" 2>logs/pairs2depth.decompress.log" + " | " + " ".join(cmd) + f" 2>logs/pairs2depth.log")
-                
-            else:
-                cmd = ['cphasing-rs', 'pairs2depth', 
-                    '-q', str(min_quality),
-                    str(pairs), "-o", depth_file]
-                flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
-            assert flag == 0, "Failed to execute command, please check log."
+                        str(pairs), "-o", depth_file]
+                    flag = run_cmd(cmd, log=f"logs/pairs2depth.log")
+                assert flag == 0, "Failed to execute command, please check log."
 
-        else:
-            logger.warning(f"Use exists depth file of `{depth_file}`.")
+            else:
+                logger.warning(f"Use exists depth file of `{depth_file}`.")
 
     if pattern and fasta:
         logger.info("Normalizing each bin by RE counts ...")
-        cmd = ["bedtools", "getfasta", "-fi", str(fasta), 
-               "-bed", str(depth_file), "2>logs/hcr_bed2fasta.log",
-               ">", "tmp.depth.fasta"]
-        flag = os.system(" ".join(cmd))
-        assert flag == 0, "Failed to execute command, please check log."
-        cmd = ["cphasing-rs", "count_re", "--pattern", str(pattern), "tmp.depth.fasta", 
+        # cmd1 = ["bedtools", "getfasta", "-fi", str(fasta), 
+        #        "-bed", str(depth_file), "2>logs/hcr_bed2fasta.log"]
+        cmd1 = ["cphasing-rs", "slidefasta", str(fasta),
+                "-w", str(binsize), "2>logs/hcr_slidefasta.log"]
+        
+        cmd2 = ["cphasing-rs", "count_re", "--pattern", str(pattern), "-", 
                "2>logs/hcr_countre.log", "-o", "tmp.depth.countre.txt"]
-        flag = os.system(" ".join(cmd))
+        flag = os.system(" ".join(cmd1) + " | " + " ".join(cmd2))
         assert flag == 0, "Failed to execute command, please check log."
 
         df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
@@ -2489,6 +2522,7 @@ def alleles(fasta, output,
     from .core import AlleleTable, ClusterTable
     from .utilities import is_file_changed
     from joblib import Parallel, delayed, parallel_backend
+    from multiprocessing import Pool
 
     if not output:
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
@@ -2508,10 +2542,12 @@ def alleles(fasta, output,
     else:
         ct = ClusterTable(first_cluster)
         fasta = Path(fasta).absolute()
+        current_dir = Path.cwd()
         Path("alleles_workdir/").mkdir(exist_ok=True)
-        fastas = ct.to_fasta(fasta, trim_length=trim_length, outdir="alleles_workdir")
-        fastas = list(map(lambda x: Path(x).name, fastas))
-        os.chdir("alleles_workdir")
+        fastas = ct.to_fasta(fasta, trim_length=trim_length, outdir=f"{current_dir}/alleles_workdir")
+        # fastas = list(map(lambda x: Path(x).name, fastas))
+        
+        Path("logs").mkdir(exist_ok=True)
         
         args = []
         allele_tables = []
@@ -2519,30 +2555,32 @@ def alleles(fasta, output,
             fasta_prefix2 = Path(Path(fa).name).with_suffix("")
             while fasta_prefix2.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
                 fasta_prefix2 = fasta_prefix2.with_suffix("")
-            output2 = f"{fasta_prefix2}.allele.table"
-            allele_tables.append(f"alleles_workdir/{output2}")
+            output2 = f"{current_dir}/alleles_workdir/{fasta_prefix2}.allele.table"
+            allele_tables.append(f"{output2}")
             if Path(output2).exists():
                 is_file_changed(output2)
             if not is_file_changed(fa) and Path(output2).exists() and not is_file_changed(output2):
                 continue
             
-            args.append((fa, kmer_size, window_size, max_occurance, 
+            args.append((str(Path(fa).absolute()), kmer_size, window_size, max_occurance, 
                             min_cnt, minimum_similarity, diff_thres,
                             min_length, output2, 4))
             
         def func(fa, kmer_size, window_size, max_occurance, 
                     min_cnt, minimum_similarity, diff_thres,
-                    min_length, output,threads):
-            
+                    min_length, output, threads):
             pa = PartigAllele(fa, kmer_size, window_size, max_occurance, 
                             min_cnt, minimum_similarity, diff_thres,
                             min_length, output, threads)
             pa.run()
+            if Path(f"{Path(fa).stem}.similarity.res").exists():
+                os.remove(f"{Path(fa).stem}.similarity.res")
 
         logger.info("Identifing allelic contig pairs in each homologous group ...")
         if len(args) > 0:
-            with parallel_backend('loky'):
+            with parallel_backend('loky', n_jobs=min(threads, len(args))):
                 Parallel(n_jobs=min(threads, len(args)))(delayed(func)(*a) for a in args)
+
         else:
             logger.info("Load existing allele table to generate total allele table.")
         
@@ -2552,7 +2590,6 @@ def alleles(fasta, output,
             if Path(f"{fa}.fai").exists():
                 os.remove(f"{fa}.fai")
 
-        os.chdir('..')
         ## merge allele table 
         logger.setLevel(logging.WARNING)
         res = [AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables]
@@ -3522,7 +3559,7 @@ def hypergraph(contacts,
     help="Initial resolution of the automatic search resolution in first partition"
     ", only used when `--resolution1=-1`.",
     type=float,
-    default=0.8,
+    default=1.0,
     show_default=True
 )
 @click.option(
@@ -3706,10 +3743,13 @@ def hyperpartition(hypergraph,
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
 
-    if edge_length != "None" and edge_length is not None and edge_length != "none":
-        edge_length = humanized2numeric(edge_length)
+    if edge_length != "None" and edge_length is not None and edge_length != "none" and edge_length != "0":
+        if isinstance(edge_length, str):
+            edge_length = humanized2numeric(edge_length)
+        else:
+            edge_length = edge_length
     else:
-        edge_length = None
+        edge_length = 0
 
 
     ultra_complex = None
@@ -3735,9 +3775,11 @@ def hyperpartition(hypergraph,
             prunetable = None  
     elif mode == "phasing":
         incremental = True 
-        assert alleletable or prunetable or fasta,\
-            "phasing mode must add `--fasta` or `-pt` or `-at` param"
+        # assert alleletable or prunetable or fasta,\
+        #     "phasing mode must add `--fasta` or `-pt` or `-at` param"
         logger.info("Running hyperpartition with `phasing` mode.")
+        if alleletable is None and prunetable is None and fasta is None:
+            logger.warning("allelic information will not be used in phasing mode, because the `--fasta` or `-pt` or `-at` param not be added")
 
     elif mode == "basal_withprune":
         incremental = False
@@ -3787,7 +3829,7 @@ def hyperpartition(hypergraph,
 
     if (len(n) == 2):
         if (n[1] is None or n[1] == '0') and resolution2 < 0:
-            logger.info(f"The group number of second cluster was not be specified, set the resolution1 from {resolution2} to 1.0.")
+            logger.info(f"The group number of second cluster was not be specified, set the resolutio2 from {resolution2} to 1.0.")
             resolution2 = 1.0
 
     for i, v in enumerate(n):
@@ -4003,6 +4045,20 @@ def hyperpartition(hypergraph,
     hp.to_cluster(output)
 
 @cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@click.option(
+    "-f",
+    "--gfa",
+    metavar="GFA",
+    type=click.Path(exists=True),
+    required=True
+)
+def gfa2depth(gfa):
+    from .collapse import CollapseFromGfa
+    cfg = CollapseFromGfa(gfa)
+    cfg.run()
+
+
+@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4037,7 +4093,7 @@ def hyperpartition(hypergraph,
     metavar="PATH",
     help="""
     Path to allele table that is generated from `alleles`. 
-        Skip when prunetable parameter added. [default: None]
+    [default: None]
     """,
     default=None,
     show_default=True,
@@ -4056,6 +4112,9 @@ def hyperpartition(hypergraph,
 def collapsed_rescue(hypergraph, contigsizes, clustertable, 
                     collapsed_contigs, ploidy,
                     alleletable, allelic_similarity):
+    """
+
+    """
     import msgspec
     from .collapse import CollapsedRescue
     from .core import AlleleTable, ClusterTable 
@@ -4324,7 +4383,8 @@ def scaffolding(clustertable, count_re, clm,
 
     else:
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
-        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, skip_allhic=True, corrected=corrected,
+        hs = HapHiCSort(clustertable, count_re, clm, split_contacts, 
+                        keep_temp=keep_temp, skip_allhic=True, corrected=corrected,
                         allele_table=allele_table, fasta=fasta, output=output, threads=threads)
         hs.run()
 
@@ -4454,6 +4514,14 @@ def build(fasta, corrected, output, output_agp, only_agp):
     required=True
 )
 @click.option(
+    '-hp',
+    '--hap-pattern',
+    metavar="STR",
+    help="Regex pattern of haplotype",
+    default=r'(Chr\d+)g(\d+)',
+    show_default=True
+)
+@click.option(
     '-unphased',
     '--unphased',
     help="Haplotypes are not parallel aligned. Rename all of the chromosomes.",
@@ -4491,7 +4559,7 @@ def build(fasta, corrected, output, output_agp, only_agp):
     show_default=True,
 )
 def rename(ref, fasta, agp, suffix_style,
-                unphased, output, threads):
+            hap_pattern, unphased, output, threads):
     """
     Rename and orientation the groups according to a refernce.
 
@@ -4505,6 +4573,7 @@ def rename(ref, fasta, agp, suffix_style,
     r = Rename(ref=ref,
                     fasta=fasta,
                     agp=agp,
+                    hap_pattern=hap_pattern,
                     hap_aligned=False if unphased else True,
                     suffix_style=suffix_style,
                     output=output,
@@ -4815,7 +4884,7 @@ def porec2pairs(porec, min_mapq,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
-@cli.command(cls=RichCommand, short_help="Convert porec alignment bam to paf file.")
+@cli.command(cls=RichCommand, short_help="Convert porec alignment bam to pseudo paf file.")
 @click.argument(
     "bam",
     metavar="INPUT_BAM_PATH",
@@ -4922,6 +4991,11 @@ def bam2pairs(bam, min_quality, output):
     show_default=True
 )
 def pairs_filter(pairs, min_quality, whitelist, threads, output):
+    """
+        Filter pairs by mapping quality, do not support to pairs.pqs file.
+
+            INPUT_PAIRS_PATH: 4DN pairs files (pairs or pairs.gz).
+    """
     cmd = ["cphasing-rs", "pairs-filter", f"{pairs}", "-t", f"{threads}",
             "-q", f"{min_quality}", "-o", f"{output}"]
     
@@ -4931,7 +5005,7 @@ def pairs_filter(pairs, min_quality, whitelist, threads, output):
     assert flag == 0, "Failed to execute command, please check log."
 
 
-@cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Convert pairs to pqs.")
+@cli.command(cls=RichCommand, short_help="Convert pairs to pqs.")
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -4946,6 +5020,7 @@ def pairs_filter(pairs, min_quality, whitelist, threads, output):
     show_default=True
 )
 @click.option(
+    '-c',
     '-cs',
     '--chunksize',
     help='Chunk size of loading pairs.',
@@ -4965,13 +5040,31 @@ def pairs_filter(pairs, min_quality, whitelist, threads, output):
 )
 def pairs2pqs(pairs, output, chunksize, threads):
     from .pqs import PQS
-    p = PQS(threads=threads)
+    
     prefix = Path(pairs).stem
+
+    log_dir = Path(f"logs")
+    log_dir.mkdir(exist_ok=True)
 
     if output is None:
         output = f"{prefix}.pqs"
     
-    p.from_pairs(pairs=pairs, path=output, chunksize=chunksize)
+    if pairs.endswith(".gz"):
+        cmd0 = decompress_cmd(pairs, threads=threads)
+        cmd0 += [f" 2> {log_dir}/pairs2pqs.decompress.log"]
+        cmd = ["cphasing-rs", "pairs2pqs", "-", "-c", str(int(chunksize)), "-o", output]
+        cmd += [f" 2> {log_dir}/pairs2pqs.log"]
+        # print(" ".join(cmd0) + " | " + " ".join(cmd))
+        flag = os.system(" ".join(cmd0) + " | " + " ".join(cmd))
+    else:
+        cmd = ["cphasing-rs", "pairs2pqs", pairs, "-c", str(int(chunksize)), "-o", output]
+        flag = run_cmd(cmd)
+    
+    assert flag == 0, "Failed to execute command, please check log."
+
+    # p = PQS(threads=threads)
+    # p.from_pairs(pairs=pairs, path=output, chunksize=chunksize)
+
 
 
 @cli.command(cls=RichCommand, hidden=HIDDEN, short_help="Calculate the depth from pqs file.")
@@ -5526,6 +5619,7 @@ def pairs2cool(pairs, chromsize, outcool,
     from subprocess import PIPE, Popen
     from cooler.cli.cload import pairs as cload_pairs
     from .core import Pairs2
+    from .pqs import PQS
     
 
     Path("logs").mkdir(exist_ok=True)
@@ -5542,7 +5636,20 @@ def pairs2cool(pairs, chromsize, outcool,
             logger.warning(f"Memory usage is too high, use low memory mode.")
             low_memory = True
     
-
+    if Path(pairs).is_dir():
+        p = PQS(pairs, threads=threads)
+        p.init_read()
+        if low_memory:
+            chunks = p.read(min_mapq=min_mapq,)   
+            p.to_cool(chunks, outcool, binsize=binsize, 
+                    min_mapq=min_mapq, low_memory=low_memory)
+        
+        else:
+            chunks = p.read(min_mapq=min_mapq, return_as='files')   
+            p.to_cool(chunks, outcool, binsize=binsize, 
+                    min_mapq=min_mapq)
+        return
+    
     if not low_memory:
         p = Pairs2(pairs, min_mapq=min_mapq, threads=threads, chunksize=chunksize)
         p.to_cool(outcool, binsize=binsize)
@@ -5852,6 +5959,14 @@ def pairs2cool2(pairs, outcool,
     show_default=True
 )
 @click.option(
+    '-hp',
+    '--hap-pattern',
+    metavar="STR",
+    help="Regex pattern of haplotype",
+    default=r'(Chr\d+)g(\d+)',
+    show_default=True
+)
+@click.option(
     '-cpr',
     '--chrom-per-row',
     'chrom_per_row',
@@ -5918,6 +6033,15 @@ def pairs2cool2(pairs, outcool,
     show_default=True
 )
 @click.option(
+    '--add-hap-border',
+    help="""
+    Add border between haplotypes, effective when `--hap-pattern` is set consistent with the chromosome name. 
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
     '-nl',
     '--no-lines',
     'no_lines',
@@ -5978,6 +6102,7 @@ def plot(matrix,
             per_chromosomes,
             only_chr,
             chr_prefix,
+            hap_pattern,
             chrom_per_row, 
             fontsize,
             dpi, 
@@ -5985,6 +6110,7 @@ def plot(matrix,
             whitered,
             balance,
             balanced,
+            add_hap_border,
             no_lines,
             no_ticks,
             rotate_xticks,
@@ -6119,20 +6245,22 @@ def plot(matrix,
 
             else:
                 chromosomes = chromosomes.strip().strip(",").split(',')
-                
-                chromosomes = list(filter(lambda x: x in chromnames, chromosomes))
-                if not chromosomes:
-                    logger.warning(f"Specified chromosomes not found in the matrix, please check the input, "
-                                    f"or add `--regex` to use regular expression to find the chromosomes. "
-                                    f"Plotting all chromosomes.")
-                    
+                if len(chromosomes) == 1:
+                    pass
                 else:
-                    not_found_chromosomes = list(filter(lambda x: x not in chromnames, chromosomes))
-                    if not_found_chromosomes:
-                        logger.warning(f"These chromosomes not found in the matrix: {', '.join(not_found_chromosomes)}")
+                    chromosomes = list(filter(lambda x: x in chromnames, chromosomes))
+
+                    if not chromosomes:
+                        logger.warning(f"Specified chromosomes not found in the matrix, please check the input, "
+                                        f"or add `--regex` to use regular expression to find the chromosomes. "
+                                        f"Plotting all chromosomes.")
+                        
+                    else:
+                        not_found_chromosomes = list(filter(lambda x: x not in chromnames, chromosomes))
+                        if not_found_chromosomes:
+                            logger.warning(f"These chromosomes not found in the matrix: {', '.join(not_found_chromosomes)}")
                  
         
-
     if not chromosomes and only_chr:
         logger.info(f"Only plot the chromosomes (--chr-prefix='{chr_prefix}.*') that ignore unanchored contigs.")
         regex = re.compile(f"^{chr_prefix}")
@@ -6143,10 +6271,9 @@ def plot(matrix,
 
     if chromosomes and only_chr:
         if not disable_natural_sort:
+            logger.info("Sort the chromosomes by natural sort, set the `--disable-natural-sort` to disable.")
             chromosomes = natsorted(chromosomes)
 
-
-    
     if no_ticks:
         xticks = False 
         yticks = False
@@ -6172,6 +6299,7 @@ def plot(matrix,
         plot_heatmap(matrix,
                  output,
                  chromosomes=chromosomes,
+                 hap_pattern=hap_pattern,
                  per_chromosomes=per_chromosomes,
                  chrom_per_row=chrom_per_row,
                  fontsize=fontsize,
@@ -6186,6 +6314,7 @@ def plot(matrix,
                  yticks=yticks,
                  rotate_xticks=rotate_xticks,
                  rotate_yticks=rotate_yticks,
+                 add_hap_border=add_hap_border,
                  add_lines=False if no_lines else True,
                  threads=threads)
 
@@ -6194,6 +6323,7 @@ def plot(matrix,
 ## hic subcommand
 from .hic.cli import hic
 
+
 @cli.group(cls=CommandGroup, hidden=True, short_help='Evaluation tools.')
 @click.pass_context
 def evaluator(ctx):
@@ -6201,6 +6331,71 @@ def evaluator(ctx):
     **Lack of validation**, please dont use these function.
     """
     pass
+
+@evaluator.command(short_help="Evalutate the synteny correlation index")
+@click.option(
+    "-a",
+    "--anchor",
+    metavar="STR",
+    help="Lift over anchor file of `query.ref.anchor`",
+    required=True,
+)
+@click.option(
+    "-b1",
+    "--bed1",
+    help="bedfile of query genome",
+)
+@click.option(
+    "-b2",
+    "--bed2",
+    help="bedfile of reference genome",
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout
+)
+def sci(anchor, bed1, bed2, output):
+    from .evaluate import synteny_correlation_index
+    synteny_correlation_index(anchor, bed1, bed2, output)
+
+
+@evaluator.command(short_help="Evalutate the allele completeness index")
+@click.option(
+    "-m",
+    "--mono-bed",
+    metavar="STR",
+    help="Monoploid bed file",
+    required=True,
+)
+@click.option(
+    "-c",
+    "--contig-bed",
+    metavar="STR",
+    help="Contig gff file",
+    required=True,
+)
+@click.option(
+    "-p",
+    "--poly-bed",
+    metavar="STR",
+    help="Polyploid gff file",
+    required=True,
+)
+@click.option(
+    "-n",
+    "--ploidy",
+    metavar="INT",
+    help="Ploid level",
+    required=True,
+    type=int,
+)
+def aci(mono_bed, contig_bed, poly_bed, ploidy):
+    from .evaluate import allelic_completeness_index
+    allelic_completeness_index(mono_bed, contig_bed, poly_bed, ploidy)
+
 
 @evaluator.command(short_help="Estimate the highly homologous ratio")
 @click.option(
@@ -6997,6 +7192,10 @@ def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, output):
     he.to_numpy()
     hg = HyperGraph(he, min_quality=min_mapq)
     H = hg.incidence_matrix(min_contacts=min_contacts)
+    logger.info(f"Number of edges: {H.shape[1]}")
+    counts = (H.sum(axis=0)).tolist()[0]
+    counts = sum(list(map(lambda x: (x * (x -1)) // 2, counts)))
+    logger.info(f"Number of counts: {counts}")
     nodes = hg.nodes
 
     if prunetable:

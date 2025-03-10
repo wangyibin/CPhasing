@@ -62,6 +62,19 @@ class MemoryMonitor(Thread):
         super().join()
 
 
+def export_log(logfile):
+    from . import console, console_html
+    from rich.terminal_theme import MONOKAI
+    
+    try:
+        console.save_text(logfile.replace(".txt", ""), styles=True)
+        console_html.save_text(logfile)
+        # out_html = logfile.replace(".txt", ".html")
+        # console_html.save_html(out_html, theme=MONOKAI)
+
+    except AssertionError:
+        pass 
+
 def listify(item):
     """
     To return a list or tuple value.
@@ -216,23 +229,39 @@ def is_empty(_file):
         return False
 
 def is_compressed_table_empty(_file):
-    try:
-        pd.read_csv(_file, chunksize=1, comment="#")
-    except EOFError:
-        return True 
-    except pd.errors.EmptyDataError:
-        return True 
-    except UnicodeDecodeError:
-        raise ValueError(f"File `{_file}` is compressed file, you should add `.gz` suffix.")
+    from .pqs import PQS
+    if Path(_file).is_dir():
+        p = PQS()
+        if p.is_pqs(_file):
+            return False
+        else:
+            return True
+    else:
+        try:
+            pd.read_csv(_file, chunksize=1, comment="#")
+        except EOFError:
+            return True 
+        except pd.errors.EmptyDataError:
+            return True 
+        except UnicodeDecodeError:
+            raise ValueError(f"File `{_file}` is compressed file, you should add `.gz` suffix.")
 
     return False
 
 def is_file_changed(input_file):
+    from .pqs import PQS
     if input_file is None:
         return False
     
     if not Path(input_file).exists():
         return True 
+
+    if Path(input_file).is_dir():
+        p = PQS()
+        if p.is_pqs(input_file):
+            return p.is_changed(input_file)
+        else:
+            return True
 
     input_file_path = Path(input_file).absolute().parent
     file_name = Path(input_file).name
@@ -240,6 +269,8 @@ def is_file_changed(input_file):
 
     if Path(f"{input_file_path}/.{prefix}.md5.txt").exists():
         text = os.popen(f"md5sum -c {input_file_path}/.{prefix}.md5.txt 2>/dev/null").read()
+        if not text.strip():
+            return True
         if text.strip().split()[-1] == "OK":
             return False
         else:
@@ -1135,9 +1166,14 @@ min_quality={min_quality}
 cool_binsize={to_humanized2(init_binsize)}
 heatmap_binsize={to_humanized2(binsize)}
 
-
-cphasing pairs2cool {pairs} {contigsizes} {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -q ${{min_quality}} -bs ${{cool_binsize}}
-cphasing plot -a {agp} -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool -o {out_heatmap} -bs ${{heatmap_binsize}} -oc {plot_another_args}
+if [ ! -f {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool ]; then
+    cphasing pairs2cool {pairs} \\
+        {contigsizes} {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool \\
+        -q ${{min_quality}} -bs ${{cool_binsize}}
+fi
+cphasing plot -a {agp} \\
+    -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool \\
+        -o {out_heatmap} -bs ${{heatmap_binsize}} -oc {plot_another_args}
     """
 
     with open(output, 'w') as out:
@@ -1211,7 +1247,7 @@ def binnify(chromsizes, binsize):
     start_list = []
     end_list = []
 
-    for chrom, clen in chromsizes.items():
+    for chrom, clen in sorted(chromsizes.items(), key=lambda x: x[0]):
         n_bins = int(np.ceil(clen / binsize))
         binedges = np.arange(0, (n_bins + 1)) * binsize
         binedges[-1] = clen
@@ -1225,8 +1261,10 @@ def binnify(chromsizes, binsize):
         "end": end_list
     })
 
+    # bintable = bintable.sort_values(["chrom", "start"]).reset_index(drop=True)
     bintable["chrom"] = pd.Categorical(
         bintable["chrom"], categories=list(chromsizes.index), ordered=True
     )
+
 
     return bintable

@@ -3,6 +3,13 @@
 ## 示例
 ### 从contig水平比对结果绘制热图
 - 将`pairs`文件转成`.cool`矩阵文件
+=== "pairs.pqs"
+    ```shell
+    cphasing-rs contigsizes contigs.fa > contigs.contigsizes
+    cphasing pairs2cool sample.pairs.pqs contigs.contigsizes sample.10k.cool
+    ```
+
+=== "pairs.gz"
     ```shell
     cphasing-rs contigsizes contigs.fa > contigs.contigsizes
     cphasing pairs2cool sample.pairs.gz contigs.contigsizes sample.10k.cool
@@ -53,6 +60,14 @@ cphasing plot -m sample.100k.chrom.cool -o groups.100k.wg.png
 ### 不同参数绘制的热图
 
 ![different_parameters](https://pic.superbed.cc/item/67921867fa9f77b4dce3785c.png)
+
+#### 同源染色体组加边框
+```shell
+cphasing plot chrom.500k.cool -o chrom.500k.png --whitered --add-hap-border
+```
+<center>
+<img src="https://pic.superbed.cc/item/67b72bfc01c078e31052c7a0.png" width=50% >
+</center>
 
 #### 指定染色体绘制
 ![chrom_plot](https://pic.superbed.cc/item/67921640fa9f77b4dce3654f.png)
@@ -170,6 +185,13 @@ cphasing plot -m sample.100k.chrom.cool -o groups.100k.wg.png
 │                                            [default: redp1_r]            │
 │ --whitered                      -wr        Preset of --scale none        │
 │                                            --colormap whitered           │
+│ --hap-pattern                   -hp        Regex pattern of haplotype    │
+│                                            (STR)                         │
+│                                            [default: (Chr\d+)g(\d+)]     │
+│ --add-hap-border                           Add border between haplotypes,│
+│                                            effective when --hap-pattern  │
+│                                            is set consistent with the    │
+│                                              chromosome name.            │
 │ --no-lines                      -nl        Don't add dash line in        │
 │                                            chromosome boundaries.        │
 │ --no-ticks                      -nt        Don't add ticks both in x     │

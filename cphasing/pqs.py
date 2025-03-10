@@ -18,8 +18,12 @@ import pprint
 import pandas as pd
 import numpy as np
 
+import bisect
 import polars as pl 
 import glob 
+
+from collections import defaultdict
+from multiprocessing import Pool    
 from pytools import natsorted
 from joblib import Parallel, delayed
 from pathlib import Path
@@ -116,12 +120,12 @@ q1 mean the mapping quality of data >= 1.
 |-- _metadata
 |-- _readme 
 |-- q0/
-|   |-- 0.q0.parquet
-|   |-- 1.q0.parquet
+|   |-- 0.parquet
+|   |-- 1.parquet
 |   |-- ...
 |-- q1/
-|   |-- 0.q1.parquet
-|   |-- 1.q1.parquet
+|   |-- 0.parquet
+|   |-- 1.parquet
 |   |-- ...
 """
 
@@ -199,6 +203,36 @@ class PQS:
         return self._schema
 
     @staticmethod
+    def is_changed(path):
+        """
+        Check if the .pqs file is changed.
+        """
+        assert PQS.is_pqs(path), "The given path is not a .pqs file."
+        with open(Path(path) / "_metadata", "r") as f:
+            metadata = eval(f.read())
+        
+        input_file_path = Path(path).absolute()
+        file_name = f"_metadata"
+        prefix = f"_metadata"
+
+        flag = True
+      
+        if Path(f"{input_file_path}/._metadata.md5.txt").exists():
+            text = os.popen(f"md5sum -c {input_file_path}/.{prefix}.md5.txt 2>/dev/null").read()
+            if not text.strip():
+                flag =  True
+            if text.strip().split()[-1] == "OK":
+                flag = False
+            else:
+                os.system(f"md5sum {input_file_path}/{file_name} > {input_file_path}/.{prefix}.md5.txt")
+                flag = True
+        else:
+            os.system(f"md5sum {input_file_path}/{file_name} > {input_file_path}/.{prefix}.md5.txt")
+            flag =  True
+                
+        return flag
+
+    @staticmethod
     def is_pqs(path):
         """
         Check if the given path is a .pqs file.
@@ -209,6 +243,8 @@ class PQS:
         
         if path.is_dir():
             if (path / "_metadata").exists() and (path / "_contigsizes").exists():
+                if not os.listdir(path / "q0") and not os.listdir(path / "q1"):
+                    return False
                 _metadata = eval(open(path / "_metadata", "r").read())
                 try:
                     if _metadata["is_pqs"]:
@@ -244,16 +280,17 @@ class PQS:
         """
         load chromsizes and metadata
         """
-        self.path = path
         assert path is not None or self.path is not None, "Please provide a path of .pqs."
         if path is None:
             path = self.path
-
+        else:
+            self.path = path
+        
         assert self.is_pqs(
             path
         ), "The given path is not a .pqs file or could not found this path."
 
-        self._contigsizes = read_chrom_sizes(Path(path) / "_contigsizes")
+        self._contigsizes = read_chrom_sizes(Path(path) / "_contigsizes").sort_index()
     
         with open(Path(path) / "_metadata", "r") as f:
             self._metadata = eval(f.read())
@@ -307,14 +344,14 @@ class PQS:
             is_filter = False
 
         if min_mapq > 0:
-            logger.info(f"Filter the data with mapq >= {min_mapq}.")
+            logger.info(f"Filtered the data with mapq >= {min_mapq}.")
         
         if return_as == "generator":
             if low_memory:
                 for file in target_dir.iterdir():
                     df = pl.read_parquet(file, columns=columns)
                     if is_filter:
-                        df = df.filter(pl.col("mapq") >= min_mapq).drop('mapq')
+                        df = df.filter(pl.col("mapq") >= min_mapq)
                     else:
                         if self._metadata['is_with_mapq']:
                             if column_names:
@@ -526,7 +563,6 @@ class PQS:
         from cooler.create import create, create_cooler
 
         is_with_mapq = self._metadata["is_with_mapq"]
-    
 
         bins = binnify(self.contigsizes['length'], binsize=binsize)
         if len(bins) > 2**32:
@@ -552,7 +588,7 @@ class PQS:
             chunk = (
                 chunk.with_columns([bin1_id.alias("bin1_id"), bin2_id.alias("bin2_id")])
                 .drop(["chrom1", "chrom2", "pos1", "pos2"])
-                .filter(pl.col("bin1_id") < pl.col("bin2_id"))
+                .filter(pl.col("bin1_id") <= pl.col("bin2_id"))
             )
 
             chunk = chunk.group_by(["bin1_id", "bin2_id"], maintain_order=True).agg(
@@ -574,6 +610,7 @@ class PQS:
                       triucheck=False, dupcheck=False, boundscheck=False,)
         
         else:
+            chunks = list(map(lambda x: Path(x).absolute(), chunks))
             results = Parallel(n_jobs=self.threads)(
                 delayed(process_chunk_to_cool_global)(*arg)
                 for arg in ((chunk, binsize, bin_offset_db, self._schema,
@@ -583,13 +620,11 @@ class PQS:
             os.environ["POLARS_MAX_THREADS"] = str(self.threads)
 
             pixels = pl.concat(results)
-         
+
             pixels = pixels.group_by(["bin1_id", "bin2_id"], maintain_order=True).agg(
                 pl.sum("count").alias("count")
             )
-
-            pixels = pixels.sort(["bin1_id", "bin2_id"])
-
+            pixels = pixels.sort(["bin1_id", "bin2_id"])  
             create(output, bins, pixels.to_pandas(), 
                     triucheck=False, dupcheck=False, boundscheck=False,)
 
@@ -600,6 +635,70 @@ class PQS:
         Write the .pqs file to the given path.
         """
         pass
+
+    def to_hg_df(self, chunks, contig_idx, 
+                 min_mapq=1, edge_length=0,
+                 bed=None, hcr_binsize=10000):
+        from intervaltree import IntervalTree
+        pl.enable_string_cache()
+        contigsizes = self.contigsizes_db
+
+        if bed is None:
+            bed_dict = None
+        else:
+            bed_df = pl.read_csv(bed, separator="\t", has_header=False,
+                                columns=[0, 1, 2], new_columns=['chrom', 'start', 'end'])
+
+            if edge_length > 0:
+                bed_df = bed_df.with_columns([
+                    pl.col('chrom').map_elements(contigsizes.get).alias('length')
+                ]).filter(
+                    (pl.col('start') < edge_length) | (pl.col('end') > pl.col('length') - edge_length)
+                )
+ 
+            bed_df = bed_df.to_pandas()
+            bed_df.set_index(['chrom'], inplace=True)
+            bed_df['region'] = bed_df.apply(lambda x: (x['start'], x['end']), axis=1)
+            bed_dict = defaultdict(list)
+
+            for chrom, region in bed_df.groupby(level=0):
+                bed_dict[chrom] = region['region'].values.tolist()
+                # bed_dict[chrom] = (region['start'].values, region['end'].values)
+                # bed_dict[chrom] = IntervalTree.from_tuples(region['region'])
+
+        logger.info("Parsing pqs ...")
+
+        args = []
+        for chunk in chunks:
+            args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length))
+      
+        results = Parallel(n_jobs=self.threads)(
+                    delayed(process_chunk_hg)(*arg) for arg in args
+                )
+        
+        results = list(filter(lambda x: x is not None, results))
+        if len(results) == 0:
+            logger.warning("No data found in the given region.")
+            return
+        
+        hg_df = pl.concat(results)
+
+        return hg_df
+
+    def to_cis_depth_df(self, chunks, window_size=500, min_mapq=0):
+        pl.enable_string_cache()
+        is_with_mapq = self._metadata["is_with_mapq"]   
+        args = []
+        for chunk in chunks:
+            args.append((chunk, window_size, min_mapq, is_with_mapq))
+        
+        results = Parallel(n_jobs=self.threads)(
+                    delayed(process_chunk_cis_depth)(*arg) for arg in args
+                )
+        
+        cis_depth_df = pl.concat(results).collect() 
+
+        return cis_depth_df.to_pandas()
     
     def to_clm(self, chunks, output,
                min_mapq=0,
@@ -608,76 +707,18 @@ class PQS:
         Convert the .pqs file to .clm file.
         """
         pl.enable_string_cache()
-        pl.StringCache()
 
-        is_with_mapq = self._metadata["is_with_mapq"]
-        # def process_chunk(chunk):
-        #     pl.enable_string_cache()
-            
-        #     chunk = chunk.filter(pl.col("chrom1") != pl.col("chrom2"))
-        #     chunk = chunk.with_columns(
-        #         pl.col("chrom1")
-        #         .map_elements(self.contigsizes_db.get)
-        #         .cast(self._schema["pos1"])
-        #         .alias("length1"),
-        #         pl.col("chrom2")
-        #         .map_elements(self.contigsizes_db.get)
-        #         .cast(self._schema["pos2"])
-        #         .alias("length2"),
-        #     )
+        is_with_mapq = self._metadata["is_with_mapq"]    
 
-        #     chunk = chunk.with_columns(
-        #         ((pl.col("length1") - pl.col("pos1")) + pl.col("pos2") )
-        #         .cast(pl.String)
-        #         .alias("++"),
-        #         (
-        #             (pl.col("length1") - pl.col("pos1")) 
-        #             + (pl.col("length2") - pl.col("pos2")) 
-        #         )
-        #         .cast(pl.String)
-        #         .alias("+-"),
-        #         (pl.col("pos1") + pl.col("pos2"))
-        #         .cast(pl.String)
-        #         .alias("-+"),
-        #         (pl.col("pos1") + (pl.col("length2") - pl.col("pos2")))
-        #         .cast(pl.String)
-        #         .alias("--"),
-        #     )
-
-        #     chunk = chunk.drop(['length1', 'length2', 'pos1', 'pos2'])
-        #     try:
-        #         chunk = chunk.unpivot(["++", "+-", "-+", "--"], index=["chrom1", "chrom2"])
-        #     except AttributeError:
-        #         logger.error("The version of polars is too low, please update to the version of >= 2.*")
-        #         sys.exit(1)
-
-        #     chunk = (
-        #         chunk.group_by(["chrom1", "chrom2", "variable"])
-        #         .agg(pl.col("value"))
-        #         .sort(["chrom1", "chrom2", "variable"])
-        #     )
-
-        #     chunk = chunk.with_columns(
-        #         (
-        #             pl.col("chrom1")
-        #             + pl.col("variable").str.slice(0, 1)
-        #             + pl.lit(" ")
-        #             + pl.col("chrom2")
-        #             + pl.col("variable").str.slice(1, 1)
-        #         ).alias("chrom"),
-        #     ).drop(["chrom1", "chrom2", "variable"])
-
-        #     return chunk 
-    
+        args = []
+        
 
         with TemporaryDirectory(suffix="_clm", delete=False, dir="./") as tmpdir:
-        
+            for chunk in chunks:
+                args.append((chunk, self.contigsizes_db, self._schema, min_mapq, is_with_mapq, tmpdir))
             Parallel(n_jobs=self.threads, backend="multiprocessing")(
                 delayed(process_chunk_clm)(*arg)
-                for arg in (
-                    (chunk, self.contigsizes_db, self._schema, min_mapq, is_with_mapq, tmpdir)
-                    for chunk in chunks
-                )
+                (*arg) for arg in args
             )
         
         cmd = ["cphasing-rs", "clm-merge", tmpdir, "-o", output]
@@ -688,22 +729,23 @@ class PQS:
     
     def intersect(self, chunks, bed, output, min_mapq=1):
         from intervaltree import IntervalTree
-
+        is_with_mapq = self._metadata["is_with_mapq"]
         bed_df = pl.read_csv(bed, separator="\t", has_header=False,
                              columns=[0, 1, 2], new_columns=['chrom', 'start', 'end'])
         bed_df = bed_df.to_pandas()
         bed_df.set_index(['chrom'], inplace=True)
         bed_df['region'] = bed_df.apply(lambda x: (x['start'], x['end']), axis=1)
-        bed_dict = {}
+        bed_dict = defaultdict(list)
         for chrom, region in bed_df.groupby(level=0):
-            bed_dict[chrom] = IntervalTree.from_tuples(region['region'])
+            # bed_dict[chrom] = IntervalTree.from_tuples(region['region'])
+            bed_dict[chrom] = region['region'].values.tolist()
 
         Path(output).mkdir(exist_ok=True)
         Path(f"{output}/q0").mkdir(exist_ok=True)
         Path(f"{output}/q1").mkdir(exist_ok=True)
       
         Parallel(n_jobs=self.threads)(
-            delayed(process_chunk_intersect_global)(chunk, bed_dict, min_mapq, output) for chunk in chunks
+            delayed(process_chunk_intersect_global)(chunk, bed_dict, is_with_mapq, min_mapq, output) for chunk in chunks
         )
 
         shutil.copy(f"{self.path}/_contigsizes", output)
@@ -774,7 +816,6 @@ class PQS:
                 dtypes = PAIRS_DTYPES_64
                 HEADER = PAIRS_HEADER_WITHOUT_MAPQ
         
-        ## split the pairs file
 
         Path(path).mkdir(exist_ok=True)
         pairs_path = Path(pairs).absolute()
@@ -801,6 +842,7 @@ class PQS:
             for i, chunk in enumerate(natsorted(os.listdir())):
                 args.append((i, chunk, q0, q1, columns, schema, is_pairs_with_mapq))
 
+
             Parallel(n_jobs=self.threads)(
                 delayed(process_chunk_split_pairs)(*arg) for arg in args
             )
@@ -819,78 +861,6 @@ class PQS:
             }
 
             os.chdir('..')
-    
-
-        # if pairs.endswith(".gz"):
-        #     def process_chunk(i, chunk, q0, q1, schema, is_pairs_with_mapq):
-        #         chunk = pl.DataFrame(chunk)
-        #         chunk = chunk.cast(schema)
-        #         chunk.write_parquet(q0 / f"{i}.q0.parquet")
-        #         if is_pairs_with_mapq:
-        #             chunk = chunk.filter(pl.col("mapq") >= 1)
-        #         chunk.write_parquet(q1 / f"{i}.q1.parquet")
-        #     chunks = pd.read_csv(pairs, sep="\t", header=None, chunksize=chunksize, 
-        #                         names=HEADER, comment="#", dtype=dtypes, 
-        #                         usecols=columns)
-        #     Path(path).mkdir(exist_ok=True)
-        #     q0 = Path(path) / "q0"
-        #     q1 = Path(path) / "q1"
-        #     q0.mkdir(exist_ok=True)
-        #     q1.mkdir(exist_ok=True)
-        #     contigsizes.to_csv(Path(path) / "_contigsizes", sep="\t", header=False, index=False)
-        #     # for i, chunk in enumerate(chunks):
-        #     #     chunk = pl.DataFrame(chunk)
-        #     #     chunk = chunk.cast(schema)
-        #     #     chunk.write_parquet(q0 / f"{i}.q0.parquet")
-        #     #     if is_pairs_with_mapq:
-        #     #         chunk = chunk.filter(pl.col("mapq") >= 1)
-        #     #     chunk.write_parquet(q1 / f"{i}.q1.parquet")
-
-        #     with ThreadPoolExecutor(max_workers=self.threads) as executor:
-        #         futures = []
-        #         for i, chunk in enumerate(chunks):
-        #             futures.append(
-        #                 executor.submit(
-        #                     process_chunk, i, chunk, q0, q1, schema, is_pairs_with_mapq
-        #                 )
-        #             )
-        #         for future in futures:
-        #             future.result()
-
-        #     metadata = {
-        #         "is_pqs": True,
-        #         "format": "pairs",
-        #         "chunksize": chunksize,
-        #         "is_with_mapq": is_pairs_with_mapq,
-        #         "columns": HEADER,
-        #         "dtypes": dtypes,
-        #         "schema": schema
-        #     }
-        
-        # else:
-        #     # df = pl.read_csv(pairs, separator="\t", has_header=False,
-        #     #                 comment_prefix="#", new_columns=HEADER,
-        #     #                 schema=schema, columns=columns,
-        #     #                 truncate_ragged_lines=True)
-            
-        #     df = pl.scan_csv(pairs, separator="\t", has_header=False, 
-        #                 comment_prefix="#", new_columns=HEADER,
-        #                 truncate_ragged_lines=True).select(HEADER)
-        
-        #     df.collect().write_parquet(Path(path) / "0.q0.parquet")
-        #     if is_pairs_with_mapq:
-        #         df = df.filter(pl.col("mapq") >= 1)
-        #     df.collect().write_parquet(Path(path) / "0.q1.parquet")
-
-        #     metadata = {
-        #         "is_pqs": True,
-        #         "format": "pairs",
-        #         "chunksize": 0,
-        #         "is_with_mapq": is_pairs_with_mapq,
-        #         "columns": HEADER,
-        #         "dtypes": dtypes,
-        #         "schema": schema
-        #     }
         
         contigsizes.to_csv(Path(path) / "_contigsizes", sep="\t", header=False, index=False)
         with open(Path(path) / "_metadata", "w") as f:
@@ -984,11 +954,6 @@ def process_chunk_to_depth_global(chunk, binsize, chromsizes_db,
     return chunk1, chunk2
 
 def process_chunk_intersect_global(chunk_name, bed_dict, is_with_mapq, min_mapq, output):
-    def is_in_regions(chrom, pos, bed_dict):
-        if chrom not in bed_dict:
-            return False
-        
-        return bed_dict[chrom].overlaps(pos)
 
     chunk = pl.read_parquet(chunk_name)
     chunk_name = Path(chunk_name).stem
@@ -1031,8 +996,19 @@ def process_chunk_to_cool_global(chunk, binsize,
     chunk = (
         chunk.with_columns([bin1_id.alias("bin1_id"), bin2_id.alias("bin2_id")])
         .drop(["chrom1", "chrom2", "pos1", "pos2"])
-        .filter(pl.col("bin1_id") < pl.col("bin2_id"))
     )
+    chunk = chunk.with_columns([
+                pl.when(chunk['bin1_id'] > chunk['bin2_id'])
+                .then(chunk['bin2_id'])
+                .otherwise(chunk['bin1_id'])
+                .alias('bin1_id'),
+                pl.when(chunk['bin1_id'] > chunk['bin2_id'])
+                .then(chunk['bin1_id'])
+                .otherwise(chunk['bin2_id'])
+                .alias('bin2_id')
+            ])
+        # .filter(pl.col("bin1_id") <= pl.col("bin2_id"))
+
 
     chunk = chunk.group_by(["bin1_id", "bin2_id"], maintain_order=True).agg(
         pl.count("bin1_id").alias("count")
@@ -1041,6 +1017,91 @@ def process_chunk_to_cool_global(chunk, binsize,
     chunk = chunk.sort(['bin1_id', 'bin2_id'])
     
     return chunk
+
+
+def is_in_regions2(chrom, pos, bed_dict):
+    if chrom not in bed_dict:
+        return False
+    
+    return bed_dict[chrom].overlaps(pos)
+
+def is_in_regions(chrom, pos, bed_dict):
+    if chrom not in bed_dict:
+        return False
+
+    intervals = bed_dict[chrom]
+    if len(intervals) == 0:
+        return False 
+  
+    idx = bisect.bisect_right(intervals, (pos, float('inf')))  
+
+    if idx == 0:
+        return False
+    
+    start, end = intervals[idx - 1]
+
+    return start <= pos < end
+
+
+def process_chunk_hg(chunk_name, bed_dict, contigsizes,
+                     contig_idx, min_mapq, edge_length):
+    pl.enable_string_cache()
+    os.environ["POLARS_MAX_THREADS"] = "1"
+    if not Path(chunk_name).exists():
+        return None
+
+    columns = ["chrom1", "pos1", "chrom2", "pos2", "mapq"]
+    chunk = pl.scan_parquet(chunk_name).select(columns)
+    chunk_name = Path(chunk_name).stem
+    if min_mapq > 1:
+        chunk = chunk.filter(pl.col("mapq") >= min_mapq)
+
+    # chunk = chunk.filter(pl.col("chrom1") != pl.col("chrom2"))
+
+    if edge_length > 0:
+        chunk = (
+            chunk.with_columns(
+                pl.col("chrom1")
+                    .map_elements(contigsizes.get, skip_nulls=False)
+                    .alias("length1"),
+                pl.col("chrom2")
+                    .map_elements(contigsizes.get, skip_nulls=False)
+                    .alias("length2"),
+            )
+            .filter(
+                (
+                    ((pl.col("pos1") < edge_length)
+                    | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                    & ((pl.col("pos2") < edge_length)
+                    | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                )
+            )
+            .select(["chrom1", "pos1", "chrom2", "pos2", "mapq"])
+        )
+
+    if bed_dict:
+        # chunk = chunk.filter(
+        #     pl.struct(["chrom1", "pos1"]).apply(
+        #         lambda x: is_in_regions(x["chrom1"], x["pos1"], bed_dict),
+                
+                
+        #     ),
+        #     pl.struct(["chrom2", "pos2"]).apply(
+        #         lambda x: is_in_regions(x["chrom2"], x["pos2"], bed_dict),
+                
+        #     ),
+        # )
+        logger.warning("incomplete, skip the filter of bed regions.")
+        pass 
+
+    
+
+    chunk = chunk.with_columns(
+        pl.col("chrom1").map_elements(contig_idx.get, skip_nulls=False).alias("chrom1"),
+        pl.col("chrom2").map_elements(contig_idx.get, skip_nulls=False).alias("chrom2"),
+    ).drop_nulls(subset=["chrom1", "chrom2"])
+
+    return chunk.collect()
 
 
 def process_chunk_clm(chunk, contigsizes_db, schema,
@@ -1092,7 +1153,7 @@ def process_chunk_clm(chunk, contigsizes_db, schema,
     try:
         chunk = chunk.unpivot(["++", "+-", "-+", "--"], index=["chrom1", "chrom2"])
     except AttributeError:
-        logger.error("The version of polars is too low, please update to the version of >= 2.*")
+        logger.error("The version of polars is too low, please update to the version of >= 1.*")
         sys.exit(1)
 
     chunk = (
@@ -1123,8 +1184,36 @@ def process_chunk_clm(chunk, contigsizes_db, schema,
     
     # return chunk
 
+def process_chunk_cis_depth(chunk, window_size, min_mapq, is_with_mapq):
+    os.environ["POLARS_MAX_THREADS"] = "1"
+    chunk = pl.scan_parquet(chunk).select(["chrom1", "pos1", "chrom2", "pos2", "mapq"])
+    if is_with_mapq:
+        if min_mapq > 1:
+            chunk = chunk.filter(pl.col("mapq") >= min_mapq)
+        else:
+            chunk = chunk.drop("mapq")
+
+    chunk = chunk.filter(pl.col("chrom1") == pl.col("chrom2")).drop("chrom2")
+
+    chunk = chunk.with_columns(
+        (pl.when(pl.col('pos1') > pl.col('pos2'))
+            .then(pl.col('pos2'))
+            .otherwise(pl.col('pos1'))).alias('pos1'),
+        (pl.when(pl.col('pos1') > pl.col('pos2'))
+            .then(pl.col('pos1'))
+            .otherwise(pl.col('pos2'))).alias('pos2')
+    )
+
+    chunk = chunk.with_columns(
+        (pl.col('pos1') - 1) // window_size,
+        (pl.col('pos2') - 1) // window_size,
+    )
+
+    return chunk
+
 
 def process_chunk_split_pairs(i, chunk, q0, q1, columns, schema, is_pairs_with_mapq):
+    os.environ["POLARS_MAX_THREADS"] = "1"
     chunk = pl.read_csv(
         chunk,
         separator="\t",
@@ -1136,7 +1225,7 @@ def process_chunk_split_pairs(i, chunk, q0, q1, columns, schema, is_pairs_with_m
         truncate_ragged_lines=True,
     )
     chunk = chunk.cast(schema)
-    chunk.write_parquet(q0 / f"{i}.q0.parquet")
+    chunk.write_parquet(q0 / f"{i}.parquet")
     if is_pairs_with_mapq:
         chunk = chunk.filter(pl.col("mapq") >= 1)
-    chunk.write_parquet(q1 / f"{i}.q1.parquet")
+    chunk.write_parquet(q1 / f"{i}.parquet")

@@ -4,7 +4,7 @@
 
 <img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>.
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>/<b>C</b>iFi, Ultra-long, or Hi-<b>C</b> data</p>.
 
 ***  
 
@@ -12,7 +12,7 @@
 [<font size=6>Documentation</font>](https://wangyibin.github.io/CPhasing/latest) | [<font size=6>中文文档</font>](https://wangyibin.github.io/CPhasing/latest/zh)
 
 ## Introduction
-One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and diploid genome assembly.  
+One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**(**CiFi**), provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and diploid genome assembly.  
   
 The advantages of `C-Phasing`:   
 - High speed.   
@@ -69,13 +69,13 @@ cphasing pipeline -f draft.asm.fasta -pcd sample1.fastq.gz -pcd sample2.fastq.gz
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```
 
-- Start from **HiFi-C data**  
+- Start from **HiFi-C/CiFi data**  
 Run `pipeline` or `mapper` with `--mm2-params "-x map-hifi"` parameter. And the output similar to the results of  pore-c data.
 ```bash
 cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi"  -t 10 -n 8:4
 ```
 > [!NOTE]
-> The mapping results of HiFi-C is similar to Pore-C, such as output suffix with `porec.gz`, and process it use `porec-merge`, `porec-intersect`, et al.
+> The mapping results of HiFi-C/CiFi is similar to Pore-C, such as output suffix with `porec.gz`, and process it use `porec-merge`, `porec-intersect`, et al.
 
 
 - Start from a paired-end **Hi-C data** 

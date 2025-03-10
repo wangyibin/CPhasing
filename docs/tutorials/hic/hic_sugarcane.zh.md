@@ -20,13 +20,12 @@ cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic1 hic-
 ```
 
 ```shell
-cphasing pairs-merge hic-*.pairs.gz -o hic.merge.pairs.gz 
+cphasing pairs-merge hic-*.pairs.pqs -o hic.merge.pairs.pqs
 ```
 
 
 ## 组装流程
 现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（`-n 0:0`)。
 ```shell
-cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.gz -t 40 -n 0:0 -hcr -p AAGCTT 
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 0:0 -hcr -p AAGCTT 
 ```
-

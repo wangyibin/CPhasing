@@ -30,7 +30,7 @@ cphasing hic mapper -f draft.asm.fasta -1 hic-1_R1.fastq.gz -2 hic-1_R2.fastq.gz
 - 合并结果
 将多个`.pairs.gz`文件合并成一个。
 ```shell
-cphasing pairs-merge hic-*.pairs.gz -o hic.merge.pairs.gz
+cphasing pairs-merge hic-*.pairs.pqs -o hic.merge.pairs.pqs
 ```
 
 

@@ -44,7 +44,7 @@ def main(args):
                     edgecolor='k')
     
     for i in ax.containers:
-        ax.bar_label(i, fmt="{:.2f}")
+        ax.bar_label(i, fmt="{:.2f}", fontsize=12)
 
     plt.ylim(0, 120)
     sns.despine()

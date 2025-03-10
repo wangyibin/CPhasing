@@ -40,14 +40,21 @@ cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hi
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
 !!! note
-    - **1** | If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.gz` file, and input it by `-prs` parameter.  
+    - **1** | If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.pqs` file, and input it by `-prs` parameter.  
     - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of `chromap`. 
 
 
-### Start from 4DN pairs (`pairs.gz`) file,
-```bash
-cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n 8:4
-```
+### Start from 4DN pairs (`pairs.pqs` or `pairs.gz`) file   
+
+=== "`pairs.pqs`"
+    ```bash
+    cphasing pipeline -f draft.asm.fasta -prs sample.pairs.pqs -t 10 -n 8:4
+    ```
+=== "`pairs.gz`"
+    ```bash
+    cphasing pipeline -f draft.asm.fasta -prs sample.pairs.gz -t 10 -n 8:4
+    ```
+
 ### Skip some steps  
 ```bash
 ## skip steps 1.alleles and 2.prepare steps 
@@ -74,7 +81,7 @@ cphasing utils agp2assembly groups.agp > groups.assembly
 bash ~/software/3d-dna/visualize/run-assembly-visualizer.sh sample.assembly sample.mnd.txt
 ```
 !!! note
-    if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.gz` by `cphasing-rs pairs-break`  
+    if chimeric corrected, please use `groups.corrected.agp` and generate a new `corrected.pairs.pqs` by `cphasing-rs pairs-break`  
 
 - After curation
 ```shell

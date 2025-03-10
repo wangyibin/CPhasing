@@ -1,4 +1,20 @@
 # Change logs #
+## [v0.2.6] - 2025-03-10
+#### Enhancement
+- Parameter optimization.
+- Supported pairs.pqs processing.
+- `pipeline`, if input pairs or pairs.gz, it will first convert it to pairs.pqs to speed up subsequence pairs data load. About a 15 percent increase in speed.
+- `plot`, enable plot the border or haplotypes (`--add-hap-border`)
+#### Bug fixes
+- `pipeline`, fixed bug that when user input uncommon suffix of Hi-C data (e.g. "_R1.f.fastq.gz") the pairs file could not be found. #issue17
+- `hypergraph`  
+    - fixed bug that `cphasing-rs pairs-intersect` can not filter contacts by mapq  
+    - fixed bug that report error when edge_length set to 0
+- `pairs2cool`, fixed bug that loss contacts when the chromsizes in `pairs.gz` is unsorted. 
+- `rename`
+    - fixed bug that when the chromname in agp is named group??, the `rename` cannot be executed
+    - generate the unrenamed chromosome, #issue16
+
 ## [v0.2.5] - 2025-02-07
 #### New features
 - `PQS`, custom format of contacts to speed up the load and parse, do not used in this version.

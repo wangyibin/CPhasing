@@ -1,7 +1,7 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing
 repo_url: https://github.com/wangyibin/CPhasing
-copyright: Copyright © 2022-2025 Tanger-lab
+copyright: Copyright © 2022-2025 Tanger-lab]
 theme:
   name: material
   highlight: monokai
@@ -138,6 +138,7 @@ nav:
 
   - CLI: 
     - CLI/mapper.md
+    - CLI/methalign.md
     - CLI/hic_mapper.md
     - CLI/alleles.md
     - CLI/rename.md

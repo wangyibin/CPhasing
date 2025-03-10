@@ -741,8 +741,10 @@ def plot_heatmap(matrix, output,
                     xticks=True, yticks=True,
                     rotate_xticks=False, rotate_yticks=False,
                     remove_short_bin=True,
+                    add_hap_border=False,
                     add_lines=False,
                     chromosomes=None, 
+                    hap_pattern=r'(Chr\d+)g(\d+)',
                     per_chromosomes=False,
                     chrom_per_row=4,
                     fontsize=None,
@@ -755,6 +757,10 @@ def plot_heatmap(matrix, output,
     mpl.use('Agg')
     from matplotlib.colors import LogNorm
 
+    if hap_pattern:
+        hap_pattern = r"{}".format(hap_pattern)
+
+    
     logger.info(f"Load contact matrix `{matrix}`.")
     cool = cooler.Cooler(matrix)
     if balanced:
@@ -782,7 +788,6 @@ def plot_heatmap(matrix, output,
         if binsize is None:
             binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
 
-            
             
         chromnames = cool.chromnames
 
@@ -838,7 +843,21 @@ def plot_heatmap(matrix, output,
                     chromsizes = chromsizes.loc[chromnames]
                 else:
                     chrom_offset = chrom_offset.tolist()
-     
+
+        chromnames_df = pd.DataFrame(chromnames, columns=['chrom'])
+        hap_name_df = chromnames_df['chrom'].str.extract(hap_pattern, expand=True).dropna()
+        hap_name_df.reset_index(drop=False, inplace=True)
+        hap_name_df.columns = ['index', 'chrom', 'hap', ]
+        hap_name_df = hap_name_df.groupby('chrom')['index'].agg(lambda x: list(x))
+        
+        if len(hap_name_df) <= 1:
+            hap_name_df = None
+            hap_names = None
+            median_hap_count = 1
+        else:
+            median_hap_count = hap_name_df.apply(lambda x: len(x)).values.min()
+            hap_names = hap_name_df.index.values
+
         matrix = matrix.todense()
 
         if log1p or log:
@@ -881,19 +900,25 @@ def plot_heatmap(matrix, output,
             fig_width = round(7 * factor, 2) 
             fig_height = round(8 * factor, 2)
 
-        logger.info(f"Set figsize: (W: {fig_width},H: {fig_height})")
+        logger.info(f"  Set figsize: (W: {fig_width}, H: {fig_height})")
         plt.rcParams['font.family'] = 'Arial'
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
-        
-        font_factor = np.log10(len(chromnames) ) if len(chromnames) >= 10 else 1
-        tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
+
+        if hap_names is None or not add_hap_border:
+            font_factor = np.log10(len(chromnames) ) if len(chromnames) >= 10 else 1
+            tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
+           
+        else:
+            font_factor = np.log10(len(hap_names) ) if len(hap_names) > 5 else 1
+            tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
         if tick_fontsize == np.inf:
             tick_fontsize = 16
-        if not fontsize:
-            logger.info(f"Auto set fontsize to `{tick_fontsize}`.")
+        logger.info(f"  Set fontsize to `{tick_fontsize}`.")
 
         
-        ax = plot_heatmap_core(matrix, ax, bins=bins, chromnames=chromnames, 
+        ax = plot_heatmap_core(matrix, ax, bins=bins, 
+                               chromnames=chromnames, 
+                               hap_name_df=hap_name_df,
                                chromsizes=chromsizes,
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,
@@ -901,6 +926,7 @@ def plot_heatmap(matrix, output,
                             rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
                             vmin=vmin, vmax=vmax, 
                             cmap=cmap, add_lines=add_lines,
+                            add_hap_border=add_hap_border,
                             tick_fontsize=tick_fontsize)
     
     else: 
@@ -908,7 +934,7 @@ def plot_heatmap(matrix, output,
                                          chrom_per_row=chrom_per_row, triangle=triangle,
                                         cmap=cmap, balanced=balanced, threads=threads)
 
-    logger.info(f"Set dpi to `{dpi}`.")
+    logger.info(f"  Set dpi to `{dpi}`.")
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
 
     logger.info(f'Successful, plotted the heatmap into `{output}`')
@@ -1037,8 +1063,6 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
         args.append((ax, chrom, matrix, chrom_range))
         logger.debug(f"Plotting the heatmap of `{chrom}` ...")
         _plot(ax, chrom, matrix, chrom_range)
-    # Parallel(n_jobs=threads)(
-    #     delayed(_plot)(i, j, k,l) for i, j, k, l in args)
 
     return fig
 
@@ -1046,6 +1070,7 @@ def plot_heatmap_core(matrix,
                         ax,
                         bins=None,
                         chromnames=None,
+                        hap_name_df=None,
                         chromsizes=None,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
@@ -1055,6 +1080,7 @@ def plot_heatmap_core(matrix,
                         rotate_xticks=False, rotate_yticks=False,
                         tick_fontsize=16,
                         cmap="redp1_r",
+                        add_hap_border=False,
                         add_lines=False):
     import colormaps as cmaps
     import matplotlib.pyplot as plt 
@@ -1100,9 +1126,9 @@ def plot_heatmap_core(matrix,
             if vmax == 0:
                 vmax = 0.1
             if isinstance(vmax, int):
-                logger.info(f"Set vmax to `{vmax}`.")
+                logger.info(f"  Set vmax to `{vmax}`.")
             else:
-                logger.info(f"Set vmax to `{vmax:.6f}`.")
+                logger.info(f"  Set vmax to `{vmax:.6f}`.")
 
             if norm is None and vmin is None:
                 vmin = 0
@@ -1169,17 +1195,17 @@ def plot_heatmap_core(matrix,
 
 
     cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
-    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
     cbar.locator = plt.MaxNLocator(5)
     
     if norm == 'log1p':
-        cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=12)
+        cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=tick_fontsize)
     elif norm == 'log':
-        cbar.set_label("Log(Contact)", fontsize=12)
+        cbar.set_label("Log(Contact)", fontsize=tick_fontsize)
     elif norm == 'balanced':
-        cbar.set_label("Normalized Contacts", fontsize=12)
+        cbar.set_label("Normalized Contacts", fontsize=tick_fontsize)
     else:
-        cbar.set_label("Contacts", fontsize=12)
+        cbar.set_label("Contacts", fontsize=tick_fontsize)
 
     if add_lines and chrom_offset:
         ax.hlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_xlim(), 
@@ -1194,7 +1220,6 @@ def plot_heatmap_core(matrix,
 
     ax.tick_params(width=0)
     if xticks and chromnames:
-        # ax.set_xticks(mid_tick_pos)
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
         ax.tick_params(axis='x', length=5, width=2)
@@ -1216,9 +1241,37 @@ def plot_heatmap_core(matrix,
     else:
         ax.set_xticks([])
     if yticks and chromnames:
-        ax.set_yticks(mid_tick_pos)
-        rotation = "vertical" if rotate_yticks else "horizontal"
-        ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
+        if hap_name_df is not None and add_hap_border:
+            new_mid_tick_pos = []
+            hap_names = []
+            new_chrom_offset = []
+            for chrom, idx in hap_name_df.items():
+                hap_names.append(chrom)
+                start, end = chrom_offset[idx[0]], chrom_offset[idx[-1] + 1]
+                new_mid_tick_pos.append((end - start) / 2 + start - 0.5)
+                new_chrom_offset.append(start)
+            else:
+                new_chrom_offset.append(chrom_offset[-1])
+            ax.set_yticks(new_mid_tick_pos)
+            rotation = "vertical" if rotate_yticks else "horizontal"
+            ax.set_yticklabels(hap_names, fontsize=tick_fontsize, rotation=rotation)
+
+            ## add lines by start
+            for start, end in zip(new_chrom_offset[:-1], new_chrom_offset[1:]):
+                plt.plot([start, start], [start, end], color='black', linestyle='-', linewidth=1.0)
+                plt.plot([start, end], [start, start], color='black', linestyle='-', linewidth=1.0)
+                plt.plot([end, end], [start, end], color='black', linestyle='-', linewidth=1.0)
+                plt.plot([start, end], [end, end], color='black', linestyle='-', linewidth=1.0)
+            
+            # ax.hlines(np.array(new_chrom_offset[:-1]), *ax.get_xlim(), 
+            #         linewidth=1.0, color='black', linestyles="-")
+            # ax.vlines(np.array(new_chrom_offset[:-1]), *ax.get_ylim(),
+            #         linewidth=1.0, color='black', linestyles="-")
+                
+        else:
+            ax.set_yticks(mid_tick_pos)
+            rotation = "vertical" if rotate_yticks else "horizontal"
+            ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
     else:
         ax.set_yticks([])
 

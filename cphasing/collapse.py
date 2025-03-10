@@ -78,7 +78,7 @@ class CollapseFromGfa:
         self.rd_db = rd_db 
         self.overlap_db = overlap_db
 
-    def split_depth_by_bin(self, binsize=50000):
+    def split_depth_by_bin(self, binsize=10000):
         length_df = pd.DataFrame(self.length_db.items(), columns=["chrom", "length"])
         length_df.set_index('chrom', inplace=True)
         
@@ -88,7 +88,7 @@ class CollapseFromGfa:
 
         self.depth_df = self.bins.copy()
         self.depth_df['count'] = self.depth_df['chrom'].map(self.rd_db.get)
-
+       
     def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.75 ):
         data = self.depth_df['count']
         fig, ax = plt.subplots(figsize=(5.7, 5))
@@ -142,16 +142,28 @@ class CollapseFromGfa:
 
         return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
         
+
     def run(self):
         self.parse_gfa()
         self.split_depth_by_bin()
         self.get_depth_from_rd()
-
+        min_length = 50000
         peak_depth, lower_depth, upper_depth = self.plot_distribution()
         rd_df = pd.DataFrame(self.rd_db.items(), columns=['contig', 'count'])
-        print(rd_df[rd_df['count'] >= upper_depth])
-        print(rd_df[rd_df['count'] < lower_depth])
 
+        rd_df['length'] = rd_df['contig'].map(self.length_db.get)
+        # rd_df = rd_df[rd_df['length'] >= min_length]
+        
+        rd_df['CN'] = rd_df['count'] / peak_depth
+
+        collapsed_df = rd_df[rd_df['count'] >= upper_depth]
+        logger.info(f"Identified {collapsed_df['length'].sum():,} bp contigs with read depth >= {upper_depth:.2f}")
+        collapsed_df.drop(columns=["length"], inplace=True)
+        collapsed_df.to_csv("contigs.collapsed.contig.list", sep='\t', header=False, index=False)
+        low_df = rd_df[rd_df['count'] < lower_depth]
+        logger.info(f"Identified {low_df['length'].sum():,} bp contigs with read depth < {lower_depth:.2f}")
+        low_df.drop(columns=["length"], inplace=True)
+        low_df.to_csv("contigs.low.contig.list", sep='\t', header=False, index=False)
 class CollapseContigs:
     def __init__(self, cool_path):
         self.cool_path = cool_path 

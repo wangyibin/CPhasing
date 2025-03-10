@@ -157,10 +157,12 @@ def main(args):
     gr1 = gr1[gr1['overlap'] > overlap]
     gr2 = gr2[gr2['overlap'] > overlap]
 
+    gr1 = gr1.drop_duplicates(subset=['index'])
+    gr2 = gr2.drop_duplicates(subset=['index'])
 
     gr1.set_index('index', inplace=True)
     gr2.set_index('index', inplace=True)
-
+    
     res_df = pd.concat([gr1, gr2], axis=1).dropna().drop('overlap', axis=1)
     # res_df = res_df.drop_duplicates()
 
@@ -180,6 +182,9 @@ def main(args):
     res_df = res_df[~(res_df['chrom1'].isin(unanchored_contigs) | res_df['chrom2'].isin(unanchored_contigs))]
 
     res_df = res_df.astype({"start1": np.int64, "end1": np.int64, "start2": np.int64, "end2": np.int64})
+
+    
+
     res_df.to_csv(f"{output}.misassembly.txt", sep='\t', header=None, index=None)
 
     res_gap_df = pd.concat([res_df[['chrom1', 'start1', 'end1', 'id1']].rename(
@@ -202,10 +207,37 @@ def main(args):
 
     contig_size = contig_size.rename(columns={"tig_end": "length"})
     misassembly_contig_n50 = calculate_Nx_from_contigsizes(contig_size.reindex(res_gap_df['id'].str.split("_", n=1).map(lambda x: x[0])), 50)
-   
-    print(f"No. of misassembly pairs: {int(len(res_df))}", file=sys.stderr)
-    print(f"No. of misassembly contig N50: {misassembly_contig_n50}", file=sys.stderr)
-    print(f"No. of misassembly gaps: {int(len(res_gap_df))}", file=sys.stderr)
+    
+    contig_size_db = contig_size.to_dict()['length']
+    res_df['length1'] = res_df['id1'].str.split("_", n=1).map(lambda x: contig_size_db[x[0]])
+    res_df['length2'] = res_df['id2'].str.split("_", n=1).map(lambda x: contig_size_db[x[0]])
+    def func(row):
+        if row['length1'] <= row['length2']:
+            return row['id1']
+        else:
+            return row['id2']
+    
+    misassembly_contigs = res_df.apply(func, axis=1)
+    misassembly_contigs = set(map(lambda x: x.rsplit("_", 1)[0], misassembly_contigs))
+    size_of_misassembly_contigs = contig_size.reindex(list(misassembly_contigs)).sum().values[0]
+    error_rate_of_misassembly_contigs = size_of_misassembly_contigs / _agp_df[_agp_df['chrom'] != _agp_df['id']]['tig_end'].sum()
+    all_misassembly_contigs = set(map(lambda x: x.rsplit("_", 1)[0], misassembly_contigs))
+    all_misassembly_contigs.update(set(reported_un_unanchor_contigs))
+    all_misassembly_contigs.update(set(reported_unanchor_contigs))
+
+    all_misassembly_contigs = contig_size.reindex(all_misassembly_contigs)
+
+    all_misassembly_contigs.to_csv(f"{output}.all.misassembly.contigs", sep='\t', header=None, index=True)
+
+    misassembly_contigs = contig_size.reindex(list(misassembly_contigs))
+    misassembly_contigs.to_csv(f"{output}.anchored.misassembly.contigs", sep='\t', header=None, index=True)
+    
+
+    print(f"No. of anchored misassembly contigs: {int(len(res_df))}", file=sys.stderr)
+    print(f"Size. of anchored misassembly contigs: {size_of_misassembly_contigs}", file=sys.stderr)
+    print(f"Error rate of anchored misassembly contigs: {error_rate_of_misassembly_contigs:.4%}", file=sys.stderr)
+    print(f"No. of anchored misassembly contig N50: {misassembly_contig_n50}", file=sys.stderr)
+    print(f"No. of anchored misassembly gaps: {int(len(res_gap_df))}", file=sys.stderr)
     print(f"No. of gaps: {int(len(gap_df))}", file=sys.stderr)
     print(f"Proportion of false gaps: {int(len(res_gap_df))/int(len(gap_df)):.4f}", file=sys.stderr)
     print(f"No. of supported single unanchor contigs: {int(len(reported_unanchor_contigs))}", file=sys.stderr)
@@ -216,6 +248,8 @@ def main(args):
     print(f"Size. of total supported unanchor contigs: {contig_size.reindex(reported_unanchor_contigs).sum().values[0] + contig_size.reindex(reported_un_unanchor_contigs).sum().values[0]}", file=sys.stderr)
     print(f"No. of total unancored contigs: {int(len(unanchored_contigs))}", file=sys.stderr)
     print(f"Size. of total unancored contigs: {contig_size.reindex(unanchored_contigs).sum().values[0]}", file=sys.stderr)
+    print(f"No. of total misassembly contigs: {int(len(all_misassembly_contigs))}", file=sys.stderr)
+    print(f"Size. of total misassembly contigs: {contig_size.sum().values[0]}", file=sys.stderr)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -8,28 +8,28 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_sugarcane/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/CLI/methalign/">
       
       
-        <link rel="prev" href="../hic_decaploid/">
+        <link rel="prev" href="../mapper/">
       
       
-        <link rel="next" href="../../../CLI/mapper/">
+        <link rel="next" href="../hic_mapper/">
       
       
-      <link rel="icon" href="../../../logo/logo.png">
+      <link rel="icon" href="../../logo/logo.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.5">
     
     
       
-        <title>Assemble hybrid sugarcane by Hi-C - C-Phasing Docs</title>
+        <title>Methalign - C-Phasing Docs</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.8608ea7d.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8608ea7d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,9 +48,9 @@
       
     
     
-      <link rel="stylesheet" href="../../../styles/extra.css">
+      <link rel="stylesheet" href="../../styles/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assemble-hybrid-sugarcane-by-hi-c" class="md-skip">
+        <a href="#methalign" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-header__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../../../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assemble hybrid sugarcane by Hi-C
+              Methalign
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../../zh/tutorials/hic/hic_sugarcane/" hreflang="zh" class="md-select__link">
+            <a href="../../zh/CLI/methalign/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -266,7 +266,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing Docs" class="md-nav__button md-logo" aria-label="C-Phasing Docs" data-md-component="logo">
       
-  <img src="../../../logo/logo.png" alt="logo">
+  <img src="../../logo/logo.png" alt="logo">
 
     </a>
     C-Phasing Docs
@@ -293,7 +293,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -314,7 +314,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../basic_usage/" class="md-nav__link">
+      <a href="../../basic_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -332,8 +332,6 @@
       
   
   
-    
-  
   
   
     
@@ -345,11 +343,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -364,7 +362,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Tutorials
@@ -416,7 +414,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../porec/porec_decaploid/" class="md-nav__link">
+      <a href="../../tutorials/porec/porec_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -438,7 +436,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../porec/porec_sugarcane/" class="md-nav__link">
+      <a href="../../tutorials/porec/porec_sugarcane/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -465,8 +463,6 @@
                 
   
   
-    
-  
   
   
     
@@ -475,11 +471,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -494,7 +490,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             Hi-C
@@ -508,11 +504,113 @@
   
   
     <li class="md-nav__item">
-      <a href="../hic_decaploid/" class="md-nav__link">
+      <a href="../../tutorials/hic/hic_decaploid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Assemble autodecaploid by Hi-C
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/hic/hic_sugarcane/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Assemble hybrid sugarcane by Hi-C
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mapper/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mapper
     
   </span>
   
@@ -543,7 +641,7 @@
           
   
   <span class="md-ellipsis">
-    Assemble hybrid sugarcane by Hi-C
+    Methalign
     
   </span>
   
@@ -555,7 +653,7 @@
         
   
   <span class="md-ellipsis">
-    Assemble hybrid sugarcane by Hi-C
+    Methalign
     
   </span>
   
@@ -578,18 +676,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hi-c-data-processing" class="md-nav__link">
+  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
     <span class="md-ellipsis">
-      Hi-C data processing
+      Activate the environment of methalign
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
+  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
-      Assembling by cphasing pipeline
+      Calculate the 5mCG sites of contig assembly
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Align the candidate reads to contig assembly
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refine-alignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refine alignments
     </span>
   </a>
   
@@ -604,62 +720,6 @@
 
               
             
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    CLI
-    
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            CLI
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
               
                 
   
@@ -667,51 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/mapper/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Mapper
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../CLI/methalign/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Methalign
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../CLI/hic_mapper/" class="md-nav__link">
+      <a href="../hic_mapper/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -733,7 +749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/alleles/" class="md-nav__link">
+      <a href="../alleles/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -755,7 +771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/rename/" class="md-nav__link">
+      <a href="../rename/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -777,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CLI/plot/" class="md-nav__link">
+      <a href="../plot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -847,7 +863,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../faq/" class="md-nav__link">
+      <a href="../../faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -869,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../CHANGES/" class="md-nav__link">
+      <a href="../../CHANGES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -918,18 +934,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hi-c-data-processing" class="md-nav__link">
+  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
     <span class="md-ellipsis">
-      Hi-C data processing
+      Activate the environment of methalign
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
+  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
-      Assembling by cphasing pipeline
+      Calculate the 5mCG sites of contig assembly
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Align the candidate reads to contig assembly
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refine-alignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refine alignments
     </span>
   </a>
   
@@ -951,7 +985,7 @@
 
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/hic/hic_sugarcane.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/methalign.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -959,26 +993,69 @@
   
 
 
-<h1 id="assemble-hybrid-sugarcane-by-hi-c">Assemble hybrid sugarcane by Hi-C<a class="headerlink" href="#assemble-hybrid-sugarcane-by-hi-c" title="Permanent link">#</a></h1>
-<p>Aneuploidy (2n=114), estimate genome size ~ 10 Gb </p>
-<h2 id="hi-c-data-processing">Hi-C data processing<a class="headerlink" href="#hi-c-data-processing" title="Permanent link">#</a></h2>
-<p>Due to the huge porec data, we mapped each cell to fasta by submitting this command to cluster, respectively. And merged them into one file by <code>cphasing pairs-merge</code>.</p>
+<h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">#</a></h1>
+<p>To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called <strong><code>Methalign</code></strong>. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>If you want to process Pore-C/HiFi-C data without 5mC information, please use the <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Please submit one first; wait until the index is successfully created and the remaining jobs are enabled to submit to the cluster.</p>
+<p>The input bam should contain the <code>MM/ML</code> tags</p>
 </div>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-1_R1.fastq.gz<span class="w"> </span>-hic1<span class="w"> </span>hic-1_R1.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
+<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate_cphasing<span class="w"> </span>methalign
 </span></code></pre></div>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-2_R1.fastq.gz<span class="w"> </span>-hic1<span class="w"> </span>hic-2_R1.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-3_R1.fastq.gz<span class="w"> </span>-hic1<span class="w"> </span>hic-3_R1.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-4_R1.fastq.gz<span class="w"> </span>-hic1<span class="w"> </span>hic-4_R1.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The network should be accessible if the methalign environment is first activated.</p>
+</div>
+<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">#</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi reads</label><label for="__tabbed_1_2">ONT reads</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Align the HiFi reads by pbmm2</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pbmm2<span class="w"> </span>index<span class="w"> </span>--preset<span class="w"> </span>CCS<span class="w"> </span>contigs.fasta<span class="w"> </span>index.mmi<span class="w"> </span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pbmm2<span class="w"> </span>align<span class="w"> </span>--preset<span class="w"> </span>CCS<span class="w"> </span>index.mmi<span class="w"> </span>HiFi_reads.bam<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-<span class="w"> </span>-b<span class="w"> </span>-o<span class="w"> </span>HiFi.align.bam
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>samtools<span class="w"> </span>sort<span class="w"> </span>HiFi.align.bam<span class="w"> </span>-o<span class="w"> </span>HiFi.align.sorted.bam
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>samtools<span class="w"> </span>index<span class="w"> </span>HiFi.align.sorted.bam
 </span></code></pre></div>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>hic-*.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>hic.merge.pairs.pqs<span class="w"> </span>
-</span></code></pre></div>
-<h2 id="assembling-by-cphasing-pipeline">Assembling by <code>cphasing pipeline</code><a class="headerlink" href="#assembling-by-cphasing-pipeline" title="Permanent link">#</a></h2>
-<p>Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set <code>-n 0:0</code> to automatically output cluster numbers.
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>hic.mrege.pairs.pqs<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">0</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<p>Calculate the 5mC sites by pb-cpg-tools
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aligned_bam_to_cpg_scores<span class="w"> </span>--bam<span class="w"> </span>HiFi.align.sorted.bam<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>--model<span class="w"> </span>pileup_calling_model.v1.tflite<span class="w"> </span>--modsites-mode<span class="w"> </span>reference
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$9}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>HiFi_align_sorted_bam_to_cpg_scores.combined.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
 </span></code></pre></div></p>
+</div>
+<div class="tabbed-block">
+<p>Align the ONT reads by dorado</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>samtools<span class="w"> </span>index<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
+</span></code></pre></div>
+<p>Calculate the 5mC sites by modkit</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$11}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>output.methyl.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
+</div>
+<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">#</a></h2>
+<ul>
+<li>Split bam to speed up the refine step
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
+</span></code></pre></div></li>
+</ul>
+<ul>
+<li>Refine the alignments by methylation information
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>methalign<span class="w"> </span>refine<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>output.split_*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
+</span></code></pre></div></li>
+</ul>
 
 
 
@@ -1016,7 +1093,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../hic_decaploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble autodecaploid by Hi-C">
+          <a href="../mapper/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Mapper">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1026,20 +1103,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Assemble autodecaploid by Hi-C
+                Mapper
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../../CLI/mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: Mapper">
+          <a href="../hic_mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: HiC Mapper">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Mapper
+                HiC Mapper
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1094,10 +1171,10 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.f1b6f286.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f1b6f286.min.js"></script>
       
     
   </body>

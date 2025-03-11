@@ -1,21 +1,21 @@
 # Methalign 
 
-To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called **`Methalign`**. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition (unstable).
+为了提升比对的精度，特别是高度同源区域的互作数量，我们开发了一个模块**`Methalign`**。尝试使用甲基化信息(5mCG)，对模糊的比对进行二次分配。这个模块主要针对超复杂多倍体，它们存在大量的高度同源区域，这些区域，即使使用长度长的互作数据也难以区分。普通多倍体请使用`Mapper`处理Pore-C数据[:octicons-arrow-right-24:Mapper](mapper.zh.md)。
 
 !!!info 
-    If you want to process Pore-C/HiFi-C data without 5mC information, please use the [:octicons-arrow-right-24:Mapper](mapper.md)
+    如果你不需要使用甲基化信息，请使用 [:octicons-arrow-right-24:Mapper](mapper.zh.md)
 
 !!! note
-    The input bam should contain the `MM/ML` tags
+    输入的bam文件应该包含`MM/ML`tags
 
-## Activate the environment of methalign
+## 激活 methalign环境
 ```shell
 source activate_cphasing methalign
 ```
 !!! info
-    The network should be accessible if the methalign environment is first activated.
+    第一次激活，请在有网络的情况下运行该命令
 
-## Calculate the 5mCG sites of contig assembly
+## 计算contig水平基因组的5mCG信息
 
 === "HiFi reads"
     
@@ -49,21 +49,21 @@ source activate_cphasing methalign
     awk '{print $1,$2,$3,$11}' OFS='\t' output.methyl.bed > output.methyl.bg
     ```
 
-## Align the candidate reads to contig assembly
+## 将Pore-C或者HiFi-C比对到contig水平基因组上
 ```shell
 dorado aligner contigs.fasta porec_reads.bam --secondary=yes > porec.align.bam
 ```
 !!! note
     Replace `--secondary=yes` to `--mm2-opts "--secondary=yes"` when using dorado >= 0.8.0
 
-## Refine alignments
-- Split bam to speed up the refine step
+## 二次分配比对片段
+- 将bam文件分割成多份以加快处理速度
 ```shell
 cphasing-rs split-bam porec.align.bam -o split_outdir/output.split
 cd split_outdir
 ```
 
-- Refine the alignments by methylation information
+- 二次分配比对片段
 ```shell
 methalign refine -t 20 contigs.fasta output.methyl.bg output.split_*.bam -o porec.align.refined.paf.gz
 ```

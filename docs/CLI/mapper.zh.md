@@ -1,6 +1,5 @@
 
 `cphasing mapper` 是用来处理**Pore-C**或者**HiFi-C**数据的，它输出两个文件：
-is designed for process Pore-C data, its output two files:  
     （1）存储高阶互作信息的porec table(`.porec.gz`)  
     （2）存储虚拟成对（VPC）互作的4DN pairs (`.pairs.pqs`) 
 !!!note

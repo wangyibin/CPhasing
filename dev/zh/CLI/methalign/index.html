@@ -676,36 +676,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
+  <a href="#methalign_1" class="md-nav__link">
     <span class="md-ellipsis">
-      Activate the environment of methalign
+      激活 methalign环境
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
+  <a href="#contig5mcg" class="md-nav__link">
     <span class="md-ellipsis">
-      Calculate the 5mCG sites of contig assembly
+      计算contig水平基因组的5mCG信息
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
+  <a href="#pore-chifi-ccontig" class="md-nav__link">
     <span class="md-ellipsis">
-      Align the candidate reads to contig assembly
+      将Pore-C或者HiFi-C比对到contig水平基因组上
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#refine-alignments" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
-      Refine alignments
+      二次分配比对片段
     </span>
   </a>
   
@@ -934,36 +934,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
+  <a href="#methalign_1" class="md-nav__link">
     <span class="md-ellipsis">
-      Activate the environment of methalign
+      激活 methalign环境
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
+  <a href="#contig5mcg" class="md-nav__link">
     <span class="md-ellipsis">
-      Calculate the 5mCG sites of contig assembly
+      计算contig水平基因组的5mCG信息
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
+  <a href="#pore-chifi-ccontig" class="md-nav__link">
     <span class="md-ellipsis">
-      Align the candidate reads to contig assembly
+      将Pore-C或者HiFi-C比对到contig水平基因组上
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#refine-alignments" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
-      Refine alignments
+      二次分配比对片段
     </span>
   </a>
   
@@ -985,7 +985,7 @@
 
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/methalign.md" title="编辑此页" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/methalign.zh.md" title="编辑此页" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -994,23 +994,23 @@
 
 
 <h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">#</a></h1>
-<p>To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called <strong><code>Methalign</code></strong>. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition.</p>
+<p>为了提升比对的精度，特别是高度同源区域的互作数量，我们开发了一个模块<strong><code>Methalign</code></strong>。尝试使用甲基化信息(5mCG)，对模糊的比对进行二次分配。这个模块主要针对超复杂多倍体，它们存在大量的高度同源区域，这些区域，即使使用长度长的互作数据也难以区分。普通多倍体请使用<code>Mapper</code>处理Pore-C数据<a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a>。</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>If you want to process Pore-C/HiFi-C data without 5mC information, please use the <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
+<p>如果你不需要使用甲基化信息，请使用 <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The input bam should contain the <code>MM/ML</code> tags</p>
+<p>输入的bam文件应该包含<code>MM/ML</code>tags</p>
 </div>
-<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">#</a></h2>
+<h2 id="methalign_1">激活 methalign环境<a class="headerlink" href="#methalign_1" title="Permanent link">#</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate_cphasing<span class="w"> </span>methalign
 </span></code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>The network should be accessible if the methalign environment is first activated.</p>
+<p>第一次激活，请在有网络的情况下运行该命令</p>
 </div>
-<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">#</a></h2>
+<h2 id="contig5mcg">计算contig水平基因组的5mCG信息<a class="headerlink" href="#contig5mcg" title="Permanent link">#</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi reads</label><label for="__tabbed_1_2">ONT reads</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1037,22 +1037,22 @@
 </div>
 </div>
 </div>
-<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">#</a></h2>
+<h2 id="pore-chifi-ccontig">将Pore-C或者HiFi-C比对到contig水平基因组上<a class="headerlink" href="#pore-chifi-ccontig" title="Permanent link">#</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
 </div>
-<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">#</a></h2>
+<h2 id="_1">二次分配比对片段<a class="headerlink" href="#_1" title="Permanent link">#</a></h2>
 <ul>
-<li>Split bam to speed up the refine step
+<li>将bam文件分割成多份以加快处理速度
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
 </span></code></pre></div></li>
 </ul>
 <ul>
-<li>Refine the alignments by methylation information
+<li>二次分配比对片段
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>methalign<span class="w"> </span>refine<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>output.split_*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
 </span></code></pre></div></li>
 </ul>
@@ -1133,7 +1133,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright © 2022-2025 Tanger-lab]
+      Copyright © 2022-2025 Tanger-lab
     </div>
   
   

@@ -936,7 +936,7 @@ def chrom_ticks_convert(ticks, add_suffix=True):
     
     return labels
 
-def cool2depth(coolfile, output):
+def cool2depth(coolfile, output, remove_cis=False):
     cool = cooler.Cooler(coolfile)
     binsize = cool.binsize
     
@@ -944,14 +944,31 @@ def cool2depth(coolfile, output):
     
     contigsizes = cool.chromsizes
     matrix = cool.matrix(balance=False, sparse=True)[:]
-    ## symetric 
-    matrix = matrix + matrix.T - np.diag(matrix.diagonal())
-
-    sum_values = np.array(matrix.sum(axis=1).T[0])
-
-    bins['values'] = sum_values[0]
-    bins.to_csv(output, sep='\t', header=None, index=None)
     
+    matrix = matrix + matrix.T
+    if remove_cis:
+        cis_bins = bins.reset_index().groupby('chrom').apply(lambda x: x.index.tolist())
+
+        ## calculate cis sum
+
+        matrix = matrix.tocsr()
+        for chrom, idxes in cis_bins.items():
+            res = matrix[idxes, :][:, idxes].sum(axis=1)
+            bins.loc[idxes, 'values'] = res
+
+        matrix = matrix.tocoo()
+
+        sum_values = np.array(matrix.sum(axis=1).T[0])
+        bins['values2'] = sum_values[0]
+        bins['values'] = bins['values2'] - bins['values']
+        bins = bins.drop(columns=['values2'])
+
+    else:
+        sum_values = np.array(matrix.sum(axis=1).T[0])
+        sum_values = sum_values - matrix.diagonal() / 2
+        bins['values'] = sum_values[0]
+
+    bins.to_csv(output, sep='\t', header=None, index=None)
 
 def merge_matrix(coolfile, 
                 outcool, 

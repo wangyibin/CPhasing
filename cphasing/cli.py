@@ -2522,6 +2522,7 @@ def alleles(fasta, output,
     from .core import AlleleTable, ClusterTable
     from .utilities import is_file_changed
     from joblib import Parallel, delayed, parallel_backend
+    from Bio import SeqIO
     from multiprocessing import Pool
 
     if not output:
@@ -2535,10 +2536,26 @@ def alleles(fasta, output,
     #     whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
 
     if not first_cluster:
+        if trim_length > 0:
+            with open(f"{fasta}.trim.fasta", 'w') as out:
+                with open(fasta) as fp:
+                    fa = SeqIO.parse(fp, 'fasta')
+                    for record in fa:
+                        if len(record.seq) > trim_length * 3:
+                            record.seq = record.seq[trim_length:-trim_length]
+                            print(record.format("fasta"), file=out)
+                        else:
+                            print(record.format("fasta"), file=out)
+                            
+            fasta = f"{fasta}.trim.fasta"
+        
         pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
                             min_cnt, minimum_similarity, diff_thres,
                             filter_value=min_length, output=output, threads=threads)
         pa.run()
+
+        if Path(f"{fasta}.trim.fasta").exists():
+            os.remove(f"{fasta}.trim.fasta")
     else:
         ct = ClusterTable(first_cluster)
         fasta = Path(fasta).absolute()

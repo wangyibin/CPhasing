@@ -1,4 +1,3 @@
-# Change logs #
 ## [v0.2.6] - 2025-03-11
 #### Enhancement
 - Parameter optimization.

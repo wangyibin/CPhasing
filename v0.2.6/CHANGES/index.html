@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#v026-2025-03-11" class="md-skip">
+        <a href="#v026-2025-03-20" class="md-skip">
           Skip to content
         </a>
       
@@ -690,6 +690,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../CLI/collapse/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collapse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../CLI/rename/" class="md-nav__link">
         
   
@@ -850,9 +872,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v026-2025-03-11" class="md-nav__link">
+  <a href="#v026-2025-03-20" class="md-nav__link">
     <span class="md-ellipsis">
-      [v0.2.6] - 2025-03-11
+      [v0.2.6] - 2025-03-20
     </span>
   </a>
   
@@ -1529,9 +1551,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v026-2025-03-11" class="md-nav__link">
+  <a href="#v026-2025-03-20" class="md-nav__link">
     <span class="md-ellipsis">
-      [v0.2.6] - 2025-03-11
+      [v0.2.6] - 2025-03-20
     </span>
   </a>
   
@@ -2193,11 +2215,16 @@
 
   <h1>CHANGES</h1>
 
-<h2 id="v026-2025-03-11">[v0.2.6] - 2025-03-11<a class="headerlink" href="#v026-2025-03-11" title="Permanent link">#</a></h2>
+<h2 id="v026-2025-03-20">[v0.2.6] - 2025-03-20<a class="headerlink" href="#v026-2025-03-20" title="Permanent link">#</a></h2>
+<h4 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">#</a></h4>
+<ul>
+<li><code>collapse</code>, rescue the collapsed contigs  </li>
+</ul>
 <h4 id="enhancement">Enhancement<a class="headerlink" href="#enhancement" title="Permanent link">#</a></h4>
 <ul>
 <li>Parameter optimization.</li>
 <li>Supported pairs.pqs processing.</li>
+<li><code>chimeric</code>, improve the performance that avoids too high of false correct</li>
 <li><code>pipeline</code>, if input pairs or pairs.gz, it will first convert it to pairs.pqs to speed up subsequence pairs data load. About a 15 percent increase in speed.</li>
 <li><code>plot</code>, enable plot the border or haplotypes (<code>--add-hap-border</code>)</li>
 </ul>
@@ -2213,7 +2240,7 @@
     - generate the unrenamed chromosome, #issue16</li>
 </ul>
 <h2 id="v025-2025-02-07">[v0.2.5] - 2025-02-07<a class="headerlink" href="#v025-2025-02-07" title="Permanent link">#</a></h2>
-<h4 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">#</a></h4>
+<h4 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">#</a></h4>
 <ul>
 <li><code>PQS</code>, custom format of contacts to speed up the load and parse, do not used in this version.</li>
 </ul>
@@ -2297,7 +2324,7 @@
 <li><code>plot</code>, fixed bug of split contigs</li>
 </ul>
 <h2 id="v019-2024-07-09">[v0.1.9] - 2024-07-09<a class="headerlink" href="#v019-2024-07-09" title="Permanent link">#</a></h2>
-<h4 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">#</a></h4>
+<h4 id="new-features_2">New features<a class="headerlink" href="#new-features_2" title="Permanent link">#</a></h4>
 <ul>
 <li><code>collapsed-rescue</code>, init a collapsed contigs rescue function</li>
 </ul>
@@ -2360,7 +2387,7 @@
 <li><code>pipeline</code>, use </li>
 </ul>
 <h2 id="v013-2024-04-22">[v0.1.3] - 2024-04-22<a class="headerlink" href="#v013-2024-04-22" title="Permanent link">#</a></h2>
-<h4 id="new-features_2">New features<a class="headerlink" href="#new-features_2" title="Permanent link">#</a></h4>
+<h4 id="new-features_3">New features<a class="headerlink" href="#new-features_3" title="Permanent link">#</a></h4>
 <ul>
 <li><code>_chromap</code>, add a modified <code>chromap</code></li>
 </ul>
@@ -2375,7 +2402,7 @@
 <li><code>cphasing-rs pairs2clm</code>, speed up</li>
 </ul>
 <h2 id="v011-2024-04-11">[v0.1.1] - 2024-04-11<a class="headerlink" href="#v011-2024-04-11" title="Permanent link">#</a></h2>
-<h4 id="new-features_3">New features<a class="headerlink" href="#new-features_3" title="Permanent link">#</a></h4>
+<h4 id="new-features_4">New features<a class="headerlink" href="#new-features_4" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hitig</code>
     - <code>scaffolding</code>, which enable to scaffolding by ultra-long reads.</li>
@@ -2387,7 +2414,7 @@
 <li><code>hypergraph</code>, speed up by porec table load.</li>
 </ul>
 <h2 id="v010-2024-04-07">[v0.1.0] - 2024-04-07<a class="headerlink" href="#v010-2024-04-07" title="Permanent link">#</a></h2>
-<h4 id="new-features_4">New features<a class="headerlink" href="#new-features_4" title="Permanent link">#</a></h4>
+<h4 id="new-features_5">New features<a class="headerlink" href="#new-features_5" title="Permanent link">#</a></h4>
 <ul>
 <li><code>alleles2</code>, a method for allelic contig identification by self mapping</li>
 <li><code>cphasing-rs prune</code>, a method to prune by raw allele table (ALLHiC allele table)</li>
@@ -2407,12 +2434,12 @@
 <li><code>alleles</code>, filterring by valid kmer length of contigs</li>
 </ul>
 <h4 id="v0062-2024-02-18">[v0.0.62] - 2024-02-18<a class="headerlink" href="#v0062-2024-02-18" title="Permanent link">#</a></h4>
-<h4 id="new-features_5">New features<a class="headerlink" href="#new-features_5" title="Permanent link">#</a></h4>
+<h4 id="new-features_6">New features<a class="headerlink" href="#new-features_6" title="Permanent link">#</a></h4>
 <ul>
 <li><code>cphasing-rs</code> <code>kprune</code>, increase the recall of cross-allelic</li>
 </ul>
 <h4 id="v0061-2024-01-19">[v0.0.61] - 2024-01-19<a class="headerlink" href="#v0061-2024-01-19" title="Permanent link">#</a></h4>
-<h4 id="new-features_6">New features<a class="headerlink" href="#new-features_6" title="Permanent link">#</a></h4>
+<h4 id="new-features_7">New features<a class="headerlink" href="#new-features_7" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot_high_order_distribution.py</code>, plot the contact order distribution of pore-c alignments</li>
 </ul>
@@ -2457,7 +2484,7 @@
 <li><code>kprune</code>, remove <code>count_re</code> argument</li>
 </ul>
 <h2 id="v0055">[v0.0.55]<a class="headerlink" href="#v0055" title="Permanent link">#</a></h2>
-<h4 id="new-features_7">New features<a class="headerlink" href="#new-features_7" title="Permanent link">#</a></h4>
+<h4 id="new-features_8">New features<a class="headerlink" href="#new-features_8" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hcr_from_contacts</code>, add new function of hcr</li>
 <li><code>plot_lines</code>, plot lines of evaluation</li>
@@ -2468,7 +2495,7 @@
 <li><code>pipeline</code>, fixed bugs</li>
 </ul>
 <h2 id="v0053">[v0.0.53]<a class="headerlink" href="#v0053" title="Permanent link">#</a></h2>
-<h4 id="new-features_8">New features<a class="headerlink" href="#new-features_8" title="Permanent link">#</a></h4>
+<h4 id="new-features_9">New features<a class="headerlink" href="#new-features_9" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pipeline</code>, add a pipeline of C-Phasing</li>
 </ul>
@@ -2486,7 +2513,7 @@
 <ul>
 <li>2023-11-11</li>
 </ul>
-<h4 id="new-features_9">New features<a class="headerlink" href="#new-features_9" title="Permanent link">#</a></h4>
+<h4 id="new-features_10">New features<a class="headerlink" href="#new-features_10" title="Permanent link">#</a></h4>
 <ul>
 <li><code>agp</code>, add <code>pseudo-agp</code>, create a pseudo agp from simulation contigs</li>
 </ul>
@@ -2510,7 +2537,7 @@
 <ul>
 <li><code>cphasing-rs</code>, update it into v0.0.10</li>
 </ul>
-<h4 id="new-features_10">New features<a class="headerlink" href="#new-features_10" title="Permanent link">#</a></h4>
+<h4 id="new-features_11">New features<a class="headerlink" href="#new-features_11" title="Permanent link">#</a></h4>
 <ul>
 <li><code>porec2csv</code>, import porec table into pao csv</li>
 <li><code>PoreCTable.binnify</code>, binnify the contig by binsize</li>
@@ -2528,7 +2555,7 @@
 <ul>
 <li><code>kprune</code>, advanced it to identity more cross-allelic </li>
 </ul>
-<h4 id="new-features_11">New features<a class="headerlink" href="#new-features_11" title="Permanent link">#</a></h4>
+<h4 id="new-features_12">New features<a class="headerlink" href="#new-features_12" title="Permanent link">#</a></h4>
 <ul>
 <li><code>evaluate_prune.py</code>, evaluate the result of <code>kprune</code></li>
 <li><code>methalign/pipe</code>, init the pipeline of methalign</li>
@@ -2565,7 +2592,7 @@
 <li><code>ontig</code>, restruct the framework and add <code>split-reads</code>, <code>find-chimeric</code>, <code>hcr</code> three functions.</li>
 </ul>
 <h2 id="v0043-2023-09-24">[v0.0.43] - 2023-09-24<a class="headerlink" href="#v0043-2023-09-24" title="Permanent link">#</a></h2>
-<h4 id="new-features_12">New features<a class="headerlink" href="#new-features_12" title="Permanent link">#</a></h4>
+<h4 id="new-features_13">New features<a class="headerlink" href="#new-features_13" title="Permanent link">#</a></h4>
 <ul>
 <li><code>methalign</code>, init</li>
 </ul>
@@ -2669,7 +2696,7 @@
 <ul>
 <li>2023-08-02</li>
 </ul>
-<h4 id="new-features_13">New features<a class="headerlink" href="#new-features_13" title="Permanent link">#</a></h4>
+<h4 id="new-features_14">New features<a class="headerlink" href="#new-features_14" title="Permanent link">#</a></h4>
 <ul>
 <li><code>ultra_long</code>, add v1 pipeline</li>
 </ul>
@@ -2697,7 +2724,7 @@
 <ul>
 <li>2023-07-29</li>
 </ul>
-<h4 id="new-features_14">New features<a class="headerlink" href="#new-features_14" title="Permanent link">#</a></h4>
+<h4 id="new-features_15">New features<a class="headerlink" href="#new-features_15" title="Permanent link">#</a></h4>
 <ul>
 <li><code>collapse</code>, create a collapse rescued contact matrix</li>
 </ul>
@@ -2722,7 +2749,7 @@
 <ul>
 <li>2023-07-12</li>
 </ul>
-<h4 id="new-features_15">New features<a class="headerlink" href="#new-features_15" title="Permanent link">#</a></h4>
+<h4 id="new-features_16">New features<a class="headerlink" href="#new-features_16" title="Permanent link">#</a></h4>
 <ul>
 <li><code>statcluster</code>, stat the clustertable</li>
 <li><code>plot_hist</code>, plot the distribution of somethings</li>
@@ -2743,7 +2770,7 @@
 <ul>
 <li>2023-07-05</li>
 </ul>
-<h4 id="new-features_16">New features<a class="headerlink" href="#new-features_16" title="Permanent link">#</a></h4>
+<h4 id="new-features_17">New features<a class="headerlink" href="#new-features_17" title="Permanent link">#</a></h4>
 <ul>
 <li><code>evalutate_known_assembly.py</code>, evalutate the simulated human genome</li>
 <li><code>cis_trans_by_contigs.py</code>, calculate the cis and trans contacts by pairs</li>
@@ -2757,7 +2784,7 @@
 <ul>
 <li>2023-06-20</li>
 </ul>
-<h4 id="new-features_17">New features<a class="headerlink" href="#new-features_17" title="Permanent link">#</a></h4>
+<h4 id="new-features_18">New features<a class="headerlink" href="#new-features_18" title="Permanent link">#</a></h4>
 <ul>
 <li><code>ultra_long</code>, init ultra_long method</li>
 </ul>
@@ -2769,7 +2796,7 @@
 <ul>
 <li>2023-06-17</li>
 </ul>
-<h4 id="new-features_18">New features<a class="headerlink" href="#new-features_18" title="Permanent link">#</a></h4>
+<h4 id="new-features_19">New features<a class="headerlink" href="#new-features_19" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pictures</code>, add the heatmap of M1</li>
 </ul>
@@ -2782,7 +2809,7 @@
 <ul>
 <li>2023-06-16</li>
 </ul>
-<h4 id="new-features_19">New features<a class="headerlink" href="#new-features_19" title="Permanent link">#</a></h4>
+<h4 id="new-features_20">New features<a class="headerlink" href="#new-features_20" title="Permanent link">#</a></h4>
 <ul>
 <li><code>tmpoptimze</code>, a temp function for order and orientation</li>
 <li><code>PoreCMapper</code>, based on minimap2 and cphasing-rs</li>
@@ -2815,7 +2842,7 @@
 <li><code>AlleleTable</code>, load info</li>
 <li><code>PartigRecord</code>, output allele table with additional information</li>
 </ul>
-<h4 id="new-features_20">New features<a class="headerlink" href="#new-features_20" title="Permanent link">#</a></h4>
+<h4 id="new-features_21">New features<a class="headerlink" href="#new-features_21" title="Permanent link">#</a></h4>
 <ul>
 <li><code>AlleleInfo</code>, object function of allele table information</li>
 </ul>
@@ -2842,7 +2869,7 @@
     - <code>min_weight</code>, add a parameter of the graph minimum weight </li>
 <li><code>IRMM</code>, add a function of the graph filter by minimum weight</li>
 </ul>
-<h4 id="new-features_21">New features<a class="headerlink" href="#new-features_21" title="Permanent link">#</a></h4>
+<h4 id="new-features_22">New features<a class="headerlink" href="#new-features_22" title="Permanent link">#</a></h4>
 <ul>
 <li><code>KPruneHyperGraph</code>, add a function that implement pruning on hypergraph</li>
 </ul>
@@ -2859,7 +2886,7 @@
     - expose <code>--allelic-similarity</code> parameter</li>
 <li><code>PoreCTable</code>, change to cphasing-rs porec table</li>
 </ul>
-<h4 id="new-features_22">New features<a class="headerlink" href="#new-features_22" title="Permanent link">#</a></h4>
+<h4 id="new-features_23">New features<a class="headerlink" href="#new-features_23" title="Permanent link">#</a></h4>
 <ul>
 <li><code>docs</code>, add docs</li>
 <li><code>utils</code>
@@ -2886,7 +2913,7 @@
 <ul>
 <li>2023-05-01</li>
 </ul>
-<h4 id="new-features_23">New features<a class="headerlink" href="#new-features_23" title="Permanent link">#</a></h4>
+<h4 id="new-features_24">New features<a class="headerlink" href="#new-features_24" title="Permanent link">#</a></h4>
 <ul>
 <li><code>PruneTable</code>, Object for prune table.</li>
 </ul>
@@ -2900,7 +2927,7 @@
 <ul>
 <li>2023-03-22</li>
 </ul>
-<h4 id="new-features_24">New features<a class="headerlink" href="#new-features_24" title="Permanent link">#</a></h4>
+<h4 id="new-features_25">New features<a class="headerlink" href="#new-features_25" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot_heatmap</code>, custom function to plot heatmap </li>
 </ul>
@@ -2921,7 +2948,7 @@
 <ul>
 <li>2023-03-15</li>
 </ul>
-<h4 id="new-features_25">New features<a class="headerlink" href="#new-features_25" title="Permanent link">#</a></h4>
+<h4 id="new-features_26">New features<a class="headerlink" href="#new-features_26" title="Permanent link">#</a></h4>
 <ul>
 <li><code>KPruner</code>, prune contig contacts according similarity allele table</li>
 </ul>
@@ -2940,7 +2967,7 @@
 <ul>
 <li>2023-03-11</li>
 </ul>
-<h4 id="new-features_26">New features<a class="headerlink" href="#new-features_26" title="Permanent link">#</a></h4>
+<h4 id="new-features_27">New features<a class="headerlink" href="#new-features_27" title="Permanent link">#</a></h4>
 <ul>
 <li><code>HyperGraph</code>, instead of hypernetx to speed up </li>
 <li><code>prepare</code>, a cli function for some preparation for C-Phasing</li>
@@ -2972,7 +2999,7 @@
 <ul>
 <li>2023-03-08</li>
 </ul>
-<h4 id="new-features_27">New features<a class="headerlink" href="#new-features_27" title="Permanent link">#</a></h4>
+<h4 id="new-features_28">New features<a class="headerlink" href="#new-features_28" title="Permanent link">#</a></h4>
 <ul>
 <li><code>Extractor</code>, extract edges from pairs file</li>
 <li><code>HyperExtractor</code>, extract hyperedges from pore-c table</li>
@@ -2987,7 +3014,7 @@
 <li>2023-01-06
 <code>refactor the frame of cphasing that seperating the hic and pore-c pipelines</code></li>
 </ul>
-<h4 id="new-features_28">New features<a class="headerlink" href="#new-features_28" title="Permanent link">#</a></h4>
+<h4 id="new-features_29">New features<a class="headerlink" href="#new-features_29" title="Permanent link">#</a></h4>
 <ul>
 <li><code>agp2assembly</code>, convert agp to assembly file</li>
 <li><code>pairs2mnd</code>, convert pairs to mnd file</li>
@@ -3011,7 +3038,7 @@
 <ul>
 <li>2022-11-17</li>
 </ul>
-<h4 id="new-features_29">New features<a class="headerlink" href="#new-features_29" title="Permanent link">#</a></h4>
+<h4 id="new-features_30">New features<a class="headerlink" href="#new-features_30" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hypergraph</code>, contain a hypergraph cluster algorithms</li>
 <li><code>HyperPartition</code>, partition contigs in diploid or allopolyploid</li>
@@ -3033,7 +3060,7 @@
 <ul>
 <li>2022-10-31</li>
 </ul>
-<h4 id="new-features_30">New features<a class="headerlink" href="#new-features_30" title="Permanent link">#</a></h4>
+<h4 id="new-features_31">New features<a class="headerlink" href="#new-features_31" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot</code>, provide adjust matrix and plot matrix function.</li>
 <li><code>AdapativePartition</code>, partition by adapative pipeline for find best results</li>
@@ -3049,7 +3076,7 @@
 <ul>
 <li>2022-10-07</li>
 </ul>
-<h4 id="new-features_31">New features<a class="headerlink" href="#new-features_31" title="Permanent link">#</a></h4>
+<h4 id="new-features_32">New features<a class="headerlink" href="#new-features_32" title="Permanent link">#</a></h4>
 <ul>
 <li>Change packages name to CPhasing.</li>
 <li>New function of 

@@ -1,7 +1,8 @@
 Collapsed contigs are commonly observed in polyploid hybrids due to the presence of highly similar homologous regions introduced through hybridization. These regions pose significant challenges for direct *de novo* assembly using current computational approaches (e.g. hifiasm). To address this limitation, we developed a strategy comprising two steps:     
     **(1)** Collapsed contigs detection: Identification of candidate contigs (copy number ≥2) through integrated analysis of sequencing depth profiles from HiFi, ONT, and Pore-C data.    
-    **(2)** Collapsed contigs rescuing: Precise duplication and chromosomal placement of collapsed sequences using a dual-evidence framework that combines contig-specific linkage patterns with chromatin interaction signals.    
-This methodology demonstrates particular efficacy in resolving localized assembly errors, though its application to whole-chromosome scale collapses requires further algorithmic optimization.
+    **(2)** Collapsed contigs rescuing: Duplicating and putting collapsed contigs into correctly groups.
+!!! warning    
+    This methodology’s particular efficacy in resolving localized collapsed regions can not resolve the collapsed regions that nearly whole chromosomes.
 
 ## Collapsed contigs detection
 === "HiFi data"

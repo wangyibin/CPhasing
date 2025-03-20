@@ -4089,7 +4089,7 @@ def gfa2depth(gfa):
     cfg.run()
 
 
-@cli.group(cls=CommandGroup, epilog=__epilog__, short_help="Collapsed contigs process")
+@cli.group(cls=CommandGroup, epilog=__epilog__, short_help="Collapsed contigs rescue. (nightly)")
 @click.pass_context
 def collapse(ctx):
     pass 
@@ -4228,7 +4228,7 @@ def pairs_dup(pairs, collapsed_contigs, output):
 
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to run `cphasing-rs pairs-dup`"
-    
+
 
 @cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
 @click.argument(

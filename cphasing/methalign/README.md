@@ -10,4 +10,4 @@
 
 
 
-Please check the [Doc](https://wangyibin.github.io/CPhasing/CLI/methalign/).
+Please check the [Doc](https://wangyibin.github.io/CPhasing/latest/CLI/methalign/).

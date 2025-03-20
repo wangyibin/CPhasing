@@ -65,12 +65,13 @@ def main(args):
 
     ax = plot_heatmap(args.cool, "test.png", 
                       fontsize=12, scale="none",
-                      vmax=args.vmax,
+                      vmax=args.vmax, 
                       triangle=True, chromosomes=args.chromosome, 
                       rotate_xticks=True)
     
-    color_db = ["#FBB4AE" ,"#B3CDE3", "#CCEBC5", "#DECBE4"]
-    marker_db = ["^", "v", "2", "1"]
+    # color_db = ["#FBB4AE" ,"#B3CDE3", "#CCEBC5", "#DECBE4"]
+    color_db = [ "#F5CAC3", "#F6BD60", "#F28482", "#84A59D"]
+    marker_db = ["^", "v", "2", "d"]
     color_db += []
     ylim = ax.get_ylim()
     if args.break_pos:
@@ -83,7 +84,7 @@ def main(args):
                     
                     pos = int(pos) // binsize
                     y_pos = -(ylim[1]/40) if i % 2 == 0 else (ylim[1]/40)
-                    marker = marker_db[i%3]
+                    marker = marker_db[i%4]
                     ax.plot(pos, y_pos, marker=marker, markersize=7.5, 
                     linewidth=1, alpha=1,
                     linestyle='none', color=color_db[i],
@@ -103,7 +104,7 @@ def main(args):
     plt.yticks([])
     plt.xlabel(" ".join(args.chromosome), fontsize=14)
     plt.ylim(-(ylim[1]/15))
-    output_prefix = ",".join(args.chromosome)
+    output_prefix = "_".join(args.chromosome)
     plt.savefig(f"{output_prefix}.tria.png", dpi=600, bbox_inches='tight')
     plt.savefig(f"{output_prefix}.tria.pdf", dpi=600, bbox_inches='tight')
 

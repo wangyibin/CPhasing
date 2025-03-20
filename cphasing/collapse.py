@@ -22,14 +22,14 @@ import seaborn as sns
 from matplotlib.ticker import MaxNLocator
 from scipy.signal import find_peaks
 
-from collections import defaultdict, OrderedDict
+from collections import Counter, defaultdict, OrderedDict
 from itertools import product
 from scipy.sparse import triu
 from pandarallel import pandarallel 
 from pathlib import Path
 
 try:
-    from .algorithms.hypergraph import extract_incidence_matrix2 
+    from .algorithms.hypergraph import extract_incidence_matrix2, HyperGraph
     from .core import Tour
     from .utilities import (run_cmd, list_flatten, 
                             get_contig_size_from_fasta, 
@@ -44,6 +44,104 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+
+class CollapseFromDepth:
+    """
+    get collapsed contigs from read depth
+    """
+    def __init__(self, depth):
+        self.depth = depth
+        self.depth_df = self.read_depth()
+
+        self.contigsizes = self.depth_df.groupby('chrom').agg({'end': 'max'})
+        self.contigsizes.columns = ['length']
+        self.contigsizes_db = self.contigsizes.to_dict()['length']
+
+    def read_depth(self):
+        df = pd.read_csv(self.depth, sep='\t', header=None)
+        df.columns = ['chrom', 'start', 'end', 'count']
+        df['length'] = df['end'] - df['start']
+        return df
+
+    def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.75 ):
+        data = self.depth_df['count']
+        fig, ax = plt.subplots(figsize=(5.7, 5))
+        plt.rcParams['font.family'] = 'Arial'
+
+        data = data[data <= np.percentile(data, 98) * 1.5]
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+
+
+        kdelines = sns.kdeplot(data, ax=ax, color='#209093', linewidth=2)
+        plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        formatter = plt.gca().get_yaxis().get_major_formatter()
+        plt.gca().yaxis.set_major_formatter(formatter)
+        plt.gca().yaxis.get_offset_text().set_fontsize(14)
+        # plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        formatter = plt.gca().get_xaxis().get_major_formatter()
+        plt.gca().xaxis.set_major_formatter(formatter)
+        plt.gca().xaxis.get_offset_text().set_fontsize(14)
+        plt.xticks(fontsize=18)
+        plt.yticks(fontsize=18)
+        plt.xlabel("Coverage", fontsize=20)
+        plt.ylabel("Density", fontsize=20)
+
+        x = kdelines.lines[0].get_xdata()
+        y = kdelines.lines[0].get_ydata()
+
+        peak_ind = find_peaks(y, distance=10)[0]
+        median_value = np.quantile(data, .3)
+        peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+        if len(peak_ind) == 0:
+            max_idx = np.argsort(x)[len(x)//2]
+        else:
+            max_idx = peak_ind[np.argmax(y[peak_ind])]
+
+        # ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
+        #             0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+       
+        ax.axvline(x[max_idx], linestyle='--', color='#b02418')
+        ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
+        ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
+        ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
+
+        sns.despine()
+        plt.legend([], frameon=False)
+        ax.spines['bottom'].set_linewidth(1.5)
+        ax.spines['left'].set_linewidth(1.5)
+        plt.tick_params(which='both', width=1.5, length=5)
+
+        plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+        plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+
+        return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+        
+    def run(self):
+        peak_depth, lower_depth, upper_depth = self.plot_distribution()
+
+        rd_df = self.depth_df
+        rd_df['CN'] = rd_df['count'] / peak_depth
+        
+        contig_depth = rd_df.groupby('chrom')['count'].mean().to_frame()
+        contig_depth['CN'] = contig_depth['count'] / peak_depth
+
+        collapsed_df = contig_depth[contig_depth['CN'] > 1.5]
+        
+        collapsed_df['length'] = collapsed_df.index.map(self.contigsizes_db.get)
+
+        collapsed_df = collapsed_df.reset_index()
+        logger.info(f"Identified {collapsed_df['length'].sum():,} bp contigs with read depth >= {upper_depth:.2f}")
+        collapsed_df.drop(columns=["length"], inplace=True)
+        collapsed_df.to_csv("contigs.collapsed.contig.list", sep='\t', header=False, index=False)
+
+        low_df = contig_depth[contig_depth['CN'] < 0.1]
+        low_df['length'] = low_df.index.map(self.contigsizes_db.get)
+        low_df = low_df.reset_index()
+        logger.info(f"Identified {low_df['length'].sum():,} bp contigs with read depth < {lower_depth:.2f}")
+        low_df.drop(columns=["length"], inplace=True)
+        low_df.to_csv("contigs.low.contig.list", sep='\t', header=False, index=False)
+        
 
 class CollapseFromGfa:
     """
@@ -88,6 +186,8 @@ class CollapseFromGfa:
 
         self.depth_df = self.bins.copy()
         self.depth_df['count'] = self.depth_df['chrom'].map(self.rd_db.get)
+        self.gfa.replace(".gfa", ".depth")
+        self.depth_df.to_csv(self.gfa.replace(".gfa", ".depth"), sep='\t', header=False, index=False)
        
     def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.75 ):
         data = self.depth_df['count']
@@ -99,7 +199,7 @@ class CollapseFromGfa:
         ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
 
 
-        kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+        kdelines = sns.kdeplot(data, ax=ax, color='#209093', linewidth=2)
         plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         formatter = plt.gca().get_yaxis().get_major_formatter()
         plt.gca().yaxis.set_major_formatter(formatter)
@@ -108,10 +208,10 @@ class CollapseFromGfa:
         formatter = plt.gca().get_xaxis().get_major_formatter()
         plt.gca().xaxis.set_major_formatter(formatter)
         plt.gca().xaxis.get_offset_text().set_fontsize(14)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.xlabel("Read depth", fontsize=24)
-        plt.ylabel("Density", fontsize=24)
+        plt.xticks(fontsize=18)
+        plt.yticks(fontsize=18)
+        plt.xlabel("Coverage", fontsize=20)
+        plt.ylabel("Density", fontsize=20)
 
         x = kdelines.lines[0].get_xdata()
         y = kdelines.lines[0].get_ydata()
@@ -124,12 +224,10 @@ class CollapseFromGfa:
         else:
             max_idx = peak_ind[np.argmax(y[peak_ind])]
 
-        ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
-                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
-        ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
-        ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
-        ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
-        ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
+        ax.axvline(x[max_idx], linestyle='--', color='#b02418')
+        ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
+        ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
+        ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
 
         sns.despine()
         plt.legend([], frameon=False)
@@ -175,7 +273,7 @@ class CollapsedRescue:
     """
     Rescue the collapsed contigs into a group
     """
-    def __init__(self, HG, clustertable, alleletable,
+    def __init__(self, HG, clustertable, alleletable, contigsizes,
                     collapsed_contigs, allelic_similarity: float=.85):
         
         self.HG = HG 
@@ -183,15 +281,16 @@ class CollapsedRescue:
         self.alleletable = alleletable 
         self.alleletable.data = self.alleletable.data[
             self.alleletable.data['similarity'] >= allelic_similarity]
-    
+
+        self.contigsizes = contigsizes
         self.collapsed_contigs = collapsed_contigs
         self.allelic_similarity = allelic_similarity
         
-        self.hap_groups = self.hap_groups
-        self.H = HG.incidence_matrix()
-        self.vertices = self.HG.nodes 
+        self.hap_groups = self.clustertable.hap_groups
 
-    
+        self.H = HG.incidence_matrix(min_contacts=5)
+        
+        self.vertices = self.HG.nodes 
 
     @property
     def vertices_idx(self):
@@ -207,6 +306,20 @@ class CollapsedRescue:
     @staticmethod
     def _rescue(A, ):
         pass
+
+    def filter_hypergraph(self):
+        
+        A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx=None, min_weight=2)
+        dia = A.diagonal()
+        raw_contig_counts = A.shape[0]
+        retain_idx = np.where(dia > 20)[0]
+        contig_counts = len(retain_idx)
+
+        if len(retain_idx) < raw_contig_counts:
+            A = A[retain_idx, :][:, retain_idx]
+            self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
+            self.vertices = self.vertices[retain_idx]
+            logger.info(f"Filtered {raw_contig_counts - contig_counts} contigs with less than 20 cis weight")
 
     def rescue(self):
         vertices_idx = self.vertices_idx
@@ -224,10 +337,13 @@ class CollapsedRescue:
                 self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
             sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
             sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+            sub_alleletable.dropna(axis=0, inplace=True)
+            sub_alleletable[1] = sub_alleletable[1].astype(int)
+            sub_alleletable[2] = sub_alleletable[2].astype(int)
             P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
             sub_alleletable.set_index([1], inplace=True)
             
-            sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
+            sub_H, _, _ = extract_incidence_matrix2(self.H, contigs_idx)
             sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
            
             # sub_allelic = set(map(tuple, sub_alleletable[[1, 2]].values.tolist()))
@@ -245,7 +361,6 @@ class CollapsedRescue:
 
             res = []
            
-
             for j in sub_collapsed_contigs_idx_new:
                 try:
                     tmp_allelic_table = sub_alleletable.loc[j]
@@ -272,9 +387,8 @@ class CollapsedRescue:
                      
 
                 groups_new_idx[np.argmax(tmp_res)].append(j)
-                
+                logger.debug(f"Rescued contig {idx_to_vertices[j]} into group {np.argmax(tmp_res)}")
                 res.append(tmp_res)
-            
             
             new_groups = []
             for group_idx in groups_new_idx:
@@ -284,10 +398,23 @@ class CollapsedRescue:
 
             for k, group in enumerate(new_groups):
                 new_cluster_data[f'{hap_group}g{k+1}'] = group 
-            
         
+    
         self.clustertable.data = new_cluster_data
-        self.clustertable.save("test.clusters.txt")
+        ## duplicated
+       
+        new_contigs = self.clustertable.contigs
+        count = Counter(new_contigs)
+        rescued_contigs = [k for k, v in count.items() if v > 1]
+        
+        with open(f"collapsed.rescue.contigs.list", 'w') as out:
+            for contig in rescued_contigs:
+                for i in range(2, count[contig] + 1):
+                    print(f"{contig}\t{contig}_d{i}", file=out)
+        rescued_length = self.contigsizes.reindex(rescued_contigs).sum().values[0]
+
+        logger.info(f"Rescued {len(rescued_contigs)} contigs, total length: {rescued_length:,} bp")
+        self.clustertable.save("collapsed.rescue.clusters.txt")
 
 
 class CollapsedRescue2:

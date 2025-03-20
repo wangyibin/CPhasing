@@ -702,7 +702,7 @@ class PQS:
     
     def to_clm(self, chunks, output,
                min_mapq=0,
-                min_count=1):
+               min_count=1):
         """
         Convert the .pqs file to .clm file.
         """

@@ -1168,13 +1168,17 @@ class HyperPartition:
         idx_to_vertices = self.idx_to_vertices
   
         if self.fasta is not None and self.alleletable is None and self.prunetable is None:
-           
+            # if k[1] is not None or k[1] != 0:
+            #     c = 5 * k[1]
+            # else:
+            #     c = 60
             self.alleletable = str(Path(self.alleles(self.fasta, first_cluster_file, 
                                                     k=self.alleles_kmer_size,
                                                     w=self.alleles_window_size,
                                                     d=self.alleles_diff_thres,
                                                     m=self.alleles_minimum_similarity,
                                                     tl=self.alleles_trim_length,
+                                                    # c=c,
                                                     threads=self.threads)).absolute())
 
 

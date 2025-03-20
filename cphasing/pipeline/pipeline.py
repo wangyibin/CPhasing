@@ -507,7 +507,7 @@ def run(fasta,
 
                 corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
                                     f"{fasta_prefix}.corrected.fasta", 
-                                   f"{pairs_prefix}.corrected.pairs.gz")
+                                   f"{pairs_prefix}.corrected.pairs.pqs")
                 if not all(map(lambda x: Path(x).exists(), corrected_items)):
                     corrected_items = ()
 
@@ -525,10 +525,12 @@ def run(fasta,
                 if corrected_items:
                     logger.info("Using exists corrected results.")
                     break_bed, fasta, pairs = corrected_items
+                    if is_pairs2pqs:
+                        pqs_file = pairs
                     corrected = True
                     porec_table = f"{porec_prefix}.corrected.porec.gz"
                     hg_input = porec_table
-                    
+
             else:
                 corrected_items = chimeric_run(f"../{fasta}", f"../{pairs}", break_pairs=True, 
                                             outprefix=fasta_prefix, 
@@ -537,6 +539,8 @@ def run(fasta,
                 if corrected_items:
                     corrected = True
                     break_bed, fasta, pairs = corrected_items
+                    if is_pairs2pqs:
+                        pqs_file = pairs
                     cmd = ["cphasing-rs", "porec-break", f"../{porec_table}", 
                             break_bed, "-o", f"{porec_prefix}.corrected.porec.gz"]
                     flag = run_cmd(cmd, log="logs/porec-break.log")
@@ -574,13 +578,14 @@ def run(fasta,
                 
             else:
                 corrected_items = chimeric_run(f"../{fasta}", f"../{pairs}", break_pairs=True, 
-                                                outprefix=fasta_prefix, 
+                                                outprefix=fasta_prefix, min_mapq=1,
                                                 low_memory=low_memory, threads=threads)
             
             if corrected_items:
                 break_bed, fasta, pairs = corrected_items
                 corrected = True
                 hg_input = pairs
+                # pqs_file = f"{pairs_prefix}.corrected.pairs.pqs"
                 fasta_prefix = Path(Path(fasta).name).with_suffix("")
                 while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
                     fasta_prefix = fasta_prefix.with_suffix("")
@@ -657,7 +662,7 @@ def run(fasta,
         if porec_table and not use_pairs:
             if is_pairs2pqs:
                 prepare_input = pqs_file
-               
+
             else:
                 prepare_input = f"{porec_prefix}.pairs.gz"
         else:

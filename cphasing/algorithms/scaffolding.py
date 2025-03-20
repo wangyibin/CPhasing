@@ -420,8 +420,7 @@ class Rename:
 
         os.chdir("../")
 
-
-        shutil.rmtree(tmpDir)
+        # shutil.rmtree(tmpDir)
 
 
 class AllhicOptimize:

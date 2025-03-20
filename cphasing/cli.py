@@ -84,14 +84,15 @@ click.rich_click.COMMAND_GROUPS = {
         },
         {
             "name": "Main Commands",
-            "commands": ["hitig", "methalign", "mapper", "chimeric", "prepare",
+            "commands": ["hitig", "methalign", "mapper", "chimeric", 
+                         "collapse", "prepare",
                          "alleles", "hyperpartition", "scaffolding",
                          "build", "rename", "pairs2cool", "plot"]
         },
-       
         {
             "name": "Formats Converter (link to cphasing-rs)",
             "commands": ["bam2pairs", "bam2paf", 
+                         "paf2depth",
                          "paf2porec", "paf2pairs",
                          "porec-merge", "porec2pairs",
                         "pairs2pqs",
@@ -434,7 +435,7 @@ def cli(verbose, quiet):
     "--chimeric-corrected",
     is_flag=True,
     default=False,
-    help="Use existed results of correction, overwrite of the `--chimeric-corrected`",
+    help="Use existed results of correction, overwrite of the `--chimeric-correct`",
     show_default=True
 )
 @click.option(
@@ -1406,6 +1407,7 @@ def paf2pairs(paf, chromsize, output,
     paf.clean_tempoary()
 
 
+
 @alignments.command(cls=RichCommand, hidden=True, deprecated=True)
 @click.argument(
     "paf",
@@ -1871,6 +1873,16 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     show_default=True
 )
 @click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=0,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
     '-d',
     '--depth',
     metavar="Depth",
@@ -1933,7 +1945,8 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
     metavar='INT',
     show_default=True,
 )
-def chimeric(fasta, pairs, depth, window_size, 
+def chimeric(fasta, pairs, min_mapq,
+             depth, window_size, 
              break_pairs, output_depth,
              telo_motif, outprefix, 
              low_memory, threads):
@@ -1952,6 +1965,7 @@ def chimeric(fasta, pairs, depth, window_size,
                 break_pairs=break_pairs, outprefix=outprefix,
                 output_depth=output_depth, 
                 telo_motif=telo_motif,
+                min_mapq=min_mapq,
                 low_memory=low_memory,
                 threads=threads)
         
@@ -4075,7 +4089,35 @@ def gfa2depth(gfa):
     cfg.run()
 
 
-@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@cli.group(cls=CommandGroup, epilog=__epilog__, short_help="Collapsed contigs process")
+@click.pass_context
+def collapse(ctx):
+    pass 
+
+@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Identify collapsed contigs from GFA file")
+@click.argument(
+    "gfa",
+    metavar="GFA",
+    type=click.Path(exists=True)
+)
+def from_gfa(gfa):
+    from .collapse import CollapseFromGfa
+    cfg = CollapseFromGfa(gfa)
+    cfg.run()
+
+@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Identify collapsed contigs from depth file")
+@click.argument(
+    "depth",
+    metavar="Depth",
+    type=click.Path(exists=True)
+)
+def from_depth(depth):
+    from .collapse import CollapseFromDepth
+    cfd = CollapseFromDepth(depth)
+    cfd.run()
+
+
+@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Rescue collapsed contigs to a clusterfile, which before scaffolding")
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4126,7 +4168,7 @@ def gfa2depth(gfa):
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
-def collapsed_rescue(hypergraph, contigsizes, clustertable, 
+def rescue(hypergraph, contigsizes, clustertable, 
                     collapsed_contigs, ploidy,
                     alleletable, allelic_similarity):
     """
@@ -4136,6 +4178,7 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     from .collapse import CollapsedRescue
     from .core import AlleleTable, ClusterTable 
     from .algorithms.hypergraph import HyperEdges, HyperGraph
+    from .utilities import read_chrom_sizes
     
     hyperedge = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
     hyperedge.to_numpy()
@@ -4143,21 +4186,49 @@ def collapsed_rescue(hypergraph, contigsizes, clustertable,
     
     at = AlleleTable(alleletable, sort=False, fmt="allele2")
     ct = ClusterTable(clustertable)
+    contigsizes = read_chrom_sizes(contigsizes)
+
     collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
                                         names=["contig", "depth", "CN"])
-
-    collapsed_contigs = collapsed_contigs[collapsed_contigs["CN"] <= (ploidy)]
+    
+    collapsed_contigs = collapsed_contigs[collapsed_contigs["CN"] <= (ploidy-1)]
 
     cr = CollapsedRescue(
         HG=hypergraph,
         clustertable=ct,    
         alleletable=at,
+        contigsizes=contigsizes,
         collapsed_contigs=collapsed_contigs,
         allelic_similarity=allelic_similarity,
     )
-
+    cr.filter_hypergraph()
     cr.rescue()
 
+@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Process the pairs.gz or pairs.pqs file for collapsed contigs")
+@click.argument(
+    "pairs",
+    metavar="Pairs",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "collapsed_contigs",
+    metavar="Collapsed_Contigs_Table",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    help="Output path of the collapsed contigs.",
+    default="-",
+)
+def pairs_dup(pairs, collapsed_contigs, output):
+    
+    cmd = ["cphasing-rs", "pairs-dup", str(pairs), str(collapsed_contigs), "-o", str(output)]
+
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to run `cphasing-rs pairs-dup`"
+    
 
 @cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
 @click.argument(
@@ -4723,6 +4794,59 @@ def paf2pairs(paf, contigsizes,
     flag = run_cmd(cmd)
     assert flag == 0, "Failed to execute command, please check log."
 
+@cli.command(cls=RichCommand, short_help="Calculate the depth from paf file.")
+@click.argument(
+    "paf",
+    metavar="INPUT_PAF_PATH",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsizes",
+    metavar="CONTIGSIZES",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    '-w',
+    '--window',
+    help='window size',
+    default=5000,
+    show_default=True,
+    type=int
+)
+@click.option(
+    '-s',
+    '--step',
+    help='step size',
+    default=0,
+    show_default=True,
+    type=int
+)
+@click.option(
+    "-o",
+    "--output",
+    metavar="OUTPUT",
+    help="output path",
+    default="-",
+    show_default=True
+)
+def paf2depth(paf, contigsizes, min_mapq, window, step, output):
+    """
+    !!! Note: The paf file must filtered out the secondary alignments.
+    """
+    cmd = ["cphasing-rs", "paf2depth", paf,  contigsizes,
+           "-w", str(window), "-s", str(step), "-o", output]
+    flag = run_cmd(cmd)
+    assert flag == 0, "Failed to execute command, please check log."
 
 @cli.command(cls=RichCommand, short_help="Convert paf to porec table.")
 @click.argument(
@@ -6779,9 +6903,8 @@ def agp2tour(agp, outdir, force):
 @click.option(
     "-o",
     "--output",
-    help="Output of results",
+    help="Output of results, default is stdout",
     type=click.File('w'),
-    default=sys.stdout
 )
 def agp_dup(agp, output):
     """
@@ -7447,6 +7570,8 @@ def filter_high_similarity_contigs(alleletable,
 
 cli.add_command(statagp)
 cli.add_command(agp2fasta)
+
+collapse.add_command(agp_dup)
 
 ALIASES = {
     "allele": alleles,

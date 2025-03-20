@@ -195,7 +195,7 @@ def import_pairs_pqs(pairs, window_size=500, min_mapq=0, threads=4):
     p = PQS(pairs, threads=threads)
     p.init_read()
 
-    chunks = p.read(return_as="files")
+    chunks = p.read(return_as="files", min_mapq=min_mapq)
 
     pairs_df = p.to_cis_depth_df(chunks, window_size=window_size, min_mapq=min_mapq)
     contigsizes = p.contigsizes_db
@@ -240,7 +240,7 @@ def correct(depth_dict, window_size=500, min_windows=50, threads=4):
     res = list(filter(lambda x: x is not None, res))
 
     break_res = []
-    for contig, break_points in res:
+    for contig, break_points, _ in res:
         for break_point in break_points:
             break_res.append((contig, break_point * (window_size) + window_size))
     
@@ -279,6 +279,44 @@ def find_nearest(array, value):
 
     return idx, array[idx]
 
+
+def peak_width_at_fraction(p1, peak_x, fraction=0.5):
+
+
+    peak_y = p1(peak_x)
+    target_y = peak_y * fraction
+
+    x_left = peak_x
+    while x_left > 0:
+
+        if p1(x_left - 1) < target_y:
+            y1 = p1(x_left - 1)
+            y2 = p1(x_left)
+            if abs(y2 - y1) < 1e-9:
+                x_left = x_left - 1
+            else:
+                ratio = (target_y - y1)/(y2 - y1)
+                x_left = (x_left - 1) + ratio
+            break
+        x_left -= 1
+
+    x_right = peak_x
+
+    max_x = 9999999999
+    while x_right < max_x:
+        if p1(x_right + 1) < target_y:
+            y1 = p1(x_right)
+            y2 = p1(x_right + 1)
+            if abs(y2 - y1) < 1e-9:
+                x_right = x_right + 1
+            else:
+                ratio = (target_y - y1)/(y2 - y1)
+                x_right = x_right + ratio
+            break
+        x_right += 1
+
+    return x_left, x_right
+
 def find_break_point(contig, b, min_windows=50):
     b_len = len(b)
     a = np.arange(b_len)
@@ -292,32 +330,101 @@ def find_break_point(contig, b, min_windows=50):
     except SystemError:
         return 
     yvalues = p1(a)
-
+    trough_ind = find_peaks(-yvalues, distance=10, rel_height=0.4)[0]
+    trough_ind = list(filter(lambda x: x >= 1000 and x <= (len(b) - 1000), list(trough_ind)))
     peak_ind = find_peaks(yvalues, distance=10)[0]
 
-    peak_ind = list(filter(lambda x: x >= min_windows and x <= (len(b)  - min_windows), list(peak_ind)))
-
+    peak_ind = list(filter(lambda x: x >= 1000 and x <= (len(b) - 1000), list(peak_ind)))
     if len(peak_ind) <= 1:
         return None
 
     
-    trough_ind = find_peaks(-yvalues, distance=10)[0]
     peak_widths_result = peak_widths(yvalues, peak_ind, rel_height=0.4)
-    trough_widths_result = list(peak_widths(-yvalues, trough_ind, rel_height=.5))
+    trough_widths_result = list(peak_widths(-yvalues, trough_ind, rel_height=.4))
+
     trough_widths_result[1] = -trough_widths_result[1] 
     trough_widths_x = list(zip(*trough_widths_result[2:]))
     trough_widths_y = list(trough_widths_result[1])
     peak_widths_x = list(zip(*peak_widths_result[2:]))   
     peak_widths_y = list(peak_widths_result[1])
 
+    for idx, (x1, x2) in enumerate(peak_widths_x):
+        if x2 - x1 < 250:
+            peak_widths_x.pop(idx)
+            peak_widths_y.pop(idx)
+            peak_ind.pop(idx)
+    
+    for idx, (x1, x2) in enumerate(trough_widths_x):
+        if x2 - x1 < 300:
+            trough_widths_x.pop(idx)
+            trough_widths_y.pop(idx)
+            trough_ind.pop(idx)
+
+        elif (x2 - x1) > 2500:
+            trough_widths_x.pop(idx)
+            trough_widths_y.pop(idx)
+            trough_ind.pop(idx)
+   
+    for idx, y in enumerate(trough_widths_y):
+        trough_y = b[trough_ind[idx]]
+
+        if (abs(y - trough_y)) < 20:
+            trough_widths_x.pop(idx)
+            trough_widths_y.pop(idx)
+            trough_ind.pop(idx)
+    
+    # for idx, trough in enumerate(trough_ind):
+    #     pos = np.searchsorted(peak_ind, trough)
+    #     left_peak_idx = pos - 1 if pos > 0 else None
+    #     right_peak_idx = pos if pos < len(peak_ind) else None
+    #     if left_peak_idx is None or right_peak_idx is None:
+    #         continue
+        
+    #     left_peak_width_x = peak_widths_x[left_peak_idx]
+    #     right_peak_width_x = peak_widths_x[right_peak_idx]
+    #     left_peak_width_x = list(map(int, left_peak_width_x))
+    #     right_peak_width_x = list(map(int, right_peak_width_x))
+       
+        # try:
+        #     peak1 = b[left_peak_width_x[0]:left_peak_width_x[1]].argmax() + left_peak_width_x[0]
+        #     peak2 = b[right_peak_width_x[0]: right_peak_width_x[1]].argmax() + right_peak_width_x[0]
+        # except ValueError:
+        #     continue
+        # peak1_y = p1(peak1)
+        # peak2_y = p1(peak2)
+        # trough_width_x = list(map(int, trough_widths_x[idx]))
+        # new_trough = b[trough_width_x[0]: trough_width_x[1]].argmin() + trough_width_x[0]
+        # trough_y = p1(new_trough)
+
+        # if trough_width_x[0] < left_peak_width_x[1]:
+        #     height = (peak1_y - trough_y)//2 / peak1_y
+
+        #     x1, x2 = peak_width_at_fraction(p1, peak1, 1 - height)
+
+        #     peak_widths_x[left_peak_idx] = (x1, x2)
+      
+        #     peak_widths_y[left_peak_idx] = int((1 - height) * peak1_y)
+        #     peak_widths_result[1][left_peak_idx] = int((1 - height) * peak1_y)
+        #     peak_widths_result[2][left_peak_idx] = x1 
+        #     peak_widths_result[3][left_peak_idx] = x2
+
+        # if trough_width_x[1] > right_peak_width_x[0]:
+        #     height = (peak2_y - trough_y)//2 / peak2_y
+
+        #     x1, x2 = peak_width_at_fraction(p1, peak2, 1 - height)
+
+        #     peak_widths_x[right_peak_idx] = (x1, x2)
+        #     peak_widths_y[right_peak_idx] = int((1 - height) * peak2_y)
+        #     peak_widths_result[1][right_peak_idx] = int((1 - height) * peak2_y)
+        #     peak_widths_result[2][right_peak_idx] = x1 
+        #     peak_widths_result[3][right_peak_idx] = x2
+
     new_trough_ind = []
     suspicious_trough = []
     for idx, trough in enumerate(trough_ind):
+        trough_width_x = trough_widths_x[idx]
         nearest_peak_idx, nearest_peak = find_nearest(peak_ind, trough)
-
-        if (trough < min_windows) or ((len(b) - trough) < min_windows):
-            continue
-
+        
         if nearest_peak == 0 or nearest_peak == len(peak_ind) - 1:
             continue
 
@@ -340,7 +447,6 @@ def find_break_point(contig, b, min_windows=50):
         if nearest_peak_idx < 0 or nearest_peak2_idx < 0:
             continue
         
-        # print(nearest_peak2_idx, nearest_peak_idx)
         if trough_widths_y[idx] < peak_widths_y[nearest_peak_idx] \
             and trough_widths_y[idx] < peak_widths_y[nearest_peak2_idx]:
 
@@ -348,10 +454,14 @@ def find_break_point(contig, b, min_windows=50):
             peak_width_x2 = list(map(int, peak_widths_x[nearest_peak2_idx]))
             if ((peak_width_x1[1] - peak_width_x1[0]) < 50) or ((peak_width_x2[1] - peak_width_x2[0]) < 50):
                 continue
+
             peak1 = b[peak_width_x1[0]:peak_width_x1[1]].argmax() + peak_width_x1[0]
             peak2 = b[peak_width_x2[0]: peak_width_x2[1]].argmax() + peak_width_x2[0]
             peak1_edge = edge_index(peak1, b_len)
             peak2_edge = edge_index(peak2, b_len)
+            trough_edge = edge_index(trough, b_len)
+            # peak1_edge = edge_index(trough_width_x[0], b_len)
+            # peak2_edge = edge_index(trough_width_x[1], b_len)
             peak1_y = b[peak_width_x1[0]:peak_width_x1[1]].mean()
             peak2_y = b[peak_width_x2[0]: peak_width_x2[1]].mean()
 
@@ -363,34 +473,37 @@ def find_break_point(contig, b, min_windows=50):
             trough_width_x = list(map(int, trough_widths_x[idx]))
             new_trough = b[trough_width_x[0]: trough_width_x[1]].argmin() + trough_width_x[0] 
             trough_y = b[new_trough]
-            
             if trough_y < 10:
                 continue
 
+            
             # print(new_trough, trough_y, peak1_y, peak2_y, peak1, peak2, peak1_edge, peak2_edge)
+            # print(trough_y, peak1_y / (1 + .5 * (peak1_edge )), peak2_y / (1 + .5 * (peak2_edge)))
             if (trough_y < (peak1_y / (1 + .5 * (peak1_edge )))) and (trough_y < (peak2_y / (1 + .5 * (peak2_edge)))):
                 new_trough_ind.append(new_trough)
+
             # elif (trough_y > (peak1_y / 1.2)) and (trough_y > (peak2_y / 1.2)):
             #     suspicious_trough.append((new_trough, peak1, peak2))
     
     # if suspicious_trough:
     #     print(contig, suspicious_trough)
-    
+
     new_new_trough_ind = []
+
     for new_trough in new_trough_ind:
         left_b = b[: new_trough]
         right_b = b[new_trough:]
-        
         left_rmse = mean_squared_error(left_b, pd.DataFrame(left_b).shift(1).fillna(0))
         right_rmse = mean_squared_error(right_b, pd.DataFrame(right_b).shift(1).fillna(0))
-        # print(left_rmse, right_rmse)
+
         if left_rmse < .95 or right_rmse < .95:
             continue 
+        
         new_new_trough_ind.append(new_trough)
 
 
     if new_new_trough_ind:
-        return contig, new_new_trough_ind
+        return contig, new_new_trough_ind, (trough_ind, peak_ind, trough_widths_result, peak_widths_result)
     else:
         return
 
@@ -486,7 +599,6 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
         low_memory=False, threads=4):
     logger.info("Running chimeric correction ...")
 
-    
     if Path(pairs).is_dir():
         p = PQS(pairs, threads=threads)
         p.init_read()
@@ -600,7 +712,7 @@ def run(fasta, pairs, window_size=500, min_mapq=0,
             elif ".pqs" in pairs:
                 suffix = ".pqs"
             else:
-                sffix = ""
+                suffix = ""
             output_pairs = f"{output_pairs_prefix}.corrected.pairs{suffix}"
             corrected_pairs(pairs, output_break_bed, output_pairs)
         else:
@@ -629,21 +741,37 @@ def main(args):
     args = p.parse_args(args)
     
     df = pd.read_csv(args.depth, sep='\t', index_col=None, header=None)
+
+    contig = df[0].values.tolist()[0]
+    b = df[3].values
+    res = find_break_point(contig, b)
+  
     z1 = np.polyfit(df.index.values, df[3].values, 50)
     p1 = np.poly1d(z1)   
     yvalues = p1(df.index.values)
-    peak_ind = find_peaks(yvalues, distance=10)[0]
-    trough_ind = find_peaks(-yvalues, distance=10)[0]
+   
+    if res is not None:
+        trough_ind, peak_ind, trough_widths_result, peak_widths_result = res[2]
+        trough_widths_result[1] = -trough_widths_result[1]
+    else:
+        peak_ind = find_peaks(yvalues, distance=10)[0]
+        trough_ind = find_peaks(-yvalues, distance=10)[0]
 
-    peak_widths_result = peak_widths(yvalues, peak_ind, rel_height=0.2)
-    trough_widths_result = peak_widths(-yvalues, trough_ind, rel_height=.5)
-    print(trough_widths_result)
-    print(trough_ind, peak_ind)
+        peak_widths_result = peak_widths(yvalues, peak_ind, rel_height=0.4)
+        trough_widths_result = peak_widths(-yvalues, trough_ind, rel_height=.5)
+
     plt.rcParams['font.family'] = 'Arial'
     plt.subplots(figsize=(5.5, 5))
 
     plt.plot(df.index.values, df[3].values, color="#209093")
     plt.plot(df.index.values, yvalues, color='#cb6e7f')
+
+    try:
+        for point in res[1]:
+            plt.axvline(x=point, linewidth=1, color='#cb6e7f', linestyle='-')
+    except TypeError:
+        pass
+
     for trough in trough_ind:
         plt.axvline(x=trough, linewidth=1, color='#bcbcbc', linestyle='--')
 
@@ -656,7 +784,8 @@ def main(args):
     plt.xlabel("Position (index)", fontsize=16)
     plt.ylabel("Depth", fontsize=16)
 
-    plt.savefig('output.png', bbox_inches='tight')
+    outprefix = Path(args.depth).stem
+    plt.savefig(f'{outprefix}.output.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":

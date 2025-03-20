@@ -249,7 +249,7 @@ def main(args):
     print(f"No. of total unancored contigs: {int(len(unanchored_contigs))}", file=sys.stderr)
     print(f"Size. of total unancored contigs: {contig_size.reindex(unanchored_contigs).sum().values[0]}", file=sys.stderr)
     print(f"No. of total misassembly contigs: {int(len(all_misassembly_contigs))}", file=sys.stderr)
-    print(f"Size. of total misassembly contigs: {contig_size.sum().values[0]}", file=sys.stderr)
+    print(f"Size. of total misassembly contigs: {all_misassembly_contigs.sum().values[0]}", file=sys.stderr)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

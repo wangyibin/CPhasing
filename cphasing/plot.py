@@ -760,7 +760,6 @@ def plot_heatmap(matrix, output,
     if hap_pattern:
         hap_pattern = r"{}".format(hap_pattern)
 
-    
     logger.info(f"Load contact matrix `{matrix}`.")
     cool = cooler.Cooler(matrix)
     if balanced:

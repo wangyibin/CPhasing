@@ -141,6 +141,7 @@ nav:
     - CLI/methalign.md
     - CLI/hic_mapper.md
     - CLI/alleles.md
+    - CLI/collapse.md
     - CLI/rename.md
     - CLI/plot.md
   

@@ -1,7 +1,10 @@
-## [v0.2.6] - 2025-03-11
+## [v0.2.6] - 2025-03-20
+#### New features
+- `collapse`, rescue the collapsed contigs  
 #### Enhancement
 - Parameter optimization.
 - Supported pairs.pqs processing.
+- `chimeric`, improve the performance that avoids too high of false correct
 - `pipeline`, if input pairs or pairs.gz, it will first convert it to pairs.pqs to speed up subsequence pairs data load. About a 15 percent increase in speed.
 - `plot`, enable plot the border or haplotypes (`--add-hap-border`)
 #### Bug fixes

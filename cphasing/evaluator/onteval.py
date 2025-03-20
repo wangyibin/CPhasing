@@ -568,11 +568,11 @@ class ComponentAnalysis:
     def category(self):
         def func(cn):
             
-            if cn <= 0.10:
+            if cn < 0.10:
                 return 0
-            elif 0.10 < cn <= 0.5:
+            elif 0.10 <= cn < 0.5:
                 return 1
-            elif 0.5 < cn <= 1.5:
+            elif 0.5 <= cn < 1.5:
                 return 2
             else:
                 return 3

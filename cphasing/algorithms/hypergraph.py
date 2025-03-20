@@ -416,6 +416,7 @@ def extract_incidence_matrix2(mat, idx):
         A = A[:, non_zero_edges_idx]
     else:
         remove_edges_idx = np.array([])
+        non_zero_edges_idx = np.array([])
 
     return A, remove_edges_idx, non_zero_edges_idx
 

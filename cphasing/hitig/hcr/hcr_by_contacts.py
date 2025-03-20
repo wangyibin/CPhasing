@@ -26,7 +26,7 @@ from matplotlib.ticker import MaxNLocator
 from pathlib import Path
 from scipy.signal import find_peaks
 
-from line_profiler import profile
+# from line_profiler import profile
 
 
 logger = logging.getLogger(__name__)
@@ -203,6 +203,8 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
     logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
     
+    hcr_regions['start'] = hcr_regions['start'].astype(np.int64)
+    hcr_regions['end'] = hcr_regions['end'].astype(np.int64)
     hcr_regions.to_csv(f"tmp.{output}", sep='\t', index=None, header=None)
 
     cmd = f"bedtools merge -i tmp.{output} 2>/dev/null > tmp.merge.{output}"

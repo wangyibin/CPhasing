@@ -692,6 +692,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../CLI/collapse/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Collapse
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../CLI/rename/" class="md-nav__link">
         
   
@@ -839,6 +861,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      The total size of the chromosomes significantly smaller than the estimate genome size
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-to-set-the-n-parameter-when-assembling-an-aneuploid-genome" class="md-nav__link">
     <span class="md-ellipsis">
       How to set the -n parameter when assembling an aneuploid genome.
@@ -867,7 +898,7 @@
         
   
   <span class="md-ellipsis">
-    Change logs
+    CHANGES
     
   </span>
   
@@ -919,6 +950,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      The total size of the chromosomes significantly smaller than the estimate genome size
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-to-set-the-n-parameter-when-assembling-an-aneuploid-genome" class="md-nav__link">
     <span class="md-ellipsis">
       How to set the -n parameter when assembling an aneuploid genome.
@@ -955,6 +995,9 @@
 
 <h3 id="the-results-of-the-first-round-partition-are-unsatisfactory">The results of the first round partition are unsatisfactory.<a class="headerlink" href="#the-results-of-the-first-round-partition-are-unsatisfactory" title="Permanent link">#</a></h3>
 <p>In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be not enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the <code>-q1 0</code> for <code>hyperpartition</code> to increase the rate of h-trans errors. However, this parameter may raise error of <code>out of memory</code> when you input huge pore-c data in porec table or hic contacts in pairs file. </p>
+<h3 id="the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size">The total size of the chromosomes significantly smaller than the estimate genome size<a class="headerlink" href="#the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size" title="Permanent link">#</a></h3>
+<p>If the following two conditions exist, you can adjust the mode of the <code>cphasing pipeline</code> to either (<code>--preset sensitive</code>) or (<code>--preset very-sensitive</code>). 
+1. The amount of entered data is low. 2. The input genome is relatively complex, with many homozygous or nearly homozygous regions. It should be noted that the above two modes will cause some very small contig to cluster or sort incorrectly. In the second case, greedy clustering may occurs, in which two highly homologous sets of chromosomes are grouped into one group.</p>
 <h3 id="how-to-set-the-n-parameter-when-assembling-an-aneuploid-genome">How to set the <code>-n</code> parameter when assembling an aneuploid genome.<a class="headerlink" href="#how-to-set-the-n-parameter-when-assembling-an-aneuploid-genome" title="Permanent link">#</a></h3>
 <p>The aneuploid genome, such as modern cultivated sugarcane, contains unequal homologous chromosomes. The <code>-n</code> parameter can be set to zero (<code>-n 10:0</code>) to automatically partition contigs into different chromosomes within a homologous group.   <br />
 However, we also allow the user to input a file with two columns: the first column is the index(1-base) of the first round partition, and the second column is the chromosome number of each homologous. And then specified the <code>-n 10:second.number.tsv</code> in <code>cphasing pipeline</code> or <code>cphasing hyperpartition</code>.
@@ -1024,13 +1067,13 @@ However, we also allow the user to input a file with two columns: the first colu
         
         
           
-          <a href="../CHANGES/" class="md-footer__link md-footer__link--next" aria-label="Next: Change logs">
+          <a href="../CHANGES/" class="md-footer__link md-footer__link--next" aria-label="Next: CHANGES">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Change logs
+                CHANGES
               </div>
             </div>
             <div class="md-footer__button md-icon">

@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/CLI/methalign/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/CLI/collapse/">
       
       
-        <link rel="prev" href="../mapper/">
+        <link rel="prev" href="../alleles/">
       
       
-        <link rel="next" href="../hic_mapper/">
+        <link rel="next" href="../rename/">
       
       
       <link rel="icon" href="../../logo/logo.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Methalign - C-Phasing Docs</title>
+        <title>Collapse - C-Phasing Docs</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#methalign" class="md-skip">
+        <a href="#collapsed-contigs-detection" class="md-skip">
           Skip to content
         </a>
       
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Methalign
+              Collapse
             
           </span>
         </div>
@@ -178,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../zh/CLI/methalign/" hreflang="zh" class="md-select__link">
+            <a href="../../zh/CLI/collapse/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -625,31 +625,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Methalign
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../methalign/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -659,62 +638,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
-    <span class="md-ellipsis">
-      Activate the environment of methalign
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
-    <span class="md-ellipsis">
-      Calculate the 5mCG sites of contig assembly
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
-    <span class="md-ellipsis">
-      Align the candidate reads to contig assembly
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#refine-alignments" class="md-nav__link">
-    <span class="md-ellipsis">
-      Refine alignments
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -768,10 +691,29 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../collapse/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Collapse
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -781,6 +723,51 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#collapsed-contigs-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collapsed contigs detection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collapsed-contigs-rescuing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Collapsed contigs rescuing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#after-scaffolding" class="md-nav__link">
+    <span class="md-ellipsis">
+      After scaffolding
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -946,8 +933,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -956,36 +941,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
+  <a href="#collapsed-contigs-detection" class="md-nav__link">
     <span class="md-ellipsis">
-      Activate the environment of methalign
+      Collapsed contigs detection
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
+  <a href="#collapsed-contigs-rescuing" class="md-nav__link">
     <span class="md-ellipsis">
-      Calculate the 5mCG sites of contig assembly
+      Collapsed contigs rescuing
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
+  <a href="#after-scaffolding" class="md-nav__link">
     <span class="md-ellipsis">
-      Align the candidate reads to contig assembly
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#refine-alignments" class="md-nav__link">
-    <span class="md-ellipsis">
-      Refine alignments
+      After scaffolding
     </span>
   </a>
   
@@ -1007,7 +983,7 @@
 
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/methalign.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/CLI/collapse.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -1015,67 +991,92 @@
   
 
 
-<h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">#</a></h1>
-<p>To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called <strong><code>Methalign</code></strong>. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition (unstable).</p>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>If you want to process Pore-C/HiFi-C data without 5mC information, please use the <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
+  <h1>Collapse</h1>
+
+<p>Collapsed contigs are commonly observed in polyploid hybrids due to the presence of highly similar homologous regions introduced through hybridization. These regions pose significant challenges for direct <em>de novo</em> assembly using current computational approaches (e.g. hifiasm). To address this limitation, we developed a strategy comprising two steps:   <br />
+<strong>(1)</strong> Collapsed contigs detection: Identification of candidate contigs (copy number ≥2) through integrated analysis of sequencing depth profiles from HiFi, ONT, and Pore-C data.  <br />
+<strong>(2)</strong> Collapsed contigs rescuing: Duplicating and putting collapsed contigs into correctly groups.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This methodology’s particular efficacy in resolving localized collapsed regions can not resolve the collapsed regions that nearly whole chromosomes.</p>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The input bam should contain the <code>MM/ML</code> tags</p>
-</div>
-<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate_cphasing<span class="w"> </span>methalign
-</span></code></pre></div>
-<div class="admonition info">
-<p class="admonition-title">Info</p>
-<p>The network should be accessible if the methalign environment is first activated.</p>
-</div>
-<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">#</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi reads</label><label for="__tabbed_1_2">ONT reads</label></div>
+<h2 id="collapsed-contigs-detection">Collapsed contigs detection<a class="headerlink" href="#collapsed-contigs-detection" title="Permanent link">#</a></h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi data</label><label for="__tabbed_1_2">ONT data</label><label for="__tabbed_1_3">Pore-C data</label><label for="__tabbed_1_4">GFA</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p>Align the HiFi reads by pbmm2</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pbmm2<span class="w"> </span>index<span class="w"> </span>--preset<span class="w"> </span>CCS<span class="w"> </span>contigs.fasta<span class="w"> </span>index.mmi<span class="w"> </span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pbmm2<span class="w"> </span>align<span class="w"> </span>--preset<span class="w"> </span>CCS<span class="w"> </span>index.mmi<span class="w"> </span>HiFi_reads.bam<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-<span class="w"> </span>-b<span class="w"> </span>-o<span class="w"> </span>HiFi.align.bam
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>samtools<span class="w"> </span>sort<span class="w"> </span>HiFi.align.bam<span class="w"> </span>-o<span class="w"> </span>HiFi.align.sorted.bam
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>samtools<span class="w"> </span>index<span class="w"> </span>HiFi.align.sorted.bam
-</span></code></pre></div>
-<p>Calculate the 5mC sites by pb-cpg-tools
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aligned_bam_to_cpg_scores<span class="w"> </span>--bam<span class="w"> </span>HiFi.align.sorted.bam<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>--model<span class="w"> </span>pileup_calling_model.v1.tflite<span class="w"> </span>--modsites-mode<span class="w"> </span>reference
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$9}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>HiFi_align_sorted_bam_to_cpg_scores.combined.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
-</span></code></pre></div></p>
-</div>
-<div class="tabbed-block">
-<p>Align the ONT reads by dorado</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>samtools<span class="w"> </span>index<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
-</span></code></pre></div>
-<p>Calculate the 5mC sites by modkit</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$11}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>output.methyl.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
-</span></code></pre></div>
-</div>
-</div>
-</div>
-<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
-</div>
-<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">#</a></h2>
 <ul>
-<li>Split bam to speed up the refine step
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
+<li>Custom mapping
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>minimap2<span class="w"> </span>-cx<span class="w"> </span>map-hifi<span class="w"> </span>-I<span class="w"> </span>16g<span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>draft.asm.fasta<span class="w"> </span>hifi.fastq.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>pigz<span class="w"> </span>-p<span class="w"> </span><span class="m">10</span><span class="w"> </span>-c<span class="w"> </span>&gt;<span class="w"> </span>hifi.align.paf.gz
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>hifi.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>hifi.align.depth
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>hifi.align.depth
 </span></code></pre></div></li>
 </ul>
 <ul>
-<li>Refine the alignments by methylation information
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>methalign<span class="w"> </span>refine<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>output.split_*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
+<li>Directly use the hitig results  <br />
+<code>output.collapsed.contigs.list</code></li>
+</ul>
+</div>
+<div class="tabbed-block">
+<ul>
+<li>Custom mapping  <br />
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>minimap2<span class="w"> </span>-cx<span class="w"> </span>map-ont<span class="w"> </span>-I<span class="w"> </span>16g<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>draft.asm.fasta<span class="w"> </span>ont.fastq.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>pigz<span class="w"> </span>-p<span class="w"> </span><span class="m">10</span><span class="w"> </span>-c<span class="w"> </span>&gt;<span class="w"> </span>ont.align.paf.gz
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>hifi.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>ont.align.depth
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>ont.align.depth
+</span></code></pre></div></li>
+<li>Directly use the hitig results  <br />
+<code>output.collapsed.contigs.list</code></li>
+</ul>
+</div>
+<div class="tabbed-block">
+<p>The <code>porec.align.paf.gz</code> generated from <code>cphasing mapper</code>.
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>porec.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>porec.align.depth
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>porec.align.depth
+</span></code></pre></div></p>
+</div>
+<div class="tabbed-block">
+<p>The GFA file generated from <code>hifiasm</code> record the read number, which can be used to identify the collapsed contigs.
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-gfa<span class="w"> </span>hifi.p_utg.noseq.gfa.gz<span class="w"> </span>
+</span></code></pre></div></p>
+</div>
+</div>
+</div>
+<h2 id="collapsed-contigs-rescuing">Collapsed contigs rescuing<a class="headerlink" href="#collapsed-contigs-rescuing" title="Permanent link">#</a></h2>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="w">    </span>cphasing<span class="w"> </span>collapse<span class="w"> </span>rescue<span class="w"> </span><span class="m">3</span>.hyperpartition/porec.align.porec.q1.e5m.hg<span class="w"> </span>draft.asm.contigsizes<span class="w"> </span><span class="m">3</span>.hyperpartition/output.clusters.txt<span class="w"> </span>contigs.collapsed.contig.list<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>-at<span class="w"> </span><span class="m">3</span>.hyperpartition/draft.asm.allele.table
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, we output the rescue result into a <code>collapsed.rescue.clusters.txt</code> file, which the user executes the next step of <code>4.scaffolding</code> manually. And the input file can directly use the previous.</p>
+</div>
+<h2 id="after-scaffolding">After scaffolding<a class="headerlink" href="#after-scaffolding" title="Permanent link">#</a></h2>
+<ul>
+<li>Generate new contig-level fasta and agp, which renamed the duplicated contigs (e.g. utg000001l -&gt; utg000001_d2)
+The name of collapsed contigs in agp is need to rename for subsequence processes.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.rescued.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>draft.dup.fasta
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>agp-dup<span class="w"> </span>groups.rescued.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.dup.agp
+</span></code></pre></div></li>
+</ul>
+<ul>
+<li>Generate a new <code>pairs.gz</code> or <code>pairs.pqs</code> file 
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>pairs-dup<span class="w"> </span>sample.pairs.pqs<span class="w"> </span>collapsed.rescue.contigs.list<span class="w"> </span>-o<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
+<ul>
+<li>Curation by juicebox
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.dup.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.dup.assembly
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>sample.dup.mnd.txt
+</span></code></pre></div></li>
+</ul>
+<ul>
+<li>Rename
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>ref.fa<span class="w"> </span>-f<span class="w"> </span>draft.dup.fasta<span class="w"> </span>-a<span class="w"> </span>groups.dup.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
+<ul>
+<li>Plot
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cphasing<span class="w"> </span>pairs2cool<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>sample.dup.pairs.pqs/_contigsizes<span class="w"> </span>sample.10k.cool<span class="w"> </span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.dup.agp<span class="w"> </span>-m<span class="w"> </span>sample.10k.cool<span class="w"> </span>-o<span class="w"> </span>sample.500k.wg.png<span class="w"> </span>
 </span></code></pre></div></li>
 </ul>
 
@@ -1115,7 +1116,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../mapper/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Mapper">
+          <a href="../alleles/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Alleles">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1125,20 +1126,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Mapper
+                Alleles
               </div>
             </div>
           </a>
         
         
           
-          <a href="../hic_mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: HiC Mapper">
+          <a href="../rename/" class="md-footer__link md-footer__link--next" aria-label="Next: Rename">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                HiC Mapper
+                Rename
               </div>
             </div>
             <div class="md-footer__button md-icon">

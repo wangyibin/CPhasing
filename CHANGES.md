@@ -1,4 +1,4 @@
-## [v0.2.6] - 2025-03-20
+## [v0.2.6] - 2025-03-22
 #### New features
 - `collapse`, rescue the collapsed contigs  
 #### Enhancement

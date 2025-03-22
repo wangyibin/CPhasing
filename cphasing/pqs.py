@@ -677,6 +677,7 @@ class PQS:
                 )
         
         results = list(filter(lambda x: x is not None, results))
+        results = list(filter(lambda x: len(x) > 0, results))
         if len(results) == 0:
             logger.warning("No data found in the given region.")
             return
@@ -988,10 +989,10 @@ def process_chunk_to_cool_global(chunk, binsize,
             chunk = chunk.filter(pl.col("mapq") >= min_mapq).drop("mapq")
     
     bin1_id = (chunk["pos1"] // binsize) + chunk["chrom1"].map_elements(
-            bin_offset_db.get
+            bin_offset_db.get, skip_nulls=False
     ).cast(schema["pos1"])
     bin2_id = (chunk["pos2"] // binsize) + chunk["chrom2"].map_elements(
-        bin_offset_db.get
+        bin_offset_db.get, skip_nulls=False
     ).cast(schema["pos2"])
     chunk = (
         chunk.with_columns([bin1_id.alias("bin1_id"), bin2_id.alias("bin2_id")])
@@ -1053,6 +1054,8 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
     columns = ["chrom1", "pos1", "chrom2", "pos2", "mapq"]
     chunk = pl.scan_parquet(chunk_name).select(columns)
     chunk_name = Path(chunk_name).stem
+
+    
     if min_mapq > 1:
         chunk = chunk.filter(pl.col("mapq") >= min_mapq)
 

@@ -995,8 +995,11 @@
 
 <p>Collapsed contigs are commonly observed in polyploid hybrids due to the presence of highly similar homologous regions introduced through hybridization. These regions pose significant challenges for direct <em>de novo</em> assembly using current computational approaches (e.g. hifiasm). To address this limitation, we developed a strategy comprising two steps:   <br />
 <strong>(1)</strong> Collapsed contigs detection: Identification of candidate contigs (copy number ≥2) through integrated analysis of sequencing depth profiles from HiFi, ONT, and Pore-C data.  <br />
-<strong>(2)</strong> Collapsed contigs rescuing: Precise duplication and chromosomal placement of collapsed sequences using a dual-evidence framework that combines contig-specific linkage patterns with chromatin interaction signals.  <br />
-This methodology demonstrates particular efficacy in resolving localized assembly errors, though its application to whole-chromosome scale collapses requires further algorithmic optimization.</p>
+<strong>(2)</strong> Collapsed contigs rescuing: Duplicating and putting collapsed contigs into correctly groups.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This methodology’s particular efficacy in resolving localized collapsed regions can not resolve the collapsed regions that nearly whole chromosomes.</p>
+</div>
 <h2 id="collapsed-contigs-detection">Collapsed contigs detection<a class="headerlink" href="#collapsed-contigs-detection" title="Permanent link">#</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><input id="__tabbed_1_4" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi data</label><label for="__tabbed_1_2">ONT data</label><label for="__tabbed_1_3">Pore-C data</label><label for="__tabbed_1_4">GFA</label></div>
 <div class="tabbed-content">

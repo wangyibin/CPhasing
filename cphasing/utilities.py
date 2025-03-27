@@ -8,6 +8,7 @@ utility libraries
 import logging
 import os
 import os.path as op
+import shutil
 import sys
 import re
 import time
@@ -1285,3 +1286,160 @@ def binnify(chromsizes, binsize):
 
 
     return bintable
+
+
+def porec_downsample(porec_table, n, threads=10):
+    import polars as pl
+
+    os.environ['POLARS_MAX_THREADS'] = str(threads)
+
+    HEADER = ["read_idx", "read_length",
+              "read_start", "read_end", 
+              "strand", "chrom", "start", 
+              "end", "mapping_quality", 
+              "identity", "filter_reason"]
+    df = pl.read_csv(porec_table, separator='\t', 
+                        has_header=False, 
+                        new_columns=HEADER)
+
+    total_read_idxes = df.unique("read_idx")['read_idx']
+
+    df_grouped_nuinque = df.groupby(['read_idx']).agg(pl.col("chrom").n_unique().alias("n_unique"))
+
+    df_grouped_nuinque_db = df_grouped_nuinque.to_pandas()
+    df_grouped_nuinque_db.set_index('read_idx', inplace=True)
+    df_grouped_nuinque_db = df_grouped_nuinque_db.to_dict()['n_unique']
+
+    random_state = np.random.RandomState(12345)
+
+    for n in listify(n):
+        if n == 0:
+            continue
+        read_idxes = total_read_idxes.sample(n // 2, seed=12345)
+        read_idxes = read_idxes.sort()
+
+        read_idxes = read_idxes.to_pandas()
+        read_idxes = read_idxes.to_frame()
+
+        read_idxes['count'] = read_idxes['read_idx'].map(df_grouped_nuinque_db.get)
+
+        read_idxes.set_index('read_idx', inplace=True)
+        
+        m = read_idxes['count'].sum()
+        while  m > n:
+            read_idx = read_idxes.sample(1, random_state=random_state).index[0]
+            read_idxes.drop(read_idx, inplace=True)
+        
+            m = read_idxes['count'].sum()
+    
+        read_idxes = set(read_idxes.index.tolist())
+
+        _df = df.filter(pl.col("read_idx").is_in(read_idxes))
+        _df.write_csv(f"random.{n}.{porec_table}", separator='\t', include_header=False)
+
+
+def pairs_pqs_downsample(pairs, n, min_mapq=0, threads=10):
+    import polars as pl
+    pl.enable_string_cache()
+    from joblib import Parallel, delayed
+    from pytools import natsorted
+    from .pqs import PQS 
+    from .core import Pairs2
+
+    os.environ["POLARS_MAX_THREADS"] = str(threads)
+    
+    if Path(pairs).is_dir():
+        p = PQS(pairs)
+        p.init_read()
+        chunksize = p._metadata['chunksize']
+        chunks = natsorted(p.read(pairs, min_mapq=min_mapq, return_as="files"), key=str)
+
+        if min_mapq == 0:
+           
+            last_file = pl.read_parquet(chunks[-1])
+            last_file_length = len(last_file)
+
+            length = chunksize * len(chunks[:-1]) + last_file_length
+
+            np.random.seed(12345)
+            for _n in listify(n):
+                if length > _n:
+                    
+                    idxes = np.random.choice(length, size=_n, replace=False)
+                    idxes.sort()
+
+                    output_dir = f"random.{_n}.pairs.pqs"
+                    Path(output_dir).mkdir(exist_ok=True)
+                    Path(f"{output_dir}/q0").mkdir(parents=True, exist_ok=True)
+                    Path(f"{output_dir}/q1").mkdir(parents=True, exist_ok=True)
+
+                    shutil.copy(f"{pairs}/_metadata", output_dir)
+                    shutil.copy(f"{pairs}/_readme", output_dir)
+                    shutil.copy(f"{pairs}/_contigsizes", output_dir)
+                    
+
+                    def process_parquet(parquet_path, idxes, chunksize, output_dir):
+                        parquet_idx = int(Path(parquet_path).stem)
+                        local_idxes = idxes[(idxes >= parquet_idx * chunksize) & (idxes < (parquet_idx + 1) * chunksize)] - (parquet_idx * chunksize)
+                        df = pl.read_parquet(parquet_path)
+                        res_df = df[local_idxes]
+
+                        res_df.write_parquet(f"{output_dir}/q0/{parquet_idx}.parquet")
+                        res_df.filter(pl.col("mapq") > 0).write_parquet(f"{output_dir}/q1/{parquet_idx}.parquet")
+
+                    args = [(parquet, idxes, chunksize, output_dir) for parquet in chunks]
+
+                    Parallel(n_jobs=threads)(
+                        delayed(process_parquet)(*i) for i in args
+                    )
+                                    
+                else:
+                    logger.warning(f"The total length of the input pairs is not enough to sample {_n} records, exit")
+                    sys.exit(-1)
+                    
+        else:
+            df = pl.scan_parquet(f"{pairs}/q1/*.parquet")
+            length = len(df.collect())
+
+            np.random.seed(12345)
+
+            for _n in listify(n):
+                if length > _n:
+                    idxes = np.random.choice(length, size=_n, replace=False)
+                    idxes.sort()
+
+                    output_dir = f"random.{_n}.pairs.pqs"
+                    Path(output_dir).mkdir(exist_ok=True)
+                    Path(f"{output_dir}/q0").mkdir(parents=True, exist_ok=True)
+                    Path(f"{output_dir}/q1").mkdir(parents=True, exist_ok=True)
+
+                    shutil.copy(f"{pairs}/_metadata", output_dir)
+                    shutil.copy(f"{pairs}/_readme", output_dir)
+                    shutil.copy(f"{pairs}/_contigsizes", output_dir)
+
+                    for parquet in chunks:
+                        df = pl.read_parquet(parquet)
+                        length = len(df)
+                        res_df = df[idxes[idxes < length]]
+
+                        res_df.write_parquet(f"{output_dir}/q0/{Path(parquet).stem}.parquet")
+                        res_df.write_parquet(f"{output_dir}/q1/{Path(parquet).stem}.parquet")
+
+                        idxes = idxes - length
+                        idxes = idxes[idxes >= 0]
+                else:
+                    logger.warning(f"The total length of the input pairs is not enough to sample {_n} records, exit")
+                    sys.exit(-1)
+                
+    else:
+
+        p = Pairs2(pairs) 
+        
+        for n in listify(n):
+            if n == 0:
+                continue
+        
+            cmd = ["cphasing-rs", "pairs-downsample", str(pairs),
+                    "-n", str(n), "-o", f"random.{n}.{pairs}"] 
+            
+            flag = run_cmd(cmd)

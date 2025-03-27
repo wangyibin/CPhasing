@@ -108,7 +108,7 @@ cphasing agp2fasta groups.review.agp draft.asm.fasta > groups.review.asm.fasta
 cphasing rename -r mono.fasta -f draft.asm.fasta -a groups.review.agp -t 20
 ```
 !!! note 
-    为了减少时间消耗，我们只对每套同源染色体组内的第一条进行比对，然后根据此比对结果，对整个同源组进行重命名和调整方向。这是因为我们在`scaffolding`步骤的时候已经把同源染色体的方向调整为一致了。如果你需要对所用同源组内的染色体进行比对，可以设置`--unphased`参数实现。
+    为了减少时间消耗，我们只对每套同源染色体组内的第一条进行比对，然后根据此比对结果，对整个同源组进行重命名和调整方向。这是因为我们在`scaffolding`步骤的时候已经把同源染色体的方向调整为一致了。如果你需要对所有同源组内的染色体进行比对，可以设置`--unphased`参数实现。
 
 ## 绘制热图
 查看详细文档[:octicons-arrow-right-24:Plot](CLI/plot.zh.md)

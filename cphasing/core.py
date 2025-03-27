@@ -2605,8 +2605,8 @@ class MndTable:
         logger.info(f'Successful written pairs file into `{output}`.')
 
 class Contact:
-    import cooler
     def __init__(self, coolfile, symmetric=True):
+        import cooler
         self.coolfile = coolfile 
         self.cool = cooler.Cooler(self.coolfile)
 

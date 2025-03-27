@@ -1854,6 +1854,64 @@ def porec2csv(table, contigsizes, method, nparts, binsize, output):
         
     pct.to_pao_csv(output)
 
+@alignments.command(cls=RichCommand)
+@click.argument(
+    'table',
+    metavar='Pore-C-Table',
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'number',
+    metavar='Number',
+    nargs=-1,
+    type=int,
+)
+def porec_downsample(table, number):
+    """
+    Downsample the pore-c table.
+    """
+    from .utilities import porec_downsample
+    porec_downsample(table, number)
+
+@alignments.command(cls=RichCommand)
+@click.argument(
+    "pairs",
+    metavar="Pairs",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    'number',
+    metavar='Number',
+    nargs=-1,
+    type=int,
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=0,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help="Number of threads. ",
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def pairs_downsample(pairs, number, min_mapq, threads):
+    """
+    Downsample the pairs file.
+    """
+    from .utilities import pairs_pqs_downsample
+    pairs_pqs_downsample(pairs, number, min_mapq, threads)
+    
+
 @cli.command(cls=RichCommand, epilog=__epilog__)
 @click.option(
     '-f',

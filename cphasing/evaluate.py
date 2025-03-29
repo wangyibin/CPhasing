@@ -84,10 +84,12 @@ def allelic_completeness_index(mono_bed, contig_bed, poly_bed, ploidy):
     bed = bed[~bed['gene'].isin(tandem_genes)]
     bed['source'] = bed['gene'].apply(lambda x: x.rsplit('.', 1)[0])
     source_counts = bed.groupby('source')['gene'].count()
+
     source_counts = source_counts[source_counts == ploidy]
     source_counts = source_counts.index.tolist()
     
     mono_bed = mono_bed[mono_bed['gene'].isin(source_counts)]
+
     mono_gene_chrom_db = {}
     for chrom, tmp_df in mono_bed.groupby('chrom', sort=False):
         # n_hap_count_db[chrom] = len(tmp_df['gene'].drop_duplicates())
@@ -184,7 +186,10 @@ def synteny_correlation_index(anchor, bed1, bed2, output):
         lis = find_lis_fast(df_merged['gene2_idx'].tolist(),sorted(df_merged['gene2_idx'].tolist()))
         lis2 = find_lis_fast(df_merged['gene2_idx'].tolist(), sorted(df_merged['gene2_idx'].tolist())[::-1])
         lis = max(lis, lis2)
-        lis_score = lis / len(df_merged)
+        try:
+            lis_score = lis / len(df_merged)
+        except ZeroDivisionError:
+            lis_score = 0 
         value = abs(value.correlation)
         print(chrom, value, lis_score, sep='\t', file=output)
         

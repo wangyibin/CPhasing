@@ -387,11 +387,11 @@ def statagp(agp, output):
     chrom_infos.reset_index(inplace=True)
     chrom_infos.columns = ['ChrID', 'Anchored_ctg', 'Length']
     chrom_infos.to_csv(output, sep='\t', index=False)
-    print(f'Total Number of contigs:\t{total_number_of_contigs}',
-        f'Total Length of contigs (bp):\t{total_length_of_contigs}', 
-        f'Total Number of anchored contigs:\t{total_number_of_anchored_contigs}',
-        f'Total Length of anchored contigs (bp):\t{chrom_length}',
-        f'Total Length of chromosome level assembly (bp):\t{total_length_of_chromosome_level_assembly}',
+    print(f'Total number of contigs:\t{total_number_of_contigs}',
+        f'Total length of contigs (bp):\t{total_length_of_contigs}', 
+        f'Total number of anchored contigs:\t{total_number_of_anchored_contigs}',
+        f'Total length of anchored contigs (bp):\t{chrom_length}',
+        f'Total length of chromosome level assembly (bp):\t{total_length_of_chromosome_level_assembly}',
         f'Number of unanchored contigs:\t{number_of_unanchored_contigs}',
         f'Length of unanchored contigs (bp):\t{length_of_unanchored_contigs}',
         f'Anchor rate (%):\t' + f'{anchor_rate:.2%}'.replace("%", ""), 

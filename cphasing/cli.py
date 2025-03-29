@@ -4557,12 +4557,12 @@ def scaffolding(clustertable, count_re, clm,
         if Path(f"{output_agp}.stat").exists():
             df = pd.read_csv(f"{output_agp}.stat", sep='\t', index_col=0)
             anchor_rate = df.loc["Anchor rate (%):"].iloc[0]
-            ctg_length = df.loc["Total Length of contigs (bp):"].iloc[0]
-            anchored_ctg_length = df.loc["Total Length of anchored contigs (bp):"].iloc[0]
+            ctg_length = df.loc["Total length of contigs (bp):"].iloc[0]
+            anchored_ctg_length = df.loc["Total length of anchored contigs (bp):"].iloc[0]
 
             logger.info(f"Anchor rate: {anchor_rate}%, "
-                        f"Total Length of anchored contigs: {to_humanized3(anchored_ctg_length)}, "
-                        f"Total Length of contigs: {to_humanized3(ctg_length)}"
+                        f"Total length of anchored contigs: {to_humanized3(anchored_ctg_length)}, "
+                        f"Total length of contigs: {to_humanized3(ctg_length)}"
                         )
             logger.info(f"Stat the agp file to `{output}.stat`")
 

@@ -67,3 +67,11 @@ cd split_outdir
 ```shell
 methalign refine -t 20 contigs.fasta output.methyl.bg output.split_*.bam -o porec.align.refined.paf.gz
 ```
+!!! note
+    This step will output `porec.align.refined.paf.gz` and `porec.align.refined.porec.gz`
+
+- After refine
+Input `porec.align.refined.porec.gz` 
+```shell
+cphasing pipeline -f contigs.fasta -pct porec.align.refined.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT 
+```

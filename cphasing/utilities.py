@@ -1303,39 +1303,55 @@ def porec_downsample(porec_table, n, threads=10):
                         new_columns=HEADER)
 
     total_read_idxes = df.unique("read_idx")['read_idx']
-
-    df_grouped_nuinque = df.groupby(['read_idx']).agg(pl.col("chrom").n_unique().alias("n_unique"))
+   
+    total_read_count = len(total_read_idxes)
+    df_grouped_nuinque = df.groupby(['read_idx']).agg(pl.col("chrom").count().alias("n_unique"))
 
     df_grouped_nuinque_db = df_grouped_nuinque.to_pandas()
     df_grouped_nuinque_db.set_index('read_idx', inplace=True)
     df_grouped_nuinque_db = df_grouped_nuinque_db.to_dict()['n_unique']
+    total_read_idxes = total_read_idxes.to_pandas().to_frame()
 
+    total_read_idxes['count'] = total_read_idxes['read_idx'].map(df_grouped_nuinque_db.get)
+    total_pairs = (total_read_idxes['count'] * (total_read_idxes['count'] - 1) / 2).sum()
+    median_count = int(total_read_idxes['count'].median())
     random_state = np.random.RandomState(12345)
 
     for n in listify(n):
         if n == 0:
             continue
-        read_idxes = total_read_idxes.sample(n // 2, seed=12345)
-        read_idxes = read_idxes.sort()
-
-        read_idxes = read_idxes.to_pandas()
-        read_idxes = read_idxes.to_frame()
-
-        read_idxes['count'] = read_idxes['read_idx'].map(df_grouped_nuinque_db.get)
+        logger.debug(f"Total read count: {total_read_count}")
+        if (n // median_count) >= total_read_count:
+            read_idxes = total_read_idxes
+        else:
+            read_idxes = total_read_idxes.sample(n // median_count, random_state=random_state)
+        read_idxes = read_idxes.sort_values(by='read_idx')
 
         read_idxes.set_index('read_idx', inplace=True)
         
-        m = read_idxes['count'].sum()
-        while  m > n:
-            read_idx = read_idxes.sample(1, random_state=random_state).index[0]
+
+        m = int((read_idxes['count'] * (read_idxes['count'] - 1) // 2).sum())
+    
+        logger.info(f"Initially generated {m} pairs")
+        while  m > n and not read_idxes.empty:
+            old_m = m
+            
+            batch_size = (m - n) // 10
+            logger.debug(f"Batch size {batch_size}")
+            read_idx = read_idxes.sample(batch_size, random_state=random_state).index
+            logger.debug(f"Remove {len(read_idx)}")
             read_idxes.drop(read_idx, inplace=True)
         
-            m = read_idxes['count'].sum()
-    
+            m = int((read_idxes['count'] * (read_idxes['count'] - 1) / 2).sum())
+            logger.debug(f"Generated {m} pairs")
+            if m == old_m:
+                break
+
         read_idxes = set(read_idxes.index.tolist())
 
         _df = df.filter(pl.col("read_idx").is_in(read_idxes))
-        _df.write_csv(f"random.{n}.{porec_table}", separator='\t', include_header=False)
+        with xopen(f"random.{n}.{porec_table}", 'w') as out:
+            _df.write_csv(out, separator='\t', include_header=False)
 
 
 def pairs_pqs_downsample(pairs, n, min_mapq=0, threads=10):

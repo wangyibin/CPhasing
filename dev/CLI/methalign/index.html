@@ -1078,6 +1078,16 @@
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>methalign<span class="w"> </span>refine<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>output.split_*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
 </span></code></pre></div></li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This step will output <code>porec.align.refined.paf.gz</code> and <code>porec.align.refined.porec.gz</code></p>
+</div>
+<ul>
+<li>After refine
+Input <code>porec.align.refined.porec.gz</code> 
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>contigs.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.align.refined.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
 
 
 

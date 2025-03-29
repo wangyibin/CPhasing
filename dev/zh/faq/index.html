@@ -999,8 +999,8 @@
 <p>如果存在以下两种情况，可以通过调整 <code>cphasing pipeline</code>的模式至敏感（<code>--preset sensitive</code>）或者超敏感（<code>--preset very-sensitive</code>）
 1. 输入的数据量低。2. 输入的基因组较为复杂，存在大量的纯合或者近乎纯合的区域。 需要注意的是，以上两种模式会让部分较碎的contig聚类或者排序错误。同时如果属于第二种情况，容易发生贪婪的聚类，即两条高度同源的染色体组被分到一组里面。</p>
 <h3 id="-n">如何在组装非整倍体基因组时设置<code>-n</code>参数:<a class="headerlink" href="#-n" title="Permanent link">#</a></h3>
-<p>非整倍体基因组，如现代栽培的甘蔗，包含数目不相等的同源染色体。我们建议<code>-n</code>参数可以设置为零（<code>-n 0:0</code>），让程序自动判别分组数
-但是，我们也允许用户输入一个包含两列的文件：第一列是第一轮分区的索引（1-base），第二列是每个同源染色体的染色体编号。然后指定<code>- n10:second.number.tsv</code>。在<code>cphasing pipeline</code>或<code>cphasing hyperpartition</code>中使用。</p>
+<p>非整倍体基因组，如现代栽培的甘蔗，包含数目不相等的同源染色体。我们建议<code>-n</code>参数可以设置为零（<code>-n 0:0</code>），让程序自动判别分组数。
+此外，我们也允许用户输入一个包含两列的文件：第一列是第一轮分区的索引（1-base），第二列是每个同源染色体的染色体数目。然后指定<code>- n10:second.number.tsv</code>。在<code>cphasing pipeline</code>或<code>cphasing hyperpartition</code>中使用。</p>
 <div class="language-text highlight"><span class="filename">second.number.tsv</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1    13
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2    12
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3    12

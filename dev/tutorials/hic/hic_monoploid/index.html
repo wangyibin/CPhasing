@@ -8,9 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_tetraploid/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_monoploid/">
       
       
+        <link rel="prev" href="../../porec/porec_sugarcane/">
+      
+      
+        <link rel="next" href="../hic_decaploid/">
       
       
       <link rel="icon" href="../../../logo/logo.png">
@@ -18,7 +22,7 @@
     
     
       
-        <title>Assemble tetraploid by Hi-C - C-Phasing Docs</title>
+        <title>Assemble a monoploid of diploid - C-Phasing Docs</title>
       
     
     
@@ -72,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assemble-tetraploid-by-hi-c" class="md-skip">
+        <a href="#assemble-a-monoploid-of-diploid" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assemble tetraploid by Hi-C
+              Assemble a monoploid of diploid
             
           </span>
         </div>
@@ -174,7 +178,7 @@
           </li>
         
           <li class="md-select__item">
-            <a href="../../../zh/tutorials/hic/hic_tetraploid/" hreflang="zh" class="md-select__link">
+            <a href="../../../zh/tutorials/hic/hic_monoploid/" hreflang="zh" class="md-select__link">
               中文
             </a>
           </li>
@@ -328,8 +332,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -339,11 +345,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -358,7 +364,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Tutorials
@@ -481,6 +487,8 @@
                 
   
   
+    
+  
   
   
     
@@ -489,11 +497,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -508,7 +516,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             Hi-C
@@ -519,10 +527,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../hic_monoploid/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -532,6 +549,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -924,7 +942,7 @@
 
 
   
-    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/hic/hic_tetraploid.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/edit/master/docs/tutorials/hic/hic_monoploid.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -932,7 +950,10 @@
   
 
 
-<h1 id="assemble-tetraploid-by-hi-c">Assemble tetraploid by Hi-C<a class="headerlink" href="#assemble-tetraploid-by-hi-c" title="Permanent link">#</a></h1>
+<h1 id="assemble-a-monoploid-of-diploid">Assemble a monoploid of diploid<a class="headerlink" href="#assemble-a-monoploid-of-diploid" title="Permanent link">#</a></h1>
+<p>Diploid (2n=2x=24)</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>monoploid_ctg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>hic_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">12</span>
+</span></code></pre></div>
 
 
 
@@ -965,6 +986,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../porec/porec_sugarcane/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble hybrid sugarcane by Pore-C">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Assemble hybrid sugarcane by Pore-C
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../hic_decaploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble autodecaploid by Hi-C">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Assemble autodecaploid by Hi-C
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">

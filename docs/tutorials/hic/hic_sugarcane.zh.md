@@ -10,13 +10,13 @@
     因为`hic mapper`里面有一步索引构建，用户需要先提交一个任务，等到索引创建完成再提交剩余的任务。
 
 ```shell
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-1_R1.fastq.gz -hic1 hic-1_R1.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-1_R1.fastq.gz -hic2 hic-1_R2.fastq.gz -t 40 -k 27 -w 14 
 ```
 
 ```shell
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-2_R1.fastq.gz -hic1 hic-2_R1.fastq.gz -t 40 -k 27 -w 14 
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-3_R1.fastq.gz -hic1 hic-3_R1.fastq.gz -t 40 -k 27 -w 14 
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic1 hic-4_R1.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-2_R1.fastq.gz -hic2 hic-2_R2.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-3_R1.fastq.gz -hic2 hic-3_R2.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic2 hic-4_R2.fastq.gz -t 40 -k 27 -w 14 
 ```
 
 ```shell

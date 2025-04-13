@@ -9,13 +9,13 @@ Due to the huge porec data, we mapped each cell to fasta by submitting this comm
     Please submit one first; wait until the index is successfully created and the remaining jobs are enabled to submit to the cluster.
 
 ```shell
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-1_R1.fastq.gz -hic1 hic-1_R1.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-1_R1.fastq.gz -hic2 hic-1_R2.fastq.gz -t 40 -k 27 -w 14 
 ```
 
 ```shell
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-2_R1.fastq.gz -hic1 hic-2_R1.fastq.gz -t 40 -k 27 -w 14 
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-3_R1.fastq.gz -hic1 hic-3_R1.fastq.gz -t 40 -k 27 -w 14 
-cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic1 hic-4_R1.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-2_R1.fastq.gz -hic2 hic-2_R2.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-3_R1.fastq.gz -hic2 hic-3_R2.fastq.gz -t 40 -k 27 -w 14 
+cphasing hic mapper -f sh_hifi.bp.p_utg.fasta -hic1 hic-4_R1.fastq.gz -hic2 hic-4_R2.fastq.gz -t 40 -k 27 -w 14 
 ```
 
 ```shell

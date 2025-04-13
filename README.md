@@ -12,7 +12,7 @@
 [<font size=6>Documentation</font>](https://wangyibin.github.io/CPhasing/latest) | [<font size=6>中文文档</font>](https://wangyibin.github.io/CPhasing/latest/zh)
 
 ## Introduction
-One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**(**CiFi**), provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and diploid genome assembly.  
+One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**(**CiFi**), provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and **diploid** genome assembly.  
   
 The advantages of `C-Phasing`:   
 - High speed.   
@@ -151,3 +151,6 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 More details please check the documentation:  
 [Documentation](https://wangyibin.github.io/CPhasing/latest) | [中文文档](https://wangyibin.github.io/CPhasing/latest/zh)
 
+
+## For Hi-C data
+For Hi-C data, users may also consider using our alternative software, [**HapHiC** (https://github.com/zengxiaofei/HapHiC)](https://github.com/zengxiaofei/HapHiC), which is specifically designed for Hi-C data and has demonstrated strong performance across multiple projects.

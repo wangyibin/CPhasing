@@ -130,9 +130,11 @@ nav:
   - Basic Usage: basic_usage.md
   - Tutorials: 
     - Pore-C&HiFi-C:
+      - tutorials/porec/porec_monoploid.md
       - tutorials/porec/porec_decaploid.md
       - tutorials/porec/porec_sugarcane.md
     - Hi-C:
+      - tutorials/hic/hic_monoploid.md
       - tutorials/hic/hic_decaploid.md
       - tutorials/hic/hic_sugarcane.md
 

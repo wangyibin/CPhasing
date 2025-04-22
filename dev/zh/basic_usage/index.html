@@ -1238,6 +1238,11 @@
 <p class="admonition-title">Note</p>
 <p>CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如<code>-n 8</code>，染色体数为8，期望程序将contig分成8条染色体。<code>pipeline</code>会自动跳过<code>1.allele</code>这步，并且只执行一次contig分组.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>如果用户输入的基因组为异源多倍体，亚基因组的相似性较低，可能无法实现理想的第一次分组，用户应该设置不同的<code>-n</code>参数，例如异源四倍体(2n=4x=32)，组装两套亚基因组的话，应该把它当成无需分型的二倍体组装，设置<code>-n 16</code>, 需要对两套亚基因组分别分型的话可以设置<code>-n 16:2</code>。
+如果为异源六倍体(AAABBB, 2n=6x=48), 可以设置<code>-n 16:3</code>，而异源留倍体（AABBCC，2n=6x=48），则设置<code>-n 24:2</code>。</p>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>如果是hifiasm组装的contig，组装分型的基因组选择输入<code>p_utg.fasta</code>, 或者用户可以尝试合并hifiasm (hic)输出的多个hap*.p_utg.fasta。</p>

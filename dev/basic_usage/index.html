@@ -1238,6 +1238,22 @@
 <p class="admonition-title">Note</p>
 <p><code>CPhasing</code> also support the monoploid scaffolding, when you set one group number, e.g. <code>-n 8</code>. The <code>pipeline</code> will automatically skip the step <code>1.alleles</code>, and only run one round partition.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the user's genome is an allopolyploid with low subgenome similarity, the initial grouping may not be optimal. In such cases, users should adjust the -n parameter based on the ploidy and genome structure:</p>
+<ul>
+<li>For allotetraploids (2n = 4x = 32), the genome can be treated as a diploid assembly. Use <code>-n 16</code> if you want to assemble two subgenomes, set <code>-n 16:2</code>, if you want to phase the subgenome, respectively. </li>
+<li>
+<p>For allohexaploids:</p>
+<ul>
+<li>AAABBB type (2n = 6x = 48): use <code>-n 16:3</code>.</li>
+</ul>
+<ul>
+<li>AABBCC type (2n = 6x = 48): use <code>-n 24:2</code>.</li>
+</ul>
+</li>
+</ul>
+</div>
 <h3 id="start-from-a-pore-c-data">Start from a <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-a-pore-c-data" title="Permanent link">#</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>

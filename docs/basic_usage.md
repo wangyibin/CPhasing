@@ -6,6 +6,16 @@ The `-n 8:4` parameter of the following commands means assembling a tetraploid (
 !!! note
     `CPhasing` also support the monoploid scaffolding, when you set one group number, e.g. `-n 8`. The `pipeline` will automatically skip the step `1.alleles`, and only run one round partition.
 
+!!! note
+    If the user's genome is an allopolyploid with low subgenome similarity, the initial grouping may not be optimal. In such cases, users should adjust the -n parameter based on the ploidy and genome structure:
+
+    - For allotetraploids (2n = 4x = 32), the genome can be treated as a diploid assembly. Use `-n 16` if you want to assemble two subgenomes, set `-n 16:2`, if you want to phase the subgenome, respectively. 
+    - For allohexaploids:
+
+        - AAABBB type (2n = 6x = 48): use `-n 16:3`.
+
+        - AABBCC type (2n = 6x = 48): use `-n 24:2`.
+
 ### Start from a **pore-c data**:
 
 ```bash

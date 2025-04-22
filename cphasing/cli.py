@@ -5829,11 +5829,19 @@ def pairs2cool(pairs, chromsize, outcool,
     
     if not low_memory:
         available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
-        pairs_size = op.getsize(pairs) / 1024 / 1024 / 1024
+        if Path(pairs).is_dir():
+            q = 1 if min_mapq > 0 else 0
+            pairs_size = humanized2numeric(os.popen(f"du -sh {pairs}/q{q}").read().split()[0])
+            pairs_size = pairs_size / 1024 / 1024 / 1024
+            if pairs_size * 10 > available_memory:
+                logger.warning(f"Memory usage is too high, use low memory mode.")
+                low_memory = True
+        else:
+            pairs_size = op.getsize(pairs) / 1024 / 1024 / 1024
 
-        if pairs_size * 20 > available_memory:
-            logger.warning(f"Memory usage is too high, use low memory mode.")
-            low_memory = True
+            if pairs_size * 20 > available_memory:
+                logger.warning(f"Memory usage is too high, use low memory mode.")
+                low_memory = True
     
     if Path(pairs).is_dir():
         p = PQS(pairs, threads=threads)
@@ -6963,6 +6971,7 @@ def agp2tour(agp, outdir, force):
     "--output",
     help="Output of results, default is stdout",
     type=click.File('w'),
+    default=sys.stdout
 )
 def agp_dup(agp, output):
     """

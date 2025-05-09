@@ -658,6 +658,9 @@ class HyperPartition:
             merge_method = "mean"
 
         K = np.array(list(K))
+        if len(K) == 1:
+            return None, None, [K]
+
         sub_H, _, sub_edge_idx = extract_incidence_matrix2(H, K)
         
         ## remove low weigth contigs

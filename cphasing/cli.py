@@ -272,7 +272,7 @@ class CommandGroup(DYMGroup, click.RichGroup, RichCommand):
 )
 def cli(verbose, quiet):
     """
-    **Phasing** and scaffolding polyploid genomes based on Pore-**C**, Ultra-long, or Hi-**C** data.    
+    **Phasing** and scaffolding polyploid genomes based on Pore-**C**, HiFi-**C**, Ultra-long, or Hi-**C** data.    
     --------------------
 
     \f
@@ -890,19 +890,19 @@ def cli(verbose, quiet):
     &emsp; **precision**: -msc 20 -mc 25 -mw 2.0 (default)  
     &emsp; sensitive: -msc 5 -mc 5 -mw 1.0  
     &emsp; very-sensitive -msc 1.0 -mc 5 -mw 0.1  
-    &emsp; simulation: -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
+    &emsp; nofilter: -msc 0 -mc 5 -mw 0.1 --alleles-tl 0  
     
     > This parameter will overwrite the aboving parameters.  
     \<precision\>  for remove more low quality contigs to increase the precision of the result;  
     \<sensitive\> for cluster more low signal or fragmented contigs;  
     \<very-sensitive\> for cluster more low signal and fragmented contigs, and it is very sensitive;  
-    \<simulation\> for simulation data in our study which is simulated from chromosome-level assembly.    
+    \<nofilter\> for simulation data in our study which is simulated from chromosome-level assembly.    
 
-    ["precision", "sensitive", "very-sensitive", "simulation"]
+    ["precision", "sensitive", "very-sensitive", "nofilter"]
     """,
     default="precision",
     show_default=True,
-    type=click.Choice(["precision", "sensitive", "very-sensitive", "simulation"]),
+    type=click.Choice(["precision", "sensitive", "very-sensitive", "nofilter"]),
 )
 @click.option(
     '--low-memory',
@@ -1075,7 +1075,7 @@ def pipeline(fasta,
         min_cis_weight = 1.0
         logger.info(f"Use the preset of {preset}. Set min_contacts={min_contacts}, "
                     f"min_weight={min_weight}, min_cis_weight={min_cis_weight}")
-    elif preset == "simulation":
+    elif preset == "nofilter":
         min_contacts = 5
         min_weight = 0.1
         min_cis_weight = 0 
@@ -2635,7 +2635,6 @@ def alleles(fasta, output,
         Path("alleles_workdir/").mkdir(exist_ok=True)
         fastas = ct.to_fasta(fasta, trim_length=trim_length, outdir=f"{current_dir}/alleles_workdir")
         # fastas = list(map(lambda x: Path(x).name, fastas))
-        
         Path("logs").mkdir(exist_ok=True)
         
         args = []
@@ -2684,19 +2683,26 @@ def alleles(fasta, output,
         res = [AlleleTable(at, sort=False, fmt="allele2").data for at in allele_tables]
   
         res = list(filter(lambda x: len(x) > 0, res))
-        allele_df = pd.concat(res, axis=0)
-        allele_df = allele_df.reset_index(drop=True).reset_index().reset_index()
+        if res:
+            allele_df = pd.concat(res, axis=0)
+            allele_df = allele_df.reset_index(drop=True).reset_index().reset_index()
+            with open(output, 'w') as out:
+                for at in allele_tables:
+                    with open(at) as fp:
+                        for line in fp:
+                            if line.startswith("#"):
+                                print(line.strip(), file=out)
+
+                allele_df.to_csv(out, sep='\t', header=None, index=None)
+        else:
+            with open(output, 'w') as out:
+                for at in allele_tables:
+                    with open(at) as fp:
+                        for line in fp:
+                            if line.startswith("#"):
+                                print(line.strip(), file=out)
+
         logger.setLevel(logging.INFO)
-
-        with open(output, 'w') as out:
-            for at in allele_tables:
-                with open(at) as fp:
-                    for line in fp:
-                        if line.startswith("#"):
-                            print(line.strip(), file=out)
-
-            allele_df.to_csv(out, sep='\t', header=None, index=None)
-
         logger.info(f"Successful output allele table in `{output}`")
         # for at in allele_tables:
         #     if Path(at).exists():

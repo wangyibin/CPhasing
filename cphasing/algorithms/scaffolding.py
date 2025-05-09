@@ -77,7 +77,11 @@ class HaplotypeAlign:
                  workdir=".", threads: int = 4):
         at = AlleleTable(at, sort=False, fmt='allele2')
         self.tour_list = tour_list 
-        self.allele_data = at.data.set_index([1, 2])
+        try:
+            self.allele_data = at.data.set_index([1, 2])
+        except KeyError:
+            logger.warning("Allele table is empty, skipped HaplotypeAlign.")
+            return
         self.hap_tour_db = self.get_hap_tour_db(self.tour_list) 
         self.workdir = workdir
         self.threads = threads 
@@ -584,8 +588,11 @@ class AllhicOptimize:
         
         os.chdir(workdir)
         if self.allele_table and len(tour_res) > 1:
-            hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
-            hap_align.run()
+            if AlleleTable(self.allele_table, fmt="allele2", sort=False).data.shape[0] == 0:
+                logger.warning("Allele table is empty, skipped Haplotype parallel process.")
+            else:
+                hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
+                hap_align.run()
 
 
         if not self.fasta:
@@ -808,8 +815,11 @@ class HapHiCSort:
 
   
         if self.allele_table and len(tour_res) >= 2:
-            hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
-            hap_align.run()
+            if AlleleTable(self.allele_table, fmt="allele2", sort=False).data.shape[0] == 0:
+                logger.warning("Allele table is empty, skipped Haplotype parallel process.")
+            else:
+                hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
+                hap_align.run()
         
         if not self.fasta:
             for file in glob.glob("*.tour"):

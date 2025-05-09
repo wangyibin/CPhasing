@@ -1160,9 +1160,12 @@ class ClusterTable:
         files = []
         for group in self.groups:
             # shutil.move(f"{group}.contigs.fasta", f"{outdir}/{group}.contigs.fasta")
-            file_db[group] = "{outdir}/{group}.contigs.fasta"
-            files.append(f"{outdir}/{group}.contigs.fasta")
-        
+            if len(self.data[group]) > 1:
+                file_db[group] = f"{outdir}/{group}.contigs.fasta"
+                files.append(f"{outdir}/{group}.contigs.fasta")
+            else:
+                if Path(f"{outdir}/{group}.contigs.fasta").exists():
+                    os.remove(f"{outdir}/{group}.contigs.fasta")
         # db = self.contig_groups
         # fasta = SeqIO.parse(xopen(fasta), 'fasta')
 

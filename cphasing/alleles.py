@@ -330,34 +330,38 @@ class PartigAllele:
                     else:
                         lines.append(line.strip().split())
             header = pd.DataFrame(header_lines).astype({1: np.int64, 2: np.int64, 3: np.int64})
-            data = pd.DataFrame(lines).astype({4: np.int64, 5: np.int64,
-                                               6: np.int64, 7: np.float64,
-                                               8: np.int8})
-            
-            data[2] = data[2].str.rsplit('_', n=1).map(lambda x: x[0])
-            data[3] = data[3].str.rsplit('_', n=1).map(lambda x: x[0])
-            data = data[(data[4] > 1000) & (data[5] > 1000)]
-            max_idx = data.groupby([2, 3, 8], as_index=False).agg({6: "sum"})
-            
-            max_idx = max_idx.loc[max_idx.groupby([2, 3])[6].idxmax()].drop(6, axis=1)
-            max_idx.set_index([2, 3], inplace=True)
-            data = data.groupby([2, 3]).agg(
-                                            {4: "sum", 5: "sum",
-                                             6: "sum", 7: "mean", 
-                                            })
+            if len(lines) != 0:
+                data = pd.DataFrame(lines).astype({4: np.int64, 5: np.int64,
+                                                6: np.int64, 7: np.float64,
+                                                8: np.int8})
+                
+                data[2] = data[2].str.rsplit('_', n=1).map(lambda x: x[0])
+                data[3] = data[3].str.rsplit('_', n=1).map(lambda x: x[0])
+                data = data[(data[4] > 1000) & (data[5] > 1000)]
+                max_idx = data.groupby([2, 3, 8], as_index=False).agg({6: "sum"})
+                
+                max_idx = max_idx.loc[max_idx.groupby([2, 3])[6].idxmax()].drop(6, axis=1)
+                max_idx.set_index([2, 3], inplace=True)
+                data = data.groupby([2, 3]).agg(
+                                                {4: "sum", 5: "sum",
+                                                6: "sum", 7: "mean", 
+                                                })
 
-            data = pd.concat([data, max_idx], axis=1).reset_index()
-            data = data[data[6] > 500]
-            data = data[data[7] > 0.8]
-            data[7] = data[7].map(lambda x: f'{x: .4f}')
-            header[0] = header[0].str.rsplit('_', n=1).map(lambda x: x[0])
-            header = header.groupby([0]).agg("sum").reset_index()
+                data = pd.concat([data, max_idx], axis=1).reset_index()
+                data = data[data[6] > 500]
+                data = data[data[7] > 0.8]
+                data[7] = data[7].map(lambda x: f'{x: .4f}')
+                header[0] = header[0].str.rsplit('_', n=1).map(lambda x: x[0])
+                header = header.groupby([0]).agg("sum").reset_index()
 
-            header.to_csv(self.output, sep=' ', header=None, index=None)
-            data.reset_index().reset_index().to_csv(self.output, mode='a', sep='\t', header=None, index=None)
+                header.to_csv(self.output, sep=' ', header=None, index=None)
+                data.reset_index().reset_index().to_csv(self.output, mode='a', sep='\t', header=None, index=None)    
+            else:
+                with open(self.output, 'w') as out:
+                    pass 
+
             if Path(f"tmp.{self.prefix}.allele.table").exists():
-                os.remove(f"tmp.{self.prefix}.allele.table")
-    
+                    os.remove(f"tmp.{self.prefix}.allele.table")
         else:
             with open(self.output, 'w') as output:
                 self.pr.to_alleletable(self.fasta, output, fmt, self.k, 

@@ -241,19 +241,23 @@ def findIntersectRegion(a, b, fraction=0.51):
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     logger.debug("Get the coordinates of contig on chrom.")
-    _file1 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    _file2 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
-    _file3 = tempfile.NamedTemporaryFile(delete=True, dir=dir)
+    _file1 = tempfile.NamedTemporaryFile(suffix=".a", delete=True, dir=dir)
+    _file2 = tempfile.NamedTemporaryFile(suffix=".b", delete=True, dir=dir)
+    _file3 = tempfile.NamedTemporaryFile(suffix=".out", delete=True, dir=dir)
 
     chrom_bins.to_csv(_file1.name, sep='\t', header=None, index=None)
 
     contig_on_chrom_bins.to_csv(_file2.name,
                                 sep='\t', index=True, header=None)
 
-    os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
-        _file1.name, _file2.name, _file3.name))
+    cmd = "bedtools2 intersect -a {} -b {} -F 0.5 -wo > {} ".format(
+                        _file1.name, _file2.name, _file3.name)
+    # flag = os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
+                        # _file1.name, _file2.name, _file3.name))
+    flag = os.system(cmd + " 2>plot.bedtools.log")
+    assert flag == 0 , f"Failed to execute command '{cmd}', please check log `plot.bedtools.log`."
 
-    df = pd.read_csv(_file3.name, sep='\t',
+    df = pd.read_csv(f"{_file3.name}", sep='\t',
                      header=None, index_col=None,
                      dtype={9: 'category'})
     

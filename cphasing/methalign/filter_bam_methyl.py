@@ -210,9 +210,11 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
         score = aln.get_tag('AS')
         adjusted_score = score - inconsistent_5mC * penalty
         aln.set_tag('AS', adjusted_score)
-        # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
+        aln.set_tag('MA', inconsistent_5mC)
+        # nm = aln.get_tag('NM')
+        # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
         #     last_read, ref_name, aln.query_alignment_length, flg,
-        #     aln.mapping_quality, aln.pos, score, inconsistent_5mC, adjusted_score))
+        #     aln.mapping_quality, aln.pos, nm, score, inconsistent_5mC, adjusted_score))
     
     # @profile
     def analyze_cached_aln(fout, last_read, alignment, flag):
@@ -327,7 +329,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                                 best_aln.flag = 2064
                         if designate_mapq != -1:
                             best_aln.mapping_quality = designate_mapq
-                        
+                            # best_aln.set_tag('RF', 'Y', value_type='Z')
                         output_aln_list.append([best_aln])
                         
                         if any_supplementary:
@@ -425,7 +427,7 @@ def main():
         raise Exception('--designate_mapq should be within the range [-1, 60]')
     
     fa_dict = parse_fasta(args.fasta)
-    hifi_methylation_dict = parse_bed(args.bed)
+    hifi_methylation_dict = parse_bedgraph(args.bed)
     parse_bam(args.bam, fa_dict, hifi_methylation_dict, args.penalty, args.prob_cutoff, args.designate_mapq, args.recalculate_all, args.threads)
 
 

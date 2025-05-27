@@ -250,7 +250,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
     contig_on_chrom_bins.to_csv(_file2.name,
                                 sep='\t', index=True, header=None)
 
-    cmd = "bedtools2 intersect -a {} -b {} -F 0.5 -wo > {} ".format(
+    cmd = "bedtools intersect -a {} -b {} -F 0.5 -wo > {} ".format(
                         _file1.name, _file2.name, _file3.name)
     # flag = os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
                         # _file1.name, _file2.name, _file3.name))
@@ -420,7 +420,9 @@ class sumSmallContig(object):
             result = (chunk.to_pandas().groupby(self.index_columns, sort=True)
                             .agg(self.agg)
                             .reset_index())
-            
+        
+        result = result[(result['bin1_id'] >= 0) & (result['bin2_id'] >= 0)]
+
         return result
 
     def aggregate(self, span):

@@ -582,8 +582,21 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
                                    'contig', 'tig_start', 'tig_end',
                                    'chrom_region', 'contig_region'],
                                   inplace=True, axis=1)
+    raw_chrom_interval_df = chrom_bin_interval_df.copy()
+    ## Solve the problem that the dotted line of the heat map will drift when the bin is relatively large
     chrom_bin_interval_df = chrom_bin_interval_df.loc[split_contig_on_chrom_df['chromidx'].drop_duplicates()]
     chrom_bin_interval_df.reset_index(drop=True, inplace=True)
+    if chrom_bin_interval_df.loc[0, 'start'] != 0:
+        ## if the first bin is not start with 0, then we need to insert a new row before the first bin
+        # logger.warning('The first bin of chromosome is not start with 0, '
+        #                   'adjust the first bin to start with 0.')
+        new_row = pd.DataFrame({
+            'chrom': raw_chrom_interval_df.iloc[0]['chrom'],
+            'start': 0,
+            'end': raw_chrom_interval_df.iloc[0]['start']
+        }, index=[0])
+        chrom_bin_interval_df = pd.concat([new_row, chrom_bin_interval_df], ignore_index=True)
+        
     
     logger.info('Starting to reorder matrix ...')
 

@@ -6398,7 +6398,7 @@ def plot(matrix,
             
             if cool_binsize * factor < binsize:
                 logger.warning(f"The input matrix's binsize is smaller than the heatmap's {to_humanized2(binsize)}, "
-                                f"the specified binsize ({to_humanized2(binsize)}) should be a `factor * {to_humanized2(cool_binsize)}`, "
+                                f"the specified binsize ({to_humanized2(binsize)}) should be equal to `integer * {to_humanized2(cool_binsize)}`, "
                                f" automaticly set the binsize to {to_humanized2(cool_binsize * factor)}.")
             else:
                 logger.info(f"The input matrix's binsize is smaller than the heatmap's {to_humanized2(binsize)}, "

@@ -73,20 +73,31 @@ def methalign(ctx):
     show_default=True
 )
 @click.option(
+    '-rc',
+    '--ref-prob-cutoff',
+    type=click.IntRange(0, 100),
+    default=50,
+    metavar="INT",
+    help="probability cutoff of methylation of reference in bedgraph",
+    show_default=True
+)
+@click.option(
     '-c',
     '--prob-cutoff',
     type=click.IntRange(0, 255),
     default=128,
     metavar="INT",
     help="probability cutoff of ML in porec bam",
+    show_default=True
 )
 @click.option(
     '-dq',
     '--designate-mapq',
     type=click.IntRange(-1, 60),
-    default=60,
+    default=2,
     metavar="INT",
-    help="designate MAPQ for the best alignments. Set the value to -1 to disable the function,",
+    help="designate MAPQ for the best alignments. " \
+    "Set the value to -1 to disable the function, smaller than designate_mapq will be modified to designate_mapq, when refine steps", 
     show_default=True
 )
 @click.option(
@@ -94,8 +105,8 @@ def methalign(ctx):
     '--recalculate-all',
     is_flag=True,
     help="recalculate scores for all alignments although there may not be any secondary alignments",
-    show_default=True,
     default=False,
+    show_default=True,
 )
 @click.option(
     '-o',
@@ -110,7 +121,7 @@ def methalign(ctx):
     '--threads',
     type=int,
     default=8,
-    help='Number of threads to use',
+    help='Number of threads for single bam processing',
     show_default=True
 )
 @click.option(
@@ -120,7 +131,7 @@ def methalign(ctx):
     help="Number of processes to process bam",
     show_default=True
 )
-def refine(fasta, bedgraph, bam, penalty,
+def refine(fasta, bedgraph, bam, penalty, ref_prob_cutoff,
             prob_cutoff, designate_mapq, recalculate_all,
             output, threads, process):
     """
@@ -136,12 +147,13 @@ def refine(fasta, bedgraph, bam, penalty,
     from joblib import Parallel, delayed
     from .filter_bam_methyl import (
         parse_bam, 
-        parse_bedgraph, 
-        parse_fasta)
+        parse_bedgraph
+        )
+    from ..utilities import read_fasta
 
-    fa_dict = parse_fasta(fasta)
+    fa_dict = read_fasta(fasta)
 
-    hifi_methylation_dict = parse_bedgraph(bedgraph)
+    hifi_methylation_dict = parse_bedgraph(bedgraph, ref_prob_cutoff, threads=threads)
 
     if len(bam) == 0:
         logging.error("No bam files are provided.")

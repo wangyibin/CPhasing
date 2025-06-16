@@ -110,6 +110,7 @@ def run(fasta,
         Nx=100,
         min_scaffold_length=5e6,
         enable_misassembly_remove=False,
+        refine=False,
         whitelist=None,
         blacklist=None,
         binsize="500k",
@@ -168,9 +169,18 @@ def run(fasta,
         if not pairs:
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
             _pqs = Path(f"{pairs_prefix}.pairs.pqs")
+            _pqs2 = Path(f"{outdir}/{_pqs}")
             if _pqs.exists():
                 _p = PQS(str(_pqs))
                 if _p.is_pqs(str(_pqs)):
+                    is_pairs2pqs = True
+                    pqs_file = _pqs
+                    _pairs = _pqs
+                else:
+                    _pairs = Path(f"{pairs_prefix}.pairs.gz")
+            elif _pqs2.exists():
+                _p = PQS(str(_pqs2))
+                if _p.is_pqs(str(_pqs2)):
                     is_pairs2pqs = True
                     pqs_file = _pqs
                     _pairs = _pqs
@@ -657,7 +667,6 @@ def run(fasta,
             out.write("\n".join(whitelist_contigs))
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length} (N{Nx})")
 
-    
     if hcr_flag:
         if porec_table and not use_pairs:
             if is_pairs2pqs:
@@ -692,8 +701,7 @@ def run(fasta,
             # or ((hic1 is None) and is_compressed_table_empty(prepare_input))
             logger.info("Generating pairs file ...")
             cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
-                        "-o", pairs, "-q", "0"]
-            
+                        "-o", str(pairs), "-q", "0"]
             flag = run_cmd(cmd, log=f"logs/porec2pairs.log")
             assert flag == 0, "Failed to execute command, please check log."
 
@@ -1017,6 +1025,8 @@ def run(fasta,
             hyperpartition_args.append("--disable-merge-in-first")
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
+        if refine:
+            hyperpartition_args.append("--refine")
         if hyperpartition_normalize:
             hyperpartition_args.append(hyperpartition_normalize)
 
@@ -1274,9 +1284,9 @@ def run(fasta,
     logger.info("=" * (columns // 2))
     logger.info(f"Results are store in `{outdir}/`")
     
-    if "4" in steps or "5" in steps:
+    if ("4" in steps or "5" in steps) and ("4" not in skip_steps or "5" not in skip_steps):
         logger.info("Please check these results:")
-    if "4" in steps:
+    if "4" in steps and "4" not in skip_steps:
         logger.info(f"    {outdir}/4.scaffolding/groups.agp")
         if corrected:
             logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")

@@ -824,6 +824,13 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "--refine",
+    help="Refine the allelic contig cluster into one group, only support for second partition of phasing mode",
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
     "-wl",
     "--whitelist",
     metavar="PATH",
@@ -987,6 +994,7 @@ def pipeline(fasta,
             nx,
             min_scaffold_length,
             enable_misassembly_remove,
+            refine,
             whitelist,
             scaffolding_method, 
             binsize,
@@ -1167,6 +1175,7 @@ def pipeline(fasta,
             Nx=nx,
             min_scaffold_length=min_scaffold_length,
             enable_misassembly_remove=enable_misassembly_remove,
+            refine=refine,
             binsize=binsize,
             colormap=cmap,
             whitered=whitered,
@@ -1422,7 +1431,7 @@ def paf2pairs(paf, chromsize, output,
     help='Minimum quality of mapping [0, 255].',
     metavar='INT',
     type=click.IntRange(0, 255, clamp=True),
-    default=1,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -1431,7 +1440,7 @@ def paf2pairs(paf, chromsize, output,
     help='Minimum percentage identity of alignments [0, 1.0].',
     metavar='FLOAT',
     type=click.FloatRange(0.0, 1.0, clamp=True),
-    default=.75,
+    default=.8,
     show_default=True
 )
 @click.option(
@@ -1439,7 +1448,7 @@ def paf2pairs(paf, chromsize, output,
     '--min_length',
     help='Minimum length of fragments.',
     metavar='INT',
-    default=10,
+    default=150,
     show_default=True,
     type=int,
 )
@@ -3730,6 +3739,13 @@ def hypergraph(contacts,
     hidden=True
 )
 @click.option(
+    "--refine",
+    help="Refine the allelic contig cluster into one group, only support for second partition of phasing mode",
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
     "--threshold",
     metavar="FLOAT",
     help="Threshold of reweight.",
@@ -3814,6 +3830,7 @@ def hyperpartition(hypergraph,
                     min_scaffold_length,
                     enable_misassembly_remove,
                     is_recluster_contigs,
+                    refine,
                     threshold, 
                     max_round, 
                     threads,
@@ -4109,6 +4126,7 @@ def hyperpartition(hypergraph,
                             min_scaffold_length,
                             is_remove_misassembly,
                             is_recluster_contigs,
+                            refine,
                             threshold, 
                             max_round, 
                             threads, 
@@ -4931,7 +4949,7 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     "-q",
     "--min-mapq",
     "min_mapq",
-    default=1,
+    default=0,
     metavar="INT",
     help="Minimum mapping quality of alignments",
     type=click.IntRange(0, 60),
@@ -4941,7 +4959,7 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     "-p",
     "--min-identity",
     "min_identity",
-    default=0.75,
+    default=0.8,
     metavar="FLOAT",
     help="Minimum identity of alignments",
     type=click.FloatRange(0, 1.0),
@@ -4951,7 +4969,7 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     "-l",
     "--min-length",
     "min_length",
-    default=30,
+    default=150,
     metavar="FLOAT",
     help="Minimum length of alignments",
     type=int,
@@ -4963,7 +4981,7 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     'max_edge',
     help='Maximum length of fragment located in the edge of contigs.',
     metavar='INT',
-    default=2000,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -4983,13 +5001,13 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     default="-",
     show_default=True
 )
-def paf2porec(paf, bed, min_quality, 
+def paf2porec(paf, bed, min_mapq, 
               min_identity, min_length, 
               max_edge,
               max_order, output):
     if not bed:
         cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-M", str(max_order),
-                "-q", str(min_quality), "-l", str(min_length),  paf, 
+                "-q", str(min_mapq), "-l", str(min_length),  paf, 
                 "-e", str(max_edge), "-o", output]
     else:
         cmd = ["cphasing-rs", "paf2porec",  "-p", str(min_identity), "-b",  bed, 

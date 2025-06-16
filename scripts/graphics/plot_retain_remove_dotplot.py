@@ -46,6 +46,7 @@ def main(args):
 
     colors =  ["#cb6e7f", "#253761", "#8896ae"]
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     for ploidy, tmp_df in df.groupby('Sample'):
 
         fig, ax = plt.subplots(figsize=(4, 4))

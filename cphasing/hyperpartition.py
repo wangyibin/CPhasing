@@ -6,6 +6,7 @@ import gc
 import os 
 import sys
 
+import math
 import numpy as np
 import igraph as ig
 import pandas as pd
@@ -126,6 +127,7 @@ class HyperPartition:
                     min_scaffold_length=10000,
                     is_remove_misassembly=False,
                     is_recluster_contigs=False,
+                    refine=False,
                     threshold=0.01,
                     max_round=1, 
                     threads=4,
@@ -181,6 +183,7 @@ class HyperPartition:
         self.min_scaffold_length = int(min_scaffold_length)
         self.is_remove_misassembly = is_remove_misassembly
         self.is_recluster_contigs = is_recluster_contigs
+        self.refine = refine
         logger.debug(f"is remove misassembly: {self.is_remove_misassembly}")
         self.threshold = threshold
         self.max_round = max_round
@@ -643,7 +646,7 @@ class HyperPartition:
                                 output_dir="./", init_resolution=0.8, min_weight=1, 
                                 min_cis_weight = 1.0, allelic_similarity=0.8, 
                                 min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
-                                is_remove_misassembly=False, is_recluster_contigs=False,
+                                is_remove_misassembly=False, is_recluster_contigs=False, refine=False,
                                 min_scaffold_length=10000, threshold=0.01, max_round=1, num=None,
                                 kprune_norm_method='cis', threads=1):
         """
@@ -831,11 +834,17 @@ class HyperPartition:
                                                         allelic_similarity=allelic_similarity)
         
         if is_recluster_contigs:
-                new_K = HyperPartition.recluster_contigs(new_K, k, A, raw_A,
+            new_K = HyperPartition.recluster_contigs(new_K, k, A, raw_A,
                                          sub_vertices_new_idx_sizes, 
                                           None, 
                                          sub_prune_pair_df, allelic_similarity)
-            
+        
+        if refine:
+            logger.info("Refining misassembies of allelic contig pairs, which partition into the same group")
+            new_K = HyperPartition.refine_allelic_errors(new_K, k, A, 
+                                                        sub_vertices_new_idx_sizes, 
+                                                        sub_prune_pair_df,
+                                                        min_weight=min_weight)
         # vertices_length = sub_vertices_new_idx_sizes['length']
         # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
@@ -1050,7 +1059,7 @@ class HyperPartition:
             if k[0] and len(self.K) > k[0]:
                 if self.disable_merge_in_first:
                     self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
-                    logger.info(f"Discarded `{len(self.K) - k[0]}` smallest groups.")
+                    logger.info(f"Discarded `{len(self.K) - k[0]}` smallest groups (--disable-merge-in-first).")
                     self.K = self.K[:k[0]]
                 else:
                     self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], method='sum')
@@ -1211,7 +1220,7 @@ class HyperPartition:
                         self.min_weight, self.min_cis_weight,
                         self.allelic_similarity,  self.min_allelic_overlap, 
                         self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
-                        self.is_recluster_contigs,
+                        self.is_recluster_contigs, self.refine,
                         self.min_scaffold_length, self.threshold, self.max_round, num,
                         self.kprune_norm_method, sub_threads))
             
@@ -1554,6 +1563,130 @@ class HyperPartition:
             K[corrected_idx[idx]].append(idx)
         
         return K
+    
+    @staticmethod
+    def refine_allelic_errors(K, k, A, idx_size, prune_pair_df, 
+                              min_weight, allelic_similarity=0.99, 
+                              rel_tol=0.2):
+        if prune_pair_df is None:
+            return K 
+        if len(K) == 1:
+            return K
+    
+        
+        tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) &
+                                (prune_pair_df['similarity'] >= allelic_similarity)]
+        
+        idx_size_db = idx_size.to_dict()['length']
+
+        tmp_df['length1'] = tmp_df['contig1'].map(idx_size_db)
+        tmp_df['length2'] = tmp_df['contig2'].map(idx_size_db)
+    
+        high_similar_pairs = set()
+        for idx, row in tmp_df.iterrows():
+            contig1, contig2 = row['contig1'], row['contig2']
+            mz1, mz2 = row['mz1'], row['mz2']
+            length1, length2 = row['length1'], row['length2']
+            if math.isclose(mz1, mz2, rel_tol=rel_tol) or \
+                math.isclose(length1, length2, rel_tol=rel_tol):
+                if contig1 > contig2:
+                    contig1, contig2 = contig2, contig1
+                high_similar_pairs.add((contig1, contig2))
+
+
+        if not high_similar_pairs:
+            return K
+        
+        retain_res = OrderedDict()
+        candicate_error_contig_pairs = OrderedDict()
+        all_candicate_error_contigs = set()
+        all_candicate_error_contig_db = defaultdict(set)
+        for idx, group in enumerate(K):
+            group_set = set(combinations(sorted(group), 2))
+            candicate_allelic_error_pairs = group_set.intersection(high_similar_pairs)
+            candicate_error_contigs = set(list_flatten(candicate_allelic_error_pairs))
+            all_candicate_error_contigs.update(candicate_error_contigs)
+            for pair in candicate_allelic_error_pairs:
+                all_candicate_error_contig_db[pair[0]].add(pair[0])
+                all_candicate_error_contig_db[pair[0]].add(pair[1]
+                                                           )
+
+            retain_contigs = set(group).difference(candicate_error_contigs)
+            retain_res[idx] = retain_contigs
+    
+            for pair in candicate_allelic_error_pairs:
+                if pair not in candicate_error_contig_pairs:
+                    candicate_error_contig_pairs[pair] = idx
+        
+        for pair in candicate_error_contig_pairs:
+            idx = candicate_error_contig_pairs[pair]
+            retain_contigs = retain_res[idx]
+            other_idxes = sorted(set(list(retain_res)).difference([idx]))
+
+            counts_list = []
+            for contig in pair:
+                
+                interaction_pairs = list(product([int(contig)], retain_contigs))
+                
+                interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
+                contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
+                
+                sub_A = A[contig1_idxes, :][:, contig2_idxes]
+
+                counts_list.append(sub_A.sum())
+            
+            max_idx = pair[np.argmax(counts_list)]
+            min_idx = pair[np.argmin(counts_list)]
+
+            retain_res[idx].add(max_idx)
+
+            other_counts_list = []
+            for other_idx in other_idxes:
+                other_retain_contigs = retain_res[other_idx]
+                if len(other_retain_contigs) == 0:
+                    continue
+                interaction_pairs = list(product([min_idx], other_retain_contigs))
+                interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
+                contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
+                if len(contig1_idxes) == 0 or len(contig2_idxes) == 0:
+                    other_counts_list.append(0)
+                else:
+                    sub_A = A[contig1_idxes,  contig2_idxes]
+                    other_counts_list.append(sub_A.sum())
+            
+            other_counts_db = dict(zip(other_idxes, other_counts_list))
+
+            other_counts_list = sorted(other_counts_db, 
+                                       key=lambda x: other_counts_db[x],
+                                       reverse=True)
+
+            for i in range(len(other_counts_list)):
+                max_chrom = other_counts_list[i]
+                try:
+                    second_chrom = other_counts_list[i+1]
+                except:
+                    second_chrom = None
+                
+                tmp_error_contigs = all_candicate_error_contig_db[min_idx]
+                tmp_counts = len(retain_res[max_chrom].intersection(tmp_error_contigs))
+                if tmp_counts > 0:
+                    continue 
+                if second_chrom:
+                    if (other_counts_db[max_chrom] > min_weight) and (other_counts_db[max_chrom] != other_counts_db[second_chrom]):
+                        retain_res[max_chrom].add(min_idx)
+                        break
+                else:
+                    if other_counts_db[max_chrom] > min_weight:
+                        retain_res[max_chrom].add(min_idx)
+                        break
+
+        new_K = []
+        for idx in sorted(retain_res):
+            new_K.append(sorted(retain_res[idx]))
+        
+
+        return new_K 
+         
 
     def rescue(self):
         """
@@ -1628,7 +1761,6 @@ class HyperPartition:
 
                 for i, g in enumerate(new_K):
                     
-                    # print(tmp_df.reindex(list(product([contig1], g))))
 
                     conflict_df1 = tmp_df.reindex(list(product([contig1], g))).dropna()
 

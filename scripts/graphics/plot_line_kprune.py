@@ -55,6 +55,7 @@ def main(args):
 
     colors =  ["#cb6e7f", "#253761", "#8896ae"]
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     ## by N50 
     for ploidy, tmp_df in df.groupby('Sample'):
         

@@ -38,7 +38,7 @@ def main(args):
 
     fig, ax = plt.subplots(figsize=(5.5,5))
     plt.rcParams['font.family'] = 'Arial'
-
+    plt.rcParams['pdf.fonttype'] = 42
     sample_names = list(map(lambda x: x.split(".")[0], args.summary))
   
 

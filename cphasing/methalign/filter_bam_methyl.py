@@ -7,6 +7,7 @@
 
 
 import argparse
+import logging
 import sys
 import os
 import pysam
@@ -14,8 +15,13 @@ import re
 from array import array
 import collections
 import numpy as np
+import pandas as pd 
+import polars as pl
 from portion import closed
 
+from collections import deque, defaultdict
+
+logger = logging.getLogger(__name__)
 
 pysam.set_verbosity(0)
 
@@ -58,7 +64,7 @@ def parse_bed(bed, cov_cutoff=75):
 
 def parse_bed_modkit(bed, cov_cutoff=75):
     
-    hifi_methylation_dict = collections.defaultdict(set)
+    hifi_methylation_dict = defaultdict(set)
     with open(bed) as f:
         for line in f:
             if line.startswith('#') or not line.strip():
@@ -71,35 +77,50 @@ def parse_bed_modkit(bed, cov_cutoff=75):
     return hifi_methylation_dict
 
 
-def parse_bedgraph(bedgraph, cov_cutoff=75):
-    
-    hifi_methylation_dict = collections.defaultdict(set)
-    with open(bedgraph) as f:
-        for line in f:
-            if line.startswith('#') or not line.strip():
-                continue
-            cols = line.split()
-            ctg, pos, cov = cols[0], int(cols[1]), float(cols[3])
-            if cov >= cov_cutoff:
-                hifi_methylation_dict[ctg].add(pos)
+def parse_bedgraph(bedgraph, cov_cutoff=75, threads=4):
+    os.environ["POLARS_MAX_THREADS"] = str(threads)
+
+    df = pl.read_csv(
+        bedgraph,
+        separator='\t',
+        has_header=False,
+        new_columns=['ctg', 'start', 'end', 'cov'],
+        comment_prefix='#',
+        dtypes={'ctg': pl.Utf8, 'start': pl.Int64, 'end': pl.Int64, 'cov': pl.Float64}
+    ).select(
+        pl.col('ctg'),
+        pl.col('start').cast(pl.Int64),
+        pl.col('cov').cast(pl.Float64)
+    ).filter(pl.col('cov') >= cov_cutoff)
+   
+    gb = df.group_by('ctg').agg(
+        pl.col('start').unique().alias('starts')
+    )
+    hifi_methylation_dict = defaultdict(set,
+        {ctg: set(starts) for ctg, starts in zip(gb['ctg'], gb['starts'])}
+    )
 
     return hifi_methylation_dict
 
 
-def get_5mc_sites_from_read(read_name, read_seq, MM_tag, ML_tag, prob_cutoff, pattern=r'C'):
-   
-    matches = re.finditer(pattern, read_seq)
+def get_5mc_sites_from_read(read_seq, MM_tag, ML_tag, prob_cutoff, pattern=re.compile(r'C')):
+    if read_seq is None or not read_seq:
+        return {}, array('h', [])
+    matches = pattern.finditer(read_seq)
     ont_pos_index = {match.start(): index for index, match in enumerate(matches)}
     ont_methylation_array = array('h', [0] * len(ont_pos_index))
     index_sum = 0
-    for n, i in enumerate((int(shift) for shift in MM_tag.rstrip(';').split(',')[1:])):
+    MM_tags = MM_tag.rstrip(';').split(',')[1:]
+    for n, i in enumerate((int(shift) for shift in MM_tags)):
         index_sum += i
         if ML_tag[n] >= prob_cutoff:
-            ont_methylation_array[n+index_sum] = 1
+            try:
+                ont_methylation_array[n+index_sum] = 1
+            except IndexError:
+                continue
             
     return ont_pos_index, ont_methylation_array
 
-# @profile
 def get_query_alignment_termini(aln):
 
     if aln.is_forward:
@@ -164,65 +185,87 @@ def reconstruct_SA_tag(aln):
 
     return SA_tag
 
-
 def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designate_mapq, recalculate_all, threads):
     
     # print('Read\tRef\tquery_aln_len\tflag\tMAPQ\tPos\tAlignment_score\tInconsistent_5mC\tAdjusted_score')
     
     primary_flags = {0, 16}
-    cached_aln = []
-
-    # @profile
     def recalculate_score(aln, flg, ont_pos_index, ont_methylation_array):
         inconsistent_5mC = 0
         ref_name, is_forward = aln.reference_name, aln.is_forward
-        hifi_methylation_set = hifi_methylation_dict[ref_name]
+        hifi_set = hifi_methylation_dict[ref_name]
         fa_seq = fa_dict[ref_name]
-        for read_aln_pos, ref_aln_pos in aln.get_aligned_pairs():
-            raw_read_aln_pos = read_aln_pos
-            # for reverse strand, recalculate read_aln_pos based on the contig length
-            if not is_forward and read_aln_pos is not None:
-                read_aln_pos = aln.infer_query_length() - (read_aln_pos + 1)
-            # not C in ONT read
-            if read_aln_pos not in ont_pos_index:
+        aligned_pairs = aln.get_aligned_pairs()
+        # build a map from read-side positions to reference positions,
+        # applying reverse-strand adjustment once
+        # read_to_ref = {}
+        # read_len = aln.infer_query_length()
+
+        # read_to_ref = [-1] * read_len
+        # for rpos, refpos in aligned_pairs:
+        #     if rpos is None or refpos is None:
+        #         continue
+        #     if not is_forward:
+        #         rpos = read_len - (rpos + 1)
+        #     read_to_ref[rpos] = refpos
+
+        # # now iterate only over C positions in the read (ont_pos_index keys)
+        # for rpos, idx in ont_pos_index.items():
+        #     if rpos < 0 or rpos >= read_len:
+        #         continue
+        #     refpos = read_to_ref[rpos]
+        #     if refpos < 0:
+        #         continue
+        #     is_meth = bool(ont_methylation_array[idx])
+
+        #     if is_forward:
+        #         if fa_seq[refpos] != 'C':
+        #             continue
+        #         hit = refpos in hifi_set
+        #     else:
+        #         if fa_seq[refpos] != 'G':
+        #             continue
+        #         hit = (refpos - 1) in hifi_set
+
+        #     if hit != is_meth:
+        #         inconsistent_5mC += 1
+        read_len = aln.infer_query_length()
+        _idx = ont_pos_index  # local ref
+        _meth = ont_methylation_array
+        _hifi = hifi_set
+        seq = fa_seq
+        inc = 0
+        for rpos, refpos in aligned_pairs:
+            if rpos is None or refpos is None:
                 continue
-            
-            is_methylated = ont_methylation_array[ont_pos_index[read_aln_pos]]
-            
-            # forward strand
+            # adjust for reverse strand
+            if not is_forward:
+                rpos = read_len - (rpos + 1)
+            # only care positions with C in read
+            idx = _idx.get(rpos)            
+            if idx is None:
+                    continue
+            is_meth = _meth[idx] != 0
             if is_forward:
-                # mismatch
-                if ref_aln_pos is None or fa_seq[ref_aln_pos] != 'C':
+                if seq[refpos] != 'C':
                     continue
-                if not ((ref_aln_pos in hifi_methylation_set and is_methylated) or 
-                        (ref_aln_pos not in hifi_methylation_set and not is_methylated)):
-                    inconsistent_5mC += 1
-            # reverse strand
+                hit = (refpos in _hifi)
             else:
-                # mismatch
-                if ref_aln_pos is None or fa_seq[ref_aln_pos] != 'G':
+                if seq[refpos] != 'G':
                     continue
-                if not ((ref_aln_pos - 1 in hifi_methylation_set and is_methylated) or
-                        (ref_aln_pos - 1 not in hifi_methylation_set and not is_methylated)):
-                    inconsistent_5mC += 1
-        
-        # calculate adjusted score
-        score = aln.get_tag('AS')
-        adjusted_score = score - inconsistent_5mC * penalty
-        aln.set_tag('AS', adjusted_score)
+                hit = ((refpos - 1) in _hifi)
+            if hit != is_meth:
+                inc += 1
+        inconsistent_5mC = inc
+        # update tags
+        orig_score = aln.get_tag('AS')
+        new_score = orig_score - inconsistent_5mC * penalty
         aln.set_tag('MA', inconsistent_5mC)
-        # nm = aln.get_tag('NM')
-        # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}'.format(
-        #     last_read, ref_name, aln.query_alignment_length, flg,
-        #     aln.mapping_quality, aln.pos, nm, score, inconsistent_5mC, adjusted_score))
-    
-    # @profile
-    def analyze_cached_aln(fout, last_read, alignment, flag):
-        
+        aln.set_tag('AS', new_score)
+  
+    def analyze_cached_aln(cached_aln, flag):
+        output_alns = []
         if len(cached_aln) > 1:
-            
-            supplementary_alns = []
-            non_supplementary_alns = []
             aln_list = []
             any_primary, any_supplementary, any_secondary = False, False, False
             
@@ -233,14 +276,14 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                     if flg in primary_flags:
                         any_primary = True
                         # get necessary information from the primary alignment
-                        read_length = aln.infer_query_length()
+                        # read_length = aln.infer_query_length()
                         read_seq = aln.query_sequence if aln.is_forward else aln.query_sequence.translate(comp_table)[::-1]
                         if aln.has_tag('MM'):
                             assert aln.has_tag('ML')
                             mm_tag, ml_tag = aln.get_tag('MM'), aln.get_tag('ML')
                         else:
                             mm_tag, ml_tag = '', ''
-                        ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(last_read, read_seq, mm_tag, ml_tag, prob_cutoff)
+                        ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(read_seq, mm_tag, ml_tag, prob_cutoff)
                     if aln.is_supplementary:
                         any_supplementary = True
                 else:
@@ -256,31 +299,33 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                         ps_qry_range_list.append((ps_qry_start, ps_qry_end))
                 
                 if any_secondary:
+                    sec_infos = []
                     for aln, flg in cached_aln:
-                        # find best assignment of secondary alignments
-                        if any_supplementary and aln.is_secondary:
-                            ovl_len_list = []
-                            # recalculate score for primary and supplementary alignments (always necessary)
-                            recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
-                            for n, (ps_qry_start, ps_qry_end) in enumerate(ps_qry_range_list):
-                                query_start, query_end = get_query_alignment_termini(aln)
-                                overlap = closed(query_start + 1, query_end) & closed(ps_qry_start + 1, ps_qry_end)
-                                ovl_len = overlap.upper - overlap.lower + 1 if overlap else 0
-                                ovl_len_list.append((n, ovl_len))
+                        if aln.is_secondary:
+                            # recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
+                            qs, qe = get_query_alignment_termini(aln)
+                            sec_infos.append((aln, flg, qs, qe))
 
-                            ovl_len_list.sort(key=lambda x: x[1], reverse=True)
-                            best_ps_index, best_ps_ovl = ovl_len_list[0]
-                            aln_list[best_ps_index].append((aln, flg))
-                        elif aln.is_secondary:
-                            recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
+                    for aln, flg, qs, qe in sec_infos:
+                        if any_supplementary:
+                            ovl_len_list = []
+                            for i, (ps_start, ps_end) in enumerate(ps_qry_range_list):
+                                overlap = closed(qs+1, qe) & closed(ps_start+1, ps_end)
+                                ovl = overlap.upper - overlap.lower + 1 if overlap else 0
+                                ovl_len_list.append((i, ovl))
+                            best_group = max(ovl_len_list, key=lambda x: x[1])[0]
+                            aln_list[best_group].append((aln, flg))
+                        else:
                             aln_list[0].append((aln, flg))
+
                     # recalculate score for primary and supplementary alignments
                     # if there are no corresponding secondary alignments, recalculate the score of the primary/supplementary
                     # alignment is not necessary, unless --recalculate_all is set
                     for alns in aln_list:
                         if len(alns) > 1 or recalculate_all:
                             ps_aln, ps_flg = alns[0]
-                            recalculate_score(ps_aln, ps_flg, ont_pos_index, ont_methylation_array)
+                            for aln, flg in alns:
+                                recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
 
                     # if any_secondary:
                     SA_tag_list = []
@@ -305,7 +350,16 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                             output_aln_list.append([aln for aln, _ in alns])
                             if any_supplementary:
                                 SA_tag_list.append(reconstruct_SA_tag(best_aln))
+                         
+                            if designate_mapq != -1 and best_aln.mapping_quality < designate_mapq:
+                                if len(alns) >= 2:
+                                    second_aln = alns[1][0]
+                                    if second_aln.get_tag('AS') == best_aln.get_tag('AS'):
+                                        continue
+                                best_aln.mapping_quality = designate_mapq
+                                best_aln.set_tag('RF', 'Y', value_type='Z')
                             continue
+                       
                         any_change = True
                         # check
                         for n, (aln, flg) in enumerate(alns):
@@ -313,23 +367,30 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                                 ps_aln = aln
                                 if aln.get_tag('AS') == best_aln.get_tag('AS'):
                                     assert n == 0
-                        # TODO: reconstruct query_squence and query_qualities according to raw reads 
-                        assert best_aln.is_secondary
-                        if best_aln.is_forward:
-                            if ps_aln.flag in primary_flags:
-                                best_aln.flag = 0
+                        dont_change = False
+                        if len(alns) >= 2:
+                            second_aln = alns[1][0]
+                            if second_aln.get_tag('AS') == best_aln.get_tag('AS'):
+                                dont_change = True 
+                        
+                        if not dont_change:
+                            # TODO: reconstruct query_squence and query_qualities according to raw reads 
+                            assert best_aln.is_secondary
+                            if best_aln.is_forward:
+                                if ps_aln.flag in primary_flags:
+                                    best_aln.flag = 0
+                                else:
+                                    assert ps_aln.is_supplementary
+                                    best_aln.flag = 2048
                             else:
-                                assert ps_aln.is_supplementary
-                                best_aln.flag = 2048
-                        else:
-                            if ps_aln.flag in primary_flags:
-                                best_aln.flag = 16
-                            else:
-                                assert ps_aln.is_supplementary
-                                best_aln.flag = 2064
-                        if designate_mapq != -1:
-                            best_aln.mapping_quality = designate_mapq
-                            # best_aln.set_tag('RF', 'Y', value_type='Z')
+                                if ps_aln.flag in primary_flags:
+                                    best_aln.flag = 16
+                                else:
+                                    assert ps_aln.is_supplementary
+                                    best_aln.flag = 2064
+                            if designate_mapq != -1 and best_aln.mapping_quality < designate_mapq:
+                                best_aln.mapping_quality = designate_mapq
+                                best_aln.set_tag('RF', 'Y', value_type='Z')
                         output_aln_list.append([best_aln])
                         
                         if any_supplementary:
@@ -356,17 +417,17 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                             SA_tag = ''.join([tag for i, tag in enumerate(SA_tag_list) if i != n])
                             ps_aln.set_tag('SA', SA_tag, value_type='Z')
                             for aln in alns:
-                                fout.write(aln)
+                                output_alns.append(aln)
                     else:
                         for alns in output_aln_list:
                             for aln in alns:
-                                fout.write(aln)
+                                output_alns.append(aln)
                 else:
                     cached_aln.sort(key=lambda x: x[1])
                     for aln, flg in cached_aln:
                         if recalculate_all:
                             recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
-                        fout.write(aln)
+                        output_alns.append(aln)
         else:
             aln, flg = cached_aln[0]
             if flg in primary_flags:
@@ -377,38 +438,51 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                         mm_tag, ml_tag = aln.get_tag('MM'), aln.get_tag('ML')
                     else:
                         mm_tag, ml_tag = '', ''
-                    ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(last_read, read_seq, mm_tag, ml_tag, prob_cutoff)
+                    ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(read_seq, mm_tag, ml_tag, prob_cutoff)
                     recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
                 else:
                     pass
                     # print('{}\t{}\t{}\t{}\t{}\t{}\t{}\twhatever'.format(
                     #     last_read, aln.reference_name, aln.query_alignment_length, flg, aln.mapping_quality, aln.pos, aln.get_tag('AS')))
-                fout.write(aln)
-        last_read = read_name
-        cached_aln.clear()
-        cached_aln.append([alignment, flag])
-    
-        return last_read
+                output_alns.append(aln)
+        
+        return output_alns
 
     base_bam = os.path.basename(bam)
-    out_bam = '{}.penalty{}.{}'.format(os.path.splitext(base_bam)[0], penalty, 'methy_filtered.bam')
+    out_bam = '{}.penalty{}.{}'.format(os.path.splitext(base_bam)[0], 
+                                       penalty, 'methy_filtered.bam')
     
     format_options = [b'filter=!flag.unmap']
-    
-    with pysam.AlignmentFile(bam, format_options=format_options, threads=threads) as fin:
-        with pysam.AlignmentFile(out_bam, 'wb', template=fin, threads=threads) as fout:
-            last_read = ''
-            for alignment in fin:
-                read_name, flag = alignment.query_name, alignment.flag
-                if read_name == last_read:
-                    cached_aln.append([alignment, flag])
-                elif last_read:
-                    last_read = analyze_cached_aln(fout, last_read, alignment, flag)
-                else:
-                    last_read = read_name
-                    cached_aln.append([alignment, flag])
-            analyze_cached_aln(fout, last_read, alignment, flag)
+    def iter_read_groups(fin):
+        last_name = None
+        buf = []
+        for aln in fin:
+            name = aln.query_name
+            if last_name is None:
+                last_name = name
+            if name != last_name:
+                yield last_name, buf, aln.flag
+                buf = []
+                last_name = name
+            buf.append((aln, aln.flag))
+        if buf:
+            yield last_name, buf, aln.flag
 
+    def worker(group):
+        read_name, alns, flag = group
+        return analyze_cached_aln( alns, flag)
+
+
+    with pysam.AlignmentFile(bam, format_options=format_options,
+                             threads=threads) as fin, \
+         pysam.AlignmentFile(out_bam, 'wb', template=fin,
+                             threads=threads) as fout:
+                
+         for group in iter_read_groups(fin):
+            result = worker(group)
+            for aln in result:
+                fout.write(aln)
+      
     return out_bam
 
 def main():
@@ -419,7 +493,7 @@ def main():
     parser.add_argument('--penalty', type=int, default=2, help='penalty for inconsistent 5mC, default: %(default)s')
     parser.add_argument('--prob_cutoff', type=int, default=128, help='probability cutoff, default: %(default)s')
     parser.add_argument('--designate_mapq', type=int, default=60, help='designate MAPQ for the best alignments. Set the value to -1 to disable the function, default: %(default)s')
-    parser.add_argument('--recalculate_all', default=False, action='store_true', help='recalculate scores for all alignments although there may not be any secondary alignments, default: %(default)s')
+    parser.add_argument('--', default=False, action='store_true', help='recalculate scores for all alignments although there may not be any secondary alignments, default: %(default)s')
     parser.add_argument('--threads', type=int, default=8, help='number of threads for bam reading, default: %(default)s')
     args = parser.parse_args()
     

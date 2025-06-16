@@ -13,6 +13,7 @@ import re
 import shutil
 import sys
 
+import math
 import numpy as np
 import pandas as pd 
 import polars as pl
@@ -533,6 +534,37 @@ class AlleleTable:
    
         self.fmt = 'allele1'
 
+    def get_contigsizes_from_header(self):
+        assert self.fmt == 'allele2', "Only support for fmt=allele2"
+        res = dict()
+        with open(self.filename, 'r') as fp:
+            for line in fp:
+                if line.startswith("#"):
+                    contig, length, minimizer, unique_minimizer = line[1:].strip().split()
+                    res[contig] = int(length)
+
+        return res
+
+    def get_high_similar_pairs(self, minimum_similarity=0.995):
+        assert self.fmt == 'allele2', "Only support for fmt=allele2"
+        contigsizes = self.get_contigsizes_from_header()
+
+        res = set()
+        for idx, row in self.data[self.data['similarity'] > minimum_similarity].iterrows():
+            contig1, contig2 = row[1], row[2]
+            minimizer_count1, minimizer_count2 = row['mz1'], row['mz2']
+            length1, length2 = contigsizes[contig1], contigsizes[contig2]
+            
+            if math.isclose(length1, length2, rel_tol=0.2, abs_tol=0) \
+                or math.isclose(minimizer_count1, minimizer_count2, rel_tol=0.2, abs_tol=0):
+                if contig1 > contig2:
+                    contig1, contig2 = contig2, contig1
+
+                res.add((contig1, contig2))
+
+        res = list(res)
+
+        return sorted(res)
 
     def save(self, output, index=True):
         """
@@ -2786,6 +2818,29 @@ def _get_chunk(scans, read_idx, chunks, low_mq_condition, output, tmpdir):
         idx += scan
 
         yield (i, df, low_mq_condition, output, tmpdir)
+
+
+class Contacts:
+    def __init__(self, filename):
+        self.filename = filename
+        self.file = Path(filename)
+        if not self.file.exists():
+            raise FileNotFoundError(f"File {filename} not found.")
+
+        self.data = self.get_data()
+
+    def get_data(self):
+        df = pl.read_csv(self.file, separator='\t', has_header=False,
+                            comment_prefix='#',
+                            new_columns=['contig1', 'contig2', 'count']
+        )
+
+        return df.to_pandas()
+
+    def __copy__(self):
+        return Contacts(self.filename)
+    
+            
 
 class PAFRecords:
     

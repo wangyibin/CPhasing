@@ -593,7 +593,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
         new_row = pd.DataFrame({
             'chrom': raw_chrom_interval_df.iloc[0]['chrom'],
             'start': 0,
-            'end': raw_chrom_interval_df.iloc[0]['start']
+            'end': raw_chrom_interval_df.iloc[0]['end']
         }, index=[0])
         chrom_bin_interval_df = pd.concat([new_row, chrom_bin_interval_df], ignore_index=True)
         

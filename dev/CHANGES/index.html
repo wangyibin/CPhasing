@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#v026-2025-03-27" class="md-skip">
+        <a href="#v027-2025-07-08" class="md-skip">
           Skip to content
         </a>
       
@@ -916,6 +916,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v027-2025-07-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.7] - 2025-07-08
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v026-2025-03-27" class="md-nav__link">
     <span class="md-ellipsis">
       [v0.2.6] - 2025-03-27
@@ -1595,6 +1604,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v027-2025-07-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.7] - 2025-07-08
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v026-2025-03-27" class="md-nav__link">
     <span class="md-ellipsis">
       [v0.2.6] - 2025-03-27
@@ -2259,6 +2277,11 @@
 
   <h1>CHANGES</h1>
 
+<h2 id="v027-2025-07-08">[v0.2.7] - 2025-07-08<a class="headerlink" href="#v027-2025-07-08" title="Permanent link">#</a></h2>
+<h4 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">#</a></h4>
+<ul>
+<li><code>methalign</code>, fixed bug that input bam contain 5hmC </li>
+</ul>
 <h2 id="v026-2025-03-27">[v0.2.6] - 2025-03-27<a class="headerlink" href="#v026-2025-03-27" title="Permanent link">#</a></h2>
 <h4 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">#</a></h4>
 <ul>
@@ -2272,7 +2295,7 @@
 <li><code>pipeline</code>, if input pairs or pairs.gz, it will first convert it to pairs.pqs to speed up subsequence pairs data load. About a 15 percent increase in speed.</li>
 <li><code>plot</code>, enable plot the border or haplotypes (<code>--add-hap-border</code>)</li>
 </ul>
-<h4 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_1">Bug fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pipeline</code>, fixed bug that when user input uncommon suffix of Hi-C data (e.g. "_R1.f.fastq.gz") the pairs file could not be found. #issue17</li>
 <li><code>hypergraph</code><br />
@@ -2294,7 +2317,7 @@
 <li><code>rename</code>, use g1, g2, g3 ... to rename duplicates chromosomes, when <code>--unphased</code> specified.</li>
 <li><code>hcr_by_contacts</code>, speed up it</li>
 </ul>
-<h4 id="bug-fixes_1">Bug fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_2">Bug fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hypergraph</code>, fixed bug that report error of polars prompt of set "skip_nulls=False"</li>
 </ul>
@@ -2308,7 +2331,7 @@
     - <code>--preset precision</code>: Optimize parameters to improve accuracy at the expense of anchor rate
     - <code>--preset sensitive</code>: Using in some complex genome, which contain many fragmented contigs and low signals contigs</li>
 </ul>
-<h4 id="bug-fixes_2">Bug fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_3">Bug fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">#</a></h4>
 <ul>
 <li><code>activate_cphasing</code>, fixed bug that exit shell window when pixi failed to install</li>
 <li><code>pipeline</code>
@@ -2325,7 +2348,7 @@
     - add <code>--min-cis-weight=5.0</code> to remove low contacts contigs
     - increase <code>--min-contacts</code> to <code>25.0</code> to remove low contacts contigs</li>
 </ul>
-<h4 id="bug-fixes_3">Bug fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_4">Bug fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pairs2cool</code>, fixed bug that "bin1_id &gt; bin2_id" in some cases</li>
 </ul>
@@ -2334,7 +2357,7 @@
 <ul>
 <li><code>pipeline</code>, When mode=phasing, pipeline integrating 1.alleles into 3.hyperpartition to speed up</li>
 </ul>
-<h4 id="bug-fixes_4">Bug fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_5">Bug fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">#</a></h4>
 <ul>
 <li><code>prepare</code>, fixed bug of "got unexpected keyword argument <code>has_header</code>'</li>
 </ul>
@@ -2347,7 +2370,7 @@
 <li><code>pairs2cool</code>, speed up it at the expense of memory consumption</li>
 <li><code>plot</code>, speed up it</li>
 </ul>
-<h4 id="bug-fixes_5">Bug fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_6">Bug fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">#</a></h4>
 <ul>
 <li><code>alleles</code>, a cheat method to fix bug of partig can not parse contig &gt; 130 Mb</li>
 <li><code>rename</code>, bug of read agp</li>
@@ -2363,7 +2386,7 @@
     - change pipeline output directories</li>
 <li><code>hyperpartition</code>, improve the performance of cluster merge</li>
 </ul>
-<h4 id="bug-fixes_6">Bug fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_7">Bug fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug of split contigs</li>
 </ul>
@@ -2382,7 +2405,7 @@
 <li><code>scaffolding</code>, speed up split clm by <code>cphasing-rs splitclm</code></li>
 <li><code>alleles</code>, speed up</li>
 </ul>
-<h4 id="bug-fixes_7">Bug fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_8">Bug fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pipeline</code> 
     - fixed bug of contacts generating
@@ -2396,7 +2419,7 @@
 <li><code>hypergraph</code>, <code>Extractor</code>, add mapq to hypergraph</li>
 <li><code>remove_misassembly</code>, add remove_misassembly of error between homologous chromosome</li>
 </ul>
-<h4 id="bug-fixes_8">Bug fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_9">Bug fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug of resolution not in filename</li>
 </ul>
@@ -2412,7 +2435,7 @@
 <li><code>hcr_by_contacts</code>, remove whole collapsed contigs </li>
 <li><code>stat_porec_table</code>, reduce memory usage</li>
 </ul>
-<h4 id="bug-fixes_9">Bug fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_10">Bug fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">#</a></h4>
 <ul>
 <li><code>scaffolding</code>, length db not load contig that RE count &lt; 3</li>
 <li><code>simulate_collapse</code>, fixed bug of contig position in collapsed contigs</li>
@@ -2467,12 +2490,12 @@
 <ul>
 <li><code>scaffolding</code>, increase the performance of long contigs</li>
 </ul>
-<h4 id="bug-fixes_10">Bug fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_11">Bug fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug that it can not be used in pandas v2.0</li>
 </ul>
 <h4 id="v0064-2024-03-11">[v0.0.64] - 2024-03-11<a class="headerlink" href="#v0064-2024-03-11" title="Permanent link">#</a></h4>
-<h4 id="bug-fixes_11">Bug fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_12">Bug fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hyperpartition</code>, fixed the inconsistent of phasing results, when specified alleletable and prunetable</li>
 <li><code>alleles</code>, filterring by valid kmer length of contigs</li>
@@ -2534,7 +2557,7 @@
 <li><code>plot_lines</code>, plot lines of evaluation</li>
 </ul>
 <h2 id="v0054">[v0.0.54]<a class="headerlink" href="#v0054" title="Permanent link">#</a></h2>
-<h4 id="bug-fixes_12">Bug fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_13">Bug fixes<a class="headerlink" href="#bug-fixes_13" title="Permanent link">#</a></h4>
 <ul>
 <li><code>pipeline</code>, fixed bugs</li>
 </ul>
@@ -2937,7 +2960,7 @@
     - <code>extract_matrix</code>, extract matrix by th contig list
     - <code>prune_matrix</code>, prune matrix by prune table</li>
 </ul>
-<h4 id="bug-fixes_13">Bug fixes<a class="headerlink" href="#bug-fixes_13" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_14">Bug fixes<a class="headerlink" href="#bug-fixes_14" title="Permanent link">#</a></h4>
 <ul>
 <li><code>merge-matrix</code>, fixed the empty contact in result</li>
 </ul>
@@ -2949,7 +2972,7 @@
 <ul>
 <li><code>hyperpartition</code>, add mutual exclusion merge</li>
 </ul>
-<h4 id="bug-fixes_14">Bug fixes<a class="headerlink" href="#bug-fixes_14" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_15">Bug fixes<a class="headerlink" href="#bug-fixes_15" title="Permanent link">#</a></h4>
 <ul>
 <li><code>hyperpartition</code>, fixed the bug that incorrect scaffold length in<code>_incremental_partition</code> </li>
 </ul>
@@ -2984,7 +3007,7 @@
     - change multi to incremental
     - add <code>whitelist</code> and <code>blacklist</code> parameters</li>
 </ul>
-<h4 id="bug-fixes_15">Bug fixes<a class="headerlink" href="#bug-fixes_15" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_16">Bug fixes<a class="headerlink" href="#bug-fixes_16" title="Permanent link">#</a></h4>
 <ul>
 <li><code>KPrune</code>, dropna in pixels which will let igraph fall into loops</li>
 </ul>
@@ -3003,7 +3026,7 @@
 <li><code>HyperPartition</code>, add filter function of minimum scaffolding length  </li>
 <li><code>build</code>, add only-agp option</li>
 </ul>
-<h5 id="bug-fixes_16">Bug fixes<a class="headerlink" href="#bug-fixes_16" title="Permanent link">#</a></h5>
+<h5 id="bug-fixes_17">Bug fixes<a class="headerlink" href="#bug-fixes_17" title="Permanent link">#</a></h5>
 <ul>
 <li><code>HyperExtractor</code>, fixed the problem of read index for multi dataframe concat</li>
 </ul>
@@ -3026,7 +3049,7 @@
 <li><code>merge_matrix</code>, merge binning matrix into whole contigs</li>
 <li><code>optimize</code>, cli for optimize score cacluation</li>
 </ul>
-<h4 id="bug-fixes_17">Bug fixes<a class="headerlink" href="#bug-fixes_17" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_18">Bug fixes<a class="headerlink" href="#bug-fixes_18" title="Permanent link">#</a></h4>
 <ul>
 <li><code>alleles</code>, fix the bug of empty allele table</li>
 </ul>
@@ -3074,7 +3097,7 @@
 <li><code>HyperPartition</code>, speed up the pore-c reads process</li>
 <li><code>paf2pairs</code>, speed up</li>
 </ul>
-<h4 id="bug-fixes_18">Bug fixes<a class="headerlink" href="#bug-fixes_18" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_19">Bug fixes<a class="headerlink" href="#bug-fixes_19" title="Permanent link">#</a></h4>
 <ul>
 <li><code>plot</code>, to humanized</li>
 </ul>
@@ -3094,7 +3117,7 @@
 <ul>
 <li><code>agp2fasta</code>, <code>build</code>, using dictory instead of faidx to speed up</li>
 </ul>
-<h4 id="bug-fixes_19">Bug fixes<a class="headerlink" href="#bug-fixes_19" title="Permanent link">#</a></h4>
+<h4 id="bug-fixes_20">Bug fixes<a class="headerlink" href="#bug-fixes_20" title="Permanent link">#</a></h4>
 <ul>
 <li><code>PairHeader</code>, save header without "\n".</li>
 <li><code>rescue</code>, fix CountRE only default load &gt;=3.</li>
@@ -3130,7 +3153,7 @@
     - <code>partition</code></li>
 <li>New API of <code>Pairs</code> in <code>core</code>.</li>
 </ul>
-<h5 id="bug-fixes_20">Bug fixes<a class="headerlink" href="#bug-fixes_20" title="Permanent link">#</a></h5>
+<h5 id="bug-fixes_21">Bug fixes<a class="headerlink" href="#bug-fixes_21" title="Permanent link">#</a></h5>
 <ul>
 <li>Using normalized signal in <code>prune</code>.</li>
 </ul>

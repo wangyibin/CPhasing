@@ -38,7 +38,10 @@ from .utilities import (
     xopen, 
     gz_reader,
     read_chrom_sizes,
-    parse_corrected_contig
+    parse_corrected_contig,
+    parse_split_contigs,
+    read_fasta,
+    get_contig_length,
 )
 
 # from line_profiler import profile
@@ -1166,14 +1169,56 @@ class ClusterTable:
 
 
 
-    def to_fasta(self, fasta, trim_length=25000, outdir="./"):
+    def to_fasta(self, fasta, trim_length=25000, split=True, outdir="./"):
         """
         extract fasta by cluster table 
         """
         from Bio import SeqIO 
         
         cluster_file = Path(self.filename).absolute()
+      
+        self.filename = cluster_file
         os.chdir(outdir)
+        if split:
+            file_db = {}
+            for group in self.groups:
+                file_db[group] = open(f"{group}.contigs.fasta", 'w')
+            db = self.contig_groups
+            fasta = read_fasta(fasta)
+            contigsizes = {}
+            for contig in fasta:
+                contigsizes[contig] = len(fasta[contig])
+            
+            
+            threshold = trim_length * 3
+
+            for contig in db:
+                group = db[contig]
+                contig, start, end = parse_split_contigs(contig)
+                contig_length = contigsizes[contig]
+
+                if contig_length > threshold:
+                    if start < trim_length:
+                        start = start + trim_length 
+                        if start > end:
+                            continue 
+                    if end > contig_length - trim_length:
+                        end = contig_length - trim_length
+                        if start > end:
+                            continue
+                    seq = fasta[contig][start:end]
+
+                    print(f">{contig}|{start}_{end}\n{str(seq)}", file=file_db[group])
+                   
+            files = []
+            for group in file_db:
+                file_db[group].close()
+                files.append(f"{outdir}/{group}.contigs.fasta")
+            os.chdir("../")
+
+            return files
+
+
         cmd = [
                 "cphasing-rs",
                 "extract-fasta",
@@ -1198,26 +1243,7 @@ class ClusterTable:
             else:
                 if Path(f"{outdir}/{group}.contigs.fasta").exists():
                     os.remove(f"{outdir}/{group}.contigs.fasta")
-        # db = self.contig_groups
-        # fasta = SeqIO.parse(xopen(fasta), 'fasta')
-
-        # threshold = trim_length * 3
-        # for record in fasta:
-        #     if record.id in db:
-        #         seq = record.seq
-        #         length = len(record.seq)
-        #         if length > threshold:
-        #             seq = seq[trim_length: length - trim_length + 1]
-        #         if length > 1000_000:
-        #             seq1 = seq[:500_000]
-        #             seq2 = seq[500_000:]
-        #             seq = seq1 + seq2
-                
-        #         file_db[db[record.id]].write(f'>{record.id}\n{seq}\n')
-        
-        # for group in file_db:
-        #     file_db[group].close()
-
+       
         return files
 
     def to_tour(self):

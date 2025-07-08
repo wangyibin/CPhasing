@@ -65,8 +65,8 @@ class Extractor:
         
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
                  min_quality=1, hcr_bed=None, hcr_invert=False,
-                 threads=4, edge_length=2e6, low_memory=True,
-                 log_dir="logs"):
+                 threads=4, edge_length=2e6, split_length=None, 
+                 low_memory=True, log_dir="logs"):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
@@ -86,6 +86,7 @@ class Extractor:
         os.environ["POLARA_MAX_THREADS"] = str(threads)
         
         self.edge_length = edge_length
+        self.split_length = split_length
         self.low_memory = low_memory
 
         self.log_dir = Path(log_dir)
@@ -550,17 +551,32 @@ class ExtractorSplit:
 def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
                             min_order=2, max_order=50, 
                             min_alignments=50, is_parquet=False,
-                            edge_length=2e6 
+                            edge_length=2e6, split_length=None,
+                            split_contig_boundarys=None,
                           ):
     
-    df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
-    df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
-    if edge_length:
-        df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
-        df = df.with_columns(pl.col('length').cast(pl.UInt32),
+    
+
+    if split_length and split_contig_boundarys is not None:
+        df = df.with_columns(
                              (pl.col('start') + (pl.col('end') - pl.col('start'))//2).alias('pos')
-                             )
-        df = df.filter((pl.col('pos') < edge_length) | ((pl.col('length') - pl.col('pos')) < edge_length))
+        )
+        df = df.with_columns((pl.col('pos') // split_length).alias('sub_idx'))
+        df = df.with_columns(pl.col('chrom').map_elements(split_contig_boundarys.get).alias('init_idx')).drop_nulls()
+
+        df = df.with_columns((pl.col('init_idx') + pl.col('sub_idx')).alias('chrom_idx'))
+        df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
+       
+    else:
+        df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
+        df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
+        
+        if edge_length:
+            df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
+            df = df.with_columns(pl.col('length').cast(pl.UInt32),
+                                (pl.col('start') + (pl.col('end') - pl.col('start'))//2).alias('pos')
+                                )
+            df = df.filter((pl.col('pos') < edge_length) | ((pl.col('length') - pl.col('pos')) < edge_length))
         
     # df = df.with_columns(pl.col('read_idx').cast(pl.UInt32))
     
@@ -618,6 +634,8 @@ class HyperExtractor:
                             min_alignments=30,
                             min_quality=1,
                             edge_length=2e6,
+                            split_length=None,
+                            split_contig_boundarys=None,
                             hcr_bed=None,
                             hcr_invert=False,
                             threads=4,
@@ -632,6 +650,8 @@ class HyperExtractor:
         self.min_alignments = min_alignments
         self.min_quality = min_quality
         self.edge_length = edge_length
+        self.split_length = split_length
+        self.split_contig_boundarys = split_contig_boundarys
         self.hcr_bed = hcr_bed
         self.hcr_invert = hcr_invert
         self.threads = threads
@@ -652,7 +672,7 @@ class HyperExtractor:
         """
         logger.info("Loading Pore-C table ...")
         pl.enable_string_cache()
-        if self.edge_length:
+        if self.edge_length or self.split_length:
             columns = ['read_idx', 'chrom', 'start', 'end', 'mapping_quality']
             schema = {'read_idx': pl.UInt32, 
                         'start': pl.UInt32,
@@ -759,36 +779,6 @@ class HyperExtractor:
 
                 
             else:
-                # if pandas_version == 2:
-                #     df_list = list(map(lambda x: pd.read_csv(
-                #                     x,
-                #                         # usecols=['read_idx', 'chrom', 
-                #                         #         # 'start', 'end', 
-                #                         #         'mapping_quality',
-                #                         #         #'filter_reason'
-                #                         #         ], 
-                #                         usecols=[0, 5, 8],
-                #                         sep='\t',
-                #                         index_col=None,
-                #                         header=None,
-                #                         engine=CSV_ENGINE,
-                #                         dtype_backend=CSV_ENGINE,
-                #                         ),
-                #                         #filters=[('pass_filter', '=', True)]),
-                #                         infiles))
-                # else:
-                #         df_list = list(map(lambda x: pd.read_csv(
-                #                     x,
-                #                         usecols=[0, 5, 8],
-                #                         sep='\t',
-                #                         index_col=None,
-                #                         header=None,
-                #                         # engine=CSV_ENGINE,
-                #                         ),
-                #                         infiles))
-                # for df in df_list:
-                #     df.columns = ['read_idx', 'chrom', 'mapping_quality']
-                
                 df_list = list(map(lambda x: pl.read_csv(
                     get_file(x), separator='\t', has_header=False,
                     columns=usecols, dtypes={'mapping_quality': pl.Int8, 'chrom': pl.Categorical},
@@ -796,18 +786,17 @@ class HyperExtractor:
                 ), infiles))
                 
                 if self.min_quality > 0:
-
                     df_list = Parallel(n_jobs=self.threads)(delayed(
                         lambda x: x.filter(pl.col('mapping_quality') >= self.min_quality))(i) for i in df_list)
                 
-                if self.edge_length:
-                    df_list = Parallel(n_jobs=self.threads)(delayed(
-                        lambda x: x.with_columns([
-                            pl.col('chrom').map_elements(self.contigsizes.get).alias('length'),
-                        ]).filter(
-                            (pl.col('start') < self.edge_length) | (pl.col('end') > pl.col('length') - self.edge_length)
-                        ).select(['read_idx', 'chrom', 'mapping_quality'])
-                    )(i) for i in df_list)
+                # if self.edge_length:
+                #     df_list = Parallel(n_jobs=self.threads)(delayed(
+                #         lambda x: x.with_columns([
+                #             pl.col('chrom').map_elements(self.contigsizes.get).alias('length'),
+                #         ]).filter(
+                #             (pl.col('start') < self.edge_length) | (pl.col('end') > pl.col('length') - self.edge_length)
+                #         ).select(['read_idx', 'chrom', 'mapping_quality'])
+                #     )(i) for i in df_list)
                
         return df_list
     
@@ -847,7 +836,8 @@ class HyperExtractor:
                              self.contigsizes, threads_2, 
                             self.min_order, self.max_order, 
                             self.min_alignments, self.is_parquet, 
-                            self.edge_length))
+                            self.edge_length, self.split_length,
+                            self.split_contig_boundarys))
            
             res = Parallel(n_jobs=threads_1)(
                             delayed(process_pore_c_table)(*a) for a in args)
@@ -856,7 +846,8 @@ class HyperExtractor:
                                         self.contigsizes, threads_2, 
                                         self.min_order, self.max_order, 
                                         self.min_alignments, self.is_parquet,
-                                        self.edge_length)]
+                                        self.edge_length, self.split_length,
+                                        self.split_contig_boundarys)]
         idx = 0
         mapping_quality_res = []
         

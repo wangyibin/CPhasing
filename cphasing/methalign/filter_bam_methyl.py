@@ -110,7 +110,40 @@ def get_5mc_sites_from_read(read_seq, MM_tag, ML_tag, prob_cutoff, pattern=re.co
     ont_pos_index = {match.start(): index for index, match in enumerate(matches)}
     ont_methylation_array = array('h', [0] * len(ont_pos_index))
     index_sum = 0
-    MM_tags = MM_tag.rstrip(';').split(',')[1:]
+
+    # _MM_tags = MM_tag.rstrip(';').split(",") 
+    # idx = [idx if 'C+m' in val else None for idx, val in enumerate(_MM_tags)]
+    # idx = list(filter(lambda x: x is not None, idx ))
+    # if not idx:
+    #     return ont_pos_index, ont_methylation_array
+    # else:
+    #     idx = idx[0]
+
+    # MM_tags = MM_tag.rstrip(';').split(';')
+    # MM_tags = list(filter(lambda x: 'C+m' in x.split(";")[0], MM_tags))
+    
+    # if len(MM_tags) == 0:
+    #     return ont_pos_index, ont_methylation_array
+    # MM_tags = MM_tags[0].split(",")[1:]
+    # MM_tags_count = len(MM_tags)
+    # MM_tags = list(map(int, MM_tags))
+    # ML_tag = ML_tag[idx: idx + MM_tags_count]
+
+    parts = MM_tag.rstrip(';').split(';')
+    offset = 0
+    shifts = None
+    for part in parts:
+        items = part.split(',')
+        if 'C+m' in items[0]:
+            shifts = list(map(int, items[1:]))
+            break
+        offset += len(items)
+    if not shifts:
+        return ont_pos_index, ont_methylation_array
+    MM_tags = shifts
+   
+    ML_tag = ML_tag[offset: offset + len(shifts)]
+
     for n, i in enumerate((int(shift) for shift in MM_tags)):
         index_sum += i
         if ML_tag[n] >= prob_cutoff:
@@ -172,7 +205,7 @@ def condense_cigar(cigartuples):
     return '{}{}{}{}'.format(lsoft_str, match_str, indel_str, rsoft_str)
 
 
-# @profile
+
 def reconstruct_SA_tag(aln):
     
     strand = '+' if aln.is_forward else '-'
@@ -476,8 +509,8 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
     with pysam.AlignmentFile(bam, format_options=format_options,
                              threads=threads) as fin, \
          pysam.AlignmentFile(out_bam, 'wb', template=fin,
-                             threads=threads) as fout:
-                
+                             threads=threads) as fout: 
+
          for group in iter_read_groups(fin):
             result = worker(group)
             for aln in result:

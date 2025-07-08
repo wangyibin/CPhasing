@@ -24,7 +24,7 @@ dependencies:
 - portion >=2.5.0,<3
 - patchworklib >=0.6.3,<0.7
 - python-igraph >=0.11.8,<0.12
-- networkx >=3.4.2,<4
+- networkx >=3.4.2,<3.5
 - pyarrow >=18.1.0,<19
 - intervaltree >=3.1.0,<4
 - hicmatrix >=17.2,<18

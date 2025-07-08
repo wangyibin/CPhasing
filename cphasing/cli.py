@@ -2579,6 +2579,13 @@ def prepare(fasta, pairs, min_mapq,
     hidden=True
 )
 @click.option(
+    '--split',
+    help="The contig in first_cluster is split by hypergraph partition",
+    is_flag=True,
+    default=False,  
+    hidden=True,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -2591,9 +2598,10 @@ def alleles(fasta, output,
                 kmer_size, window_size, 
                 max_occurance, min_cnt,
                 minimum_similarity, diff_thres,
+                min_length,
                 trim_length,
                 whitelist, first_cluster,
-                min_length, threads):
+                split, threads):
     """
     Build allele table by kmer similarity.
 
@@ -2601,7 +2609,7 @@ def alleles(fasta, output,
     
     from .alleles import PartigAllele
     from .core import AlleleTable, ClusterTable
-    from .utilities import is_file_changed
+    from .utilities import is_file_changed, parse_split_contigs
     from joblib import Parallel, delayed, parallel_backend
     from Bio import SeqIO
     from multiprocessing import Pool
@@ -2642,7 +2650,7 @@ def alleles(fasta, output,
         fasta = Path(fasta).absolute()
         current_dir = Path.cwd()
         Path("alleles_workdir/").mkdir(exist_ok=True)
-        fastas = ct.to_fasta(fasta, trim_length=trim_length, outdir=f"{current_dir}/alleles_workdir")
+        fastas = ct.to_fasta(fasta, trim_length=trim_length, split=split, outdir=f"{current_dir}/alleles_workdir")
         # fastas = list(map(lambda x: Path(x).name, fastas))
         Path("logs").mkdir(exist_ok=True)
         
@@ -2695,6 +2703,47 @@ def alleles(fasta, output,
         if res:
             allele_df = pd.concat(res, axis=0)
             allele_df = allele_df.reset_index(drop=True).reset_index().reset_index()
+            allele_df2 = allele_df.copy()
+            if split:
+                tmp_db = {}
+                for at in allele_tables:
+                    with open(at) as fp:
+                        for line in fp:
+                            if line.startswith("#"):
+                                line = line[1:]
+                                split_contig, split_contig_length, split_minimizer, split_unique_minimizer = line.strip().split(" ")
+                                contig, start, end = parse_split_contigs(split_contig)
+                                if contig not in tmp_db:
+                                    tmp_db[contig] = [0, 0, 0]
+                                tmp_db[contig][0] += int(split_contig_length)
+                                tmp_db[contig][1] += int(split_minimizer)
+                                tmp_db[contig][2] += int(split_unique_minimizer)
+                
+                with open(output, 'w') as out:
+                    for contig in tmp_db:
+                        print(f"#{contig} {tmp_db[contig][0]} {tmp_db[contig][1]} {tmp_db[contig][2]}", file=out)
+
+                    allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
+                    allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
+                    # allele_df = allele_df[(allele_df['mz1'] > 1000) & (allele_df['mz2'] > 1000)]
+                    max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum', 
+                                                                                    'mzShared': 'sum', 'similarity': 'max',
+                                                                                    })
+                    max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
+                    max_idx = max_idx.set_index([1, 2])['strand']
+                
+                    allele_df = allele_df.groupby([1, 2]).agg(
+                        {'mz1': 'sum', 'mz2': 'sum', 
+                        'mzShared': 'sum', 'similarity': 'max'}
+                    )
+                    
+                    allele_df = pd.concat([allele_df, max_idx], axis=1)
+
+                    allele_df.reset_index().reset_index().reset_index().to_csv(out, sep='\t', header=None, index=None)
+                
+
+                output = output.replace(".allele.table", ".split.allele.table")
+            
             with open(output, 'w') as out:
                 for at in allele_tables:
                     with open(at) as fp:
@@ -2702,7 +2751,8 @@ def alleles(fasta, output,
                             if line.startswith("#"):
                                 print(line.strip(), file=out)
 
-                allele_df.to_csv(out, sep='\t', header=None, index=None)
+                allele_df2.to_csv(out, sep='\t', header=None, index=None)
+
         else:
             with open(output, 'w') as out:
                 for at in allele_tables:
@@ -3210,7 +3260,9 @@ def hypergraph(contacts,
         Extractor,
         ExtractorSplit
         )
-    from .utilities import read_chrom_sizes
+    from .utilities import read_chrom_sizes, binnify
+
+    split_length = None
 
     contigsizes = read_chrom_sizes(contigsize)
     contigs = contigsizes.index.values.tolist()
@@ -3223,6 +3275,21 @@ def hypergraph(contacts,
     if whitelist:
         whitelist = set([i.strip() for i in open(whitelist) if i.strip()])
         contigs = list(filter(lambda x: x in whitelist, contigs))
+
+    if split_length:
+        split_contigsizes = binnify(chromsizes=contigsizes['length'], binsize=split_length)
+        split_contig_boundarys = split_contigsizes.reset_index().groupby('chrom')['index'].apply(lambda x: x.min()) 
+        split_contig_boundarys = split_contig_boundarys.to_dict()
+        split_contigsizes['chrom'] = split_contigsizes.reset_index().apply(
+            lambda x: f"{x['chrom']}|{int(x['start'])}_{int(x['end'])}", axis=1)
+        split_contigsizes['length'] = split_contigsizes['end'] - split_contigsizes['start']
+        split_contigsizes.drop(['start', 'end'], axis=1, inplace=True)
+
+        split_contigsizes.set_index('chrom', inplace=True)
+        contigsizes = split_contigsizes
+        contigs = list(split_contigsizes.index.values)
+    else:
+        split_contig_boundarys = None
 
     if not hcr_bed and hcr_invert:
         logger.warning("The `--hcr-invert` parameter is only valid when `--hcr-bed` is set.")
@@ -3238,7 +3305,9 @@ def hypergraph(contacts,
         if not split:
             he = HyperExtractor(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
                                 min_order, max_order, min_alignments, 
-                                hcr_bed=hcr_bed, hcr_invert=hcr_invert, edge_length=edge_length,
+                                hcr_bed=hcr_bed, hcr_invert=hcr_invert, 
+                                edge_length=edge_length, split_length=split_length,
+                                split_contig_boundarys=split_contig_boundarys,
                                 min_quality=min_quality, threads=threads)
             he.save(output)
         else:
@@ -3851,7 +3920,7 @@ def hyperpartition(hypergraph,
     from .hypergraph import HyperExtractor, Extractor
     from .hyperpartition import HyperPartition
     from .algorithms.hypergraph import HyperEdges, merge_hyperedges
-    from .utilities import read_chrom_sizes, is_file_changed
+    from .utilities import read_chrom_sizes, is_file_changed, binnify
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
 
@@ -3941,7 +4010,7 @@ def hyperpartition(hypergraph,
 
     if (len(n) == 2):
         if (n[1] is None or n[1] == '0') and resolution2 < 0:
-            logger.info(f"The group number of second cluster was not be specified, set the resolutio2 from {resolution2} to 1.0.")
+            logger.info(f"The group number of second cluster was not be specified, set the resolution2 from {resolution2} to 1.0.")
             resolution2 = 1.0
 
     for i, v in enumerate(n):
@@ -3967,21 +4036,43 @@ def hyperpartition(hypergraph,
     if contigsizes.empty:
         logger.error("The contigsizes file is empty. please input correct file")
     prefix = Path(hypergraph).stem
-    if porec:
-        contigs = contigsizes.index.values.tolist()
-        contigs = list(map(str, contigs))
 
-        # contigs = natsorted(contigs)
+    contigs = contigsizes.index.values.tolist()
+    contigs = list(map(str, contigs))
+
+    contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+    if edge_length:
+        hypergraph_path = f"{prefix}.q{min_quality1}.e{to_humanized2(edge_length)}.hg"
+    else:
+        hypergraph_path = f"{prefix}.q{min_quality1}.hg"
+
+    # split_length = 2e6
+    split_length = None
+    if split_length:
+        split_contigsizes = binnify(chromsizes=contigsizes['length'], binsize=split_length)
+        split_contig_boundarys = split_contigsizes.reset_index().groupby('chrom')['index'].apply(lambda x: x.min()) 
+        split_contig_boundarys = split_contig_boundarys.to_dict()
+        split_contigsizes['chrom'] = split_contigsizes.reset_index().apply(
+            lambda x: f"{x['chrom']}|{int(x['start'])}_{int(x['end'])}", axis=1)
+        split_contigsizes['length'] = split_contigsizes['end'] - split_contigsizes['start']
+        split_contigsizes.drop(['start', 'end'], axis=1, inplace=True)
+
+        split_contigsizes.set_index('chrom', inplace=True)
+        contigsizes = split_contigsizes
+        contigs = list(split_contigsizes.index.values)
         contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if edge_length:
-            hypergraph_path = f"{prefix}.q{min_quality1}.e{to_humanized2(edge_length)}.hg"
-        else:
-            hypergraph_path = f"{prefix}.q{min_quality1}.hg"
+        split = True
+    else:
+        split_contig_boundarys = None
+        split = False
+
+    if porec:
         if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
             logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
             
             he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
-                                min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length,
+                                min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length, 
+                                split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                                 hcr_invert=hcr_invert, threads=threads)
             he.save(hypergraph_path)
             hypergraph = he.edges
@@ -3993,14 +4084,6 @@ def hyperpartition(hypergraph,
             hypergraph = msgspec.msgpack.decode(open(hypergraph_path, 'rb').read(), type=HyperEdges)
 
     elif pairs:
-        contigs = contigsizes.index.values.tolist()
-        contigs = list(map(str, contigs))
-        # contigs = natsorted(contigs)
-        contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
-        if edge_length:
-            hypergraph_path = f"{prefix}.q{min_quality1}.e{to_humanized2(edge_length)}.hg" 
-        else:
-            hypergraph_path = f"{prefix}.q{min_quality1}.hg"
         if is_file_changed(hcr_bed) or is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
             logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
             he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
@@ -4100,6 +4183,7 @@ def hyperpartition(hypergraph,
                             alleletable,
                             prunetable,
                             normalize,
+                            split,
                             contacts,
                             kprune_norm_method,
                             allelic_factor,
@@ -4250,9 +4334,38 @@ def from_depth(depth):
     type=click.FloatRange(0.0, 1.0),
     show_default=True
 )
+@click.option(
+    "-mc",
+    "--min-contacts",
+    "min_contacts",
+    help="Minimum contacts of contigs",
+    metavar="INT",
+    type=int,
+    default=5,
+    show_default=True
+)
+@click.option(
+    "-mw",
+    "--min-weight",
+    "min_weight",
+    help="Minimum weight of graph",
+    type=float,
+    default=MIN_WEIGHT,
+    show_default=True
+)
+@click.option(
+    "-mcw",
+    "--min-cis-weight",
+    "min_cis_weight",
+    help="Minimum conitg's cis weight of graph",
+    type=float,
+    default=MIN_CIS_WEIGHT,
+    show_default=True
+)
 def rescue(hypergraph, contigsizes, clustertable, 
                     collapsed_contigs, ploidy,
-                    alleletable, allelic_similarity):
+                    alleletable, allelic_similarity,
+                    min_contacts, min_weight, min_cis_weight):
     """
 
     """
@@ -4282,6 +4395,9 @@ def rescue(hypergraph, contigsizes, clustertable,
         contigsizes=contigsizes,
         collapsed_contigs=collapsed_contigs,
         allelic_similarity=allelic_similarity,
+        min_contacts=min_contacts,
+        min_weight=min_weight,
+        min_cis_weight=min_cis_weight
     )
     cr.filter_hypergraph()
     cr.rescue()
@@ -4469,7 +4585,7 @@ def collapsed_rescue2(hypergraph, fasta, agp_file,
     "--scaffolding-method",
     "method",
     metavar="STR",
-    help="The method of scaffolding, `['precision', 'allhic', 'fast']`."
+    help="The method of scaffolding, `['precision', 'allhic', 'fast']`. "
     "precision: haphic_fastsort + allhic, which will quicker than allhic only. "
     "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
     "achieve better results than the previous version",

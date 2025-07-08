@@ -274,7 +274,8 @@ class CollapsedRescue:
     Rescue the collapsed contigs into a group
     """
     def __init__(self, HG, clustertable, alleletable, contigsizes,
-                    collapsed_contigs, allelic_similarity: float=.85):
+                    collapsed_contigs, allelic_similarity: float=.85,
+                    min_contacts=5, min_cis_weight=20, min_weight=2):
         
         self.HG = HG 
         self.clustertable = clustertable
@@ -285,10 +286,12 @@ class CollapsedRescue:
         self.contigsizes = contigsizes
         self.collapsed_contigs = collapsed_contigs
         self.allelic_similarity = allelic_similarity
-        
+        self.min_contacts = min_contacts
+        self.min_cis_weight = min_cis_weight
+        self.min_weight = min_weight
         self.hap_groups = self.clustertable.hap_groups
 
-        self.H = HG.incidence_matrix(min_contacts=5)
+        self.H = HG.incidence_matrix(min_contacts=self.min_contacts)
         
         self.vertices = self.HG.nodes 
 
@@ -309,17 +312,17 @@ class CollapsedRescue:
 
     def filter_hypergraph(self):
         
-        A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx=None, min_weight=2)
+        A = HyperGraph.clique_expansion_init(self.H, P_allelic_idx=None, min_weight=self.min_weight)
         dia = A.diagonal()
         raw_contig_counts = A.shape[0]
-        retain_idx = np.where(dia > 20)[0]
+        retain_idx = np.where(dia > self.min_cis_weight)[0]
         contig_counts = len(retain_idx)
 
         if len(retain_idx) < raw_contig_counts:
             A = A[retain_idx, :][:, retain_idx]
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
             self.vertices = self.vertices[retain_idx]
-            logger.info(f"Filtered {raw_contig_counts - contig_counts} contigs with less than 20 cis weight")
+            logger.info(f"Filtered {raw_contig_counts - contig_counts} contigs with less than {self.min_cis_weight} cis weight")
 
     def rescue(self):
         vertices_idx = self.vertices_idx
@@ -362,6 +365,8 @@ class CollapsedRescue:
             res = []
            
             for j in sub_collapsed_contigs_idx_new:
+                if j is None:
+                    continue
                 try:
                     tmp_allelic_table = sub_alleletable.loc[j]
                     try:
@@ -374,7 +379,6 @@ class CollapsedRescue:
                 shared_similarity = np.zeros(len(groups))
                 tmp_res = []
                 for i in range(len(groups)):
-                    
                     if i == groups_new_idx_db[j]:
                         tmp_res.append(0)
                     else:
@@ -384,12 +388,10 @@ class CollapsedRescue:
                                 shared_similarity[i] = tmp['mzShared'].sum()
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
-                     
 
                 groups_new_idx[np.argmax(tmp_res)].append(j)
                 logger.debug(f"Rescued contig {idx_to_vertices[j]} into group {np.argmax(tmp_res)}")
                 res.append(tmp_res)
-            
             new_groups = []
             for group_idx in groups_new_idx:
                 tmp = list(map(lambda x: contigs_idx[x], group_idx))

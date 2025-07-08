@@ -11,7 +11,7 @@ intervaltree
 joblib
 natsort
 ncls
-networkx
+networkx == 3.4.2
 numpy >= 1.22.0
 matplotlib == 3.8.0
 msgspec

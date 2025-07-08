@@ -1264,7 +1264,7 @@ def binnify(chromsizes, binsize):
     chrom_list = []
     start_list = []
     end_list = []
-
+    binsize = int(binsize)
     for chrom, clen in sorted(chromsizes.items(), key=lambda x: x[0]):
         n_bins = int(np.ceil(clen / binsize))
         binedges = np.arange(0, (n_bins + 1)) * binsize
@@ -1459,3 +1459,12 @@ def pairs_pqs_downsample(pairs, n, min_mapq=0, threads=10):
                     "-n", str(n), "-o", f"random.{n}.{pairs}"] 
             
             flag = run_cmd(cmd)
+
+
+
+def parse_split_contigs(contig):
+    contig, _range = contig.rsplit("|", 1)
+    start, end = _range.split("_")
+    start, end = int(start), int(end)
+
+    return contig, start, end

@@ -42,7 +42,7 @@ from .core import (
     PruneTable
 )
 from .kprune import KPruneHyperGraph
-from .utilities import list_flatten, run_cmd, to_humanized2
+from .utilities import list_flatten, run_cmd, to_humanized2, parse_split_contigs
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -101,6 +101,7 @@ class HyperPartition:
                     alleletable=None,
                     prunetable=None,
                     normalize=False,
+                    split=False,
                     contacts=None,
                     kprune_norm_method="auto",
                     allelic_factor=-1,
@@ -155,6 +156,7 @@ class HyperPartition:
             self.alleletable = alleletable
 
         self.normalize = normalize
+        self.split = split
         self.contacts = contacts
         self.kprune_norm_method = kprune_norm_method
             
@@ -926,11 +928,9 @@ class HyperPartition:
     @staticmethod
     def alleles(fasta, first_cluster, 
                 k=19, w=19, m=0.5, d=0.2, c=60, 
-                tl=25000, threads=4):
+                tl=25000, split=False, threads=4):
         from .cli import alleles
-        try:
-            alleles.main(
-                args=[
+        args = [
                     "-f",
                     str(fasta),
                     "-fc",
@@ -943,7 +943,13 @@ class HyperPartition:
                     "-m", str(m),
                     "-d", str(d),
                     "-tl", str(tl),
-                ],
+                ]
+        if split:
+            args.append("--split")
+        
+        try:
+            alleles.main(
+                args=args,
                 prog_name='alleles'
             )
 
@@ -961,7 +967,10 @@ class HyperPartition:
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
 
-        return f"{fasta_prefix}.allele.table"
+        if split:
+            return f"{fasta_prefix}.split.allele.table"
+        else:
+            return f"{fasta_prefix}.allele.table"
 
     @staticmethod
     def kprune_func(alleletable, 
@@ -1054,6 +1063,8 @@ class HyperPartition:
                                 self.max_round, threads=self.threads)
 
             self.K = list(map(list, self.K))
+            if self.split:
+                _, self.K = self.merge_split()
             self.K = self.filter_cluster()
             
             if k[0] and len(self.K) > k[0]:
@@ -1078,6 +1089,8 @@ class HyperPartition:
                 self.K = list(filter(lambda x: len(x) > 0, self.K))
 
             assert len(self.K) > 0, "Couldn't run first cluster."
+
+            
             self.to_cluster(f'first.clusters.txt')
             first_cluster_file = f'first.clusters.txt'
 
@@ -1191,6 +1204,7 @@ class HyperPartition:
                                                     m=self.alleles_minimum_similarity,
                                                     tl=self.alleles_trim_length,
                                                     # c=c,
+                                                    split=self.split,
                                                     threads=self.threads)).absolute())
 
 
@@ -1253,7 +1267,8 @@ class HyperPartition:
 
         # self.vertices = raw_vertices
         self.K = list_flatten(results)
-
+        if self.split:
+            _, self.K = self.merge_split(secondary=False)
         self.K = self.filter_cluster()
 
         if self.exclude_group_to_second:
@@ -2032,15 +2047,80 @@ class HyperPartition:
                         self.K))
             
         return _K 
-        
-    def to_cluster(self, output):
+    
+    def merge_split(self, secondary=False):
         idx_to_vertices = self.idx_to_vertices
-
+        vertices_to_idx = self.vertices_idx
 
         clusters = list(map(lambda y: list(
                         map(lambda x: idx_to_vertices[x], y)), 
                         self.K))
+
+        res_db = {}
+        for i, group in enumerate(clusters):
+            group = list(map(parse_split_contigs, group))
+            for contig, start, end in group:
+                if contig not in res_db:
+                    res_db[contig] = defaultdict(int)
+                res_db[contig][i] += (end - start)
+
+        new_res_db = {}
+        for contig in res_db:
+            res_db[contig] = sorted(res_db[contig].items(), 
+                                    key=lambda x: x[1], reverse=True)
+            new_res_db[contig] = res_db[contig][0]
         
+        clusters_db = defaultdict(list)
+        for contig, (group_idx, length) in new_res_db.items():
+            clusters_db[group_idx].append(contig)
+        
+        if secondary:
+            tmp_inc_chr_idx = {}
+            for i, chr_idx in enumerate(self.inc_chr_idx):
+                tmp_inc_chr_idx[i] = chr_idx
+
+            self.inc_chr_idx = []
+
+        tmp_clusters = []
+        for group_idx in range(len(clusters)): 
+            group = clusters_db[group_idx]
+            if len(group) > 0:
+                tmp_clusters.append(group)
+                if secondary:
+                    self.inc_chr_idx.append(tmp_inc_chr_idx[group_idx])
+            
+        merged_clusters = tmp_clusters
+
+        new_split_clusters = [[] for i in range(len(clusters))]
+        for v in vertices_to_idx:
+            contig, start, end = parse_split_contigs(v)
+            if contig not in new_res_db:
+                continue
+            group_idx, _ = new_res_db[contig]
+
+            new_split_clusters[group_idx].append(vertices_to_idx[v])
+
+        new_split_clusters = list(filter(lambda x: len(x) > 0, new_split_clusters))
+
+        return merged_clusters, new_split_clusters
+        
+    
+    def to_cluster(self, output):
+        try:
+            self.inc_chr_idx 
+            secondary = True
+        except AttributeError:
+            secondary = False 
+        
+        if secondary and self.split:
+            clusters, _ = self.merge_split(secondary=secondary)
+        else:
+            idx_to_vertices = self.idx_to_vertices
+
+            clusters = list(map(lambda y: list(
+                            map(lambda x: idx_to_vertices[x], y)), 
+                            self.K))
+
         with open(output, 'w') as out:
             try:
                 db = defaultdict(lambda :1)
@@ -2066,3 +2146,6 @@ class HyperPartition:
                         file=out)
 
         logger.info(f"Successful output hyperpartition results in `{output}`.")
+
+
+    

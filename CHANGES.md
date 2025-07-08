@@ -1,3 +1,7 @@
+## [v0.2.7] - 2025-07-08
+#### Bug fixes
+- `methalign`, fixed bug that input bam contain 5hmC 
+
 ## [v0.2.6] - 2025-03-27
 #### New features
 - `collapse`, rescue the collapsed contigs  

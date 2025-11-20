@@ -206,11 +206,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -297,7 +304,7 @@
         
   
   <span class="md-ellipsis">
-    Installation
+    Introduction & Installation
     
   </span>
   
@@ -335,6 +342,12 @@
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -376,6 +389,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -488,6 +509,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -609,6 +638,22 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -834,15 +879,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -889,6 +925,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
@@ -921,6 +965,28 @@
             Misc
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../citation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Citation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1026,15 +1092,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1057,60 +1114,35 @@
     </a>
   
   
+    
+      
+    
+    <a href="https://github.com/wangyibin/CPhasing/raw/master/docs/CLI/rename.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
 
 
-<h1 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">#</a></h1>
+<h1 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">&para;</a></h1>
 <p>Rename and reorient the chromosome, according to a monoploid or closely relative species's genome.</p>
-<h2 id="rename-phased-assembly-from-phasing-mode">Rename phased assembly from <code>phasing</code> mode<a class="headerlink" href="#rename-phased-assembly-from-phasing-mode" title="Permanent link">#</a></h2>
+<h2 id="rename-phased-assembly-from-phasing-mode">Rename phased assembly from <code>phasing</code> mode<a class="headerlink" href="#rename-phased-assembly-from-phasing-mode" title="Permanent link">&para;</a></h2>
 <p>The <code>phasing</code> mode of <code>C-Phasing</code> has been clustering the chromsomes into the same homologous and oriented them to parallel.
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>
 </span></code></pre></div>
 <img alt="phasing" src="https://pic.superbed.cc/item/67960ddcfa9f77b4dc145ac9.png" /></p>
-<h2 id="rename-all-of-the-chromosomes">Rename all of the chromosomes<a class="headerlink" href="#rename-all-of-the-chromosomes" title="Permanent link">#</a></h2>
+<h2 id="rename-all-of-the-chromosomes">Rename all of the chromosomes<a class="headerlink" href="#rename-all-of-the-chromosomes" title="Permanent link">&para;</a></h2>
 <p>Rename assembly from <code>basal</code> or <code>basal_withprune</code> mode, with the <code>--unphased</code> parameter.
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>--unphased<span class="w"> </span>
 </span></code></pre></div></p>
 <p><img alt="uphased" src="https://pic.superbed.cc/item/67960d93fa9f77b4dc1458f2.png" /></p>
-<h2 id="use-the-uppercase-letter-as-the-suffix-of-the-chromosome-name">Use the uppercase letter as the suffix of the chromosome name<a class="headerlink" href="#use-the-uppercase-letter-as-the-suffix-of-the-chromosome-name" title="Permanent link">#</a></h2>
+<h2 id="use-the-uppercase-letter-as-the-suffix-of-the-chromosome-name">Use the uppercase letter as the suffix of the chromosome name<a class="headerlink" href="#use-the-uppercase-letter-as-the-suffix-of-the-chromosome-name" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p><code>Chr01A Chr01B Chr01C ...</code>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>-s<span class="w"> </span>upperletter
 </span></code></pre></div></p>
 </blockquote>
 <p><img alt="upperletter" src="https://pic.superbed.cc/item/67960d32fa9f77b4dc1455ab.png" /></p>
-<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>rename<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                                                      </span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w"> </span>Rename<span class="w"> </span>and<span class="w"> </span>orientation<span class="w"> </span>the<span class="w"> </span>groups<span class="w"> </span>according<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>refernce.<span class="w">                                            </span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w"> </span>To<span class="w"> </span>speed<span class="w"> </span>up<span class="w"> </span>this<span class="w"> </span><span class="k">function</span>,<span class="w"> </span>we<span class="w"> </span>only<span class="w"> </span>align<span class="w"> </span>the<span class="w"> </span>first<span class="w"> </span>haplotype<span class="w"> </span>to<span class="w"> </span>reference,<span class="w"> </span>because<span class="w"> </span>the<span class="w"> </span>orientation<span class="w">    </span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w"> </span>among<span class="w"> </span>different<span class="w"> </span>haplotypes<span class="w"> </span>has<span class="w"> </span>been<span class="w"> </span>paralleled<span class="w"> </span><span class="k">in</span><span class="w"> </span>scaffolding.<span class="w"> </span>If<span class="w"> </span>you<span class="w"> </span>want<span class="w"> </span>to<span class="w"> </span>orient<span class="w"> </span>all<span class="w"> </span>of<span class="w"> </span>the<span class="w">       </span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w"> </span>haplotypes<span class="w"> </span>you<span class="w"> </span>can<span class="w"> </span>specify<span class="w"> </span>the<span class="w"> </span>--unphased<span class="w"> </span>parameters.<span class="w">                                                 </span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>╭─<span class="w"> </span>Options<span class="w"> </span>───────────────────────────────────────────────────────────────────────────────────────────╮
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│<span class="w"> </span>*<span class="w">  </span>--ref<span class="w">           </span>-r<span class="w">         </span>Genome<span class="w"> </span>of<span class="w"> </span>monoploid<span class="w"> </span>or<span class="w"> </span>closely<span class="w"> </span>related<span class="w"> </span>species.<span class="w">                       </span>│
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│<span class="w">                               </span><span class="o">(</span>REFERENCE<span class="w"> </span>FASTA<span class="o">)</span><span class="w">                                                     </span>│
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│<span class="w"> </span>*<span class="w">  </span>--fasta<span class="w">         </span>-f<span class="w">         </span>Path<span class="w"> </span>to<span class="w"> </span>draft<span class="w"> </span>assembly<span class="w">                                                </span>│
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│<span class="w">                               </span><span class="o">(</span>DRAFT<span class="w"> </span>FASTA<span class="o">)</span><span class="w">                                                         </span>│
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>│<span class="w"> </span>*<span class="w">  </span>--agp<span class="w">           </span>-a<span class="w">         </span>agp<span class="w"> </span>file.<span class="w">                                                             </span>│
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│<span class="w">                               </span><span class="o">(</span>AGP<span class="o">)</span><span class="w">                                                                 </span>│
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│<span class="w">                               </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                                            </span>│
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│<span class="w">    </span>--unphased<span class="w">      </span>-unphased<span class="w">  </span>Haplotypes<span class="w"> </span>are<span class="w"> </span>not<span class="w"> </span>parallel<span class="w"> </span>aligned.<span class="w"> </span>Rename<span class="w"> </span>all<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>chromosomes.<span class="w">   </span>│
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│<span class="w">    </span>--suffix-style<span class="w">  </span>-s<span class="w">         </span>The<span class="w"> </span>suffix<span class="w"> </span>style<span class="w"> </span>of<span class="w"> </span>renamed<span class="w"> </span>chromosome<span class="w"> </span>among<span class="w"> </span>different<span class="w"> </span>haplotypes.<span class="w">    </span>│
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│<span class="w">                                 </span>number:<span class="w"> </span>g1,<span class="w"> </span>g2,<span class="w"> </span>g3,<span class="w"> </span>...<span class="w"> </span><span class="o">(</span>default<span class="o">)</span><span class="w">                                   </span>│
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│<span class="w">                                 </span>upperletter:<span class="w"> </span>A,<span class="w"> </span>B,<span class="w"> </span>C,<span class="w"> </span>...<span class="w">                                           </span>│
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│<span class="w">                                 </span>lowerletter:<span class="w"> </span>a,<span class="w"> </span>b,<span class="w"> </span>c,<span class="w"> </span>...<span class="w">                                           </span>│
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│<span class="w">                               </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                                                 </span>│
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│<span class="w">                               </span><span class="o">[</span>default:<span class="w"> </span>number<span class="o">]</span><span class="w">                                                     </span>│
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>│<span class="w">    </span>--output<span class="w">        </span>-o<span class="w">         </span>Output<span class="w"> </span>path<span class="w"> </span>of<span class="w"> </span>renamed<span class="w"> </span>agp<span class="w"> </span>file<span class="w">                                       </span>│
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>│<span class="w">                               </span><span class="o">(</span>OUTPUT_AGP<span class="o">)</span><span class="w">                                                          </span>│
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>│<span class="w">    </span>--threads<span class="w">       </span>-t<span class="w">         </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                                                    </span>│
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>│<span class="w">                               </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                                 </span>│
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>│<span class="w">                               </span><span class="o">[</span>default:<span class="w"> </span><span class="m">8</span><span class="o">]</span><span class="w">                                                          </span>│
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>│<span class="w">    </span>--help<span class="w">          </span>-h,-help<span class="w">   </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                                           </span>│
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
 
 
 
@@ -1226,7 +1258,7 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.action.view", "content.code.annotate", "content.tooltips", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "navigation.footer", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.f1b6f286.min.js"></script>

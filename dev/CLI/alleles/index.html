@@ -206,11 +206,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -297,7 +304,7 @@
         
   
   <span class="md-ellipsis">
-    Installation
+    Introduction & Installation
     
   </span>
   
@@ -335,6 +342,12 @@
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -376,6 +389,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -488,6 +509,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -609,6 +638,22 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -792,15 +837,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -891,6 +927,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
@@ -923,6 +967,28 @@
             Misc
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../citation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Citation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1032,15 +1098,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1063,56 +1120,25 @@
     </a>
   
   
+    
+      
+    
+    <a href="https://github.com/wangyibin/CPhasing/raw/master/docs/CLI/alleles.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
 
 
   <h1>Alleles</h1>
 
 <p>Alleles aims to identify the allelic contig pairs by pairwise comparison.</p>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">#</a></h2>
-<h3 id="total-length-of-genome-10-gb">Total length of genome &lt; 10 Gb<a class="headerlink" href="#total-length-of-genome-10-gb" title="Permanent link">#</a></h3>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="total-length-of-genome-10-gb">Total length of genome &lt; 10 Gb<a class="headerlink" href="#total-length-of-genome-10-gb" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>alleles<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta
 </span></code></pre></div>
-<h3 id="total-length-of-genome-10-gb_1">Total length of genome &gt;= 10 Gb<a class="headerlink" href="#total-length-of-genome-10-gb_1" title="Permanent link">#</a></h3>
+<h3 id="total-length-of-genome-10-gb_1">Total length of genome &gt;= 10 Gb<a class="headerlink" href="#total-length-of-genome-10-gb_1" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>alleles<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span>
-</span></code></pre></div>
-<!-- !!! warning
-    Now, `alleles` do not support contig with a length larger than 135 Mb.  -->
-
-<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><span class="filename">cphasing alleles -h</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>alleles<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w">                                              </span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w"> </span>Build<span class="w"> </span>allele<span class="w"> </span>table<span class="w"> </span>by<span class="w"> </span>kmer<span class="w"> </span>similarity.<span class="w">                                         </span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>╭─<span class="w"> </span>Options<span class="w"> </span>────────────────────────────────────────────────────────────────────╮
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>│<span class="w"> </span>*<span class="w">  </span>--fasta<span class="w">    </span>-f<span class="w">        </span>polyploid<span class="w"> </span>contig-level<span class="w"> </span>fasta.<span class="w">                        </span>│
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>│<span class="w">                         </span><span class="o">(</span>FILE<span class="o">)</span><span class="w">                                               </span>│
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>│<span class="w">                         </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                           </span>│
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>│<span class="w">    </span>--output<span class="w">   </span>-o<span class="w">        </span>path<span class="w"> </span>of<span class="w"> </span>output<span class="w"> </span>allele<span class="w"> </span>table<span class="w"> </span><span class="o">[</span>default:<span class="w">                </span>│
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>│<span class="w">                         </span>fasta_prefix.allele.table<span class="o">]</span><span class="w">                           </span>│
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│<span class="w">                         </span><span class="o">(</span>PATH<span class="o">)</span><span class="w">                                               </span>│
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│<span class="w">               </span>-k<span class="w">        </span>kmer<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>similarity<span class="w"> </span>calculation.<span class="w">                </span>│
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>│<span class="w">                         </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">19</span><span class="o">]</span><span class="w">                                        </span>│
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>│<span class="w">               </span>-w<span class="w">        </span>minimizer<span class="w"> </span>window<span class="w"> </span>size<span class="w"> </span><span class="k">for</span><span class="w"> </span>similarity<span class="w"> </span>calculation.<span class="w">    </span>│
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>│<span class="w">                         </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">19</span><span class="o">]</span><span class="w">                                        </span>│
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>│<span class="w">               </span>-c<span class="w">        </span>max<span class="w"> </span>occurance<span class="w"> </span>of<span class="w"> </span>allelic<span class="w"> </span>pairs<span class="w">                       </span>│
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>│<span class="w">                         </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">60</span><span class="o">]</span><span class="w">                                        </span>│
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>│<span class="w">               </span>-n<span class="w">        </span>minimum<span class="w"> </span>chain<span class="w"> </span>end<span class="w">                                    </span>│
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>│<span class="w">                         </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">5</span><span class="o">]</span><span class="w">                                         </span>│
-</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>│<span class="w">               </span>-m<span class="w">        </span>minimum<span class="w"> </span>k-mer<span class="w"> </span>similarity<span class="w"> </span><span class="k">for</span><span class="w"> </span>similarity<span class="w"> </span>calculation.<span class="w"> </span>│
-</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>│<span class="w">                         </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                                              </span>│
-</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.5<span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">1</span><span class="o">]</span><span class="w">                              </span>│
-</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>│<span class="w">               </span>-d<span class="w">        </span>minimum<span class="w"> </span>different<span class="w"> </span>threshold<span class="w"> </span>between<span class="w"> </span>contig<span class="w"> </span>pairs.<span class="w">    </span>│
-</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>│<span class="w">                         </span><span class="o">(</span>FLOAT<span class="w"> </span>RANGE<span class="o">)</span><span class="w">                                        </span>│
-</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.1<span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">1</span><span class="o">]</span><span class="w">                              </span>│
-</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>│<span class="w">    </span>--threads<span class="w">  </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                                   </span>│
-</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>│<span class="w">                         </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                                </span>│
-</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>│<span class="w">                         </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                         </span>│
-</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>│<span class="w">    </span>--help<span class="w">     </span>-h,-help<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                          </span>│
-</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>╰──────────────────────────────────────────────────────────────────────────────╯
 </span></code></pre></div>
 
 
@@ -1229,7 +1255,7 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.action.view", "content.code.annotate", "content.tooltips", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "navigation.footer", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.f1b6f286.min.js"></script>

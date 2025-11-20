@@ -206,11 +206,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -297,7 +304,7 @@
         
   
   <span class="md-ellipsis">
-    Installation
+    Introduction & Installation
     
   </span>
   
@@ -335,6 +342,12 @@
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -376,6 +389,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -488,6 +509,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -609,6 +638,22 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -889,6 +934,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
@@ -921,6 +974,28 @@
             Misc
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../citation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Citation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1057,9 +1132,17 @@
     </a>
   
   
+    
+      
+    
+    <a href="https://github.com/wangyibin/CPhasing/raw/master/docs/CLI/methalign.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
 
 
-<h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">#</a></h1>
+<h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">&para;</a></h1>
 <p>To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called <strong><code>Methalign</code></strong>. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition (unstable).</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
@@ -1069,14 +1152,14 @@
 <p class="admonition-title">Note</p>
 <p>The input bam should contain the <code>MM/ML</code> tags</p>
 </div>
-<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">#</a></h2>
+<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">&para;</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate_cphasing<span class="w"> </span>methalign
 </span></code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>The network should be accessible if the methalign environment is first activated.</p>
 </div>
-<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">#</a></h2>
+<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">HiFi reads</label><label for="__tabbed_1_2">ONT reads</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1087,51 +1170,53 @@
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>samtools<span class="w"> </span>index<span class="w"> </span>HiFi.align.sorted.bam
 </span></code></pre></div>
 <p>Calculate the 5mC sites by pb-cpg-tools
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aligned_bam_to_cpg_scores<span class="w"> </span>--bam<span class="w"> </span>HiFi.align.sorted.bam<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>--model<span class="w"> </span>pileup_calling_model.v1.tflite<span class="w"> </span>--modsites-mode<span class="w"> </span>reference
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>aligned_bam_to_cpg_scores<span class="w"> </span>--bam<span class="w"> </span>HiFi.align.sorted.bam<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>--model<span class="w"> </span>pileup_calling_model.v1.tflite<span class="w"> </span>--modsites-mode<span class="w"> </span>reference<span class="w"> </span>-q<span class="w"> </span><span class="m">2</span><span class="w"> </span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$9}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>HiFi_align_sorted_bam_to_cpg_scores.combined.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
 </span></code></pre></div></p>
 </div>
 <div class="tabbed-block">
 <p>Align the ONT reads by dorado</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">2</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>samtools<span class="w"> </span>index<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
 </span></code></pre></div>
 <p>Calculate the 5mC sites by modkit</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands<span class="w"> </span>--ignore<span class="w"> </span>h
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$11}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>output.methyl.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
 </span></code></pre></div>
 </div>
 </div>
 </div>
-<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">#</a></h2>
+<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">&para;</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>dorado<span class="w"> </span>aligner<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
 </div>
-<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">#</a></h2>
-<ul>
-<li>Split bam to speed up the refine step
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
-</span></code></pre></div></li>
-</ul>
+<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Refine the alignments by methylation information
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>methalign<span class="w"> </span>refine<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>output.split_*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>methalign<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>porec.reads*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
 </span></code></pre></div></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This step will output <code>porec.align.refined.paf.gz</code> and <code>porec.align.refined.porec.gz</code></p>
+<p>This step will output <code>methalign.refined.paf.gz</code> and <code>methalign.refined.porec.gz</code></p>
 </div>
 <ul>
 <li>After refine
 Input <code>porec.align.refined.porec.gz</code> 
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>contigs.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.align.refined.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>contigs.fasta<span class="w"> </span>-pct<span class="w"> </span>methalign.refined.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
 </span></code></pre></div></li>
 </ul>
+<div class="admonition tips">
+<p class="admonition-title">Tips</p>
+<p>If you input a large aligned bam you can use <code>cphasing-rs split-bam</code> to split bam into several parts and run <code>methalign</code>, respectively. 
+- Split bam to speed up the refine step
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
+</span></code></pre></div></p>
+</div>
 
 
 
@@ -1247,7 +1332,7 @@ Input <code>porec.align.refined.porec.gz</code>
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.action.view", "content.code.annotate", "content.tooltips", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "navigation.footer", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.f1b6f286.min.js"></script>

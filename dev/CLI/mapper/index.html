@@ -206,11 +206,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -297,7 +304,7 @@
         
   
   <span class="md-ellipsis">
-    Installation
+    Introduction & Installation
     
   </span>
   
@@ -335,6 +342,12 @@
   
   
     
+    
+      
+        
+      
+        
+      
     
     
       
@@ -376,6 +389,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -488,6 +509,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -609,6 +638,22 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -741,15 +786,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
   
 </li>
       
@@ -909,6 +945,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
@@ -941,6 +985,28 @@
             Misc
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../citation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Citation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1068,15 +1134,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      Parameters
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1099,6 +1156,14 @@
     </a>
   
   
+    
+      
+    
+    <a href="https://github.com/wangyibin/CPhasing/raw/master/docs/CLI/mapper.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
 
 
   <h1>Mapper</h1>
@@ -1110,12 +1175,12 @@
 <p class="admonition-title">Note</p>
 <p>The output of HiFi-C, still named <code>.porec.gz</code>, contains the same results whether Pore-C or HiFi-C data.</p>
 </div>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">#</a></h2>
-<h3 id="process-one-cell-pore-c-data">Process one cell Pore-C data<a class="headerlink" href="#process-one-cell-pore-c-data" title="Permanent link">#</a></h3>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="process-one-cell-pore-c-data">Process one cell Pore-C data<a class="headerlink" href="#process-one-cell-pore-c-data" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
 </span></code></pre></div>
-<h3 id="process-multiple-cells-pore-c-data">Process multiple cells Pore-C data<a class="headerlink" href="#process-multiple-cells-pore-c-data" title="Permanent link">#</a></h3>
-<h4 id="process-together">Process together<a class="headerlink" href="#process-together" title="Permanent link">#</a></h4>
+<h3 id="process-multiple-cells-pore-c-data">Process multiple cells Pore-C data<a class="headerlink" href="#process-multiple-cells-pore-c-data" title="Permanent link">&para;</a></h3>
+<h4 id="process-together">Process together<a class="headerlink" href="#process-together" title="Permanent link">&para;</a></h4>
 <p><div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>sample2.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
 </span></code></pre></div>
 or 
@@ -1125,7 +1190,7 @@ or
 <p class="admonition-title">Note</p>
 <p>It will output results using the <code>sample1.porec</code> as the prefix</p>
 </div>
-<h4 id="submit-each-cell-to-the-cluster">Submit each cell to the cluster<a class="headerlink" href="#submit-each-cell-to-the-cluster" title="Permanent link">#</a></h4>
+<h4 id="submit-each-cell-to-the-cluster">Submit each cell to the cluster<a class="headerlink" href="#submit-each-cell-to-the-cluster" title="Permanent link">&para;</a></h4>
 <ul>
 <li>use multiple scripts to run mapper for each sample
 <div class="language-shell highlight"><span class="filename">run_sample1.sh</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
@@ -1141,56 +1206,11 @@ or
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>sample1.porec.pairs.pqs<span class="w"> </span>sample2.porec.pairs.pqs<span class="w"> </span>sample3.porec.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>sample.merge.pairs.pqs
 </span></code></pre></div></li>
 </ul>
-<h3 id="process-one-cell-hifi-c-data">Process one cell HiFi-C data<a class="headerlink" href="#process-one-cell-hifi-c-data" title="Permanent link">#</a></h3>
+<h3 id="process-one-cell-hifi-c-data">Process one cell HiFi-C data<a class="headerlink" href="#process-one-cell-hifi-c-data" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x map-hifi&quot;</span>
 </span></code></pre></div>
-<h3 id="process-multiple-cells-hifi-c-data">Process multiple cells HiFi-C data<a class="headerlink" href="#process-multiple-cells-hifi-c-data" title="Permanent link">#</a></h3>
+<h3 id="process-multiple-cells-hifi-c-data">Process multiple cells HiFi-C data<a class="headerlink" href="#process-multiple-cells-hifi-c-data" title="Permanent link">&para;</a></h3>
 <p>All the steps of this same with processing in the Pore-C data, with the parameter of <code>--mm2-params "-x map-hifi"</code>.</p>
-<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">#</a></h2>
-<div class="language-shell highlight"><span class="filename">cphasing mapper -h</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="w"> </span>Usage:<span class="w"> </span>cphasing<span class="w"> </span>mapper<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>REFERENCE<span class="w"> </span>FASTQ...<span class="w">   </span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w"> </span>Mapper<span class="w"> </span><span class="k">for</span><span class="w"> </span>pore-c<span class="w"> </span>reads.<span class="w">                                                  </span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w"> </span>REFERENCE:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>reference<span class="w">                                              </span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w"> </span>FASTQ:<span class="w"> </span>Path<span class="w"> </span>of<span class="w"> </span>pore-c<span class="w"> </span>reads,<span class="w"> </span>multiple<span class="w"> </span>file<span class="w"> </span>enabled,<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w"> </span>output<span class="w">  </span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w"> </span>default<span class="w"> </span>only<span class="w"> </span>use<span class="w"> </span>sample<span class="w"> </span><span class="m">1</span>.<span class="w">                                                </span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>╭─<span class="w"> </span>Arguments<span class="w"> </span>─────────────────────────────────────────────────────────────╮
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>│<span class="w"> </span>*<span class="w">  </span>REFERENCE<span class="w">    </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>│<span class="w"> </span>*<span class="w">  </span>FASTQ<span class="w">        </span><span class="o">(</span>PATH<span class="o">)</span><span class="w"> </span><span class="o">[</span>required<span class="o">]</span><span class="w">                                       </span>│
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>╰─────────────────────────────────────────────────────────────────────────╯
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>╭─<span class="w"> </span>Options<span class="w"> </span>───────────────────────────────────────────────────────────────╮
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>│<span class="w"> </span>--enzyme<span class="w">        </span>-e<span class="w">        </span>Restrict<span class="w"> </span>site<span class="w"> </span>pattern,<span class="w"> </span>use<span class="w"> </span>comma<span class="w"> </span>to<span class="w"> </span>separate<span class="w">  </span>│
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>│<span class="w">                           </span>multiple<span class="w"> </span>patterns.<span class="w">                            </span>│
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>│<span class="w"> </span>--mm2-params<span class="w">              </span>additional<span class="w"> </span>parameters<span class="w"> </span><span class="k">for</span><span class="w"> </span>minimap2<span class="w">            </span>│
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>│<span class="w">                           </span><span class="o">(</span>STR<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span>-x<span class="w"> </span>map-ont<span class="o">]</span><span class="w">                         </span>│
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>│<span class="w"> </span>--mapq<span class="w">          </span>-q<span class="w">        </span>Minimum<span class="w"> </span>quality<span class="w"> </span>of<span class="w"> </span>mapping<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span><span class="m">60</span><span class="o">]</span>.<span class="w">           </span>│
-</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span><span class="p">;</span><span class="w"> </span><span class="m">0</span>&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">60</span><span class="o">]</span><span class="w">                        </span>│
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>│<span class="w"> </span>--min-identity<span class="w">  </span>-p<span class="w">        </span>Minimum<span class="w"> </span>percentage<span class="w"> </span>identity<span class="w"> </span>of<span class="w"> </span>alignments<span class="w"> </span><span class="o">[</span><span class="m">0</span>,<span class="w"> </span>│
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>│<span class="w">                           </span><span class="m">1</span>.0<span class="o">]</span>.<span class="w">                                         </span>│
-</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>│<span class="w">                           </span><span class="o">(</span>FLOAT<span class="o">)</span><span class="w">                                       </span>│
-</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.8<span class="p">;</span><span class="w"> </span><span class="m">0</span>.0&lt;<span class="o">=</span>x&lt;<span class="o">=</span><span class="m">1</span>.0<span class="o">]</span><span class="w">                   </span>│
-</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>│<span class="w"> </span>--min-length<span class="w">    </span>-l<span class="w">        </span>Minimum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragments.<span class="w">                  </span>│
-</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">150</span><span class="o">]</span><span class="w">                                </span>│
-</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>│<span class="w"> </span>--max-edge<span class="w">      </span>-me<span class="w">       </span>Maximum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>fragment<span class="w"> </span>located<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w">     </span>│
-</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>│<span class="w">                           </span>edge<span class="w"> </span>of<span class="w"> </span>contigs.<span class="w">                              </span>│
-</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">2000</span><span class="o">]</span><span class="w">                               </span>│
-</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>│<span class="w"> </span>--force<span class="w">         </span>-f<span class="w">        </span>Force<span class="w"> </span>run<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>command,<span class="w"> </span>ignore<span class="w"> </span>existing<span class="w">    </span>│
-</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>│<span class="w">                           </span>results.<span class="w"> </span>The<span class="w"> </span>index<span class="w"> </span>file<span class="w"> </span>also<span class="w"> </span>will<span class="w"> </span>be<span class="w"> </span>removed.<span class="w"> </span>│
-</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>│<span class="w"> </span>--outprefix<span class="w">     </span>-o<span class="w">        </span>output<span class="w"> </span>prefix,<span class="w"> </span><span class="k">if</span><span class="w"> </span>none<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>prefix<span class="w"> </span>of<span class="w">      </span>│
-</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>│<span class="w">                           </span>fastq<span class="w">                                         </span>│
-</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>│<span class="w">                           </span><span class="o">(</span>TEXT<span class="o">)</span><span class="w">                                        </span>│
-</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>│<span class="w"> </span>--threads<span class="w">       </span>-t<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>threads.<span class="w">                            </span>│
-</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>│<span class="w">                           </span><span class="o">(</span>INT<span class="o">)</span><span class="w">                                         </span>│
-</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>│<span class="w">                           </span><span class="o">[</span>default:<span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w">                                  </span>│
-</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>│<span class="w"> </span>--help<span class="w">          </span>-h,-help<span class="w">  </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.<span class="w">                   </span>│
-</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>╰─────────────────────────────────────────────────────────────────────────╯
-</span></code></pre></div>
 
 
 
@@ -1306,7 +1326,7 @@ or
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.action.view", "content.code.annotate", "content.tooltips", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "navigation.footer", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.f1b6f286.min.js"></script>

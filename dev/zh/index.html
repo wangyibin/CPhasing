@@ -20,7 +20,7 @@
     
     
       
-        <title>安装 - C-Phasing 文档</title>
+        <title>介绍&安装 - C-Phasing 文档</title>
       
     
     
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              安装
+              介绍&安装
             
           </span>
         </div>
@@ -204,11 +204,18 @@
       </label>
       <nav class="md-search__options" aria-label="查找">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="分享" aria-label="分享" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -302,7 +309,7 @@
           
   
   <span class="md-ellipsis">
-    安装
+    介绍&安装
     
   </span>
   
@@ -314,7 +321,7 @@
         
   
   <span class="md-ellipsis">
-    安装
+    介绍&安装
     
   </span>
   
@@ -389,6 +396,12 @@
   
     
     
+      
+        
+      
+        
+      
+    
     
       
         
@@ -429,6 +442,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -541,6 +562,14 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -660,6 +689,22 @@
   
   
     
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
     
       
@@ -863,6 +908,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
@@ -895,6 +948,28 @@
             其他
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="citation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Citation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1011,19 +1086,28 @@
     </a>
   
   
+    
+      
+    
+    <a href="https://github.com/wangyibin/CPhasing/raw/master/docs/index.zh.md" title="查看本页的源代码" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+    </a>
+  
 
 
 <p><img src="logo/logo.png" alt="C-Phasing logo" width="140px" align="left" /></p>
 <h1 align="center"><b>C</b>-Phasing</h1>
 <p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>
 <p>.</p>
-<h2 id="_1">介绍<a class="headerlink" href="#_1" title="Permanent link">#</a></h2>
-<p>使用Hi-C数据实现多倍体基因组分型挂载，存在主要问题之一是大量不明确的短读长比对，这容易导致高水平的交换或嵌合组装错误。现在，基于长读长的染色体构象捕获技术，如<strong>Pore-C</strong>、<strong>HiFi-C</strong>，为克服这一问题提供了有效途径。在这里，我们开发了一个新的流程，即“C-Phasing”，它是专门为多倍体分型组装量身定制的，旨在充分利用Pore-C或HiFi-C数据的优势。此外，它也可用于<strong>Hi-C</strong>数据和二倍体基因组组装。</p>
+<h2 id="_1">介绍<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>使用Hi-C数据实现多倍体基因组分型挂载，存在主要问题之一是大量不明确的短读长比对，这容易导致高水平的交换或嵌合组装错误。现在，基于长读长的染色体构象捕获技术，如<strong>Pore-C</strong>、<strong>HiFi-C</strong>，为克服这一问题提供了有效途径。在这里，我们开发了一个新的流程，即“C-Phasing”，它是专门为多倍体分型组装量身定制的，旨在充分利用Pore-C或HiFi-C数据的优势。此外，它也可用于<strong>Hi-C</strong>或<strong>Micro-C</strong>等基于二代的染色质构象捕获技术产生的数据和二倍体基因组组装。</p>
 <p><code>C-Phasing</code>的优势: <br />
     - 快速. <br />
     - 更高的挂载率.<br />
-    - 更高的分型组装质量.</p>
-<h2 id="_2">安装<a class="headerlink" href="#_2" title="Permanent link">#</a></h2>
+    - 更高的分型组装质量.
+<img alt="Summary_of_CPhasing" src="../pictures/Summary_of_CPhasing.png" /></p>
+<h2 id="_2">安装<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">recommended</label><label for="__tabbed_1_2">conda</label><label for="__tabbed_1_3">custom</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1054,6 +1138,10 @@
 </span></code></pre></div>
 3. <span class="keys"><kbd class="key-control">Ctrl</kbd><span>+</span><kbd class="key-x">X</kbd><span>+</span><kbd class="key-y">Y</kbd></span> : 按<code>ctrl + X</code>，然后再按<code>Y</code>, 保存退出</p>
 </div>
+<div class="admonition not">
+<p class="admonition-title">Not</p>
+<p>如果你想运行在arm(<strong>aarch64</strong>)平台上，请从github release页面下载，git仓库里默认存放x86-64版本</p>
+</div>
 </div>
 <div class="tabbed-block">
 <p>从GitHub官网下载<code>C-Phasing</code>软件，使用anaconda或者miniconda配置环境和激活环境。
@@ -1075,7 +1163,7 @@
 </div>
 </div>
 <div class="tabbed-block">
-<h4 id="githubcphasing-pip">从GitHub下载<code>CPhasing</code>, 然后使用<code>pip</code>安装。<a class="headerlink" href="#githubcphasing-pip" title="Permanent link">#</a></h4>
+<h4 id="githubcphasing-pip">从GitHub下载<code>CPhasing</code>, 然后使用<code>pip</code>安装。<a class="headerlink" href="#githubcphasing-pip" title="Permanent link">&para;</a></h4>
 <p><div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">## Download C-Phasing and install python dependencies</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
@@ -1084,7 +1172,7 @@
 接着配置以下命令道环境变量 <code>~/.bash_profile</code> 或者<code>~/.bashrc</code>
 <div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
 </span></code></pre></div></p>
-<h4 id="_3">第三方依赖包<a class="headerlink" href="#_3" title="Permanent link">#</a></h4>
+<h4 id="_3">第三方依赖包<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
 <ol>
 <li>核心功能依赖：<br />
     - <a href="https://bedtools.readthedocs.io/en/latest/">bedtools</a><br />
@@ -1100,7 +1188,7 @@
 <ul>
 <li><strong>基本用法</strong><hr />
 <p>使用 <code>pipeline</code>命令开始运行<code>cphasing</code>.  </p>
-<p><a href="basic_usage"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>基本用法</a></p>
+<p><a href="basic_usage/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>基本用法</a></p>
 </li>
 </ul>
 <ul>
@@ -1110,6 +1198,7 @@
 </li>
 </ul>
 </div>
+<p><a href="citation/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Citation</a></p>
 
 
 
@@ -1209,7 +1298,7 @@
       <div class="md-progress" data-md-component="progress" role="progressbar"></div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy", "content.code.select", "content.action.edit", "content.action.view", "content.code.annotate", "content.tooltips", "navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "navigation.footer", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": {"provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.f1b6f286.min.js"></script>

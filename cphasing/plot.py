@@ -16,10 +16,12 @@ except ImportError:
     pass
 
 import cooler
+import h5py 
 import numpy as np
 import pandas as pd
 import polars as pl
 import pyranges as pr
+import scipy.sparse as sp
 
 from collections import OrderedDict
 from math import ceil
@@ -27,10 +29,11 @@ from itertools import product
 from intervaltree import Interval, IntervalTree
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from multiprocessing import Lock, Pool
 from joblib import Parallel, delayed
 from pandarallel import pandarallel
+from pathlib import Path
 from scipy.sparse import triu
 
 from .agp import import_agp
@@ -56,10 +59,77 @@ except AttributeError:
         'https://github.com/wangyibin/CPhasing'
     )
 
+_BALANCE_BLOCKS = None
+_BALANCE_BLOCK_RANGES = None
+
 ## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
 whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
 
 lock = Lock()
+
+def half_colormaps(cmap):
+    """
+    Create a half colormap from the given colormap name.
+
+    Parameters:
+    ----------
+    cmap_name : str
+        The name of the colormap to create a half colormap from.
+
+    Returns:
+    -------
+    half_cmap : LinearSegmentedColormap
+        The half colormap.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib import colors
+    import colormaps as cmaps
+    
+    if cmap == 'whitered':
+        whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575'])
+        return whitered_cmap
+    
+    else:
+        try:
+            """
+            https://pratiman-91.github.io/colormaps/
+            """
+            colormap = getattr(cmaps, cmap)
+            color_list = colormap.colors[:128]
+            half_cmap = LinearSegmentedColormap.from_list(
+                f"{cmap}_half", color_list)
+        except:
+            try:
+                colormap = cmap 
+                colormap = getattr(plt.cm, cmap)
+                half_cmap = colors.LinearSegmentedColormap.from_list(
+                    f"{cmap}_half", colormap(np.linspace(0, 0.5, 128)))
+        
+            except AttributeError:
+                logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
+                colormap = getattr(cmaps, "redp1_r")
+                color_list = colormap.colors[:128]
+                half_cmap = LinearSegmentedColormap.from_list(
+                    f"{cmap}_half", color_list)
+
+
+    return half_cmap
+
+
+def format_float_dynamic(x, sig=4, min_dec=0, max_dec=6, sci_small=1e-4, sci_large=1e6):
+    try:
+        if not np.isfinite(x):
+            return str(x)
+        ax = abs(float(x))
+        if ax != 0 and (ax < sci_small or ax >= sci_large):
+            return f"{x:.{sig}g}"  
+        if ax == 0:
+            return f"{0:.{min_dec}f}"
+        digits = int(np.floor(np.log10(ax))) + 1 
+        dec = int(np.clip(sig - digits, min_dec, max_dec)) 
+        return f"{x:.{dec}f}"
+    except Exception:
+        return str(x)
  
 def get_bins(bin_size, chrom_size, start=0, orientation="+", 
                 reverse=False, region=None):
@@ -240,6 +310,8 @@ def findIntersectRegion(a, b, fraction=0.51):
     return overlaps
 
 def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
+    log_dir = "logs"
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
     logger.debug("Get the coordinates of contig on chrom.")
     _file1 = tempfile.NamedTemporaryFile(suffix=".a", delete=True, dir=dir)
     _file2 = tempfile.NamedTemporaryFile(suffix=".b", delete=True, dir=dir)
@@ -254,7 +326,7 @@ def getContigOnChromBins(chrom_bins, contig_on_chrom_bins, dir="."):
                         _file1.name, _file2.name, _file3.name)
     # flag = os.system('bedtools intersect -a {} -b {} -F 0.5 -wo > {} 2>/dev/null'.format(
                         # _file1.name, _file2.name, _file3.name))
-    flag = os.system(cmd + " 2>plot.bedtools.log")
+    flag = os.system(cmd + f" 2>{log_dir}/plot.bedtools.log")
     assert flag == 0 , f"Failed to execute command '{cmd}', please check log `plot.bedtools.log`."
 
     df = pd.read_csv(f"{_file3.name}", sep='\t',
@@ -701,22 +773,169 @@ def coarsen_matrix(cool, cool_binsize, k, out, threads):
 
     return out
 
+def _dot_block(args):
+    idx, w_seg = args
+    blk = _BALANCE_BLOCKS[idx]
+    return idx, blk.dot(w_seg)
 
-def balance_matrix(cool, force=False, threads=4):
+def balance_matrix(cool_path,
+                        out_weights=None,
+                        black_bed=None,
+                        max_iter=200,
+                        tol=1e-5,
+                        min_count=0.0,
+                        max_percentile=99.9,
+                        threads=4,
+                        column_name='weight',
+                        report_every=50):
+
+    logger.info(f"[balance_fast] load `{cool_path}`")
+    c = cooler.Cooler(cool_path)
+    n = c.shape[0]
+
+    chrom_offset = c._load_dset('indexes/chrom_offset')
+    bins_df = c.bins()[:][['chrom','start','end']]
+    bins_df['idx'] = np.arange(len(bins_df))
+
+    M_full = c.matrix(balance=False, sparse=True)[:].tocsr()
+    logger.info(f"[balance_fast] nnz={M_full.nnz}, shape={M_full.shape}")
+
+    blocks, ranges = [], []
+    for i in range(len(chrom_offset) - 1):
+        s, e = int(chrom_offset[i]), int(chrom_offset[i+1])
+        if e > s:
+            blocks.append(M_full[s:e, s:e].tocsr())
+            ranges.append((s, e))
+    del M_full
+    logger.info(f"[balance_fast] blocks={len(blocks)}")
+
+    raw_row_sum_parts = [np.array(blk.sum(axis=1)).ravel() for blk in blocks]
+    raw_row_sum = np.zeros(n, dtype=float)
+    for (s, e), part in zip(ranges, raw_row_sum_parts):
+        raw_row_sum[s:e] = part
+
+    mask = np.ones(n, dtype=bool)
+    if black_bed and os.path.exists(black_bed):
+        try:
+            bed = pd.read_csv(black_bed, sep='\t', header=None, usecols=[0,1,2],
+                              names=['chrom','start','end'])
+            for chrom, start, end in bed.itertuples(index=False):
+                sub = bins_df[(bins_df.chrom == chrom) &
+                              (bins_df.end > start) &
+                              (bins_df.start < end)]
+                mask[sub.idx.values] = False
+            logger.info(f"[balance_fast] blacklisted bins: {(~mask).sum()}")
+        except Exception as e:
+            logger.warning(f"[balance_fast] blacklist parse failed: {e}")
+
+    low = raw_row_sum < float(min_count)
+    if max_percentile < 100:
+        nz = raw_row_sum[raw_row_sum > 0]
+        hi_thresh = np.percentile(nz, max_percentile) if nz.size else np.inf
+    else:
+        hi_thresh = np.inf
+    high = raw_row_sum > hi_thresh
+    mask &= ~low & ~high
+    valid = mask & (raw_row_sum > 0)
+    logger.info(f"[balance_fast] valid bins: {valid.sum()} / {n}")
+
+    w = np.ones(n, dtype=np.float64)
+    w[~valid] = 0.0
+
+    global _BALANCE_BLOCKS, _BALANCE_BLOCK_RANGES
+    _BALANCE_BLOCKS = blocks
+    _BALANCE_BLOCK_RANGES = ranges
+
+
+    prev_change = None
+    pool = None
+    try:
+        if threads and threads > 1:
+
+            os.environ.setdefault("OMP_NUM_THREADS", "1")
+            os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+            os.environ.setdefault("MKL_NUM_THREADS", "1")
+            pool = Pool(processes=int(threads))
+
+        for it in range(1, max_iter + 1):
+            temp = np.zeros(n, dtype=np.float64)
+            if pool:
+                tasks = []
+                for bi, (s, e) in enumerate(ranges):
+                    tasks.append((bi, w[s:e].copy()))
+                for bi, vec in pool.map(_dot_block, tasks, chunksize=max(1, len(tasks)//(threads or 1))):
+                    s, e = ranges[bi]
+                    temp[s:e] = vec
+            else:
+                for bi, (s, e) in enumerate(ranges):
+                    temp[s:e] = blocks[bi].dot(w[s:e])
+
+            scaled_row_sum = w * temp
+            denom = scaled_row_sum.copy()
+            denom[denom == 0] = 1.0
+            upd = 1.0 / denom
+            w[valid] *= upd[valid]
+
+            med = np.median(w[valid][w[valid] > 0]) if np.any(w[valid] > 0) else 1.0
+            if not np.isfinite(med) or med == 0:
+                med = 1.0
+            w[valid] /= med
+
+            if pool:
+                tasks = [(bi, w[s:e].copy()) for bi, (s, e) in enumerate(ranges)]
+                temp[:] = 0
+                for bi, vec in pool.map(_dot_block, tasks, chunksize=max(1, len(tasks)//(threads or 1))):
+                    s, e = ranges[bi]
+                    temp[s:e] = vec
+            else:
+                for bi, (s, e) in enumerate(ranges):
+                    temp[s:e] = blocks[bi].dot(w[s:e])
+            scaled_row_sum = w * temp
+            cur = scaled_row_sum[valid]
+            diff = np.abs(cur - 1.0)
+            rel_change = diff.mean() if cur.size else 0.0
+
+            if it % report_every == 0 or it == 1 or it == max_iter:
+                logger.debug(f"[balance_fast] iter {it:02d}: mean(|r-1|)={rel_change:.3e}, valid={valid.sum()}")
+            if prev_change is not None and rel_change < tol:
+                logger.debug(f"[balance_fast] converged at iter {it}, mean(|r-1|)={rel_change:.3e}")
+                break
+            prev_change = rel_change
+    finally:
+        if pool:
+            pool.close()
+            pool.join()
+
+    w[~valid] = np.nan
+
+    if out_weights:
+        pd.DataFrame({column_name: w}).to_csv(out_weights, sep='\t', index=False)
+        logger.info(f"[balance_fast] write weights → {out_weights}")
+
+    try:
+        with h5py.File(cool_path, 'r+') as h5:
+            bins_grp = h5['bins']
+            if column_name in bins_grp:
+                del bins_grp[column_name]
+            bins_grp.create_dataset(column_name, data=w, compression='gzip')
+        logger.info(f"[balance_fast] appended `{column_name}` to bins.")
+    except Exception as e:
+        logger.warning(f"[balance_fast] append weights failed: {e}")
+
+    return w
+
+def balance_matrix_cooler(cool, black_bed=None, threads=4):
     from cooler.cli.balance import balance 
+    args = [cool, "-p", threads, '--cis-only', '--force']
+
+    if black_bed:
+        args.extend(['--blacklist', black_bed])
     
     try:
         logger.info(f'Balancing matrix ...')
-        if force:
-            balance.main(args=[cool, 
-                            '-p', threads,
-                             '--force' ], 
-                            prog_name='cooler')
-        else:
-            balance.main(args=[cool, 
-                            '-p', threads, ], 
-                            prog_name='cooler')
-        
+        balance.main(args=args, 
+                        prog_name='cooler')
+       
     except SystemExit as e:
         exc_info = sys.exc_info()
         exit_code = e.code
@@ -725,32 +944,154 @@ def balance_matrix(cool, force=False, threads=4):
         
         if exit_code != 0:
             raise e
-
-
-# def plot_matrix(matrix, output, chroms, 
-#                 per_chromosomes, cmap, dpi):
-#     from hicexplorer import hicPlotMatrix
-
-#     addition_options = []
-#     if per_chromosomes:
-#         addition_options.append('--perChromosome')
-
-#     if chroms and chroms[0] != "":
-#         addition_options.append('--chromosomeOrder')
-#         addition_options.extend(list(chroms))
-#         # cool = cooler.Cooler(matrix)
-        
-  
     
-#     hicPlotMatrix.main(args=['-m', matrix,
-#                             '--dpi', str(dpi),
-#                             '--outFileName', output,
-#                             '--colorMap', cmap,
-#                             '--log1p'] 
-#                             + 
-#                             addition_options)
+    if black_bed:
+        if Path(black_bed).exists():
+            Path(black_bed).unlink()
     
-#     logger.info(f'Successful, plotted the heatmap into `{output}`')
+def cluster_chrom_by_inter_contacts(matrix, bins,
+                                    hap_pattern=r'(Chr\d+)g(\d+)',
+                                    chrom_offset=None,
+                                    chromnames=None,
+                                    include_cis=True,
+                                    agg='sum',  
+                                    method='euclidean',
+                                    normalize='row',
+                                    linkage_method='average',
+                                    optimal_order=True):
+
+    import re
+    import scipy.sparse as sp
+    from scipy.cluster.hierarchy import (
+        linkage,
+        optimal_leaf_ordering,
+        leaves_list,
+        fcluster,
+    )
+    from scipy.spatial.distance import pdist, squareform
+    # 1) chromnames / chrom_offset
+    if chromnames is None or chrom_offset is None:
+        if isinstance(bins, pd.DataFrame):
+            if 'chrom' in bins.columns:
+                bdf = bins[['chrom', 'index']].copy()
+            else:
+                bdf = bins.reset_index()[['chrom', 'index']].copy()
+        else:
+            raise ValueError("bins need contain 'chrom' and 'index'")
+        grp = bdf.groupby('chrom', sort=False)['index'].count()
+        chromnames = grp.index.tolist()
+        counts = grp.values.astype(int)
+        chrom_offset = np.r_[0, np.cumsum(counts)].tolist()
+    n_chr = len(chromnames)
+
+
+    group_members = {}
+    group_order = [] 
+    pat = re.compile(hap_pattern)
+    for i, name in enumerate(chromnames):
+        m = pat.match(str(name))
+        key = m.group(1) if m else str(name)  
+        if key not in group_members:
+            group_members[key] = []
+            group_order.append(key)
+        group_members[key].append(i)
+
+    def block_sum(i, j):
+        i0, i1 = chrom_offset[i], chrom_offset[i+1]
+        j0, j1 = chrom_offset[j], chrom_offset[j+1]
+        blk = matrix[i0:i1, j0:j1]
+        s = blk.sum() if sp.issparse(blk) else float(np.nansum(blk))
+        if agg == 'mean':
+            denom = max((i1 - i0) * (j1 - j0), 1)
+            s = s / denom
+        return float(s)
+
+    new_order = []
+    for key in group_order:
+        members = group_members[key]
+        k = len(members)
+        if k <= 1:
+            new_order.extend(members)
+            continue
+
+        S = np.zeros((k, k), dtype=float)
+        for a in range(k):
+            ia = members[a]
+            for b in range(k):
+                ib = members[b]
+                if (not include_cis) and ia == ib:
+                    S[a, b] = 0.0
+                else:
+                    S[a, b] = block_sum(ia, ib)
+
+        if k == 2:
+            new_order.extend(members)
+            continue
+        S = np.nan_to_num(S, nan=0.0, posinf=0.0, neginf=0.0)
+        S_max = float(np.nanmax(S)) if np.isfinite(S).any() else 0.0
+        D = (S_max - S).astype(float)
+        np.fill_diagonal(D, 0.0)
+        inter = D
+        if normalize == 'row':
+            rs = inter.sum(axis=1, keepdims=True)
+            rs[rs == 0] = 1.0
+            inter = inter / rs
+        elif normalize == 'sqrt':
+            rs = inter.sum(axis=1, keepdims=True)
+            cs = inter.sum(axis=0, keepdims=True)
+            rs[rs == 0], cs[cs == 0] = 1.0, 1.0
+            inter = inter / np.sqrt(rs @ cs)
+
+        inter = np.nan_to_num(inter, nan=0.0, posinf=0.0, neginf=0.0)
+
+        if method == 'corr':
+            with np.errstate(invalid='ignore'):
+                C = np.corrcoef(inter + 1e-12) 
+            C = np.nan_to_num(C, nan=0.0)
+            np.fill_diagonal(C, 1.0)
+            D = 1.0 - C
+            D[D < 0] = 0.0
+            dist_condensed = squareform(D, checks=False)
+        elif method == 'cosine':
+            dist_condensed = pdist(inter, metric='cosine')
+        else:
+            dist_condensed = pdist(inter, metric='euclidean')
+
+        Z = linkage(dist_condensed, method=linkage_method)
+        if optimal_order:
+            Z = optimal_leaf_ordering(Z, dist_condensed)
+    
+        leaves = leaves_list(Z).astype(int)
+
+        # labels = fcluster(Z, t=0.7, criterion='distance')
+        # groups = OrderedDict()
+        # for leaf in leaves.tolist():
+        #     lab = int(labels[leaf])
+        #     groups.setdefault(lab, []).append(leaf)
+        # order_labs = sorted(groups.keys(),
+        #                         key=lambda lab: (-len(groups[lab]), leaves.tolist().index(groups[lab][0])))
+        # leaves_ordered = [leaf for lab in order_labs for leaf in groups[lab]]
+        # leaves = leaves_ordered
+
+        ordered_members = [members[i] for i in leaves]
+        new_order.extend(ordered_members)
+
+    order_idx = np.asarray(new_order, dtype=int)
+    order_labels = [chromnames[i] for i in order_idx]
+    return order_idx, order_labels
+
+def apply_chrom_order_to_matrix(matrix, chrom_offset, order_idx):
+    import scipy.sparse as sp
+    ranges = [(chrom_offset[i], chrom_offset[i+1]) for i in range(len(chrom_offset)-1)]
+    bin_order = np.concatenate([np.arange(*ranges[i], dtype=int) for i in order_idx])
+    if sp.issparse(matrix):
+        newM = matrix[bin_order, :][:, bin_order]
+    else:
+        newM = matrix[np.ix_(bin_order, bin_order)]
+    lengths = [ranges[i][1] - ranges[i][0] for i in order_idx]
+    new_offset = np.r_[0, np.cumsum(lengths)].tolist()
+    return newM, new_offset
+
 
 def plot_heatmap(matrix, output, 
                     vmin=None, vmax=None,
@@ -759,13 +1100,22 @@ def plot_heatmap(matrix, output,
                     xlabel=None, ylabel=None, 
                     xticks=True, yticks=True,
                     rotate_xticks=False, rotate_yticks=False,
+                    ytick_min_dist=20,
+                    avoid_overlap_yticks=True,
                     remove_short_bin=True,
                     add_hap_border=False,
                     add_lines=False,
                     chromosomes=None, 
+                    sort_chromosome_by_inter_contacts=False,
                     hap_pattern=r'(Chr\d+)g(\d+)',
                     per_chromosomes=False,
                     chrom_per_row=4,
+                    factor=None,
+                    factor_formula="genome_log",
+                    size_scale=(3.5, 4.0),
+                    tri_size_scale=(7.0, 3.2), 
+                    figwidth=None,
+                    figheight=None,
                     fontsize=None,
                     dpi=1200, 
                     cmap="redp1_r",
@@ -788,8 +1138,10 @@ def plot_heatmap(matrix, output,
         
     if scale == "log1p":
         log1p = True
+        log = False
     elif scale == "log":
         log = True 
+        log1p = False
     else:
         log = False
         log1p =False
@@ -862,15 +1214,62 @@ def plot_heatmap(matrix, output,
                 else:
                     chrom_offset = chrom_offset.tolist()
 
+        if sort_chromosome_by_inter_contacts and len(chromnames) > 1:
+            order_idx, order_labels = cluster_chrom_by_inter_contacts(
+                                            matrix, bins, hap_pattern=hap_pattern,
+                                      )
+            logger.info(
+                "Reorder homologous chromosomes by calculating the distance of inter-chromosomal contacts: \n    "
+                + ",".join(order_labels)
+            )
+            matrix, chrom_offset = apply_chrom_order_to_matrix(matrix, chrom_offset, order_idx)
+            chromnames = np.array(chromnames)[order_idx].tolist()
+
         chromnames_df = pd.DataFrame(chromnames, columns=['chrom'])
-        hap_name_df = chromnames_df['chrom'].str.extract(hap_pattern, expand=True).dropna()
-        hap_name_df.reset_index(drop=False, inplace=True)
-        hap_name_df.columns = ['index', 'chrom', 'hap', ]
-        hap_name_df = hap_name_df.groupby('chrom')['index'].agg(lambda x: list(x))
+    
+        try:
+            hap_name_df = chromnames_df['chrom'].str.extract(hap_pattern, expand=True).dropna()
+            hap_name_df['source_chrom'] = chromnames_df['chrom']
+            hap_name_df.reset_index(drop=False, inplace=True)
+ 
+            hap_name_df.columns = ['index', 'chrom', 'hap', 'source_chrom' ]
+            source_chrom_db = dict(zip(hap_name_df['source_chrom'], hap_name_df['chrom']))
+
+            hap_name_df = hap_name_df.groupby('chrom', sort=False)['index'].agg(lambda x: list(x)).to_frame()
+            
+            hap_name_df['source_chrom'] = hap_name_df.index.map(
+                lambda x: [chrom for chrom, hap in source_chrom_db.items() if hap == x]
+            )
+            
+        
+            if not hap_name_df.empty:
+                ## find chromosomes not in hap_name_df
+
+                missing_chroms = set(chromnames_df['chrom'].values) - set(hap_name_df['source_chrom'].values.sum())
+
+                for mc in missing_chroms:
+                    new_idx = chromnames_df[chromnames_df['chrom'] == mc].index.values[0]
+                    hap_name_df.loc[mc] = [[new_idx], mc]
+
+                ## sort by first index
+                hap_name_df = hap_name_df.sort_values(
+                    by='index', 
+                    key=lambda x: x.apply(lambda y: y[0])
+                )
+
+            hap_name_df = hap_name_df['index']
+                
+    
+        except ValueError:
+            hap_name_df = pd.Series()
         
         if len(hap_name_df) <= 1:
-            hap_name_df = None
-            hap_names = None
+            hap_name_df = chromnames_df['chrom'].to_frame()
+            hap_name_df.reset_index(drop=False, inplace=True)
+            hap_name_df.columns = ['index', 'chrom']
+            hap_name_df['hap'] = hap_name_df['chrom']
+            hap_name_df = hap_name_df.groupby('chrom', sort=False)['index'].agg(lambda x: list(x))
+            hap_names =hap_names = hap_name_df.index.values
             median_hap_count = 1
         else:
             median_hap_count = hap_name_df.apply(lambda x: len(x)).values.min()
@@ -907,32 +1306,84 @@ def plot_heatmap(matrix, output,
             else:
                 norm = None
 
-        factor = round(matrix.shape[0] / 5000 + 1, 2)  
-        factor = np.log2(round((matrix.shape[0] * binsize) / 1e9  + 1, 2)) + 1
+        # factor = round(matrix.shape[0] / 5000 + 1, 2)  
+        # factor = np.log2(round((matrix.shape[0] * binsize) / 1e9  + 1, 2)) + 1
     
-        logger.debug(f"Figure factor is `{factor}`")
-        if triangle:
-            fig_width = round(7 * factor, 2) 
-            fig_height = round(3.2 * factor, 2)
+        # logger.debug(f"Figure factor is `{factor}`")
+        # if triangle:
+        #     fig_width = round(7 * factor, 2) 
+        #     fig_height = round(3.2 * factor, 2)
+        # else:
+        #     if figwidth is None:
+        #         fig_width = round(7 * factor, 2) 
+        #     else:
+        #         fig_width = figwidth 
+        #     if figheight is None:
+        #         fig_height = round(8 * factor, 2)
+        #     else:
+        #         fig_height = figheight
+        if factor is None:
+            if factor_formula == "bins_linear":
+                factor = round(matrix.shape[0] / 5000.0 + 1, 2)
+            elif factor_formula == "genome_log":
+                genome_len_gb = (matrix.shape[0] * float(binsize)) / 1e9
+                factor = float(np.log2(max(round(genome_len_gb + 1, 2), 1e-9)) + 1)
+            else:
+                factor = 1.0
         else:
-            fig_width = round(7 * factor, 2) 
-            fig_height = round(8 * factor, 2)
+            try:
+                factor = float(factor)
+            except Exception:
+                logger.warning(f"Invalid factor `{factor}`, fallback to 1.0.")
+                factor = 1.0
+            if factor <= 0:
+                logger.warning(f"Non-positive factor `{factor}`, fallback to 1.0.")
+                factor = 1.0
+
+        logger.debug(f"Figure factor is `{factor}` (formula={factor_formula})")
+
+        if triangle:
+            base_w, base_h = tri_size_scale
+        else:
+            base_w, base_h = size_scale
+
+        scaled_w = round(base_w * factor, 2)
+        scaled_h = round(base_h * factor, 2)
+
+        fig_width = scaled_w if figwidth is None else figwidth
+        fig_height = scaled_h if figheight is None else figheight
 
         logger.info(f"  Set figsize: (W: {fig_width}, H: {fig_height})")
         plt.rcParams['font.family'] = 'Arial'
+        plt.rcParams['pdf.fonttype'] = 42
+        plt.rcParams['svg.fonttype'] = 'none'
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
 
-        if hap_names is None or not add_hap_border:
-            font_factor = np.log10(len(chromnames) ) if len(chromnames) >= 10 else 1
-            tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
+        # if hap_names is None or not add_hap_border:
+        #     font_factor = np.log10(len(chromnames) ) if len(chromnames) >= 10 else 1
+        #     tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
            
-        else:
-            font_factor = np.log10(len(hap_names) ) if len(hap_names) > 5 else 1
-            tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
-        if tick_fontsize == np.inf:
-            tick_fontsize = 16
-        logger.info(f"  Set fontsize to `{tick_fontsize}`.")
+        # else:
+        #     font_factor = np.log10(len(hap_names) ) if len(hap_names) > 5 else 1
+        #     tick_fontsize = int(15 / font_factor) if not fontsize else fontsize
+        # if tick_fontsize == np.inf:
+        #     tick_fontsize = 16
+        # logger.info(f"  Set fontsize to `{tick_fontsize}`.")
 
+        if fontsize is None:
+            if hap_names is None or not add_hap_border:
+                n_labels = len(chromnames) if chromnames is not None else 1
+            else:
+                n_labels = len(hap_names) if hap_names is not None else 1
+            density = np.log10(n_labels) if n_labels >= 10 else 1.0
+
+            f = float(factor) if factor is not None else 1.0
+            f_scale = float(np.sqrt(max(f, 1e-6))) 
+            base_font = 6.0
+            tick_fontsize = int(np.clip(base_font * f_scale / max(density, 1e-6), 6, 18))
+        else:
+            tick_fontsize = int(fontsize)
+        logger.info(f"  Set fontsize to `{tick_fontsize}`.")
         
         ax = plot_heatmap_core(matrix, ax, bins=bins, 
                                chromnames=chromnames, 
@@ -945,7 +1396,9 @@ def plot_heatmap(matrix, output,
                             vmin=vmin, vmax=vmax, 
                             cmap=cmap, add_lines=add_lines,
                             add_hap_border=add_hap_border,
-                            tick_fontsize=tick_fontsize)
+                            tick_fontsize=tick_fontsize,
+                            ytick_min_dist=ytick_min_dist,
+                            avoid_overlap_yticks=avoid_overlap_yticks)
     
     else: 
         ax = plot_per_chromosome_heatmap(cool, chromosomes,
@@ -1096,6 +1549,8 @@ def plot_heatmap_core(matrix,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
                         rotate_xticks=False, rotate_yticks=False,
+                        avoid_overlap_yticks = True,
+                        ytick_min_dist=20,
                         tick_fontsize=16,
                         cmap="redp1_r",
                         add_hap_border=False,
@@ -1107,23 +1562,26 @@ def plot_heatmap_core(matrix,
     from matplotlib import colors
     import seaborn as sns 
 
-    if cmap == 'whitered':
-        colormap = whitered_cmap
+    if cmap.endswith('_half'):
+        colormap = half_colormaps(cmap.replace('_half', ''))    
     else:
-        try:
-            """
-            https://pratiman-91.github.io/colormaps/
-            """
-            colormap = getattr(cmaps, cmap)
-        except:
+        if cmap == 'whitered':
+            colormap = whitered_cmap
+        else:
             try:
-                colormap = cmap 
-                colormap = getattr(plt.cm, cmap)
-            except AttributeError:
-                logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
-                colormap = getattr(cmaps, "redp1_r")
+                """
+                https://pratiman-91.github.io/colormaps/
+                """
+                colormap = getattr(cmaps, cmap)
+            except:
+                try:
+                    colormap = cmap 
+                    colormap = getattr(plt.cm, cmap)
+                except AttributeError:
+                    logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
+                    colormap = getattr(cmaps, "redp1_r")
 
-            
+    
     
     if norm is None or norm == "balanced":
         if vmax is None:
@@ -1134,37 +1592,61 @@ def plot_heatmap_core(matrix,
                                         chrom_offset[i]:chrom_offset[i+1]]))
 
             # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
-            # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix]))
+            # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix])
             ## remove diagonal
             cis_matrix = [arr[np.triu_indices(arr.shape[0], k=1)] for arr in cis_matrix]
             cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
             cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
-            vmax = np.percentile(cis_matrix, 98)
             
+            def vmax_by_iqr(vals, k):
+                q1, q3 = np.percentile(vals, [25, 75])
+                iqr = q3 - q1
+                return float(q3 + k * iqr)
+
+            def vmax_by_mad(vals, k):
+                med = np.median(vals)
+                mad = np.median(np.abs(vals - med)) * 1.4826
+                return float(med + k * mad)
+         
+            # vmax = vmax_by_mad(cis_matrix, 5)
+            vmax = vmax_by_iqr(cis_matrix, 1.5)
+
             if vmax == 0:
-                vmax = 0.1
-            if isinstance(vmax, int):
+                vmax = np.min(cis_matrix[cis_matrix != 0])
+                tiny_vmax_thr = 1e-20
+                if vmax < 1e-20:
+                    if (norm is None or norm == "balanced") and (vmax is not None) and np.isfinite(vmax) and (vmax > 0) and (vmax < tiny_vmax_thr):
+                        with np.errstate(divide='ignore', invalid='ignore'):
+                            matrix = np.asarray(matrix, dtype=float) / max(vmax, 1e-12)
+                        vmin = 0.0
+                        vmax = 1.0
+                        logger.info("  Rescaled by tiny vmax; set vmin=0, vmax=1 for colorbar.")
+                # if np.min(cis_matrix[cis_matrix != 0]) == 1:
+                #     vmax = np.min(cis_matrix[cis_matrix != 0])
+                # else:
+                #     vmax = 0.1 
+            try:
+                if isinstance(vmax, (int, np.integer)):
+                    s_vmax = str(int(vmax))
+                else:
+                    s_vmax = format_float_dynamic(vmax, sig=4, min_dec=0, max_dec=6)
+                logger.info(f"  Set vmax to `{s_vmax}`.")
+            except Exception:
                 logger.info(f"  Set vmax to `{vmax}`.")
-            else:
-                logger.info(f"  Set vmax to `{vmax:.6f}`.")
+           
 
             if norm is None and vmin is None:
                 vmin = 0
             del cis_matrix
-            
-
-    #     if vmax is None:
-    #         vmax = np.percentile(np.array(matrix), 95)
-
-   
-    # cax = make_axes_locatable(ax).append_axes("right", size="2%", pad=0.09)
-    # sns.heatmap(matrix, ax=ax, cmap=colormap, square=True, 
-    #                 norm=norm,
-    #                 cbar=True, 
-    #                 cbar_kws=dict(shrink=.4, pad=0.03))
-    
-    # cbar = ax.collections[0].colorbar
-    # cbar.ax.tick_params(labelsize=10)
+    else:
+        if norm == 'log1p':
+            if vmax is None:
+                vmax = np.ceil(np.log10(np.max(matrix + 1)))
+                logger.info(f"  Set vmax to `{vmax}`.")
+        elif norm == 'log':
+            if vmax is None:
+                vmax = np.ceil(np.log(np.max(matrix)))
+                logger.info(f"  Set vmax to `{vmax}`.")
     
     if triangle:
         ## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
@@ -1215,7 +1697,12 @@ def plot_heatmap_core(matrix,
     cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
     cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
     cbar.locator = plt.MaxNLocator(5)
-    
+    fmt = ScalarFormatter(useMathText=True)
+    fmt.set_scientific(True)
+    fmt.set_powerlimits((-3, 3))
+    fmt.set_useOffset(False)
+    cbar.formatter = fmt 
+    cbar.update_ticks()
     if norm == 'log1p':
         cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=tick_fontsize)
     elif norm == 'log':
@@ -1240,7 +1727,7 @@ def plot_heatmap_core(matrix,
     if xticks and chromnames:
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
-        ax.tick_params(axis='x', length=5, width=2)
+        ax.tick_params(axis='x', length=5, width=1)
         _xticks = ax.get_xticks()[:-1]
         dist = _xticks[1] - _xticks[0]
  
@@ -1258,8 +1745,10 @@ def plot_heatmap_core(matrix,
 
     else:
         ax.set_xticks([])
-    if yticks and chromnames:
+    if chromnames:
         if hap_name_df is not None and add_hap_border:
+            add_hap_internal_lines = True 
+            hap_internal_mode = 'grid'
             new_mid_tick_pos = []
             hap_names = []
             new_chrom_offset = []
@@ -1270,28 +1759,73 @@ def plot_heatmap_core(matrix,
                 new_chrom_offset.append(start)
             else:
                 new_chrom_offset.append(chrom_offset[-1])
-            ax.set_yticks(new_mid_tick_pos)
-            rotation = "vertical" if rotate_yticks else "horizontal"
-            ax.set_yticklabels(hap_names, fontsize=tick_fontsize, rotation=rotation)
-
-            ## add lines by start
-            for start, end in zip(new_chrom_offset[:-1], new_chrom_offset[1:]):
-                plt.plot([start, start], [start, end], color='black', linestyle='-', linewidth=1.0)
-                plt.plot([start, end], [start, start], color='black', linestyle='-', linewidth=1.0)
-                plt.plot([end, end], [start, end], color='black', linestyle='-', linewidth=1.0)
-                plt.plot([start, end], [end, end], color='black', linestyle='-', linewidth=1.0)
             
-            # ax.hlines(np.array(new_chrom_offset[:-1]), *ax.get_xlim(), 
-            #         linewidth=1.0, color='black', linestyles="-")
-            # ax.vlines(np.array(new_chrom_offset[:-1]), *ax.get_ylim(),
-            #         linewidth=1.0, color='black', linestyles="-")
-                
+            if yticks:
+                ax.set_yticks(new_mid_tick_pos)
+                rotation = "vertical" if rotate_yticks else "horizontal"
+                ax.set_yticklabels(hap_names, fontsize=tick_fontsize, rotation=rotation)
+            else:
+                ax.set_yticks([])
+            
+
+            border_color = 'black'
+            border_linewidth = 1.0
+            for start, end in zip(new_chrom_offset[:-1], new_chrom_offset[1:]):
+                plt.plot([start, start], [start, end], color=border_color, linestyle='-', linewidth=border_linewidth)
+                plt.plot([start, end], [start, start], color=border_color, linestyle='-', linewidth=border_linewidth)
+                plt.plot([end, end], [start, end], color=border_color, linestyle='-', linewidth=border_linewidth)
+                plt.plot([start, end], [end, end], color=border_color, linestyle='-', linewidth=border_linewidth)
+            
+            if add_hap_internal_lines and not add_lines:
+                small_lw = 0.6
+                small_color = 'black' 
+                if hap_internal_mode == "box":
+                    for chrom, idx in hap_name_df.items():
+                        local_offsets = [chrom_offset[i] for i in idx] + [chrom_offset[idx[-1] + 1]]
+                        for s, e in zip(local_offsets[:-1], local_offsets[1:]):
+                            plt.plot([s, s], [s, e], color=small_color, linestyle='-', linewidth=small_lw)
+                            plt.plot([s, e], [s, s], color=small_color, linestyle='-', linewidth=small_lw)
+                            plt.plot([e, e], [s, e], color=small_color, linestyle='-', linewidth=small_lw)
+                            plt.plot([s, e], [e, e], color=small_color, linestyle='-', linewidth=small_lw)
+                elif hap_internal_mode == "grid":
+                    for chrom, idx in hap_name_df.items():
+                        group_start = chrom_offset[idx[0]]
+                        group_end = chrom_offset[idx[-1] + 1]
+                        boundaries = [chrom_offset[i] for i in idx] + [group_end]
+                        for b in boundaries[1:-1]:
+                            plt.plot([b, b], [group_start, group_end], color=small_color, linestyle='--', linewidth=small_lw)
+                            plt.plot([group_start, group_end], [b, b], color=small_color, linestyle='--', linewidth=small_lw)
+
         else:
-            ax.set_yticks(mid_tick_pos)
-            rotation = "vertical" if rotate_yticks else "horizontal"
-            ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
+            if yticks:
+                ax.set_yticks(mid_tick_pos)
+                rotation = "vertical" if rotate_yticks else "horizontal"
+                ax.set_yticklabels(chromnames, fontsize=tick_fontsize, rotation=rotation)
+            else:
+                ax.set_yticks([])
     else:
         ax.set_yticks([])
+
+
+    if yticks and avoid_overlap_yticks:
+        fig = ax.figure
+        try:
+            fig.canvas.draw()
+        except Exception:
+            pass
+        kept_last_y = None
+        for lab in ax.get_yticklabels():
+            if not lab.get_visible():
+                continue
+            if not lab.get_text():
+                continue
+            y_data = lab.get_position()[1]
+            pixel = ax.transData.transform((0, y_data))
+            y_px = pixel[1]
+            if kept_last_y is None or abs(y_px - kept_last_y) >= ytick_min_dist:
+                kept_last_y = y_px
+            else:
+                lab.set_visible(False)
 
     if xlabel:
         ax.set_xlabel(xlabel, fontsize=18, labelpad=15)

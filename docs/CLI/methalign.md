@@ -30,7 +30,7 @@ source activate_cphasing methalign
 
     Calculate the 5mC sites by pb-cpg-tools
     ```shell
-    aligned_bam_to_cpg_scores --bam HiFi.align.sorted.bam --ref contigs.fasta --model pileup_calling_model.v1.tflite --modsites-mode reference
+    aligned_bam_to_cpg_scores --bam HiFi.align.sorted.bam --ref contigs.fasta --model pileup_calling_model.v1.tflite --modsites-mode reference -q 2 
     awk '{print $1,$2,$3,$9}' OFS='\t' HiFi_align_sorted_bam_to_cpg_scores.combined.bed > output.methyl.bg
     ```
 
@@ -38,14 +38,14 @@ source activate_cphasing methalign
     Align the ONT reads by dorado
 
     ```shell
-    dorado aligner contigs.fasta ont_reads.bam -t 20 | samtools view -q 1 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
+    dorado aligner contigs.fasta ont_reads.bam -t 20 | samtools view -q 2 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
     samtools index ont.align.sorted.bam 
     ```
 
     Calculate the 5mC sites by modkit
 
     ```shell
-    modkit pileup ont.align.sorted.bam output.methyl.bed --log-filepath pileup.log --cpg --ref contigs.fasta -t 60 --combine-strands
+    modkit pileup ont.align.sorted.bam output.methyl.bed --log-filepath pileup.log --cpg --ref contigs.fasta -t 60 --combine-strands --ignore h
     awk '{print $1,$2,$3,$11}' OFS='\t' output.methyl.bed > output.methyl.bg
     ```
 
@@ -57,21 +57,24 @@ dorado aligner contigs.fasta porec_reads.bam --secondary=yes > porec.align.bam
     Replace `--secondary=yes` to `--mm2-opts "--secondary=yes"` when using dorado >= 0.8.0
 
 ## Refine alignments
-- Split bam to speed up the refine step
-```shell
-cphasing-rs split-bam porec.align.bam -o split_outdir/output.split
-cd split_outdir
-```
 
 - Refine the alignments by methylation information
 ```shell
-methalign refine -t 20 contigs.fasta output.methyl.bg output.split_*.bam -o porec.align.refined.paf.gz
+methalign -t 20 contigs.fasta output.methyl.bg porec.reads*.bam -o porec.align.refined.paf.gz
 ```
 !!! note
-    This step will output `porec.align.refined.paf.gz` and `porec.align.refined.porec.gz`
+    This step will output `methalign.refined.paf.gz` and `methalign.refined.porec.gz`
 
 - After refine
 Input `porec.align.refined.porec.gz` 
 ```shell
-cphasing pipeline -f contigs.fasta -pct porec.align.refined.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT 
+cphasing pipeline -f contigs.fasta -pct methalign.refined.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT 
 ```
+
+!!! tips
+    If you input a large aligned bam you can use `cphasing-rs split-bam` to split bam into several parts and run `methalign`, respectively. 
+    - Split bam to speed up the refine step
+    ```shell
+    cphasing-rs split-bam porec.align.bam -o split_outdir/output.split
+    cd split_outdir
+    ```

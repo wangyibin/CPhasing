@@ -1303,7 +1303,8 @@ class ClmLine():
     @property
     def dk(self):
         
-        reciprocal_values = list(map(lambda x: 1/(x + 1), self.distances))
+        # reciprocal_values = list(map(lambda x: 1/np.log(x + 1), self.distances))
+        reciprocal_values = list(map(lambda x: 1/x, self.distances))
         return sum(reciprocal_values)
     
     def __str__(self):
@@ -1318,7 +1319,7 @@ class Clm(object):
         # self.memory = Memory(mem_cache, verbose=0)
         # self.dk_df = self.memory.cache(self._dk_df)
 
-    def count_db(self, count_re=None):
+    def count_db(self, count_re=None, symmetric=True):
         """
         generate a dictionary containing the contacts of contig pairs
 
@@ -1353,12 +1354,14 @@ class Clm(object):
                 else:
                     value = cl.count
                 db[(cl.ctg1, cl.ctg2)] = value
+                if symmetric:
+                    db[(cl.ctg2, cl.ctg1)] = value
             
         return db
 
     def parse(self):
         self.data = {}
-        with open(self.file, 'r') as fp:
+        with xopen(self.file, 'r') as fp:
             for line in fp:
                 cl = ClmLine(line)
                 if (cl.ctg1, cl.ctg2) not in self.data:
@@ -1595,6 +1598,34 @@ class Tour:
         else:
             res = list(map(lambda x:(x[0], 1) if x[1] == "+" else (x[0], -1), res))
             return res
+
+    def reverse_single_contig(self, contig):
+        """
+        reverse single contig in tour data.
+
+        Params:
+        --------
+        contig: str
+            contig to be reversed.
+        
+        Returns:
+        --------
+        None
+
+        Examples:
+        --------
+        >>> tour.data
+        ['utg001+', 'utg002-']
+        >>> tour.reverse_single_contig('utg001')
+        >>> tour.data
+        ['utg001-', 'utg002-']
+        """
+        for i, ts in enumerate(self.data):
+            if ts.contig == contig:
+                new_orient = '-' if ts.orient == '+' else '+'
+                self.data[i] = TourSingle(f"{contig}{new_orient}")
+                break
+            
 
     def to_dict(self, strand_value=0) -> OrderedDict:
         """

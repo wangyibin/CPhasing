@@ -20,6 +20,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import MaxNLocator
+from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
 from collections import Counter, defaultdict, OrderedDict
@@ -31,7 +32,7 @@ from pathlib import Path
 try:
     from .algorithms.hypergraph import extract_incidence_matrix2, HyperGraph
     from .core import Tour
-    from .utilities import (run_cmd, list_flatten, 
+    from .utilities import (run_cmd, list_flatten, read_fasta,
                             get_contig_size_from_fasta, 
                             read_chrom_sizes, xopen)
     from .agp import agp2cluster, import_agp, agp2tour
@@ -44,6 +45,87 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+
+def find_haploid_peak(raw_counts,
+                      left_trim_quantile=0.005,
+                      right_trim_quantile=0.995,
+                      max_multiplier=1.8,
+                      smooth_sigma=1.2,
+                      min_prom_frac=0.05,
+                      min_width=2,
+                      debug=False):
+
+    data = pd.Series(raw_counts).dropna()
+
+    data = data[data > 0]
+
+    hi = data.quantile(right_trim_quantile)
+    data = data[data <= hi]
+
+    lo = data.quantile(left_trim_quantile)
+    data = data[data >= lo]
+
+    if len(data) == 0:
+        raise ValueError("No data left after trimming")
+
+
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25 if (q75 - q25) > 0 else data.std()
+    bin_width = 2 * iqr / (len(data) ** (1/3))
+    if not np.isfinite(bin_width) or bin_width <= 0:
+        bin_width = max(1, data.mean() / 50)
+    bins = int((data.max() - data.min()) / bin_width) + 30
+    bins = max(60, min(bins, 600))
+
+    hist_counts, bin_edges = np.histogram(data, bins=bins)
+    centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    smooth = gaussian_filter1d(hist_counts.astype(float), smooth_sigma)
+
+
+    min_prominence = smooth.max() * min_prom_frac
+    peaks, props = find_peaks(smooth,
+                              prominence=min_prominence,
+                              width=min_width)
+    if len(peaks) == 0:
+
+        mode_idx = np.argmax(smooth)
+        peak_cov = centers[mode_idx]
+    else:
+
+        prom = props['prominences']
+        widths = props['widths']
+        score = prom * widths
+
+        order = np.argsort(score)[::-1]
+        candidate_indices = peaks[order]
+
+        sorted_by_pos = np.sort(peaks)
+        peak_cov = centers[candidate_indices[0]]
+        if len(sorted_by_pos) >= 2:
+            left_cov = centers[sorted_by_pos[0]]
+            second_cov = centers[sorted_by_pos[1]]
+            if left_cov < second_cov * 0.7:
+                left_prom = prom[np.where(peaks == sorted_by_pos[0])[0][0]]
+                if left_prom >= 0.5 * prom.max():
+                    peak_cov = left_cov
+
+        mean_cov = data.mean()
+        if peak_cov > mean_cov * 1.2 and len(peaks) > 1:
+            smaller = centers[peaks][centers[peaks] < peak_cov]
+            if len(smaller):
+                best_small = smaller[np.argmax([prom[np.where(peaks == p)[0][0]] for p in peaks if centers[p] in smaller])]
+                peak_cov = best_small
+
+    peak_cov = float(peak_cov)
+
+    lower = peak_cov * 0.10
+    upper = peak_cov * max_multiplier
+
+    if debug:
+        print(f"[DEBUG] peak={peak_cov:.2f} lower={lower:.2f} upper={upper:.2f} bins={bins}")
+
+    return peak_cov, lower, upper
 
 class CollapseFromDepth:
     """
@@ -189,8 +271,15 @@ class CollapseFromGfa:
         self.gfa.replace(".gfa", ".depth")
         self.depth_df.to_csv(self.gfa.replace(".gfa", ".depth"), sep='\t', header=False, index=False)
        
-    def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.75 ):
+    def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.5 ):
         data = self.depth_df['count']
+
+        peak_cov, lower_thr, upper_thr = find_haploid_peak(
+            data,
+            max_multiplier=upper_value
+        )
+
+
         fig, ax = plt.subplots(figsize=(5.7, 5))
         plt.rcParams['font.family'] = 'Arial'
 
@@ -216,19 +305,29 @@ class CollapseFromGfa:
         x = kdelines.lines[0].get_xdata()
         y = kdelines.lines[0].get_ydata()
 
-        peak_ind = find_peaks(y, distance=10)[0]
-        median_value = np.quantile(data, .3)
-        peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-        if len(peak_ind) == 0:
-            max_idx = np.argsort(x)[len(x)//2]
-        else:
-            max_idx = peak_ind[np.argmax(y[peak_ind])]
+        # peak_ind = find_peaks(y, distance=10)[0]
+        # median_value = np.quantile(data, .3)
+        # print(peak_ind)
+        # print(median_value)
+        # peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+        # print(peak_ind)
+        # if len(peak_ind) == 0:
+        #     max_idx = np.argsort(x)[len(x)//2]
+        # else:
+        #     max_idx = peak_ind[np.argmax(y[peak_ind])]
 
-        ax.axvline(x[max_idx], linestyle='--', color='#b02418')
-        ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
-        ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
-        ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
-
+        # ax.axvline(x[max_idx], linestyle='--', color='#b02418')
+        # ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
+        # ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
+        # ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
+        ax.axvline(peak_cov, ls='--', color='#b02418')
+        ax.text(peak_cov, ax.get_ylim()[1]*0.95, f"{peak_cov:.1f}",
+                color='#b02418', ha='center')
+        # ax.axvspan(lower_thr, upper_thr, color='#ccc', alpha=0.25)
+        ax.axvline(upper_thr, ls='--', color='#253761')
+        ax.text(upper_thr, ax.get_ylim()[1]*0.95, f"{upper_thr:.1f}",
+                color='#253761', ha='center')
+        
         sns.despine()
         plt.legend([], frameon=False)
         ax.spines['bottom'].set_linewidth(1.5)
@@ -238,7 +337,10 @@ class CollapseFromGfa:
         plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
         plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
 
-        return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+        
+        # return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+       
+        return peak_cov, lower_thr, upper_thr
         
 
     def run(self):
@@ -251,7 +353,7 @@ class CollapseFromGfa:
 
         rd_df['length'] = rd_df['contig'].map(self.length_db.get)
         # rd_df = rd_df[rd_df['length'] >= min_length]
-        
+
         rd_df['CN'] = rd_df['count'] / peak_depth
 
         collapsed_df = rd_df[rd_df['count'] >= upper_depth]
@@ -262,6 +364,8 @@ class CollapseFromGfa:
         logger.info(f"Identified {low_df['length'].sum():,} bp contigs with read depth < {lower_depth:.2f}")
         low_df.drop(columns=["length"], inplace=True)
         low_df.to_csv("contigs.low.contig.list", sep='\t', header=False, index=False)
+
+
 class CollapseContigs:
     def __init__(self, cool_path):
         self.cool_path = cool_path 
@@ -359,9 +463,13 @@ class CollapsedRescue:
                 groups_new_idx_db.update(dict(zip(groups_new_idx[i], [i] * len(groups_new_idx[i]))))
             
             sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(axis=0)
-            sub_collapsed_contigs_idx = list(map(vertices_idx.get, sub_collapsed_contigs.index.tolist()))
-            sub_collapsed_contigs_idx_new = list(map(sub_old2new_idx.get, sub_collapsed_contigs_idx))
-
+            sub_collapsed_contigs.index = sub_collapsed_contigs.index.map(vertices_idx.get)
+            sub_collapsed_contigs_new = sub_collapsed_contigs.copy()
+            sub_collapsed_contigs_new.index = sub_collapsed_contigs_new.index.map(sub_old2new_idx.get)
+            sub_collapsed_contigs_idx = sub_collapsed_contigs.index.tolist()
+            sub_collapsed_contigs_idx_new = sub_collapsed_contigs_new.index.tolist()
+            sub_collapsed_contigs_cn_dict = sub_collapsed_contigs_new['CN'].to_dict()
+            
             res = []
            
             for j in sub_collapsed_contigs_idx_new:
@@ -388,10 +496,19 @@ class CollapsedRescue:
                                 shared_similarity[i] = tmp['mzShared'].sum()
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
+                
+                cn = int(sub_collapsed_contigs_cn_dict[j])
+                
+                tmp_res_db = dict(zip(range(len(tmp_res)), tmp_res))
+                
+                tmp_res_idx = sorted(tmp_res_db, key=lambda x: tmp_res_db[x], reverse=True)
+                for max_idx in tmp_res_idx[:(cn-1)]:
+                    if tmp_res_db[max_idx] > self.min_weight:
+                        groups_new_idx[max_idx].append(j)
+                        logger.debug(f"Rescued contig {idx_to_vertices[max_idx]} into group {max_idx}")
 
-                groups_new_idx[np.argmax(tmp_res)].append(j)
-                logger.debug(f"Rescued contig {idx_to_vertices[j]} into group {np.argmax(tmp_res)}")
                 res.append(tmp_res)
+
             new_groups = []
             for group_idx in groups_new_idx:
                 tmp = list(map(lambda x: contigs_idx[x], group_idx))
@@ -879,7 +996,25 @@ def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):
     
 def get_dup_prune_pairs():
     pass
+
+
+
+def fasta_dup(fasta, collapsed_list, output):
+    fasta = read_fasta(fasta)
+    collapsed_db = {}
+    with open(collapsed_list) as fp:
+        for line in fp:
+            line = line.strip().split()
+            if line[0] not in collapsed_db:
+                collapsed_db[line[0]] = []
+            collapsed_db[line[0]].append(line[1])
     
+    
+    for contig in fasta:
+        if contig in collapsed_db:
+            for dup_contig in collapsed_db[contig]:
+                print(f">{dup_contig}\n{fasta[contig]}", file=output)            
+        print(f">{contig}\n{fasta[contig]}", file=output)
 
     
 if __name__ == "__main__":  

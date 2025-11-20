@@ -25,11 +25,64 @@ import seaborn as sns
 from matplotlib.ticker import MaxNLocator
 from pathlib import Path
 from scipy.signal import find_peaks
+from scipy.stats import gaussian_kde
+from scipy.ndimage import gaussian_filter1d
 
 # from line_profiler import profile
 
 
 logger = logging.getLogger(__name__)
+
+# def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
+#     fig, ax = plt.subplots(figsize=(5.7, 5))
+#     plt.rcParams['font.family'] = 'Arial'
+#     data = data[data <= np.percentile(data, 98) * 1.5]
+#     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+#     ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+#     kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+#     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+#     formatter = plt.gca().get_yaxis().get_major_formatter()
+#     plt.gca().yaxis.set_major_formatter(formatter)
+#     plt.gca().yaxis.get_offset_text().set_fontsize(14)
+#     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+#     formatter = plt.gca().get_xaxis().get_major_formatter()
+#     plt.gca().xaxis.set_major_formatter(formatter)
+#     plt.gca().xaxis.get_offset_text().set_fontsize(14)
+#     plt.xlim(0, np.percentile(data, 95) * 2)
+#     plt.xticks(fontsize=18)
+#     plt.yticks(fontsize=18)
+#     plt.xlabel("Contacts", fontsize=24)
+#     plt.ylabel("Density", fontsize=24)
+
+#     x = kdelines.lines[0].get_xdata()
+#     y = kdelines.lines[0].get_ydata()
+
+
+#     peak_ind = find_peaks(y, distance=10)[0]
+
+#     median_value = np.quantile(data, .3)
+#     peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+#     if len(peak_ind) == 0:
+#         max_idx = np.argsort(x)[len(x)//2]
+#     else:
+#         max_idx = peak_ind[np.argmax(y[peak_ind])]
+    
+  
+    
+#     ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
+#                     0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+#     ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
+#     ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
+#     ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
+#     ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
+
+#     # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
+#     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+#     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+#     logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
+    
+#     return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+
 
 def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     fig, ax = plt.subplots(figsize=(5.7, 5))
@@ -52,34 +105,63 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     plt.xlabel("Contacts", fontsize=24)
     plt.ylabel("Density", fontsize=24)
 
-    x = kdelines.lines[0].get_xdata()
-    y = kdelines.lines[0].get_ydata()
+
+    try:
+        x_min = 0.0
+        x_max = float(np.percentile(data, 99.5) * 1.5)
+        x_grid = np.linspace(x_min, max(x_max, 1e-9), 2048)
+        kde = gaussian_kde(data, bw_method='scott')
+        y_kde = kde.evaluate(x_grid)
+    except Exception:
+        bins = min(256, max(32, int(np.sqrt(len(data)))))
+        counts, edges = np.histogram(data, bins=bins, range=(0, x_max if 'x_max' in locals() else None), density=True)
+        x_grid = (edges[:-1] + edges[1:]) / 2.0
+        y_kde = counts
 
 
-    peak_ind = find_peaks(y, distance=10)[0]
+    try:
+        y_smooth = gaussian_filter1d(y_kde, sigma=2)
+    except Exception:
+        y_smooth = y_kde
 
-    median_value = np.quantile(data, .3)
-    peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-    if len(peak_ind) == 0:
-        max_idx = np.argsort(x)[len(x)//2]
+
+    q10 = np.quantile(data, 0.10)
+    q99 = np.quantile(data, 0.99)
+    mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
+    x = x_grid[mask]
+    y = y_smooth[mask]
+
+
+    if len(x) == 0 or len(y) == 0:
+        max_idx = 0
     else:
-        max_idx = peak_ind[np.argmax(y[peak_ind])]
-    
-  
-    
-    ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
-                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
-    ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
-    ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
-    ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
-    ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
+        height_thresh = 0.05 * float(y.max())  
+        prom_thresh = 0.10 * float(y.max())    
+        distance = max(5, len(y) // 200)  
+        peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
 
-    # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
+        if len(peaks) == 0:
+
+            max_idx = int(np.argmax(y))
+        else:
+            prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
+            max_idx = int(peaks[int(np.argmax(prominences))])
+
+    x_peak = float(x[max_idx])
+
+    ax.fill_between((x_peak * lower_value, x_peak * upper_value), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    ax.axvline(x_peak * lower_value, linestyle='--', color='k')
+    ax.axvline(x_peak * upper_value, linestyle='--', color='k')
+    ax.axvline(x_peak, linestyle='--', color='#cb6e7f')
+    ax.text(int(x_peak), ax.get_ylim()[1] / 4, str(int(x_peak)), fontsize=10, color='#cb6e7f')    
+
     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
     logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
     
-    return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+    return int(x_peak), x_peak * lower_value, x_peak * upper_value
+
 
 def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
                     min_remove_whole_collapsed_contigs_rate=0.9):

@@ -42,14 +42,22 @@ theme:
     - content.code.copy
     - content.code.select
     - content.action.edit
+    - content.action.view
     - content.code.annotate
+    - content.tooltips 
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
     - navigation.sections
     - navigation.top
+    - navigation.indexes
     - navigation.footer
-  
+    # - navigation.tabs
+    - toc.follow
+    - search.share
+    - search.highlight
+    - search.suggest
+    
 markdown_extensions:
   - admonition
   - attr_list
@@ -76,7 +84,7 @@ markdown_extensions:
       alternate_style: true
   - toc:
       toc_depth: 3
-      permalink: "#"
+      permalink: true
   - mdx_truly_sane_lists
   - md_in_html
 
@@ -114,7 +122,7 @@ plugins:
               code: JetBrains Mono
           nav_translations:
             Home: 首页
-            Installation: 安装
+            Introduction & Installation: 介绍&安装
             Basic Usage: 基本用法
             Tutorials: 教程
             CLI: 工具
@@ -126,7 +134,7 @@ plugins:
 
 
 nav:
-  - Installation: index.md
+  - Introduction & Installation: index.md
   - Basic Usage: basic_usage.md
   - Tutorials: 
     - Pore-C&HiFi-C:
@@ -148,5 +156,7 @@ nav:
     - CLI/plot.md
   
   - Misc:
+    - Citation: citation.md
     - FAQ: faq.md
     - CHANGES.md
+    

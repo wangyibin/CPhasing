@@ -90,8 +90,9 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
     outprefix = prefix if outprefix is None else outprefix
 
     ## count re
+    output_pattern = pattern.replace("^", "").replace(",", "_")
     cmd = ["cphasing-rs", "count_re", fasta, "-o", 
-            f"{outprefix}.counts_{pattern}.txt", "-p", pattern]
+            f"{outprefix}.counts_{output_pattern}.txt", "-p", pattern]
     flag = run_cmd(cmd, log=f'{log_dir}/prepare.count_re.log')
     assert flag == 0, "Failed to execute command, please check log."
 

@@ -121,10 +121,11 @@ def main(args):
     f1_score = (2 * precision * recall) / (precision + recall)
 
     for pair in loss_pairs:
-        print("\t".join(pair), file=sys.stdout)
-    print(f"Precision:{precision:.4}")
-    print(f"Recall:{recall:.4}")
-    print(f"F1 score:{f1_score:.4}")
+        count = contacts_dict.get(pair, 0)
+        print("\t".join(pair) + "\t" + str(count), file=sys.stdout)
+    print(f"Precision:{precision:.4}", file=sys.stderr)
+    print(f"Recall:{recall:.4}", file=sys.stderr)
+    print(f"F1 score:{f1_score:.4}", file=sys.stderr)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

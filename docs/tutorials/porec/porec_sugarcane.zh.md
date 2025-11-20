@@ -19,8 +19,11 @@ cphasing porec-merge porec-*.porec.gz -o porec.merge.porec.gz
 
 
 ## 组装流程
-现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（`-n 0:0`)。
+- 现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（`-n 0:0`)。
 ```shell
 cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct porec.mrege.porec.gz -t 40 -n 0:0 -hcr -p AAGCTT 
 ```
-
+- 或者使用`--merge-use-allele`通过等位contig信息，辅助第一次分组
+```shell
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct porec.mrege.porec.gz -t 40 -n 10:0 -hcr -p AAGCTT --merge-use-allele
+```

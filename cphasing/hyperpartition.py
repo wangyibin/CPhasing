@@ -42,7 +42,14 @@ from .core import (
     PruneTable
 )
 from .kprune import KPruneHyperGraph
-from .utilities import list_flatten, run_cmd, to_humanized2, parse_split_contigs
+from .utilities import (
+    list_flatten, 
+    run_cmd, 
+    to_humanized2, 
+    parse_split_contigs,
+    is_file_changed,
+    get_fasta_from_split_contig,
+)
 from ._config import *
 
 logger = logging.getLogger(__name__)
@@ -104,12 +111,14 @@ class HyperPartition:
                     split=False,
                     contacts=None,
                     kprune_norm_method="auto",
+                    count_re=None,
                     allelic_factor=-1,
                     cross_allelic_factor=0.3,
                     allelic_similarity=0.8,
                     min_allelic_overlap=0.1,
                     ultra_complex=5.0,
                     disable_merge_in_first=False,
+                    merge_use_allele=False,
                     exclude_group_to_second=None,
                     exclude_group_from_first=None,
                     whitelist=None,
@@ -137,6 +146,7 @@ class HyperPartition:
         
         self.edges = edges
         self.contigsizes = contigsizes ## dataframe
+  
         self.ultra_long = ultra_long
         self.ul_weight = ul_weight
         self.k = k
@@ -159,6 +169,7 @@ class HyperPartition:
         self.split = split
         self.contacts = contacts
         self.kprune_norm_method = kprune_norm_method
+        self.count_re = count_re
             
         self.allelic_factor = allelic_factor
         self.cross_allelic_factor = cross_allelic_factor
@@ -167,6 +178,7 @@ class HyperPartition:
         self.min_allelic_overlap = min_allelic_overlap
         self.ultra_complex = ultra_complex
         self.disable_merge_in_first = disable_merge_in_first
+        self.merge_use_allele = merge_use_allele
         self.exclude_group_to_second = exclude_group_to_second
         self.exclude_group_from_first = exclude_group_from_first
         self.whitelist = whitelist
@@ -333,10 +345,24 @@ class HyperPartition:
         remove_contigs.update(set(short_contigs))
 
         if self.whitelist:
-            remove_contigs.update(set(self.contigs) - set(self.whitelist))
+            if not self.split:
+                remove_contigs.update(set(self.contigs) - set(self.whitelist))
+            else:
+                _remov_contigs = set()
+                for x in self.contigs:
+                    if parse_split_contigs(x)[0] not in self.whitelist:
+                        _remov_contigs.add(x)
+                remove_contigs.update(_remov_contigs)
 
         if self.blacklist:
-            remove_contigs.update(set(self.blacklist))
+            if not self.split:
+                remove_contigs.update(set(self.blacklist))
+            else:
+                _remov_contigs = set()
+                for x in self.contigs:
+                    if parse_split_contigs(x)[0] in self.blacklist:
+                        _remov_contigs.add(x)
+                remove_contigs.update(_remov_contigs)
         
         if len(remove_contigs) == 0:
             return
@@ -376,6 +402,12 @@ class HyperPartition:
         
         prunetable = PruneTable(self.prunetable)
         pair_df = prunetable.data
+        pair_df = pair_df[pair_df['contig1'].isin(self.vertices) & \
+                            pair_df['contig2'].isin(self.vertices)]
+        if pair_df.empty:
+            logger.warning("No valid prune pairs found in the provided prunetable.")
+            return None, None, None
+        
         pair_df['contig1'] = pair_df['contig1'].map(lambda x: vertices_idx.get(x, np.nan))
         pair_df['contig2'] = pair_df['contig2'].map(lambda x: vertices_idx.get(x, np.nan))
         pair_df = pair_df.dropna(axis=0).astype({'contig1': 'int', 'contig2': 'int', 'type': 'int'})
@@ -387,7 +419,7 @@ class HyperPartition:
         # pair_df = pd.concat([pair_df, pair_df2], axis=0)
         pair_df = pair_df.drop_duplicates(subset=['contig1', 'contig2'])
         pair_df = pair_df.reset_index(drop=True)
-        
+  
         # P_idx = [pair_df[0], pair_df[1]]
         # tmp_df = pair_df[(pair_df['type'] == 0)  & (pair_df['similarity'] >= self.allelic_similarity)]
         # tmp_df = pair_df[pair_df['type'] == 0]
@@ -436,18 +468,74 @@ class HyperPartition:
         P_weak_idx = [pair_df.loc[pair_df['type'] == 1, 'contig1'], pair_df.loc[pair_df['type'] == 1, 'contig2']]
 
         return P_allelic_idx, P_weak_idx, pair_df
-
+    
     def get_normalize_weight(self):
-        contig_sizes = self.contigsizes
-       
-        vertices_length = contig_sizes.loc[self.vertices]
+        """
+        Get normalize weight matrix
 
-        a = vertices_length['length'].astype('float32')
-        
-        # NW = np.log10((a.max() ** 2 ) / np.outer(a, a))
-        NW = 1 / np.outer(a, a)
-        # NW = np.ones(NW.shape)
-        # print(NW)
+        Supported methods:
+        -----------------
+        none: no normalization
+        geom/sqrt_len: 1/sqrt(Li*Lj)
+        density/len: 1/(Li*Lj)
+        log/loglen: log compression
+        len_deg/ld: length and degree combined normalization
+        len_deg: 1/((Li^alpha)*(Di^beta))
+
+        Params:
+        -------
+        method: str or dict
+            normalization method
+
+        Returns:
+        --------
+        NW: np.ndarray or None
+            normalize weight matrix
+        """
+        method = "hybrid"
+        if isinstance(method, bool):
+            method = "geom" if method else "none"
+
+        alpha = 1.0
+        beta = 1.0
+        if isinstance(method, dict):
+            alpha = float(method.get("alpha", 1.0))
+            beta = float(method.get("beta", 1.0))
+            method = method.get("method", "len_deg")
+
+        a = self.contigsizes.loc[self.vertices]['length'].astype(np.float64).values
+        a[a <= 0] = 1.0 
+        deg = np.asarray(self.H.sum(axis=1)).ravel().astype(np.float64)
+        deg[deg <= 0] = 1.0
+
+        eps = 1e-9
+        if method in ("none", None):
+            return None
+
+        if method in ("geom", "sqrt_len"):
+            w = 1.0 / np.sqrt(a)
+        elif method in ("density", "len"):
+            w = 1.0 / a
+        elif method in ("log", "loglen"):
+            med = float(np.median(a))
+            scale = np.log1p(a / max(med, 1.0))
+            w = 1.0 / np.sqrt(np.clip(scale, eps, None))
+        elif method in ("len_deg", "ld"):
+            deg = np.asarray(self.H.sum(axis=1)).ravel().astype(np.float64)
+            deg[deg <= 0] = 1.0
+            w = 1.0 / (np.power(a, alpha/2.0) * np.power(deg, beta/2.0))
+        elif method in ("vc",):
+            w = 1.0 / np.sqrt(deg)
+        elif method in ("hybrid", ):
+            a_n = a / max(float(np.median(a)), 1.0)
+            d_n = deg / max(float(np.median(deg)), 1.0)
+            w = 1.0 / np.sqrt(np.power(np.clip(a_n, eps, None), alpha) *
+                              np.power(np.clip(d_n, eps, None), beta))
+        else:
+            w = 1.0 / np.sqrt(a)
+
+        NW = np.outer(w, w).astype(np.float32)
+
         return NW
 
     @staticmethod
@@ -502,54 +590,118 @@ class HyperPartition:
         >>> cluster_assignments, K = single_partition(H, P_allelic_idx, P_weak_idx,
         """
         logger.info("Start hyperpartition ...")
+
         if self.alleletable and not self.prunetable:
             self.kprune(self.alleletable, contacts=self.contacts)
 
-
-        A = self.HG.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
-                                          NW=self.NW,
+        
+        A = self.HG.clique_expansion_init(self.H, 
+                                        #   NW=self.NW,
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
-        
+
         dia = A.diagonal()
         raw_contig_counts = A.shape[0]
-        retain_idx = np.where(dia > self.min_cis_weight )[0]
+        retain_idx = np.where(dia > self.min_cis_weight)[0]
         contig_counts = len(retain_idx)
-
+    
         if len(retain_idx) < raw_contig_counts:
+            idx_to_vertices = self.idx_to_vertices
             A = A[retain_idx, :][:, retain_idx]
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
+  
             self.vertices = self.vertices[retain_idx]
+            if self.NW is not None:
+                self.NW = self.NW[retain_idx, :][:, retain_idx]
 
+            if self.prune_pair_df:
+                self.prune_pair_df = self.prune_pair_df[
+                    self.prune_pair_df['contig1'].isin(set(list(retain_idx))) &
+                    self.prune_pair_df['contig2'].isin(set(list(retain_idx)))
+                ]
+
+                self.prune_pair_df['contig1'] = self.prune_pair_df['contig1'].map(idx_to_vertices.get)
+                self.prune_pair_df['contig2'] = self.prune_pair_df['contig2'].map(idx_to_vertices.get)
+                self.prune_pair_df = self.prune_pair_df.dropna(axis=0).reset_index(drop=True)
+                self.prune_pair_df['contig1'] = self.prune_pair_df['contig1'].astype('str')
+                self.prune_pair_df['contig2'] = self.prune_pair_df['contig2'].astype('str')
+                vertices_idx = self.vertices_idx
+                self.prune_pair_df['contig1'] = self.prune_pair_df['contig1'].map(
+                    lambda x: vertices_idx.get(x, np.nan))
+                self.prune_pair_df['contig2'] = self.prune_pair_df['contig2'].map(
+                    lambda x: vertices_idx.get(x, np.nan))
+                self.prune_pair_df = self.prune_pair_df.dropna(axis=0).reset_index(drop=True)
+                self.P_allelic_idx = [self.prune_pair_df.loc[self.prune_pair_df['type'] == 0, 'contig1'],
+                                        self.prune_pair_df.loc[self.prune_pair_df['type'] == 0, 'contig2']]
+                self.P_weak_idx = [self.prune_pair_df.loc[self.prune_pair_df['type'] == 1, 'contig1'],
+                                    self.prune_pair_df.loc[self.prune_pair_df['type'] == 1, 'contig2']]
+            
             logger.info(f"Removed {raw_contig_counts - contig_counts:,} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
+            A = self.HG.clique_expansion_init(self.H, 
+                                            NW=self.NW,
+                                            allelic_factor=self.allelic_factor, 
+                                            min_weight=self.min_weight)
+        vertices_idx = self.vertices_idx
         idx_to_vertices = self.idx_to_vertices
 
+        A = HyperGraph.normalize_adjacency_matrix(A, self.NW)
+
         if self.resolution1 == -1:
-            result_K_length = 0
+            result_K_length = len(self.K)
             tmp_resolution = self.init_resolution1
+            max_round = 100 
+            round_count = 0
             if not k:
                 logger.warning("To automatic search best resolution, the `-n` must be specified.")
-            while result_K_length < k:
-                # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
-                raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, 
-                                                                  A, self.NW, 
-                                                        self.P_allelic_idx,
-                                                        self.P_weak_idx,
-                                                        self.allelic_factor,
-                                                        self.cross_allelic_factor,
-                                                        tmp_resolution, 
-                                                        self.min_weight,
-                                                        self.threshold, 
-                                                        self.max_round,
-                                                        threads=self.threads)
-                self.K = list(map(list, self.K))
-                self.K = self.filter_cluster(verbose=0)
-                result_K_length = len(self.K)
-                logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution}`.")
-                tmp_resolution += 0.2
+            if result_K_length < k:
+                while result_K_length < k:
+                    if round_count >= max_round:
+                        logger.warning("Maximum rounds reached during automatic resolution search.")
+                        break
+                    # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
+                    raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, 
+                                                                    A, self.NW, 
+                                                            self.P_allelic_idx,
+                                                            self.P_weak_idx,
+                                                            self.allelic_factor,
+                                                            self.cross_allelic_factor,
+                                                            tmp_resolution, 
+                                                            self.min_weight,
+                                                            self.threshold, 
+                                                            self.max_round,
+                                                            threads=self.threads)
+                    self.K = list(map(list, self.K))
+                    self.K = self.filter_cluster(verbose=0)
+                    result_K_length = len(self.K)
+                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.2f}`.")
+                    tmp_resolution += 0.2
+                    round_count += 1
 
-                
+            if result_K_length > k and not self.merge_use_allele:
+                while result_K_length > k:
+                    if tmp_resolution <= 0 or round_count >= max_round:
+                        logger.warning("Minimum resolution reached during automatic resolution search.")
+                        break
+                    # logger.info(f"Automatic search the best resolution ... {tmp_resolution:.1f}")
+                    raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, 
+                                                                    A, self.NW, 
+                                                            self.P_allelic_idx,
+                                                            self.P_weak_idx,
+                                                            self.allelic_factor,
+                                                            self.cross_allelic_factor,
+                                                            tmp_resolution, 
+                                                            self.min_weight,
+                                                            self.threshold, 
+                                                            self.max_round,
+                                                            threads=self.threads)
+                    self.K = list(map(list, self.K))
+                    self.K = self.filter_cluster(verbose=0)
+                    result_K_length = len(self.K)
+                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.2f}`.")
+                    tmp_resolution -= 0.1
+                    round_count += 1
+
         else:
             raw_A, A, self.cluster_assignments, self.K = IRMM(self.H, A, self.NW, 
                                                         self.P_allelic_idx,
@@ -585,10 +737,7 @@ class HyperPartition:
                     HyperPartition._incremental_partition(*args[-1])
                 else:
                     _results.append(group)
-            # _results2 = Parallel(n_jobs=min(self.threads, len(args) + 1))(
-            #                 delayed(HyperPartition._incremental_partition) 
-            #                  (i, j, _k, l, m, n, o, p, q, r, s, t, u, v) 
-            #                     for i, j, _k, l, m, n, o, p, q, r, s, t, u, v in args) 
+        
             _, _results2 = zip(*_results2)
             _results2 = list_flatten(_results2)
             _results.extend(_results2)
@@ -597,9 +746,35 @@ class HyperPartition:
         
         if k and len(self.K) > k:  
             logger.info(f"Merging {len(self.K)} groups into {k} groups ...")
-            self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
-                                            self.prune_pair_df, self.allelic_similarity,
-                                            self.min_allelic_overlap, method='sum')
+           
+            if self.alleletable and self.merge_use_allele:
+                at = AlleleTable(self.alleletable, fmt="allele2", sort=False)
+                at_df = at.data
+                at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
+                at_df[1] = at_df[1].map(vertices_idx.get)
+                at_df[2] = at_df[2].map(vertices_idx.get)
+                at_df.dropna(inplace=True)
+                at_df[1] = at_df[1].astype(int)
+                at_df[2] = at_df[2].astype(int)
+                allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+                allele_use_method = "merge"
+                
+            else:
+                allelic_idx_set = set()
+                allele_use_method = "conflict"
+            try:
+                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
+                                            allelic_idx_set=allelic_idx_set,
+                                            min_allelic_overlap=self.min_allelic_overlap, 
+                                            allele_use_method=allele_use_method, 
+                                            method='mean')
+            except AttributeError:
+                allelic_idx_set = set()
+                self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k, 
+                                                allelic_idx_set=allelic_idx_set,
+                                                min_allelic_overlap=self.min_allelic_overlap, 
+                                                allele_use_method=allele_use_method, 
+                                                method='sum')
 
         # self.remove_misassembly()
 
@@ -608,6 +783,15 @@ class HyperPartition:
                                             vertices_idx_sizes, 
                                             None, 
                                             self.prune_pair_df, self.allelic_similarity)
+        
+
+        if self.refine:
+            logger.info("Refining misassembies of allelic contig pairs, which partition into the same group")
+            self.K = HyperPartition.refine_allelic_errors(self.K, k, A, 
+                                                        vertices_idx_sizes, 
+                                                        self.prune_pair_df,
+                                                        min_weight=self.min_weight)
+
         if sort_group:
             vertices_length = self.contigsizes.loc[self.vertices]['length'].astype('float32')
             self.K = raw_sort(self.K, A, vertices_length, threads=self.threads)
@@ -650,7 +834,7 @@ class HyperPartition:
                                 min_allelic_overlap=0.1, allelic_factor=-1, cross_allelic_factor=0.0,
                                 is_remove_misassembly=False, is_recluster_contigs=False, refine=False,
                                 min_scaffold_length=10000, threshold=0.01, max_round=1, num=None,
-                                kprune_norm_method='cis', threads=1):
+                                kprune_norm_method='cis', count_re=None, threads=1):
         """
         single function for incremental_partition.
         """
@@ -689,7 +873,8 @@ class HyperPartition:
         else:
             sub_NW = None
 
-        sub_A = HyperGraph.clique_expansion_init(sub_H, NW=sub_NW, min_weight=min_weight)
+        sub_A = HyperGraph.clique_expansion_init(sub_H, min_weight=min_weight)
+        sub_A = HyperGraph.normalize_adjacency_matrix(sub_A, sub_NW)
 
         sub_old2new_idx = dict(zip(K, range(len(K))))
         
@@ -704,14 +889,14 @@ class HyperPartition:
             sub_output_contacts = f"{output_dir}/kprune_workdir/{num}.hypergraph.expansion.contacts"
             HyperGraph.to_contacts(sub_A, sub_vertices, NW=sub_NW, min_weight=min_weight,
                                 output=sub_output_contacts)
-            
+
             sub_P_allelic_idx, sub_P_weak_idx, sub_prune_pair_df = HyperPartition.kprune_func(
                                     alleletable, sub_output_contacts,
                                     sub_vertives_idx, 
                                     output_dir=f"{output_dir}/kprune_workdir",
                                     kprune_norm_method=kprune_norm_method,
+                                    count_re=count_re,
                                     threads=threads*2)
-
 
         elif  prune_pair_df is not None:      
             sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
@@ -746,41 +931,96 @@ class HyperPartition:
         # _A = HyperGraph.clique_expansion_init(sub_H, None, None, 
         #                                   sub_NW,
         #                                   allelic_factor, min_weight)
+
         if resolution < 0.0 and k != 0:
             tmp_resolution = init_resolution
-            result_K_length = 0
-            auto_round = 1
+            raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_A, sub_NW, 
+                                            sub_P_allelic_idx, 
+                                            sub_P_weak_idx,
+                                            allelic_factor,
+                                            cross_allelic_factor,
+                                            tmp_resolution,
+                                            min_weight,
+                                            threshold, 
+                                            max_round, 
+                                            threads=1, 
+                                            outprefix=num)
+        
+            new_K = list(filter(
+                                    lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
+                                        >= min_scaffold_length, new_K)
+                    )
+            result_K_length = len(new_K)
+            auto_round = 2
 
-            while result_K_length < k:
-                if tmp_resolution > 10.0 or auto_round > 50:
-                    break
-                # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
-                raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_A, sub_NW, 
-                                                    sub_P_allelic_idx, 
-                                                    sub_P_weak_idx,
-                                                    allelic_factor,
-                                                    cross_allelic_factor,
-                                                    tmp_resolution,
-                                                    min_weight,
-                                                    threshold, 
-                                                    max_round, 
-                                                    threads=1, 
-                                                    outprefix=num)
-                new_K = list(filter(
-                                lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
-                                    >= min_scaffold_length, new_K)
-                )
-                # filtered_K = list(filter(
-                #                 lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
-                #                     < min_scaffold_length, new_K)
-                # )
+            if result_K_length < k:
+                tmp_resolution += 0.2
+                while result_K_length < k:
+                    if tmp_resolution > 10.0 or auto_round > 50:
+                        break
+                    # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
+                    raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_A, sub_NW, 
+                                                        sub_P_allelic_idx, 
+                                                        sub_P_weak_idx,
+                                                        allelic_factor,
+                                                        cross_allelic_factor,
+                                                        tmp_resolution,
+                                                        min_weight,
+                                                        threshold, 
+                                                        max_round, 
+                                                        threads=1, 
+                                                        outprefix=num)
+                    new_K = list(filter(
+                                    lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
+                                        >= min_scaffold_length, new_K)
+                    )
+                
+                    new_K = list(map(list, new_K))
+                    tmp_resolution += 0.2  
+                    
+                    result_K_length = len(new_K)
+                    auto_round += 1
+
+
+            elif result_K_length > k:
+                logger.debug(f"Automatic search the best resolution down ...")
+                tmp_resolution = init_resolution - 0.1
+                auto_round = 1
+                while result_K_length > k:
+                    if tmp_resolution < 0.01 or auto_round > 50:
+                        break
+                    # logger.info(f"Automaticly to search best resolution ... {tmp_resolution}")
+                    old_K = new_K
+                    raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_A, sub_NW, 
+                                                        sub_P_allelic_idx, 
+                                                        sub_P_weak_idx,
+                                                        allelic_factor,
+                                                        cross_allelic_factor,
+                                                        tmp_resolution,
+                                                        min_weight,
+                                                        threshold, 
+                                                        max_round, 
+                                                        threads=1, 
+                                                        outprefix=num)
+                    new_K = list(filter(
+                                    lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
+                                        >= min_scaffold_length, new_K)
+                    )
+                    new_K = list(map(list, new_K))
+                    if len(new_K) < k:
+                        new_K = old_K
+                        break
+
+                    tmp_resolution -= 0.1
+                    if tmp_resolution < 0.1:
+                        tmp_resolution -= 0.02
               
-                new_K = list(map(list, new_K))
-                tmp_resolution += 0.2  
-                result_K_length = len(new_K)
-                auto_round += 1
+                    result_K_length = len(new_K)
+                    auto_round += 1
+
              
         else:
+            logger.debug(f"Using specified resolution: {resolution}")
             raw_A, A, cluster_assignments, new_K = IRMM(sub_H, sub_A, sub_NW, 
                                                     sub_P_allelic_idx, 
                                                     sub_P_weak_idx,
@@ -826,9 +1066,22 @@ class HyperPartition:
         if k and len(new_K) > k:
             new_K = sorted(new_K, key=lambda x: sub_vertices_new_idx_sizes.loc[x]['length'].sum())
             logger.info(f"FirstGroup{num}: Merging {len(new_K)} groups into {k} groups ...")
+            if sub_prune_pair_df is not None:
+                allelic_idx_set = set(map(tuple, 
+                                        sub_prune_pair_df[(sub_prune_pair_df['type'] == 0) & 
+                                                            (sub_prune_pair_df['similarity'] >= allelic_similarity)]
+                                        [['contig1', 'contig2']].values)
+                                        )
+
+            else:
+                allelic_idx_set = set() 
+
             new_K = HyperPartition._merge(A, new_K, sub_vertices_new_idx_sizes, k, 
-                                            sub_prune_pair_df, allelic_similarity, 
-                                            min_allelic_overlap, method=merge_method)
+                                            allelic_idx_set=allelic_idx_set,
+                                            min_allelic_overlap=min_allelic_overlap,
+                                            allele_use_method='conflict',
+                                            method=merge_method,
+                                            )
         
 
         if sub_prune_pair_df is not None and is_remove_misassembly:
@@ -911,6 +1164,9 @@ class HyperPartition:
                 cmd = ["cphasing-rs", "kprune", alleletable, contacts, kprune_output_file,
                         "-n", self.kprune_norm_method, "-t", str(self.threads), 
                         "-f", first_cluster_file]
+            if self.count_re:
+                cmd.append("--count-re")
+                cmd.append(str(self.count_re))
         
             logger.info("Generating the prune table ...")
             flag = run_cmd(cmd, log=f"{self.log_dir}/hyperpartition_kprune.log")
@@ -926,15 +1182,15 @@ class HyperPartition:
         self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
 
     @staticmethod
-    def alleles(fasta, first_cluster, 
+    def alleles(fasta, first_cluster=None, 
                 k=19, w=19, m=0.5, d=0.2, c=60, 
-                tl=25000, split=False, threads=4):
+                tl=25000, output=None,
+                split=False, threads=4):
         from .cli import alleles
+
         args = [
                     "-f",
                     str(fasta),
-                    "-fc",
-                    str(first_cluster),
                     "-t",
                     str(threads),
                     "-c", str(c),
@@ -944,9 +1200,15 @@ class HyperPartition:
                     "-d", str(d),
                     "-tl", str(tl),
                 ]
+        if first_cluster:
+            args.append("-fc")
+            args.append("first.clusters.txt")
+
         if split:
             args.append("--split")
-        
+        if output:
+            args.append("-o")
+            args.append(output)
         try:
             alleles.main(
                 args=args,
@@ -967,10 +1229,13 @@ class HyperPartition:
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
 
-        if split:
-            return f"{fasta_prefix}.split.allele.table"
+        if not output:
+            if split:
+                return f"{fasta_prefix}.split.allele.table"
+            else:
+                return f"{fasta_prefix}.allele.table"
         else:
-            return f"{fasta_prefix}.allele.table"
+            return output
 
     @staticmethod
     def kprune_func(alleletable, 
@@ -978,6 +1243,7 @@ class HyperPartition:
                     vertices_idx,
                     output_dir="./",
                     first_cluster_file=None, 
+                    count_re=None,
                     kprune_norm_method='cis',
                     threads=2,
                     ):
@@ -994,6 +1260,11 @@ class HyperPartition:
             cmd = ["cphasing-rs", "kprune", alleletable, contacts, prunetable,
                     "-n", kprune_norm_method, "-t", str(threads), 
                     "-f", first_cluster_file]
+        
+        if count_re:
+            cmd.append("--count-re")
+            cmd.append(str(count_re))
+
         logger.info("Generating the prune table ...")
         flag = run_cmd(cmd, log=f"{output_dir}/{prefix}.hyperpartition_kprune.log")
         assert flag == 0, "Failed to execute command, please check log."
@@ -1008,72 +1279,230 @@ class HyperPartition:
         """
         incremental partition for autopolyploid.
         """
+        logger.debug(f"Resolution1: {self.resolution1} InitResolution1: {self.init_resolution1} Resolution2: {self.resolution2} InitResolution2: {self.init_resolution2}")
         if not first_cluster:
             logger.info("Starting first round partition ...")
         
         self.P_allelic_idx, self.P_weak_idx = None, None
         A = HyperGraph.clique_expansion_init(self.H, self.P_allelic_idx, self.P_weak_idx, 
-                                          NW=self.NW,
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
         
-     
+
         dia = A.diagonal()
-        
+
         raw_contig_counts = A.shape[0]
-        retain_idx = np.where(dia > self.min_cis_weight )[0]
+        retain_idx = np.where(dia > self.min_cis_weight)[0]
         contig_counts = len(retain_idx)
         
         if len(retain_idx) < raw_contig_counts:
             A = A[retain_idx, :][:, retain_idx]
             self.H, _, _ = extract_incidence_matrix2(self.H, retain_idx)
+            if self.NW is not None:
+                self.NW = self.NW[retain_idx, :][:, retain_idx]
             self.vertices = self.vertices[retain_idx]
             logger.info(f"Removed {raw_contig_counts - contig_counts:,} contigs that self edge weight < {self.min_cis_weight} (--min-cis-weight).")
 
         vertices_idx_sizes = self.vertices_idx_sizes
         vertices_idx_sizes = pd.DataFrame(vertices_idx_sizes, index=['length']).T
+        vertices_idx = self.vertices_idx
+        
+        A = HyperGraph.normalize_adjacency_matrix(A, self.NW)
         
         if not first_cluster:
             
             if self.resolution1 < 0 :
-                result_K_length = 0
                 tmp_resolution = self.init_resolution1
-                auto_round = 1
-                while result_K_length < k[0] and k[0] != 0:
-                    if tmp_resolution > 10.0 or auto_round > 50:
-                        break
-                    logger.info(f"Automatic search for best resolution ... {tmp_resolution:.1f}")
-                    _, A, _, self.K = IRMM(self.H, A, self.NW, 
-                            None, None, self.allelic_factor, 
-                                self.cross_allelic_factor, tmp_resolution, 
-                                self.min_weight, self.threshold, 
-                                self.max_round, threads=self.threads)
+                logger.info(f"Automatic search for best resolution ... {tmp_resolution:.1f}")
+                
+                _, _A, _, self.K = IRMM(self.H, A, self.NW, 
+                                    None, None, self.allelic_factor, 
+                                    self.cross_allelic_factor, tmp_resolution,
+                                    self.min_weight, self.threshold, 
+                                    self.max_round, threads=self.threads)
+                self.K = list(map(list, self.K))
+                self.filter_cluster(verbose=0)
+                result_K_length = len(self.K)
+                logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.1f}`.")
+                auto_round = 2
 
-                    self.K = list(map(list, self.K))
-                    self.K = self.filter_cluster(verbose=0)
-                    result_K_length = len(self.K)
-                    logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.1f}`.")
-                    tmp_resolution += 0.2
-                    auto_round += 1
+                if result_K_length > k[0] and not self.merge_use_allele:
+                    tmp_resolution = self.init_resolution1 - 0.1
+                    auto_round = 1
+                    while result_K_length > k[0]:
+                        if tmp_resolution < 0.01 or auto_round > 50:
+                            break
+                        # logger.info(f"Automatic search for best resolution ... {tmp_resolution:.1f}")
+                        _, _A, _, new_K = IRMM(self.H, A, self.NW, 
+                                None, None, self.allelic_factor, 
+                                    self.cross_allelic_factor, tmp_resolution, 
+                                    self.min_weight, self.threshold, 
+                                    self.max_round, threads=self.threads)
+
+                        new_K = list(map(list, new_K))
+                        old_K = self.K
+                        self.K = new_K
+                        self.K = self.filter_cluster(verbose=0)
+                        if len(self.K) < k[0]:
+                            self.K = old_K
+                            break
+
+
+                        self.K = new_K
+                        assert len(self.K) > 0, "Couldn't run first cluster."
+                        result_K_length = len(self.K)
+                        logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.1f}`.")
+                        
+                        tmp_resolution -= 0.1
+                        if tmp_resolution < 0.1:
+                            tmp_resolution -= 0.02
+                        auto_round += 1
+               
+                elif result_K_length < k[0]:
+                    while result_K_length < k[0] and k[0] != 0:
+                        if tmp_resolution > 10.0 or auto_round > 50:
+                            break
+                        
+                        _, A, _, self.K = IRMM(self.H, A, self.NW, 
+                                None, None, self.allelic_factor, 
+                                    self.cross_allelic_factor, tmp_resolution, 
+                                    self.min_weight, self.threshold, 
+                                    self.max_round, threads=self.threads)
+
+                        self.K = list(map(list, self.K))
+                        self.K = self.filter_cluster(verbose=0)
+                        assert len(self.K) > 0, "Couldn't run first cluster."
+                        
+                        result_K_length = len(self.K)
+                        logger.info(f"Generated `{result_K_length}` groups at resolution `{tmp_resolution:.1f}`.")
+                        tmp_resolution += 0.2
+                        auto_round += 1
+
             else:
-                _, A, _, self.K = IRMM(self.H, A, self.NW, 
+                _, _A, _, self.K = IRMM(self.H, A, self.NW, 
                             None, None, self.allelic_factor, 
                                 self.cross_allelic_factor, self.resolution1, 
                                 self.min_weight, self.threshold, 
                                 self.max_round, threads=self.threads)
 
+            A = _A
             self.K = list(map(list, self.K))
+
             if self.split:
                 _, self.K = self.merge_split()
             self.K = self.filter_cluster()
-            
+
             if k[0] and len(self.K) > k[0]:
                 if self.disable_merge_in_first:
-                    self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
-                    logger.info(f"Discarded `{len(self.K) - k[0]}` smallest groups (--disable-merge-in-first).")
-                    self.K = self.K[:k[0]]
+                    self.K = sorted(
+                        self.K,
+                        key=lambda x: vertices_idx_sizes.loc[x]["length"].sum(),
+                        reverse=True,
+                    )
+                    logger.info(
+                        f"Discarded `{len(self.K) - k[0]}` smallest groups (--disable-merge-in-first)."
+                    )
+                    self.K = self.K[: k[0]]
                 else:
-                    self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], method='sum')
+                    if self.merge_use_allele:
+                        logger.info("Use allelic information for implementing 1st-round merging...")
+                        if self.fasta is not None:
+                            fasta_stem = Path(self.fasta).stem
+                            _contigsizes = self.contigsizes[self.contigsizes['length'] > self.min_length]
+                            if self.split:
+                                if not Path(
+                                    f"{fasta_stem}.fast.split.allele.table"
+                                ).exists():
+                                    
+                                    split_fasta_path = get_fasta_from_split_contig(
+                                        self.fasta,
+                                        _contigsizes,
+                                        f"{fasta_stem}.fast.split.fasta",
+                                    )
+                                    fast_alleletable = self.alleles(
+                                        split_fasta_path,
+                                        k=59,
+                                        w=59,
+                                        tl=0,
+                                        output=f"{fasta_stem}.fast.split.allele.table",
+                                        split=True,
+                                        threads=self.threads,
+                                    )
+                                else:
+                                    logger.warning(
+                                        f"Load exists alleletable file `{fasta_stem}.fast.split.allele.table`, if you want to re-generate it, please remove this file first."
+                                    )
+                                    fast_alleletable = (
+                                        f"{fasta_stem}.fast.split.allele.table"
+                                    )
+                            else:
+                                if not Path(
+                                    f"{fasta_stem}.fast.allele.table"
+                                ).exists():
+                                    fast_alleletable = self.alleles(
+                                        self.fasta,
+                                        k=59,
+                                        w=59,
+                                        tl=0,
+                                        output=f"{fasta_stem}.fast.allele.table",
+                                        threads=self.threads,
+                                    )
+                                else:
+                                    logger.warning(
+                                        f"Load exists alleletable file `{fasta_stem}.fast.allele.table`, if you want to re-generate it, please remove this file first."
+                                    )
+                                    fast_alleletable = (
+                                        f"{fasta_stem}.fast.allele.table"
+                                    )
+
+                            at = AlleleTable(fast_alleletable, fmt="allele2", sort=False)
+                            at_df = at.data
+                            at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
+                            at_df[1] = at_df[1].map(vertices_idx.get)
+                            at_df[2] = at_df[2].map(vertices_idx.get)
+                            at_df = at_df.dropna()
+                            at_df[1] = at_df[1].astype(int)
+                            at_df[2] = at_df[2].astype(int)
+                            
+                            allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+                        elif self.prune_pair_df is not None:
+                            allelic_idx_set = set(map(tuple, 
+                                self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
+                                                    (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
+                                [['contig1', 'contig2']].values)
+                                )
+                            at_df = None
+                        elif self.alleletable:
+                            at = AlleleTable(self.alleletable, fmt="allele2", sort=False)
+                            at_df = at.data
+                            at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
+                            at_df[1] = at_df[1].map(vertices_idx.get)
+                            at_df[2] = at_df[2].map(vertices_idx.get)
+                            at_df.dropna(inplace=True)
+                            at_df[1] = at_df[1].astype(int)
+                            at_df[2] = at_df[2].astype(int)
+                            allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+                            
+                        else:
+                            allelic_idx_set = set()
+                            at_df = None
+                    else:
+                        allelic_idx_set = None
+                        at_df = None
+                
+                    if allelic_idx_set is not None and self.merge_use_allele:
+                        self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], 
+                                                        allelic_idx_set=allelic_idx_set,
+                                                        alleletable_df=at_df,
+                                                        min_allelic_overlap=0.8,
+                                                        allele_use_method='merge',
+                                                        method='sum')
+                    else:
+                        self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], 
+                                                        
+                                                        min_allelic_overlap=self.min_allelic_overlap,
+
+                                                        method='sum')
 
             self.K = sorted(self.K, key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), reverse=True)
 
@@ -1090,8 +1519,8 @@ class HyperPartition:
 
             assert len(self.K) > 0, "Couldn't run first cluster."
 
-            
-            self.to_cluster(f'first.clusters.txt')
+            self.to_cluster(f'first.clusters.txt', merge=False)
+          
             first_cluster_file = f'first.clusters.txt'
 
             length_contents = list(map(
@@ -1166,20 +1595,19 @@ class HyperPartition:
                             filter(lambda y: y in vertices_idx, x )), tmp_K))
             self.K = list(map(lambda x: list(map(lambda y: vertices_idx[y], x)), tmp_K))
 
-        # W = ((self.HG.mapq + 1) / 60).astype(np.float32)
         if self.prunetable:
             self.P_allelic_idx, self.P_weak_idx, self.prune_pair_df = self.get_prune_pairs()
             prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
 
-        # elif self.alleletable:
-        #     # is_run = False if isinstance(first_cluster, ClusterTable) else True
-        #     is_run = True
-        #     self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts, is_run=is_run)
-        #     prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
+        elif self.alleletable:
+            # is_run = False if isinstance(first_cluster, ClusterTable) else True
+            is_run = True
+            self.kprune(self.alleletable, first_cluster_file, contacts=self.contacts, is_run=is_run)
+            prune_pair_df = self.prune_pair_df.reset_index().set_index(['contig1', 'contig2'])
 
         else:
             prune_pair_df = None
-
+    
         ## Second round cluster
         sub_threads = 1 
         if self.threads // (len(self.K) + 1) < 2:
@@ -1194,9 +1622,9 @@ class HyperPartition:
   
         if self.fasta is not None and self.alleletable is None and self.prunetable is None:
             # if k[1] is not None or k[1] != 0:
-            #     c = 5 * k[1]
+            #     c = k[1]
             # else:
-            #     c = 60
+            #     c = 100
             self.alleletable = str(Path(self.alleles(self.fasta, first_cluster_file, 
                                                     k=self.alleles_kmer_size,
                                                     w=self.alleles_window_size,
@@ -1236,7 +1664,8 @@ class HyperPartition:
                         self.allelic_factor, self.cross_allelic_factor, self.is_remove_misassembly,
                         self.is_recluster_contigs, self.refine,
                         self.min_scaffold_length, self.threshold, self.max_round, num,
-                        self.kprune_norm_method, sub_threads))
+                        self.kprune_norm_method, self.count_re,
+                        sub_threads))
             
             # results.append(HyperPartition._incremental_partition(args[-1])
  
@@ -1251,6 +1680,18 @@ class HyperPartition:
  
 
         self.sub_A_list, self.cluster_assignments, results = zip(*results)
+
+        if self.split:
+            new_results = []
+            raw_contig_results = []
+            for _K in results:
+                self.K = _K 
+                _raw_K, _K = self.merge_split()
+                new_results.append(_K)
+                raw_contig_results.append(_raw_K)
+            
+            results = new_results
+    
         self.inc_chr_idx = []
         for i, j in enumerate(results):
             for _ in j:
@@ -1263,13 +1704,10 @@ class HyperPartition:
         if self.exclude_group_to_second:
             exclude_group_init_idx = len(results) + 1
 
-        self.K = results 
 
-        # self.vertices = raw_vertices
         self.K = list_flatten(results)
-        if self.split:
-            _, self.K = self.merge_split(secondary=False)
         self.K = self.filter_cluster()
+        
 
         if self.exclude_group_to_second:
             self.K.extend(self.exclude_groups)
@@ -1301,86 +1739,173 @@ class HyperPartition:
     
 
     @staticmethod
-    def _merge(A, K, vertices_idx_sizes, k=None, 
-                prune_pair_df=None, allelic_similarity=0.85,
-                min_allelic_overlap=0.1, method='mean'):
+    def _merge(A, K, vertices_idx_sizes, 
+                k=None, 
+                allelic_idx_set=set(),
+                alleletable_df=None,
+                min_allelic_overlap=0.1, 
+                allele_use_method="conflict", 
+                method='mean'):
         if not k:
             return K 
         
-        # if prune_pair_df is None:
-        #     return K
-        # tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) & 
-        #                         (prune_pair_df['similarity'] >= allelic_similarity)][['contig1', 'contig2']]
-        # P_allelic_idx = [tmp_df['contig1'], tmp_df['contig2']]
-        
-        # if P_allelic_idx:
-        #     A = A.tolil()
-        #     A[P_allelic_idx[0], P_allelic_idx[1]] = -1
-        #     A = A.tocsr()
-        
-        if prune_pair_df is not None:
-            allelic_pair_df = prune_pair_df[prune_pair_df['type'] == 0]
-            allelic_idx_set = set(map(tuple, 
-                            prune_pair_df[(prune_pair_df['type'] == 0) & 
-                                                (prune_pair_df['similarity'] >= allelic_similarity)]
-                            [['contig1', 'contig2']].values)
-                            )
-            mz_df = allelic_pair_df[['contig1', 'mz1']]
-            mz_df = mz_df.drop_duplicates(subset=['contig1']).set_index('contig1')
-            allelic_pair_df = allelic_pair_df.set_index(['contig1', 'contig2'])
+        if alleletable_df is not None:
+            mz_df = alleletable_df[[1, 2, 'mzShared']]
+            mz_df.set_index([1, 2], inplace=True)
+            shared_mz_db = mz_df.to_dict()['mzShared']
+            mz_df = alleletable_df[[1, 'mz1']]
+            mz_df.drop_duplicates(subset=[1], inplace=True)
+            mz_df.set_index([1], inplace=True)
+            contig_mz_df = mz_df
             
+        else:
+            shared_mz_db = None
+            contig_mz_df = None
 
+
+        # iter_round = 0 
+        # flag = 1
+   
+        # while k and len(K) > k:
+        #     current_group_number = len(K)
+        #     if iter_round > (current_group_number - k + 100):
+        #         break
+        #     value_matrix = np.zeros(shape=(current_group_number, current_group_number))
+        #     flag_matrix = np.ones(shape=(current_group_number, current_group_number))
+        #     group_lengths = np.array([vertices_idx_sizes.reindex(g).sum().values[0] for g in K])
+        #     contig_to_group_map = {contig: i for i, group in enumerate(K) for contig in group}
+        #     res = {}
+        #     for i, group1 in enumerate(K):
+        #         group1 = list(group1)
+        #         group1_length = group_lengths[i]
+        #         for j in range(i + 1, current_group_number):
+        #             group2 = list(K[j])
+                    
+        #             group2_length = group_lengths[j]
+                
+        #             if allelic_idx_set:
+        #                 product_contig_pair = set(product(group1, group2))
+        #                 allelic = product_contig_pair & allelic_idx_set
+        #                 if allelic:
+        #                     tmp1, tmp2 = list(map(list, map(set, zip(*allelic))))
+        #                     tmp1_length = vertices_idx_sizes.loc[tmp1].sum().values[0]
+        #                     tmp2_length = vertices_idx_sizes.loc[tmp2].sum().values[0]
+        #                     overlap1 = tmp1_length / group1_length
+        #                     overlap2 = tmp2_length / group2_length
+                            
+        #                     # tmp_mzShared = allelic_pair_df.reindex(product_contig_pair)['mzShared'].sum()
+        #                     # tmp1_mz = mz_df.reindex(group1)['mz1'].sum()
+        #                     # tmp2_mz = mz_df.reindex(group2)['mz1'].sum()
+                           
+        #                     # overlap1 = tmp_mzShared  / tmp1_mz 
+        #                     # overlap2 = tmp_mzShared  / tmp2_mz
+        #                     # print(i, j, group1_length, group2_length, overlap1, overlap2)
+
+                           
+        #                     if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
+        #                         flag = 0
+                           
+        #             if method == "mean":
+        #                 value = A[group1, ][:,group2 ].mean() 
+        #             else:
+        #                 value = A[group1, ][:,group2 ].sum() 
+
+        #             value_matrix[i, j] = value
+        #             flag_matrix[i, j] = flag
+        #             flag = 1
+
+        def group_length(g_tuple):
+            if shared_mz_db is not None:
+                return float(mz_df.reindex(g_tuple).sum().values[0])
+            else:
+                return float(vertices_idx_sizes.reindex(g_tuple).sum().values[0])
 
         iter_round = 0 
-        flag = 1
-      
         while k and len(K) > k:
             current_group_number = len(K)
-            if iter_round > (current_group_number - k + 50):
+            if iter_round > (current_group_number - k + 100):
                 break
-            value_matrix = np.zeros(shape=(current_group_number, current_group_number))
-            flag_matrix = np.ones(shape=(current_group_number, current_group_number))
-            res = {}
-            for i, group1 in enumerate(K):
-                group1 = list(group1)
-                for j in range(i + 1, current_group_number):
-                    group2 = list(K[j])
-                    
-                    group1_length = vertices_idx_sizes.reindex(group1).sum().values[0]
-                    group2_length = vertices_idx_sizes.reindex(group2).sum().values[0]
-                    if prune_pair_df is not None:
-                        product_contig_pair = set(product(group1, group2))
-                        allelic = product_contig_pair & allelic_idx_set
-                        if allelic:
-                            tmp1, tmp2 = list(map(list, map(set, zip(*allelic))))
-                            tmp1_length = vertices_idx_sizes.loc[tmp1].sum().values[0]
-                            tmp2_length = vertices_idx_sizes.loc[tmp2].sum().values[0]
-                            overlap1 = tmp1_length / group1_length
-                            overlap2 = tmp2_length / group2_length
-                            
-                            # tmp_mzShared = allelic_pair_df.reindex(product_contig_pair)['mzShared'].sum()
-                            # tmp1_mz = mz_df.reindex(group1)['mz1'].sum()
-                            # tmp2_mz = mz_df.reindex(group2)['mz1'].sum()
-                           
-                            # overlap1 = tmp_mzShared  / tmp1_mz 
-                            # overlap2 = tmp_mzShared  / tmp2_mz
-                            # print(i, j, group1_length, group2_length, overlap1, overlap2)
 
-                            if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
-                                flag = 0
-                    
-                    if method == "mean":
-                        value = A[group1, ][:,group2 ].mean() 
-                    else:
-                        value = A[group1, ][:,group2 ].sum() 
-
-                    value_matrix[i, j] = value
-                    flag_matrix[i, j] = flag
-                    flag = 1
+            K_tuples = [tuple(sorted(g)) for g in K]
             
-            value_matrix = value_matrix + value_matrix.T - np.diag(value_matrix.diagonal())
-            total_value = np.triu(value_matrix).sum()
+            if shared_mz_db is not None:
+                group_lengths = np.array([contig_mz_df.reindex(g).sum().values[0] for g in K_tuples])
+            else:
+                group_lengths = np.array([vertices_idx_sizes.reindex(g).sum().values[0] for g in K_tuples])
+            
+            contig_to_group_map = {contig: i for i, group in enumerate(K_tuples) for contig in group}
 
+            value_matrix = np.zeros((current_group_number, current_group_number))
+            flag_matrix = np.ones((current_group_number, current_group_number))
+            overlap_matrix = np.zeros((current_group_number, current_group_number))
+            if allelic_idx_set:
+                allelic_len_g1 = defaultdict(float)
+                allelic_len_g2 = defaultdict(float)
+                allelic_contigs_g1 = defaultdict(set) 
+                allelic_contigs_g2 = defaultdict(set)
+                contig_partner_groups = defaultdict(set) 
+                contig_partner_counts = defaultdict(int) 
+
+                for c1, c2 in allelic_idx_set:
+                    g1_idx = contig_to_group_map.get(c1)
+                    g2_idx = contig_to_group_map.get(c2)
+
+                    if g1_idx is not None and g2_idx is not None and g1_idx != g2_idx:
+                        if g1_idx > g2_idx:
+                            g1_idx, g2_idx = g2_idx, g1_idx
+                            c1, c2 = c2, c1 
+
+                        if shared_mz_db is not None:
+                            allelic_len_g1[(g1_idx, g2_idx)] += shared_mz_db.get((c1, c2), 0.0)
+                            allelic_len_g2[(g1_idx, g2_idx)] += shared_mz_db.get((c2, c1), 0.0)
+                        else:
+                            allelic_contigs_g1[(g1_idx, g2_idx)].add(c1)
+                            allelic_contigs_g2[(g1_idx, g2_idx)].add(c2)
+                            # allelic_len_g1[(g1_idx, g2_idx)] += vertices_idx_sizes.loc[c1].values[0]
+                            # allelic_len_g2[(g1_idx, g2_idx)] += vertices_idx_sizes.loc[c2].values[0]
+                            contig_partner_groups[c1].add((g1_idx, g2_idx))
+                            contig_partner_groups[c2].add((g1_idx, g2_idx))
+                            contig_partner_counts[(c1, g1_idx, g2_idx)] += 1
+                            contig_partner_counts[(c2, g1_idx, g2_idx)] += 1
+
+                for (i, j), s1 in allelic_contigs_g1.items():
+                    s2 = allelic_contigs_g2.get((i, j), set())
+                    len1 = vertices_idx_sizes.loc[list(s1)]['length'].sum() if len(s1) else 0.0
+                    len2 = vertices_idx_sizes.loc[list(s2)]['length'].sum() if len(s2) else 0.0
+                    allelic_len_g1[(i, j)] = float(len1)
+                    allelic_len_g2[(i, j)] = float(len2)
+
+                for (i, j), g1_allelic_len in allelic_len_g1.items():
+                    g2_allelic_len = allelic_len_g2.get((i, j), 0.0)
+                    
+                    overlap1 = g1_allelic_len / group_lengths[i] if group_lengths[i] > 0 else 0
+                    overlap2 = g2_allelic_len / group_lengths[j] if group_lengths[j] > 0 else 0
+
+                    if overlap1 > min_allelic_overlap or overlap2 > min_allelic_overlap:
+                        flag_matrix[i, j] = 0
+                        overlap_matrix[i, j] = max(overlap1, overlap2)
+            
+
+            for i in range(current_group_number):
+                group1 = K_tuples[i]
+                for j in range(i + 1, current_group_number):
+                    group2 = K_tuples[j]
+                    
+                    sub_matrix = A[group1, :][:, group2]
+                    if method == "mean":
+                        value = sub_matrix.mean()
+                    elif method == "median":
+                        if sub_matrix.nnz > 0:
+                            value = np.median(sub_matrix.toarray())
+                        else:
+                            value = 0.0
+                    else:
+                        value = sub_matrix.sum()
+                    value_matrix[i, j] = value
+   
+            value_matrix += value_matrix.T
+            total_value = np.triu(value_matrix, 1).sum()
+            res = {}
 
             for i in range(current_group_number):
                 i_value = value_matrix[i].sum()
@@ -1391,16 +1916,45 @@ class HyperPartition:
                     if flag:
                         Q = value - (j_value * i_value) / total_value
                     else:
-                        Q = - 2**64
-
+                        if allele_use_method == "conflict":
+                            Q = - 2 ** 64
+                        else:
+                            Q = overlap_matrix[i, j] * (value - (j_value * i_value) / total_value) 
+                            Q = max(Q, 0)
                     res[(i, j)] = Q
-            
-            
-            i1, i2 = max(res,  key=lambda x: res[x])
+            # size_alpha = 0.5
+            # conflict_lambda = 1.0
+            # eps = 1e-9
+            # for i in range(current_group_number):
+            #     for j in range(i + 1, current_group_number):
+            #         value = value_matrix[i, j]
+            #         if value <= 0:
+            #             res[(i, j)] = -2**64
+            #             continue
 
+            #         size_penalty = (group_lengths[i] + group_lengths[j]) ** size_alpha
+            #         base_score = value / max(size_penalty, eps)
+
+            #         if flag_matrix[i, j]:
+            #             score = base_score
+            #         else:
+            #             if allele_use_method == "conflict":
+            #                 score = -2**64
+            #             else:  
+            #                 ov = overlap_matrix[i, j]
+            #                 score = base_score - conflict_lambda * ov
+            #                 score = max(score, -2**32)
+
+            #         res[(i, j)] = score
+
+            # (i1, i2), best_score = max(res.items(), key=lambda kv: kv[1])
+            # if best_score <= -2**32:
+            #     break
+            i1, i2 = max(res,  key=lambda x: res[x])
             if max(res) == 0 or max(res) == 2**64:
                 continue
-                
+
+
             group1 = K[i1]
             group2 = K[i2]
     
@@ -1412,7 +1966,208 @@ class HyperPartition:
             iter_round += 1
         
         return K
+    
+    @staticmethod
+    def _merge_incomplete(
+        A,
+        K,
+        vertices_idx_sizes,
+        k=None,
+        allelic_idx_set=set(),
+        alleletable_df=None,
+        min_allelic_overlap=0.1,
+        allele_use_method="conflict",
+        method="mean",
+        max_extra_iter=100,
+    ):
+        import heapq
+        if not k or len(K) <= k:
+            return K
 
+        if alleletable_df is not None:
+            mz_df = alleletable_df[[1, 'mz1']].drop_duplicates(subset=[1]).set_index(1)
+            shared_mz_db = alleletable_df[[1, 2, 'mzShared']].set_index([1, 2])['mzShared'].to_dict()
+            use_mz = True
+        else:
+            shared_mz_db = {}
+            mz_df = None
+            use_mz = False
+
+        def group_length(g_tuple):
+            if use_mz:
+                return float(mz_df.reindex(g_tuple).sum().values[0])
+            else:
+                return float(vertices_idx_sizes.reindex(g_tuple).sum().values[0])
+
+        groups = {i: tuple(sorted(g)) for i, g in enumerate(K)}
+        lengths = {gid: group_length(g) for gid, g in groups.items()}
+
+        active = set(groups.keys())
+        version = {gid: 0 for gid in groups}
+
+        overlap_info = {}
+        conflict_flag = set()
+
+        if allelic_idx_set:
+            contig_to_group = {}
+            for gid, g in groups.items():
+                for c in g:
+                    contig_to_group[c] = gid
+
+            allelic_len_g1 = defaultdict(float)
+            allelic_len_g2 = defaultdict(float)
+            allelic_contigs_g1 = defaultdict(set) 
+            allelic_contigs_g2 = defaultdict(set)
+            contig_partner_groups = defaultdict(set) 
+            contig_partner_counts = defaultdict(int) 
+
+            for c1, c2 in allelic_idx_set:
+                g1_idx = contig_to_group.get(c1)
+                g2_idx = contig_to_group.get(c2)
+                if g1_idx is None or g2_idx is None or g1_idx == g2_idx:
+                    continue
+                if g1_idx > g2_idx:
+                    g1_idx, g2_idx = g2_idx, g1_idx
+                    c1, c2 = c2, c1
+
+                if use_mz:
+                    allelic_len_g1[(g1_idx, g2_idx)] += shared_mz_db.get((c1, c2), 0.0)
+                    allelic_len_g2[(g1_idx, g2_idx)] += shared_mz_db.get((c2, c1), 0.0)
+                else:
+                    allelic_contigs_g1[(g1_idx, g2_idx)].add(c1)
+                    allelic_contigs_g2[(g1_idx, g2_idx)].add(c2)
+                    contig_partner_groups[c1].add((g1_idx, g2_idx))
+                    contig_partner_groups[c2].add((g1_idx, g2_idx))
+                    contig_partner_counts[(c1, g1_idx, g2_idx)] += 1
+                    contig_partner_counts[(c2, g1_idx, g2_idx)] += 1
+
+            for (i, j), s1 in allelic_contigs_g1.items():
+                s2 = allelic_contigs_g2.get((i, j), set())
+                len1 = vertices_idx_sizes.loc[list(s1)]['length'].sum() if len(s1) else 0.0
+                len2 = vertices_idx_sizes.loc[list(s2)]['length'].sum() if len(s2) else 0.0
+                allelic_len_g1[(i, j)] = float(len1)
+                allelic_len_g2[(i, j)] = float(len2)
+
+
+            for (i, j), len1 in allelic_len_g1.items():
+                len2 = allelic_len_g2.get((i, j), 0.0)
+                L1 = lengths[i]
+                L2 = lengths[j]
+                ov1 = len1 / L1 if L1 > 0 else 0.0
+                ov2 = len2 / L2 if L2 > 0 else 0.0
+                if ov1 > min_allelic_overlap or ov2 > min_allelic_overlap:
+                    conflict_flag.add((i, j))
+                    overlap_info[(i, j)] = max(ov1, ov2)
+
+        def pair_value(gid1: int, gid2: int) -> float:
+            g1 = groups[gid1]
+            g2 = groups[gid2]
+            sub = A[g1, :][:, g2]
+            if method == "mean":
+                return float(sub.mean())
+            elif method == "median":
+                if sub.nnz > 0:
+                    return float(np.median(sub.toarray()))
+                return 0.0
+            else:  # 'sum'
+                return float(sub.sum())
+
+        value_cache = {}
+        order_ids = sorted(active)
+        for i in range(len(order_ids)):
+            gi = order_ids[i]
+            for j in range(i+1, len(order_ids)):
+                gj = order_ids[j]
+                v = pair_value(gi, gj)
+                value_cache[(gi, gj)] = v
+
+        def total_value():
+            return sum(value_cache[k] for k in value_cache)
+
+        total_v = total_value()
+
+        def compute_Q(i: int, j: int) :
+            if i > j:
+                i, j = j, i
+            v = value_cache.get((i, j), 0.0)
+            if v <= 0 or total_v <= 0:
+                return 0.0
+
+            i_sum = sum(value_cache[(min(i,x), max(i,x))] for x in active if x != i)
+            j_sum = sum(value_cache[(min(j,x), max(j,x))] for x in active if x != j)
+            raw = v - (j_sum * i_sum) / total_v
+            if (i, j) in conflict_flag:
+                if allele_use_method == "conflict":
+                    return -2**64
+                else:
+                    ov = overlap_info.get((i, j), 0.0)
+                    adj = ov * raw
+                    return max(adj, 0.0)
+            return raw
+
+        heap = []
+        for (i, j), _v in value_cache.items():
+            q = compute_Q(i, j)
+            heapq.heappush(heap, (-q, version[i], version[j], i, j))
+
+        merges = 0
+        max_merges = (len(K) - k) + max_extra_iter
+
+        while len(active) > k and heap and merges < max_merges:
+            neg_q, vi, vj, i, j = heapq.heappop(heap)
+
+            if i not in active or j not in active:
+                continue
+            if vi != version[i] or vj != version[j]:
+ 
+                q_new = compute_Q(i, j)
+                heapq.heappush(heap, (-q_new, version[i], version[j], i, j))
+                continue
+
+            q = -neg_q
+            if q == -2**64:
+                continue
+
+
+            new_group = tuple(sorted(set(groups[i]) | set(groups[j])))
+            groups[i] = new_group
+            lengths[i] = group_length(new_group)
+            version[i] += 1
+
+            active.remove(j)
+            version[j] += 1
+            del groups[j]
+
+            new_cache = {}
+            for (a, b), val in value_cache.items():
+                if a == j or b == j:
+                    continue
+                new_cache[(a, b)] = val
+            value_cache = new_cache
+
+            for other in active:
+                if other == i:
+                    continue
+                a, b = (other, i) if other < i else (i, other)
+                value_cache[(a, b)] = pair_value(a, b)
+
+            total_v = total_value()
+
+            for other in active:
+                if other == i:
+                    continue
+                a, b = (other, i) if other < i else (i, other)
+                q_new = compute_Q(a, b)
+                heapq.heappush(heap, (-q_new, version[a], version[b], a, b))
+
+            merges += 1
+
+        final_groups = [list(groups[g]) for g in active]
+        final_groups = sorted(final_groups,
+                              key=lambda x: vertices_idx_sizes.reindex(x).sum().values[0],
+                              reverse=True)
+        return final_groups
+    
     def merge_cluster(self, groups):
         """
         merge several clusters into k groups
@@ -1432,9 +2187,29 @@ class HyperPartition:
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
                         reverse=True)
         
+        try:
+            allelic_idx_set = self.allelic_idx_set 
+        except AttributeError:
+            if self.alleletable is not None:
+                at = AlleleTable(self.alleletable, fmt="allele2", sort=False)
+                at_df = at.data
+                at_df = at_df[at_df['similarity'] >= 0.85]
+                at_df[1] = at_df[1].map(vertices_idx.get)
+                at_df[2] = at_df[2].map(vertices_idx.get)
+                at_df.dropna(inplace=True)
+                at_df[1] = at_df[1].astype(int)
+                at_df[2] = at_df[2].astype(int)
+                allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+                
+            else:
+                allelic_idx_set = set()
+                at_df = None
+
         self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, self.k[0],
-                                        self.prune_pair_df, self.allelic_similarity,
-                                        self.min_allelic_overlap)
+                                        allelic_idx_set=allelic_idx_set,
+                                        alleletable_df=at_df,
+                                        min_allelic_overlap=0.8, 
+                                        allele_use_method="merge", method='sum')
 
         self.K = sorted(self.K, 
                         key=lambda x: vertices_idx_sizes.loc[x]['length'].sum(), 
@@ -2048,6 +2823,35 @@ class HyperPartition:
             
         return _K 
     
+    def filter_cluster_ctg(self, verbose=1):
+        if verbose == 1: 
+            logger.info(f"Removed groups less than {to_humanized2(self.min_scaffold_length)} in length. (--min-scaffold-length)")
+
+        try: 
+            self.inc_chr_idx 
+            pop_idx = []
+            _K = []
+            for i, group in enumerate(self.K):
+                _size = self.contigsizes.reindex(group).sum().values[0]
+                if _size >= self.min_scaffold_length:
+                    _K.append(group)
+                else:
+                    pop_idx.append(i)
+            
+            _new_inc_chr_idx = []
+            for i, idx in enumerate(self.inc_chr_idx):
+                if i not in pop_idx:
+                    _new_inc_chr_idx.append(idx)
+            self.inc_chr_idx = _new_inc_chr_idx
+
+        except AttributeError:
+            _K = list(
+                filter(lambda x: self.contigsizes.reindex(x).sum().values[0] \
+                            >= self.min_scaffold_length, 
+                        self.K))
+            
+        return _K 
+    
     def merge_split(self, secondary=False):
         idx_to_vertices = self.idx_to_vertices
         vertices_to_idx = self.vertices_idx
@@ -2074,6 +2878,8 @@ class HyperPartition:
         for contig, (group_idx, length) in new_res_db.items():
             clusters_db[group_idx].append(contig)
         
+
+        
         if secondary:
             tmp_inc_chr_idx = {}
             for i, chr_idx in enumerate(self.inc_chr_idx):
@@ -2091,6 +2897,7 @@ class HyperPartition:
             
         merged_clusters = tmp_clusters
 
+
         new_split_clusters = [[] for i in range(len(clusters))]
         for v in vertices_to_idx:
             contig, start, end = parse_split_contigs(v)
@@ -2101,19 +2908,21 @@ class HyperPartition:
             new_split_clusters[group_idx].append(vertices_to_idx[v])
 
         new_split_clusters = list(filter(lambda x: len(x) > 0, new_split_clusters))
-
+        
         return merged_clusters, new_split_clusters
         
     
-    def to_cluster(self, output):
+    def to_cluster(self, output, merge=True):
         try:
             self.inc_chr_idx 
             secondary = True
         except AttributeError:
             secondary = False 
         
-        if secondary and self.split:
+        if secondary and self.split and merge:
             clusters, _ = self.merge_split(secondary=secondary)
+        elif self.split and merge:
+            clusters, _ = self.merge_split()
         else:
             idx_to_vertices = self.idx_to_vertices
 

@@ -783,6 +783,7 @@ def read_fasta(fasta: str) ->OrderedDict:
     return db
 
 
+
 def _zero_diags(chunk, n_diags):
     """
     zero diag in cool pixels table
@@ -1167,7 +1168,7 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
 
 def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp, 
                         min_quality, init_binsize,
-                      binsize, colormap, whitered,
+                      binsize, colormap, whitered, mode,
                       output="plot.cmd.sh"):
 
     out_heatmap =  f"groups.q${{min_quality}}.${{heatmap_binsize}}.wg.png"
@@ -1177,7 +1178,9 @@ def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp,
     if whitered:
         plot_another_args += " --whitered"
 
-
+    if mode == "phasing":
+        plot_another_args += " --add-hap-border --no-lines"
+    
     cmd = f"""#!/usr/bin/bash
 
 min_quality={min_quality}
@@ -1243,7 +1246,7 @@ def is_pairs_with_mapq(pairs):
                 else:
                     return False
 
-def binnify(chromsizes, binsize):
+def binnify(chromsizes, binsize, trim_length=0):
     """
     Divide a genome into evenly sized bins.
 
@@ -1253,7 +1256,8 @@ def binnify(chromsizes, binsize):
         pandas Series indexed by chromosome name with chromosome lengths in bp.
     binsize : int
         size of bins in bp
-
+    trim_length: int
+        length to trim at the termini of the contig
     Returns
     -------
     bins : `pandas.DataFrame`
@@ -1270,8 +1274,13 @@ def binnify(chromsizes, binsize):
         binedges = np.arange(0, (n_bins + 1)) * binsize
         binedges[-1] = clen
         chrom_list.extend([chrom] * n_bins)
+        if trim_length:
+            if clen > trim_length * 3:
+                binedges[0] = binedges[0] + trim_length
+                binedges[-1] = binedges[-1] - trim_length
         start_list.extend(binedges[:-1])
         end_list.extend(binedges[1:])
+        
 
     bintable = pd.DataFrame({
         "chrom": chrom_list,
@@ -1468,3 +1477,51 @@ def parse_split_contigs(contig):
     start, end = int(start), int(end)
 
     return contig, start, end
+
+def get_fasta_from_split_contig(fasta, contigsizes, output):
+    fasta_dict = read_fasta(fasta)
+    
+    raw_contigs = contigsizes.index.tolist()
+    contigs = contigsizes.index.map(parse_split_contigs).tolist()
+    with open(output, 'w') as out:
+       for raw_contig, (contig, start, end) in zip(raw_contigs, contigs):
+           out.write(f">{raw_contig}\n{fasta_dict[contig][start: end]}\n")
+    
+
+    return output 
+
+
+def determine_split_length(
+    contigsizes_df: pd.DataFrame,
+    max_split_len: int = 20_000_000,
+    min_split_len: int = 1_000_000,
+    outlier_factor: float = 5.0 # 3.0
+):
+    if contigsizes_df.empty:
+        logger.warning("Contig sizes data is empty. Cannot determine split_length.")
+        return None
+
+    lengths = contigsizes_df['length']
+    
+    if len(lengths) < 10: 
+        logger.info("Too few contigs to perform automatic splitting.")
+        return None
+
+    max_len = lengths.max()
+    p95_len = lengths.quantile(0.95)
+    median_len = lengths.median()
+
+    logger.info(f"Contig length stats: Max={max_len/1e6:.2f}Mb, 95th-percentile={p95_len/1e6:.2f}Mb, Median={median_len/1e3:.2f}Kb.")
+
+   
+    if max_len > p95_len * outlier_factor and max_len > max_split_len:
+
+        split_len = int(min(p95_len, max_split_len))
+        split_len = int(max(split_len, min_split_len))
+        split_len = (split_len // 1000_000 + 1) * 1000_000 
+        logger.info(f"Outlier contig detected (max: {max_len/1e6:.2f}Mb). Activating splitting.")
+        logger.info(f"Automatic split_length set to: {split_len/1e6:.2f}Mb.")
+        return split_len
+    else:
+        logger.info("Contig length distribution is relatively uniform. Deactivating splitting.")
+        return None

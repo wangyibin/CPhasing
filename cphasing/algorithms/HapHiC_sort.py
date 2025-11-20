@@ -90,16 +90,17 @@ def dict_to_matrix(dict_, shape, add_self_loops=False):
     return coo_matrix((data, (row, col)), shape=(shape, shape), dtype=float32).toarray()
 
 
-def parse_group(group_file, clm_dir, quick_view):
+def parse_group(group_file, clm_dir, quick_view, skip_allhic=False):
 
     # find the corresponding clm file first
     # the prefix of the group file (often group name)
     prefix = os.path.splitext(os.path.basename(group_file))[0]
     clm = '{}/{}.clm'.format(clm_dir, prefix)
 
-    if not quick_view and not os.path.exists(clm):
-        raise IOError('Clm file check failed: CANNOT find corresponding clm file '
-                'in {} for group file {}'.format(clm_dir, group_file))
+    if skip_allhic is False:
+        if not quick_view and not os.path.exists(clm):
+            raise IOError('Clm file check failed: CANNOT find corresponding clm file '
+                    'in {} for group file {}'.format(clm_dir, group_file))
 
     ctgs = list()
 
@@ -851,7 +852,7 @@ def run(args, log_file=None):
 
     for group in args.groups:
         # parse group files and clm files
-        ctg_info_list, clm, prefix = parse_group(group, args.clm_dir, args.quick_view)
+        ctg_info_list, clm, prefix = parse_group(group, args.clm_dir, args.quick_view, args.skip_allhic)
         group_param_dict[group] = (prefix, clm)
         ctgs = [ctg for ctg, ctg_len in ctg_info_list]
         sub_HT_dict, HT_index_dict = get_sub_HT_dict(ctgs, HT_link_dict)

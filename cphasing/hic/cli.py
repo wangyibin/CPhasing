@@ -15,6 +15,7 @@ import sys
 
 
 from ..cli import cli 
+from .._config import *
 from ..core import (
     AlleleTable, 
     ClusterTable, 
@@ -71,7 +72,7 @@ def hic(ctx):
 @click.option(
     '-1',
     '--read1',
-    help='Path of read 1.',
+    help='Path of read 1, can be set multiple times, but must pair with read2.',
     metavar='FILE',
     type=click.Path(exists=True),
     multiple=True,
@@ -80,7 +81,7 @@ def hic(ctx):
 @click.option(
     '-2',
     '--read2',
-    help='Path of read 2.',
+    help='Path of read 2, can be set multiple times, but must pair with read1.',
     metavar='FILE',
     type=click.Path(exists=True),
     multiple=True,
@@ -98,20 +99,18 @@ def hic(ctx):
 @click.option(
     "-k",
     "kmer_size",
-    help="kmer size for mapping.",
+    help="kmer size for mapping, default 17 for chromap and 21 for minimap2.",
     metavar="INT",
     type=int,
-    default=17,
-    show_default=True
+    default=None,
 )
 @click.option(
     "-w",
     "window_size",
-    help="minimizer window size for mapping.",
+    help="minimizer window size for mapping, default 7 for chromap and 11 for minimap2.",
     metavar="INT",
     type=int,
-    default=7,
-    show_default=True
+    default=None,
 )
 @click.option(
     '-q',
@@ -127,8 +126,8 @@ def hic(ctx):
     '--aligner',
     help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
     'if you want to use the offical version you can set aligner to `chromap`',
-    type=click.Choice(['_chromap', 'chromap']),#, 'hisat2']),
-    default='_chromap',
+    type=click.Choice(['_chromap', 'chromap', 'minimap2']),#, 'hisat2']),
+    default=DEFAULT_HIC_ALIGNER,
     show_default=True
 )
 @click.option(
@@ -156,10 +155,29 @@ def mapper(
     """
     Mapper for reads mapping.
     """
-    # assert len(read1) == len(read2), "reads must paired."
+    assert len(read1) == len(read2), "reads must paired."
+
+    if aligner == "chromap":
+        if mapq == 0:
+            logger.warning("You are using the offical chromap, which may lead couldn't output mapping quality to pairs file, automaticly set mapping_quality to 1 to avoid the error.")
+        mapq = max(mapq, 1)
+
+    if kmer_size is None:
+        if aligner == 'chromap' or '_chromap':
+            kmer_size = 17
+        else:
+            kmer_size = 21
+    if window_size is None:
+        if aligner == 'chromap' or '_chromap':
+            window_size = 7
+        else:
+            window_size = 11
+    
+
 
     if read1 == read2:
-        logger.warning("The read1 and read2 are the sample files. Please check it.")
+        logger.error("The read1 and read2 are the sample files. Please check it.")
+        sys.exit(-1)
 
 
     if aligner == 'hisat2':
@@ -176,24 +194,27 @@ def mapper(
         
     elif aligner == 'chromap' or aligner == '_chromap':
         from ..mapper import ChromapMapper
-        from ..core import PairHeader
-        res = []
-        for r1, r2 in zip(read1, read2):
-            cm = ChromapMapper(reference, r1, r2, 
-                                kmer_size=kmer_size,
-                                window_size=window_size,
-                                min_quality=mapq, 
-                                threads=threads,
-                                path=aligner)
-            cm.run()
-            res.append(cm.output_pairs)
-        else:
-            if len(res) > 1:
-                header = PairHeader([]).from_file(res[0])
-                header.save("temp.pairs.header")
 
-                cmd = ['cat', 'temp.pairs.header'] + res
-                cmd2 = ['LC_ALL=C', 'grep', '-v', '#']
+        
+
+        cm = ChromapMapper(reference, read1, read2, 
+                            kmer_size=kmer_size,
+                            window_size=window_size,
+                            min_quality=mapq, 
+                            threads=threads,
+                            path=aligner)
+        cm.run()
+
+    elif aligner == 'minimap2':
+        from ..mapper import MinimapMapper
+        cm = MinimapMapper(reference, read1, read2, 
+                            # kmer_size=kmer_size,
+                            # window_size=window_size,
+                            # min_quality=mapq, 
+                            threads=threads,
+                            path=aligner)
+        cm.run()
+
 
 
 @hic.command(cls=RichCommand, hidden=True)
@@ -382,7 +403,7 @@ def alleles(fasta, output, cds, bed, ploidy, skip_gmap_index, threads):
     
 
     
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
               short_help="Extract countRE and pair table from 4DN pairs file by allhic (**Deprecated**).")
 @click.argument(
     'infile',
@@ -427,7 +448,7 @@ def extract(infile, fastafile, enzyme, minLinks):
     print(restriction_site(enzyme))
     run_cmd(cmd)
 
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
              short_help="Pregroup countRE and pairs by homologous groups (**Deprecated**).")
 @click.argument(
     'alleletable',
@@ -488,7 +509,7 @@ def pregroup(alleletable, count_re, pairtable, fasta, outdir, threads):
     pt = PairTable(pairtable)
     pregroup(at, cr, pt, fasta, outdir, threads)
 
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
              short_help="Prune allelic signal by allele table (**Deprecated**).")
 @click.argument(
     'alleletable',
@@ -539,7 +560,7 @@ def prune(
     pt.save(pt.filename.replace(".txt", ".prune.txt"))
 
 
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
              short_help="Separate contigs into k groups by allhic (**Deprecated**).")
 @click.argument(
     'count_re',
@@ -676,7 +697,7 @@ def partition(
                                 threads=threads)
         ap.run()
 
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
              short_help="Recluster partition results by allele table (**Deprecated**).")
 @click.argument(
     'clustertable',
@@ -742,7 +763,7 @@ def recluster(
     rc.run(method=method)
 
 
-@hic.command(cls=RichCommand, deprecated=True,
+@hic.command(cls=RichCommand, deprecated=True, hidden=True,
              short_help="Rescue uncluster contigs into already groups (**Deprecated**).")
 @click.argument(
     'clustertable',

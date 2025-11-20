@@ -52,6 +52,7 @@ def main(args):
     
     df = pd.read_csv(args.matrix, sep='\t', index_col=0, header=0)
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = '42'
     heatmap = sns.heatmap(df, cmap=args.cmap, vmax=args.vmax, vmin=args.vmin, cbar=False)
 
     fig = plt.gcf()

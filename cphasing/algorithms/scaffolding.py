@@ -37,6 +37,7 @@ from pathlib import Path
 from pytools import natsorted
 from string import ascii_uppercase, ascii_lowercase
 from scipy.sparse import tril, coo_matrix
+from sklearn.cluster import AgglomerativeClustering
 from subprocess import Popen
 
 from ..agp import agp2fasta, agp2tour
@@ -73,9 +74,9 @@ class HaplotypeAlign:
         {"Chr01": [Tour, Tour, Tour ...],
             "Chr02": [Tour, Tour, Tour ...]}
     """
-    def __init__(self, at: str, tour_list: list,
+    def __init__(self, at: AlleleTable, tour_list: list,
                  workdir=".", threads: int = 4):
-        at = AlleleTable(at, sort=False, fmt='allele2')
+        
         self.tour_list = tour_list 
         try:
             self.allele_data = at.data.set_index([1, 2])
@@ -147,27 +148,335 @@ class HaplotypeAlign:
 
         if tmp_df['value'].sum() < 0:
             tour2.reverse()
-            # tour2.rm()
-            # tour2.backup("before_reverse")
-            tour2.save(f"{workdir}/{tour2.filename}")    
-    
+            tour2.save(f"{workdir}/{tour2.filename}")   
+
+    @staticmethod
+    def align2(tour1: Tour, tour2: Tour, data: pd.DataFrame, workdir: str):
+        """
+        align two haplotype contigs by allele table data
+        """
+        hap1 = tour1.to_dict(1)
+        hap2 = tour2.to_dict(1)
+        s1 = pd.Series(hap1, name="s1")
+        s2 = pd.Series(hap2, name="s2")
+        
+        if data.empty:
+            logger.warning("No allele data, skip: %s vs %s", tour1.filename, tour2.filename)
+            return
+        
+        df = data.reindex(
+            index=pd.MultiIndex.from_product([s1.index, s2.index])
+        ).dropna()
+  
+        sim_thr = 0.85
+        df = df[df["similarity"] >= sim_thr]
+
+        if df.empty:
+            logger.info("No pairs after similarity filter, skip: %s vs %s", tour1.filename, tour2.filename)
+            return
+        df["strand"] = df["strand"].astype(int)
+        df["mzShared"] = df["mzShared"].astype(int)
+
+        topk = 5
+        df = (
+            df.sort_values([ "mzShared", "similarity",], ascending=[False, False])
+              .groupby(level=0, group_keys=False)
+              .head(topk)
+        )
+
+
+        # cap = 5000
+        # w = df["mzShared"].clip(upper=cap) * df["similarity"]
+        w = df["mzShared"] * df["similarity"]
+        id1 = df.index.get_level_values(0)
+        id2 = df.index.get_level_values(1)
+        s1v = s1.reindex(id1).to_numpy(dtype=float, copy=False)
+        s2v = s2.reindex(id2).to_numpy(dtype=float, copy=False)
+        sv = df["strand"].to_numpy(dtype=float, copy=False)
+
+        val = w.to_numpy(dtype=float, copy=False) * sv * s1v * s2v
+        score = float(val.sum())
+        pos_w = float(w[val > 0].sum())
+        neg_w = float(w[val < 0].sum())
+        total_w = pos_w + neg_w + 1e-9
+        neg_ratio = neg_w / total_w
+        pos_ratio = pos_w / total_w
+
+        margin = 0.05 
+        if (neg_w > pos_w * (1.0 + margin)) or (score < 0 and neg_ratio > 0.50):
+            logger.info(f"    Reversing {tour2.filename} (neg_ratio={neg_ratio:.3f})")
+            tour2.reverse()
+            tour2.save(f"{workdir}/{tour2.filename}")
+        else:
+            logger.debug(f"    Keeping {tour2.filename} (neg_ratio={neg_ratio:.3f}) pos_ratio={pos_ratio:.3f}")
+            
     def run(self):
         logger.info("Adjust the tours to parallel among different haplotypes.")
 
         args = [(tours[0], tours[i], self.allele_data, self.workdir) 
                     for hap, tours in self.hap_tour_db.items() 
                     for i in range(1, len(tours))]
-        
-        # for item in args:
-        #     self.align(*item)
+
         total_machine_cpu = cpu_count()
         
         try:
             Parallel(n_jobs=min(len(args), min(total_machine_cpu, self.threads)), backend="multiprocessing")(
-                        delayed(self.align)(*a) for a in args
+                        delayed(self.align2)(*a) for a in args
             )
         except ValueError:
             logger.warning("Failed to run HaplotypeAlign. skipped")
+
+
+class HaplotypeCluster:
+    """
+    Cluster subgenome by haplotype similarity 
+    """
+    def __init__(self, at: AlleleTable, tour_list: list,
+                 workdir=".", threads: int = 4):
+      
+        self.tour_list = tour_list 
+        try:
+            self.allele_data = at.data.set_index([1, 2])
+        except KeyError:
+            logger.warning("Allele table is empty, skipped HaplotypeAlign.")
+            return
+        self.hap_tour_db = self.get_hap_tour_db(self.tour_list) 
+        self.workdir = workdir
+        self.threads = threads 
+
+    def get_hap_tour_db(self, tour_list):
+        db = defaultdict(list)
+        for tour in tour_list:
+            try:
+                hap, idx = tour.rsplit("g", 1)
+            except:
+                if "single" not in db:
+                    db['single'] = []    
+                db['single'].append(Tour(tour))
+                continue
+
+            db[hap].append(Tour(tour))
+
+        return db 
+
+    @staticmethod
+    def cluster(
+        group, tour_list, data, workdir
+    ):
+
+            n = len(tour_list)
+            if n == 0:
+                return 
+            matrix = np.zeros((n, n), dtype=float)
+
+            hap_series = []
+            for tour in tour_list:
+                hap_dict = tour.to_dict(1) 
+                s = pd.Series(hap_dict, name=tour.filename)
+                hap_series.append(s)
+
+            for i in range(n):
+                s1 = hap_series[i]
+                for j in range(n):
+                    if i == j:
+                        matrix[i, j] = 1.0
+                        continue
+                    s2 = hap_series[j]
+                    df = data.reindex(
+                        index=pd.MultiIndex.from_product([s1.index, s2.index])
+                    ).dropna()
+                    if df.empty:
+                        matrix[i, j] = 0.0
+                        continue
+                        
+                    mzshared_sum = df["mzShared"].to_numpy().sum()
+                    w = df["mzShared"].to_numpy(dtype=float) / mzshared_sum
+                    sim = df["similarity"].to_numpy(dtype=float)
+
+                    if mzshared_sum > 0:
+                        matrix[i, j] = float((w * sim).sum())
+                    else:
+                        matrix[i, j] = 0.0
+
+
+            dist = 1.0 - matrix
+            np.fill_diagonal(dist, 0.0)
+            dist = np.clip(dist, 0.0, 1.0)
+            n_clusters = None
+            sim_threshold = 0.95
+            if sim_threshold is not None:
+                distance_threshold = max(0.0, 1.0 - sim_threshold)
+                cluster_model = AgglomerativeClustering(
+                    metric="precomputed",
+                    linkage="average",
+                    distance_threshold=distance_threshold,
+                    n_clusters=None,
+                )
+            elif n_clusters is not None and n_clusters > 1:
+                cluster_model = AgglomerativeClustering(
+                    metric="precomputed",
+                    linkage="average",
+                    n_clusters=n_clusters,
+                )
+            else:
+                labels = np.zeros(n, dtype=int)
+                cluster_model = None
+
+            if cluster_model is not None:
+                labels = cluster_model.fit_predict(dist)
+
+            unique_labels = np.unique(labels)
+            k = len(unique_labels)
+            
+            cluster_sim = np.zeros((k, k), dtype=float)
+            label_to_idx = {lbl: idx for idx, lbl in enumerate(unique_labels)}
+            idx_labels = np.array([label_to_idx[l] for l in labels])
+
+            for a in range(k):
+                for b in range(k):
+                    mask_a = (idx_labels == a)
+                    mask_b = (idx_labels == b)
+                    if not mask_a.any() or not mask_b.any():
+                        continue
+                    sub = matrix[np.ix_(mask_a, mask_b)]
+                    if sub.size == 0:
+                        continue
+                    if a == b:
+                        if sub.shape[0] > 1:
+                            diag = np.eye(sub.shape[0], dtype=bool)
+                            vals = sub[~diag]
+                            if vals.size > 0:
+                                cluster_sim[a, b] = float(vals.mean())
+                        else:
+                            cluster_sim[a, b] = 1.0
+                    else:
+                        cluster_sim[a, b] = float(sub.mean())
+
+            visited = [False] * k
+            order = []
+            
+            sim_upper = np.triu(cluster_sim, k=1)
+            if (sim_upper > 0).any():
+                start_a, start_b = divmod(sim_upper.argmax(), k)
+                order.append(start_a)
+                visited[start_a] = True
+                if start_b != start_a:
+                    order.append(start_b)
+                    visited[start_b] = True
+            else:
+                order = list(range(k))
+                visited = [True] * k
+
+            while len(order) < k:
+                last = order[-1]
+                best_cand = None
+                best_sim = -1.0
+                for c in range(k):
+                    if visited[c]:
+                        continue
+                    s = cluster_sim[last, c]
+                    if s > best_sim:
+                        best_sim = s
+                        best_cand = c
+                if best_cand is None:
+                    for c in range(k):
+                        if not visited[c]:
+                            best_cand = c
+                            break
+                order.append(best_cand)
+                visited[best_cand] = True
+
+
+            cluster_rank = {}
+            for rank, c_idx in enumerate(order):
+                orig_label = unique_labels[c_idx]
+                cluster_rank[orig_label] = rank
+            size_per_label = pd.Series(labels).value_counts().to_dict()
+
+            def parse_g_index(name: str) -> int:
+                stem = Path(name).stem 
+                try:
+                    hap, idx = stem.rsplit("g", 1)
+                    return int(idx)
+                except Exception:
+                    return 10**9
+
+            info = []
+            for idx, tour in enumerate(tour_list):
+                old_fname = tour.filename
+                old_idx = parse_g_index(old_fname)
+                lbl = int(labels[idx])
+                rank = int(cluster_rank[lbl])
+                size = int(size_per_label.get(lbl, 0))
+                info.append(
+                    {
+                        "idx_in_list": idx,
+                        "old_fname": old_fname,
+                        "old_idx": old_idx, 
+                        "cluster_label": lbl,
+                        "cluster_rank": rank,
+                        "cluster_size": size,
+                    }
+                )
+            info_df = pd.DataFrame(info)
+
+            info_df = info_df.sort_values(
+                by=["cluster_rank", "old_idx"], ascending=[True, True]
+            ).reset_index(drop=True)
+
+            rename_map = {}
+            for new_pos, row in info_df.iterrows():
+                old_fname = row["old_fname"]
+                old_fname = Path(old_fname).name
+                suffix = Path(old_fname).suffix
+                new_idx = new_pos + 1
+                new_name = f"{group}g{new_idx}{suffix}"
+                rename_map[old_fname] = new_name
+
+            new_tour_list = []
+            for tour in tour_list:
+                old_path = Path(tour.filename)
+                old_name = old_path.name 
+                new_name = rename_map[old_name]
+                new_path = Path(workdir) / new_name
+                tour.filename = str(new_path)
+                tour.save(str(new_path))
+                new_tour_list.append(str(new_path))
+            
+            natsorted(new_tour_list)
+
+            out_tsv = op.join(workdir, f"{group}.hap_cluster.rename.tsv")
+            with open(out_tsv, "w") as out:
+                print("old_tour\tnew_tour\tcluster_label\tcluster_rank\tsize", file=out)
+                for _, row in info_df.iterrows():
+                    old_fname = row["old_fname"]
+                    old_name = Path(old_fname).name
+                    new_fname = rename_map[old_name]
+                    print(
+                        f"{old_fname}\t{new_fname}\t{row['cluster_label']}\t{row['cluster_rank']}\t{row['cluster_size']}",
+                        file=out,
+                    )
+
+            return new_tour_list
+            
+
+    def run(self):
+        if len(list(filter(lambda x: (len(x) > 2), self.hap_tour_db.values()))) == 0:
+            return 
+        logger.info("Sorting group by pairwise similarity, set `--disable-haplotype-cluster` to close it.")
+        args = []
+        for group, tour_list in self.hap_tour_db.items():
+            if len(tour_list) <= 2:
+                continue
+            args.append((group, tour_list, self.allele_data, self.workdir))
+
+        try:
+            Parallel(n_jobs=min(len(self.hap_tour_db), self.threads))(
+                    delayed(self.cluster)(*a) for a in args
+                )
+        except:
+            logger.warning("Failed to run HaplotypeCluster. skipped")
+
 
 class Rename:
     PAF_HADER = ["contig1", "length1", "start1", "end1", "strand",
@@ -180,7 +489,7 @@ class Rename:
                     output="groups.renamed.agp",
                     suffix_style="number",
                     threads=4, log_dir="logs",
-                    tmp_dir="rename_tmp"):
+                    tmp_dir="rename_workdir", force=False):
         
 
         self.ref = Path(ref).absolute()
@@ -199,6 +508,7 @@ class Rename:
         self.tmp_dir = tmp_dir
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.force = force
 
         if not cmd_exists("wfmash"):
             logger.error(f'No such command of `wfmash`.')
@@ -393,20 +703,127 @@ class Rename:
         logger.info("Rename done, output the rename list into "
                     f"{self.output_prefix}.rename.list")
 
+    def align2(self, paf, first_chrom_to_other_chroms, workdir):
+        tours = {chrom: Tour(chrom) for chrom in glob.glob("raw_tour/*.tour")}
+
+        tours = {Path(k).stem: v for k, v in tours.items()}
+
+        tour_results = {}
+        renamed_chrom_ref_list = []
+        hap_idx_db = {}
+
+        for ref_first_chrom, chrom_list in first_chrom_to_other_chroms.items():
+            sub_df = paf[paf["group"] == ref_first_chrom]
+            if sub_df.empty:
+                for chrom2 in chrom_list:
+                    t = tours.get(chrom2, Tour(f"raw_tour/{chrom2}.tour"))
+                    tag = f"unrenamed_{chrom2}"
+                    tour_results[chrom2] = (tag, tag, t)
+                    renamed_chrom_ref_list.append(tag)
+                continue
+
+            assign_ref_group = sub_df.groupby("contig2")["matches"].sum().idxmax()
+            sub_df = sub_df[sub_df["contig2"] == assign_ref_group]
+
+            anchor_chrom = chrom_list[0]
+            anchor_tour = tours.get(anchor_chrom, Tour(f"raw_tour/{anchor_chrom}.tour"))
+            orient_map = anchor_tour.to_dict() 
+            orient_series = pd.Series(orient_map, name="tour_orient")
+            orient_series = orient_series.map(lambda x: 1 if x == "+" else -1)
+
+            sub_df = sub_df.assign(tour_strand=sub_df["contig1"].map(orient_series.get))
+            w = sub_df["matches"].astype(float)
+            strand_val = sub_df["strand"].astype(int)
+            tour_val = sub_df["tour_strand"].fillna(0).astype(int)
+
+            val = w * strand_val * tour_val
+            score = float(val.sum())
+            pos_w = float(w[val > 0].sum())
+            neg_w = float(w[val < 0].sum())
+            total_w = pos_w + neg_w + 1e-9
+            neg_ratio = neg_w / total_w
+            pos_ratio = pos_w / total_w
+            margin = 0.05
+
+            reverse_flag = (neg_w > pos_w * (1.0 + margin)) or (
+                score < 0 and neg_ratio > 0.50
+            )
+
+            for chrom2 in chrom_list:
+                t = tours.get(chrom2, Tour(f"raw_tour/{chrom2}.tour"))
+                if reverse_flag:
+                    logger.debug(f"Reverse {t.group} (neg_ratio={neg_ratio:.3f})")
+                    t.reverse()
+
+                hap = re.match(self.hap_pattern, t.group)
+                hap = hap.groups() if hap is not None else []
+
+                if len(hap) > 1 and self.hap_aligned:
+                    if self.suffix_style == "lowerletter":
+                        new_chrom = (
+                            f"{assign_ref_group}{ascii_lowercase[int(hap[1]) - 1]}"
+                        )
+                    elif self.suffix_style == "upperletter":
+                        new_chrom = (
+                            f"{assign_ref_group}{ascii_uppercase[int(hap[1]) - 1]}"
+                        )
+                    else:
+                        new_chrom = f"{assign_ref_group}g{hap[1]}"
+                    tour_results[chrom2] = (assign_ref_group, new_chrom, t)
+                    renamed_chrom_ref_list.append(f"{assign_ref_group}")
+                else:
+                    if assign_ref_group not in hap_idx_db:
+                        hap_idx_db[assign_ref_group] = 1
+                        renamed_chrom_ref_list.append(f"{assign_ref_group}")
+                    else:
+                        hap_idx_db[assign_ref_group] += 1
+                        renamed_chrom_ref_list.append(f"{assign_ref_group}")
+
+                    if self.suffix_style == "lowerletter":
+                        new_chrom = f"{assign_ref_group}{ascii_lowercase[hap_idx_db[assign_ref_group] - 1]}"
+                    elif self.suffix_style == "upperletter":
+                        new_chrom = f"{assign_ref_group}{ascii_uppercase[hap_idx_db[assign_ref_group] - 1]}"
+                    else:
+                        new_chrom = f"{assign_ref_group}g{hap_idx_db[assign_ref_group]}"
+                    tour_results[chrom2] = (assign_ref_group, new_chrom, t)
+
+        renamed_counts = Counter(renamed_chrom_ref_list)
+        with open(f"{self.output_prefix}.rename.list", "w") as out:
+            for chrom, (ref_chrom, new_chrom, tour) in tour_results.items():
+                if renamed_counts[ref_chrom] == 1:
+                    logger.debug(f"Rename {chrom} to {ref_chrom}")
+                    tour.save(f"{workdir}/{ref_chrom}.tour")
+                    print(f"{chrom}\t{ref_chrom}", file=out)
+                else:
+                    logger.debug(f"Rename {chrom} to {new_chrom}")
+                    tour.save(f"{workdir}/{new_chrom}.tour")
+                    print(f"{chrom}\t{new_chrom}", file=out)
+
+        logger.info(f"Rename done, output list: {self.output_prefix}.rename.list")
+
+    
     def run(self):
         from ..cli import build
-        tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
-        logger.info('Working on temporary directory: {}'.format(tmpDir))
+        # tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
+        tmpDir = self.tmp_dir
+        if Path(tmpDir).exists():
+            logger.info('Working on existing directory: {}'.format(tmpDir))
+        else:
+            Path(tmpDir).mkdir(parents=True, exist_ok=True)
+            logger.info('Working on directory: {}'.format(tmpDir))
     
         os.chdir(tmpDir)
         workdir = os.getcwd()
         
         _, first_contigs_db, first_chrom_to_other_chroms = self.get_contigs()
-        self.global_align()
+        if Path(self.paf).exists() and Path(self.paf).stat().st_size > 0 and not self.force:
+            logger.warning(f"PAF file `{self.paf}` exists, skipped mapping step, you can set `--force` to rerun mapping.")
+        else:
+            self.global_align()
 
         ref_align_df = self.read_paf(first_contigs_db)
 
-        self.align(ref_align_df, first_chrom_to_other_chroms, workdir)
+        self.align2(ref_align_df, first_chrom_to_other_chroms, workdir)
 
         try:
             build.main(args=[str(self.fasta), "-oa", self.output, 
@@ -435,6 +852,7 @@ class AllhicOptimize:
                     corrected=False,
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
+                    disable_haplotype_cluster=False,
                     keep_temp=False,
                     log_dir="logs",
                     threads=4):
@@ -448,6 +866,7 @@ class AllhicOptimize:
         self.corrected = corrected
         self.output = output
         self.tmp_dir = tmp_dir 
+        self.disable_haplotype_cluster = disable_haplotype_cluster
         self.delete_temp = False if keep_temp else True 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -505,18 +924,6 @@ class AllhicOptimize:
                 for pair in contig_pairs
                 for strand1, strand2 in [('+', '+'), ('+', '-'), ('-', '+'), ('-', '-')]
             )
-            # clm = (pl.scan_csv(clm_file, separator='\t', 
-            #                             has_header=False, low_memory=True,
-            #                             dtypes={"column_2": pl.datatypes.UInt32})
-            #                     .filter(pl.col("column_1")
-            #                     .is_in(contig_with_orientation_pairs)).collect()
-            #                     .write_csv(f"{group}.clm", separator='\t', include_header=False)   
-            #                 )
-
-            # tmp_df = clm.reindex(contig_with_orientation_pairs).dropna().astype({1: int})
-            # tmp_df.to_csv(f"{group}.clm", sep='\t', header=None)
-            # left_df = pl.DataFrame(pl.Series("column_1", contig_with_orientation_pairs))
-            # tmp_df = left_df.join(clm, on=["column_1"], how='left').drop_nulls()
 
             tmp_df = clm.filter(pl.col("column_1").is_in(contig_with_orientation_pairs)).collect()
             tmp_df.write_csv(f"{group}.clm", separator='\t', include_header=False)
@@ -588,12 +995,15 @@ class AllhicOptimize:
         
         os.chdir(workdir)
         if self.allele_table and len(tour_res) > 1:
-            if AlleleTable(self.allele_table, fmt="allele2", sort=False).data.shape[0] == 0:
+            at = AlleleTable(self.allele_table, sort=False, fmt='allele2')
+            if at.data.shape[0] == 0:
                 logger.warning("Allele table is empty, skipped Haplotype parallel process.")
             else:
-                hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
+                hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
                 hap_align.run()
-
+                if self.disable_haplotype_cluster:
+                    hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
+                    hap_cluster.run()
 
         if not self.fasta:
             for file in glob.glob("*.tour"):
@@ -650,7 +1060,8 @@ class HapHiCSort:
                     fasta=None, 
                     corrected=False,
                     output="groups.agp", 
-                    tmp_dir='scaffolding_tmp', 
+                    tmp_dir='scaffolding_tmp',
+                    disable_haplotype_cluster=False, 
                     keep_temp=False,
                     log_dir="logs",
                     threads=4):
@@ -660,13 +1071,14 @@ class HapHiCSort:
         self.count_re_path = Path(count_re).absolute()
         self.count_re = CountRE(count_re, minRE=1)
         
-        self.clm_file = str(Path(clm).absolute())
+        self.clm_file = str(Path(clm).absolute()) if clm else None
         self.split_contacts = Path(split_contacts).absolute()
         self.skip_allhic = skip_allhic
         self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
         self.fasta = Path(fasta).absolute() if fasta else None
         self.corrected = corrected
         self.output = output
+        self.disable_haplotype_cluster = disable_haplotype_cluster
         self.delete_temp = False if keep_temp else True
         self.tmp_dir = tmp_dir 
         self.log_dir = Path(log_dir)
@@ -741,7 +1153,7 @@ class HapHiCSort:
         script_realpath = os.path.dirname(os.path.realpath(__file__))
         haphic_sort = f"{script_realpath}/HapHiC_sort.py"
         
-        txt = glob.glob(f"{tmp_dir}/*.txt")
+        txt = natsorted(glob.glob(f"{tmp_dir}/*.txt"))
         
         if skip_allhic:
             cmd = ["python", 
@@ -793,7 +1205,10 @@ class HapHiCSort:
         with multiprocessing.Pool(processes=min(4, self.threads)) as pool:
             pool.map(HapHiCSort._process_group, args)
         
-        HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
+        if self.skip_allhic:
+            logger.info("The scaffolding method is `fast`. Skipped clm splitting step.")
+        else:   
+            HapHiCSort.extract_clm_rust(self.clm_file, self.clusterfile, self.log_dir)
 
         total_cpu_of_machine = cpu_count()
         if self.threads * 2 > total_cpu_of_machine:
@@ -815,12 +1230,19 @@ class HapHiCSort:
 
   
         if self.allele_table and len(tour_res) >= 2:
-            if AlleleTable(self.allele_table, fmt="allele2", sort=False).data.shape[0] == 0:
+            at = AlleleTable(self.allele_table, sort=False, fmt='allele2')
+            if at.data.shape[0] == 0:
                 logger.warning("Allele table is empty, skipped Haplotype parallel process.")
             else:
-                hap_align = HaplotypeAlign(self.allele_table, tour_res, workdir, self.threads)
+                hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
                 hap_align.run()
-        
+
+                if not self.disable_haplotype_cluster:
+                    hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
+                    hap_cluster.run()
+
+
+
         if not self.fasta:
             for file in glob.glob("*.tour"):
                 shutil.copy(file, "../")
@@ -854,6 +1276,8 @@ class HapHiCSort:
             logger.info("Removed temporary directory.")
 
         logger.info("Scaffolding done.")
+
+
 
 ##Deprecated
 class OldOptimize0:

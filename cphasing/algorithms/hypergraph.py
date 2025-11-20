@@ -9,7 +9,6 @@ import msgspec
 import igraph as ig
 
 from .._config import HYPERGRAPH_ORDER_DTYPE, HYPERGRAPH_COL_DTYPE
-
 from joblib import Parallel, delayed
 from scipy.sparse import (
     identity, 
@@ -243,18 +242,21 @@ class HyperGraph:
         else:
             A = H.dot(D_e_inv).dot(H.T)
 
+        if min_weight > 0:
+            mask = A >= min_weight
+            A = A.multiply(mask)
+
         if NW is not None:
-            A = A.toarray() * NW
+            A = A.toarray() 
+            diag_A = np.diagonal(A)
+            NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
+            np.fill_diagonal(NW, 1)
+            A = A * NW
             row, col = np.nonzero(A)
             values = A[row, col]
             A = csr_matrix((values, (row, col)), shape=A.shape)
 
-        if min_weight > 0:
-            mask = A >= min_weight
-            # mask = (A >= min_weight).astype(bool)
-            # mask += (A <= -min_weight).astype(bool)
-            A = A.multiply(mask)
-    
+
         if P_allelic_idx or P_weak_idx:
             # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
             # P[np.diag_indices_from(P)] = 0
@@ -272,6 +274,7 @@ class HyperGraph:
                 
             A = A.tocsr()
 
+ 
         # if P_allelic_idx or P_weak_idx:
         #     A = A.tocoo()
         #     if P_allelic_idx:
@@ -288,7 +291,22 @@ class HyperGraph:
 
         return A
 
+    @staticmethod
+    def normalize_adjacency_matrix(A, NW=None):
+        if NW is not None:
+            logger.info("Normalizing the weight of edges.")
+            A = A.toarray() 
+            # diag_A = np.diagonal(A)
+            # NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
+            # np.fill_diagonal(NW, 1)
+            A = A * NW
+            row, col = np.nonzero(A)
+            values = A[row, col]
+            A = csr_matrix((values, (row, col)), shape=A.shape)
+        
+        return A 
     
+
     @staticmethod
     def to_contacts(A, nodes, 
                     NW=None,
@@ -432,6 +450,106 @@ def remove_incidence_matrix(mat, idx):
 
     return mat.T.tocsr(), remove_col_index
 
+def sparsify_topk(A, topk=100):
+    """
+    For each vertex keep only top-k incident edges by weight.
+    """
+    logger.info("Sparsifying matrix by keeping top-k edges per vertex.")
+
+    keep_row = []
+    keep_col = []
+    for i in range(A.shape[0]):
+        row = A.getrow(i).tocoo()
+      
+        if row.nnz > topk:
+            sorted_idx = np.argsort(row.data)[-topk:]
+            keep_col.extend(row.col[sorted_idx])
+            keep_row.extend([i] * topk)
+        else:
+            keep_col.extend(row.col)
+            keep_row.extend([i] * row.nnz)
+    
+    A[keep_row, keep_col] = 0
+    
+    A = A.tocsr()
+    A.eliminate_zeros()
+    logger.info(f"Sparsified matrix to {A.shape[0]} rows and {A.shape[1]} columns, "
+                f"keeping top-{topk} edges per vertex.")
+
+    return A
+    
+
+
+def balance_matrix_iteratively(matrix, max_iter=200, tol=1e-5):
+    """
+    ICE-like matrix balancing.
+    A more robust and efficient implementation.
+    """
+    if not isinstance(matrix, csr_matrix):
+        matrix = csr_matrix(matrix)
+
+  
+    good_rows = np.array(matrix.sum(axis=1)).flatten() > 0
+    good_cols = np.array(matrix.sum(axis=0)).flatten() > 0
+    good_nodes = good_rows & good_cols
+    
+    if not np.all(good_nodes):
+        logger.info(f"Temporarily removing {len(good_nodes) - np.sum(good_nodes)} disconnected nodes for balancing.")
+        original_size = matrix.shape[0]
+        original_indices = np.arange(original_size)
+        kept_indices = original_indices[good_nodes]
+        
+        sub_matrix = matrix[good_nodes, :][:, good_nodes]
+    else:
+        sub_matrix = matrix
+        kept_indices = None
+
+    m = sub_matrix.copy().astype(float)
+    
+    for i in range(max_iter):
+        row_sums = np.array(m.sum(axis=1)).flatten()
+        
+
+        row_sums_non_zero = row_sums[row_sums != 0]
+        if len(row_sums_non_zero) > 0 and np.all(np.abs(1 - row_sums_non_zero) < tol):
+            logger.info(f"Matrix balancing converged after {i} iterations.")
+            break
+
+        s = np.ones(m.shape[0])
+        s[row_sums != 0] = 1.0 / row_sums[row_sums != 0]
+        
+        bias_diag = dia_matrix((s, 0), shape=(m.shape[0], m.shape[0])).tocsr()
+        m = bias_diag @ m @ bias_diag
+    else:
+        logger.warning(f"Matrix balancing did not converge after {max_iter} iterations.")
+
+    if kept_indices is not None:
+        final_matrix = csr_matrix((original_size, original_size), dtype=float)
+        row_idx, col_idx = m.nonzero()
+        final_matrix[kept_indices[row_idx], kept_indices[col_idx]] = m.data
+        return final_matrix
+    else:
+        return m
+
+def balance_matrix_vc(A):
+    A.setdiag(0)
+    A.prune()
+
+    row_sums = np.array(A.sum(axis=1)).flatten()
+    col_sums = np.array(A.sum(axis=0)).flatten()
+
+    row_sums[row_sums == 0] = 1
+    col_sums[col_sums == 0] = 1
+    A_coo = A.tocoo()
+    row, col, data = A_coo.row, A_coo.col, A_coo.data
+
+    normalized_data = data / (row_sums[row] * col_sums[col])
+
+    A = csr_matrix((normalized_data, (row, col)), shape=A.shape)
+
+    return A 
+
+
 def IRMM(H, A=None,
             NW=None, 
             P_allelic_idx=None,
@@ -551,12 +669,12 @@ def IRMM(H, A=None,
                     A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
                 
             A = A.tocsr()
+
     else:
         raw_A = A.copy()
         if P_allelic_idx or P_weak_idx:
             A = A.tolil()
             if P_allelic_idx:
-        
                 if allelic_factor == 0: 
                     A[P_allelic_idx[0], P_allelic_idx[1]] = 0
                 else:
@@ -568,7 +686,6 @@ def IRMM(H, A=None,
                     A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
                 
             A = A.tocsr()
-
 
     try:
         G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
@@ -582,7 +699,6 @@ def IRMM(H, A=None,
     cluster_results = list(map(set, list(cluster_assignments.as_cover())))
   
     cluster_stat = list(map(len, cluster_results))
- 
     # del A, G
     # gc.collect()
     
@@ -668,3 +784,4 @@ def IRMM(H, A=None,
         iter_round += 1
     
     return raw_A, A, cluster_assignments, cluster_results
+

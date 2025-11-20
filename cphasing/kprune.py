@@ -54,6 +54,7 @@ class KPrunerRust:
                     output="prune.contig.table", 
                     method="greedy", 
                     first_cluster=None,
+                    count_re=None,
                     whitelist=None,
                     norm_method="none",
                     threads=4, 
@@ -64,6 +65,7 @@ class KPrunerRust:
         self.output = output
         self.method = method 
         self.first_cluster = "none" if not first_cluster else first_cluster
+        self.count_re = "none" if not count_re else count_re
         self.whitelist = "none" if not whitelist else whitelist
         self.norm_method = norm_method
         self.threads = threads
@@ -76,6 +78,8 @@ class KPrunerRust:
                "-n", self.norm_method, "-f", self.first_cluster,
                 "-w", self.whitelist,
                 "-t", str(self.threads), "-m", self.method]
+        if self.count_re != "none":
+            cmd += ["-c", self.count_re]
         flag = run_cmd(cmd, log=f"{self.log_dir}/kprune.log")
         assert flag == 0, "Failed to execute command, please check log."
         logger.info(f"Successful output the allelic and cross-allelic information into `{self.output}`")
@@ -529,9 +533,13 @@ class KPruneHyperGraph:
         
         if symmetric:
             allelic_res2 = allelic_res.rename(columns={'contig1': 'contig2',
-                                                        'conrig2': 'conrig1'})
+                                                        'contig2': 'contig1',
+                                                        'mz1': 'mz2',
+                                                        'mz2': 'mz1'})
             weak_res2 = weak_res.rename(columns={'contig1': 'contig2',
-                                                        'conrig2': 'conrig1'})
+                                                        'contig2': 'contig1',
+                                                        'mz1': 'mz2',
+                                                        'mz2': 'mz1'})
             res = pd.concat([allelic_res, allelic_res2, 
                                 weak_res, weak_res2], axis=0)    
         else:

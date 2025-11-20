@@ -638,6 +638,7 @@ class PQS:
 
     def to_hg_df(self, chunks, contig_idx, 
                  min_mapq=1, edge_length=0,
+                 split_length=None, split_contig_boundarys=None,
                  bed=None, hcr_binsize=10000):
         from intervaltree import IntervalTree
         pl.enable_string_cache()
@@ -670,7 +671,8 @@ class PQS:
 
         args = []
         for chunk in chunks:
-            args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length))
+            args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length,
+                         self.schema, split_length, split_contig_boundarys))
       
         results = Parallel(n_jobs=self.threads)(
                     delayed(process_chunk_hg)(*arg) for arg in args
@@ -1045,7 +1047,8 @@ def is_in_regions(chrom, pos, bed_dict):
 
 
 def process_chunk_hg(chunk_name, bed_dict, contigsizes,
-                     contig_idx, min_mapq, edge_length):
+                     contig_idx, min_mapq, edge_length, schema,
+                     split_length=None, split_contig_boundarys=None):
     pl.enable_string_cache()
     os.environ["POLARS_MAX_THREADS"] = "1"
     if not Path(chunk_name).exists():
@@ -1065,10 +1068,10 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
         chunk = (
             chunk.with_columns(
                 pl.col("chrom1")
-                    .map_elements(contigsizes.get, skip_nulls=False)
+                    .map_elements(contigsizes.get, skip_nulls=False, return_dtype=schema["pos1"] if False else pl.Int64)
                     .alias("length1"),
                 pl.col("chrom2")
-                    .map_elements(contigsizes.get, skip_nulls=False)
+                    .map_elements(contigsizes.get, skip_nulls=False, return_dtype=schema["pos2"] if False else pl.Int64)
                     .alias("length2"),
             )
             .filter(
@@ -1081,6 +1084,8 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
             )
             .select(["chrom1", "pos1", "chrom2", "pos2", "mapq"])
         )
+    
+   
 
     if bed_dict:
         # chunk = chunk.filter(
@@ -1096,13 +1101,30 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
         # )
         logger.warning("incomplete, skip the filter of bed regions.")
         pass 
-
     
 
-    chunk = chunk.with_columns(
-        pl.col("chrom1").map_elements(contig_idx.get, skip_nulls=False).alias("chrom1"),
-        pl.col("chrom2").map_elements(contig_idx.get, skip_nulls=False).alias("chrom2"),
-    ).drop_nulls(subset=["chrom1", "chrom2"])
+    if split_length and split_contig_boundarys:
+        chunk = (
+            chunk.with_columns((pl.col("pos1") // split_length).alias('sub_idx1'),
+                               (pl.col("pos2") // split_length).alias('sub_idx2'),
+                                pl.col("chrom1").map_elements(
+                                    split_contig_boundarys.get, skip_nulls=False, return_dtype=pl.Int64).alias('init_idx1'),
+                                pl.col("chrom2").map_elements(
+                                    split_contig_boundarys.get, skip_nulls=False, return_dtype=pl.Int64).alias('init_idx2'),
+            )   
+        )
+
+        chunk = chunk.with_columns(
+                   (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
+                     (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
+        ).drop(['sub_idx1', 'sub_idx2', 'init_idx1', 'init_idx2']).drop_nulls(subset=["chrom1", "chrom2"])
+
+    else: 
+
+        chunk = chunk.with_columns(
+            pl.col("chrom1").map_elements(contig_idx.get, skip_nulls=False).alias("chrom1"),
+            pl.col("chrom2").map_elements(contig_idx.get, skip_nulls=False).alias("chrom2"),
+        ).drop_nulls(subset=["chrom1", "chrom2"])
 
     return chunk.collect()
 

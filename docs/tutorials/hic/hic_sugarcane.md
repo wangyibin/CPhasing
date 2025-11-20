@@ -24,8 +24,12 @@ cphasing pairs-merge hic-*.pairs.pqs -o hic.merge.pairs.pqs
 
 
 ## Assembling by `cphasing pipeline`
-Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set `-n 0:0` to automatically output cluster numbers.
+- Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set `-n 0:0` to automatically output cluster numbers.
 ```shell
 cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 0:0 -hcr -p AAGCTT 
 ```
 
+- Or add `--merge-use-allele` parameter to use the allelic contig pairs information to help the merging of homologous chromosomes in first-round cluster.
+```shell
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct porec.mrege.porec.gz -t 40 -n 10:0 -hcr -p AAGCTT --merge-use-allele
+```

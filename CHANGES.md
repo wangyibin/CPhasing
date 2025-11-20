@@ -1,6 +1,49 @@
-## [v0.2.7] - 2025-07-08
+## [v0.2.7] - 2025-11-20
+#### New features
+- Supported for `linux-aarch64` platform, please download from github release.  
+#### Enhancement  
+
+- `mapper`
+    - Changed default `--mm2-params` from "-x map-ont" to "-x lr:hq", which was recommended by ONT developer for chemistry v14.  
+
+- `hic mapper`
+    - Updated `chromap` from `v0.2.5` to `v0.3.2`, which will reduce the runtime on the used CPU larger than 12.  
+    - Enabled input multiple Hi-C data  
+
+- `methalign`  
+    - optimized the pipeline of 5mC sites calling on reference  
+    - speed up the algorithm using rust and slightly increase the accuracy of the refined alignments.  
+- `pipeline`  
+    - add `--split-length` to automatically split contig to partition, which avoid the extremely long contig errors clustered together  
+    - add `--merge-use-allele`, use the allelic information to help the homologous chromosome clustering  
+    
+- `hyperpartition`
+    - Partially resolved problem that extremely long contig errors aggregated together by splitting contigs  
+    - Enable the first round partition to merge groups that contain slightly h-trans signals (`--merge-use-allele`)  
+    - Improved the accuracy of results when merging N groups to k groups.   
+
+- `scaffolding`
+    - Significantly reduce the number of large-scale false orientation errors.
+    - Sort haplotypes by pairwise similarity.
+
+- `plot`  
+    - add `--avoid-overlap-yticks` parameter to avoid the overlapping of yticks  
+    - enable using `--add-hap-border` to add border of each chromosome  
+    - add `--no-x-ticks` and `--no-y-ticks`  
+    - To reduce the size of the heatmap output file, we reduced the size of the picture by half  
+    - change default colormap from `red1p_r` to `red1p_r_half`.  
+    - add automatically vmax for `--scale log1p` or `--scale log`  
+    - only balance cis contacts and add custom iced balance function to accelerate it   
+
 #### Bug fixes
 - `methalign`, fixed bug that input bam contain 5hmC 
+- `hypergraph`, fixed bug that report at issue #40
+- `cphasing-rs pairs-intersect`, fix bug that "an 'Err' value: ShapeMismatch(ErrString("filter's length: 999999 differs from that of the series: 1000000"))"
+- `cphasing-rs splitclm`, fixed bug that it will lose several pairs.
+
+#### Acknowledgment 
+- We are grateful to the Director of Bioinformatics (Zhang Yaolong) from `HuaBiology` for the optimization suggestions provided.
+
 
 ## [v0.2.6] - 2025-03-27
 #### New features

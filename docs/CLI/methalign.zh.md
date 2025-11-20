@@ -30,7 +30,7 @@ source activate_cphasing methalign
 
     Calculate the 5mC sites by pb-cpg-tools
     ```shell
-    aligned_bam_to_cpg_scores --bam HiFi.align.sorted.bam --ref contigs.fasta --model pileup_calling_model.v1.tflite --modsites-mode reference
+    aligned_bam_to_cpg_scores --bam HiFi.align.sorted.bam --ref contigs.fasta --model pileup_calling_model.v1.tflite --modsites-mode reference -q 2 
     awk '{print $1,$2,$3,$9}' OFS='\t' HiFi_align_sorted_bam_to_cpg_scores.combined.bed > output.methyl.bg
     ```
 
@@ -38,7 +38,7 @@ source activate_cphasing methalign
     Align the ONT reads by dorado
 
     ```shell
-    dorado aligner contigs.fasta ont_reads.bam -t 20 | samtools view -q 1 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
+    dorado aligner contigs.fasta ont_reads.bam -t 20 | samtools view -q 2 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
     samtools index ont.align.sorted.bam 
     ```
 
@@ -57,21 +57,23 @@ dorado aligner contigs.fasta porec_reads.bam --secondary=yes > porec.align.bam
     Replace `--secondary=yes` to `--mm2-opts "--secondary=yes"` when using dorado >= 0.8.0
 
 ## 二次分配比对片段
-- 将bam文件分割成多份以加快处理速度
-```shell
-cphasing-rs split-bam porec.align.bam -o split_outdir/output.split
-cd split_outdir
-```
 
 - 二次分配比对片段
 ```shell
-methalign refine -t 20 contigs.fasta output.methyl.bg output.split_*.bam -o porec.align.refined.paf.gz
+methalign -t 20 contigs.fasta output.methyl.bg porec.reads*.bam -o porec.align.refined.paf.gz
 ```
 !!! note
-    这步会生成两个文件`porec.align.refined.paf.gz`和`porec.align.refined.porec.gz`。
+    这步会生成两个文件`methalign.refined.paf.gz`和`methalign.refined.porec.gz`。
 
 - 之后使用`cphasing pipeline`完成分型组装
 
 ```shell
-cphasing pipeline -f contigs.fasta -pct porec.align.refined.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT 
+cphasing pipeline -f contigs.fasta -pct methalign.refined.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT 
 ```
+
+!!! tips
+    - 将bam文件分割成多份以加快处理速度
+    ```shell
+    cphasing-rs split-bam porec.align.bam -o split_outdir/output.split
+    cd split_outdir
+    ```

@@ -66,7 +66,7 @@ class Extractor:
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
                  min_quality=1, hcr_bed=None, hcr_invert=False,
                  threads=4, edge_length=2e6, split_length=None, 
-                 low_memory=True, log_dir="logs"):
+                 split_contig_boundarys=None, low_memory=True, log_dir="logs"):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
@@ -87,6 +87,7 @@ class Extractor:
         
         self.edge_length = edge_length
         self.split_length = split_length
+        self.split_contig_boundarys = split_contig_boundarys
         self.low_memory = low_memory
 
         self.log_dir = Path(log_dir)
@@ -113,7 +114,7 @@ class Extractor:
         else:
             dtype={'mapq': pl.Int8}
         
-        if self.edge_length:
+        if self.edge_length or self.split_length:
             columns = ['chrom1', 'pos1', 'chrom2', 'pos2', 'mapq']
             usecols = [1, 2, 3, 4, 7]
         else:
@@ -157,7 +158,10 @@ class Extractor:
                 chunks = p.read(min_mapq=self.min_mapq, return_as='files')
 
                 res = p.to_hg_df(chunks, self.contig_idx, self.min_mapq, 
-                                 edge_length=self.edge_length)
+                                 edge_length=self.edge_length, 
+                                 split_length=self.split_length,
+                                    split_contig_boundarys=self.split_contig_boundarys)
+                
                 
                 if Path(f"{pairs_prefix}.intersect.pqs").exists():
                     shutil.rmtree(f"{pairs_prefix}.intersect.pqs")  
@@ -243,13 +247,31 @@ class Extractor:
                                 & ((pl.col("pos2") < edge_length)
                                     | (pl.col("pos2") > (pl.col("length2") - edge_length)))
                             )
-                            .select(["chrom1", "chrom2", "mapq"])
+                            .select(columns)
+                        )
+                    if self.split_length and self.split_contig_boundarys:
+                        p = (
+                            p.with_columns(
+                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
+                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
+                        ))
+
+                        p = (
+                            p.with_columns(
+                                        (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
+                                        (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
+                            ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                            .drop_nulls(subset=['chrom1', 'chrom2'])
+                            .select(['chrom1', 'chrom2', 'mapq'])
                         )
 
-                    p = p.to_pandas()
-
-                    res = Extractor._process_df(p, self.contig_idx, self.threads)   
-                    
+                        res = p.to_pandas()
+                    else:
+                        p = p.to_pandas()
+                        res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                        
                     res = res.reset_index(drop=True).reset_index()
             
                     res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
@@ -259,20 +281,66 @@ class Extractor:
                                     axis=0)
                     
                 else:
-
+                    columns.remove('mapq')
+                    usecols.remove(7)
                     p = pl.read_csv(input_file, separator='\t', has_header=False,
-                                    comment_prefix="#", columns=[1, 3],
-                                    new_columns=['chrom1', 'chrom2'],
+                                    comment_prefix="#", columns=usecols,
+                                    new_columns=columns,
                                     dtypes=dtype)
 
                     if self.hcr_bed:
                         if Path(f"temp.{pairs_prefix}.hcr.pairs").exists():
                             os.remove(f"temp.{pairs_prefix}.hcr.pairs")
                     
+                    if self.edge_length:
+                        edge_length = self.edge_length
+                        p = (
+                            p.with_columns(
+                                [
+                                    pl.col("chrom1")
+                                    .map_elements(
+                                        self.contigsizes.get, skip_nulls=False
+                                    )
+                                    .alias("length1"),
+                                    pl.col("chrom2")
+                                    .map_elements(
+                                        self.contigsizes.get, skip_nulls=False
+                                    )
+                                    .alias("length2"),
+                                ]
+                            )
+                            .filter(
+                                ((pl.col("pos1") < edge_length)
+                                    | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                                & ((pl.col("pos2") < edge_length)
+                                    | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                            )
+                            .select(columns)
+                        )
 
-                    p = p.to_pandas()
+                    if self.split_length and self.split_contig_boundarys:
+                        p = (
+                            p.with_columns(
+                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
+                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
+                        ))
 
-                    res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                        p = (
+                            p.with_columns(
+                                        (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
+                                        (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
+                            ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                            .drop_nulls(subset=['chrom1', 'chrom2'])
+                            .select(['chrom1', 'chrom2'])
+                        )
+
+                        res = p.to_pandas()
+                    else:
+                        p = p.to_pandas()
+                        res = Extractor._process_df(p, self.contig_idx, self.threads)   
+
                     res = res.reset_index(drop=True).reset_index()
                     res = pd.concat([res[['chrom1', 'index']].rename(
                                                 columns={'chrom1': 'row', 'index': 'col'}),
@@ -310,46 +378,86 @@ class Extractor:
             p = pd.read_csv(self.pairs_pathes[0], sep='\t', comment="#", 
                                 header=None, index_col=None, nrows=1)
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
-                # res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
-                #                 lambda x: pd.read_csv(get_file(x), sep='\t', comment="#",
-                #                                 header=None, index_col=None, 
-                #                                 # compression=compression,
-                #                                 dtype=dtype,
-                #                                 usecols=[1, 3, 7], names=['chrom1', 'chrom2', 'mapq'],
-                #                                 ).query(f'mapq >= {self.min_mapq}'))
-                #                                 (i) for i in p_list)
                 def read_csv(x):
                     df = pl.read_csv(x, separator='\t', has_header=False, 
-                                     comment_prefix="#", columns=[1, 3, 7],
-                                    new_columns=['chrom1', 'chrom2', 'mapq'],
+                                     comment_prefix="#", columns=usecols,
+                                    new_columns=columns,
                                     dtypes=dtype)
                     if self.min_mapq > 0:
                         df = df.filter(pl.col('mapq') >= self.min_mapq)
 
-                    return df.to_pandas()
+                    return df
                 with Parallel(backend="loky", n_jobs=min(self.threads, len(p_list))) as parallel:   
-                    res = parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
+                    res = parallel(delayed(
                                 lambda x: read_csv(get_file(x)))(i) for i in p_list)
 
             else:
+                usecols.remove(7)
+                columns.remove('mapq')
                 def read_csv(x):
                     df = pl.read_csv(x, separator='\t', has_header=False, 
-                                     comment_prefix="#", columns=[1, 3],
-                                    new_columns=['chrom1', 'chrom2'],
+                                     comment_prefix="#", columns=usecols,
+                                    new_columns=columns,
                                     dtypes=dtype)
     
-                    return df.to_pandas()
+                    return df
                 
                 res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                                 lambda x: read_csv(get_file(x)))(i) for i in p_list)
-                
-            args = [ (i, self.contig_idx, threads_2) for i in res ]
-        
 
-            with Parallel(backend="loky", n_jobs=threads_1) as parallel:
-                res = parallel(n_jobs=threads_1)(delayed(
-                                Extractor._process_df)(i, j, k) for i, j, k in args)
             
+            for i, p in enumerate(res):
+                if self.edge_length:
+                    edge_length = self.edge_length
+                    p = (
+                        p.with_columns(
+                            [
+                                pl.col("chrom1")
+                                .map_elements(
+                                    self.contigsizes.get, skip_nulls=False
+                                )
+                                .alias("length1"),
+                                pl.col("chrom2")
+                                .map_elements(
+                                    self.contigsizes.get, skip_nulls=False
+                                )
+                                .alias("length2"),
+                            ]
+                        )
+                        .filter(
+                            ((pl.col("pos1") < edge_length)
+                                | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                            & ((pl.col("pos2") < edge_length)
+                                | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                        )
+                        .select(columns)
+                    )
+                if self.split_length and self.split_contig_boundarys:
+                    p = (
+                            p.with_columns(
+                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
+                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
+                        ))
+
+                    p = (
+                        p.with_columns(
+                                    (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
+                                    (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
+                        ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                        .drop_nulls(subset=['chrom1', 'chrom2'])
+                        .select(['chrom1', 'chrom2'])
+                    )
+
+                    res[i] = p.to_pandas()        
+                
+            if not self.split_length or not self.split_contig_boundarys:
+                args = [ (i.to_pandas(), self.contig_idx, threads_2) for i in res ]
+                with Parallel(backend="loky", n_jobs=threads_1) as parallel:
+                    res = parallel(delayed(
+                                    Extractor._process_df)(i, j, k) for i, j, k in args)
+                
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
                 res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
                 res = pd.concat([res[['chrom1', 'index', 'mapq']].rename(
@@ -641,7 +749,7 @@ class HyperExtractor:
                             threads=4,
                             is_parquet=False,
                             log_dir="logs"):
-        
+    
         self.pore_c_table_pathes = listify(pore_c_table_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
@@ -727,10 +835,10 @@ class HyperExtractor:
                 except IsADirectoryError:
                     logger.error(f"The pore-c table `{infile}` is a directory, may be you want to load pairs.pqs file please specified `--pairs` parameter.")
                     sys.exit(-1)
-                # except pl.exceptions.OutOfBoundsError:
-                #     logger.error(f"The pore-c table `{infile}` is incorrect, it's not a pore-c table, "
-                #                  f"may be it is a pairs, if that you should change `-pct` to `-prs`.")
-                    # sys.exit(-1)
+                except pl.exceptions.OutOfBoundsError:
+                    logger.error(f"The pore-c table `{infile}` is incorrect, it's not a pore-c table, "
+                                 f"may be it is a pairs, if that you should change `-pct` to `-prs`, or the pore-c table is incomplete.")
+                    sys.exit(-1)
                 
             if self.hcr_bed:
                 if Path(f"temp.{porec_prefix}.hcr.porec").exists():

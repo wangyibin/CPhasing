@@ -17,39 +17,42 @@ from pathlib import Path
 from click_didyoumean import DYMGroup
 
 from .. import __epilog__
-from ..cli import CommandGroup
-from ..cli import cli 
+# from ..cli import CommandGroup
+from ..cli import cli, LOG_LEVEL
 from ..utilities import run_cmd
 
 logger = logging.getLogger(__name__)
-class CommandGroup(DYMGroup, RichCommand):
-    """
-    List subcommand in the order there were added.
-    """
-    def list_commands(self, ctx):
-        return list(self.commands)
-
-    def get_command(self, ctx, cmd_name):
-        """
-        Alias command, https://stackoverflow.com/questions/46641928/python-click-multiple-command-names
-        """
-        try:
-            cmd_name = ALIASES[cmd_name].name 
-        except KeyError:
-            pass 
-        return super().get_command(ctx, cmd_name)
 
 
-@cli.group(cls=CommandGroup,
-           context_settings={"help_option_names": ["-h", "--help", "-help"]},
-           epilog=__epilog__,
-           short_help='Using methylation information to refine the alignments. (nightly)')
-@click.pass_context
-def methalign(ctx):
-    pass
+# class CommandGroup(DYMGroup, RichCommand):
+#     """
+#     List subcommand in the order there were added.
+#     """
+#     def list_commands(self, ctx):
+#         return list(self.commands)
+
+#     def get_command(self, ctx, cmd_name):
+#         """
+#         Alias command, https://stackoverflow.com/questions/46641928/python-click-multiple-command-names
+#         """
+#         try:
+#             cmd_name = ALIASES[cmd_name].name 
+#         except KeyError:
+#             pass 
+#         return super().get_command(ctx, cmd_name)
 
 
-@methalign.command(cls=RichCommand, short_help='Refine the alignments by methylation signal.')
+# @cli.group(cls=CommandGroup,
+#            context_settings={"help_option_names": ["-h", "--help", "-help"]},
+#            epilog=__epilog__,
+#            short_help='Using methylation information to refine the alignments. (nightly)')
+# @click.pass_context
+# def methalign(ctx):
+#     pass
+
+
+@cli.command(cls=RichCommand, epilog=__epilog__, short_help='Refine the alignments by methylation signal.')
+@click.help_option('-h', '--help', '-help')
 @click.argument(
     'fasta',
     type=click.Path(exists=True),
@@ -107,12 +110,13 @@ def methalign(ctx):
     help="recalculate scores for all alignments although there may not be any secondary alignments",
     default=False,
     show_default=True,
+    hidden=True,
 )
 @click.option(
     '-o',
     '--output',
-    type=click.Path(),
-    help='Output paf file name',
+    type=str,
+    help='Output suffix of paf file name',
     default='methalign.refined.paf.gz',
     show_default=True
 )
@@ -131,7 +135,7 @@ def methalign(ctx):
     help="Number of processes to process bam",
     show_default=True
 )
-def refine(fasta, bedgraph, bam, penalty, ref_prob_cutoff,
+def methalign(fasta, bedgraph, bam, penalty, ref_prob_cutoff,
             prob_cutoff, designate_mapq, recalculate_all,
             output, threads, process):
     """
@@ -149,82 +153,139 @@ def refine(fasta, bedgraph, bam, penalty, ref_prob_cutoff,
         parse_bam, 
         parse_bedgraph
         )
+    from .refine import refine
     from ..utilities import read_fasta
-
-    fa_dict = read_fasta(fasta)
-
-    hifi_methylation_dict = parse_bedgraph(bedgraph, ref_prob_cutoff, threads=threads)
+    
+    method = "fast"
+    
 
     if len(bam) == 0:
         logging.error("No bam files are provided.")
         sys.exit(1)
+
+    logger.info("Input files:")
+    logger.info(f"Reference fasta: {fasta}")
+    logger.info(f"Reference bedgraph: {bedgraph}")
+    logger.info(f"Bam files: {', '.join(bam)}")
+
+    if method == "v1":
+        fa_dict = read_fasta(fasta)
+
+        hifi_methylation_dict = parse_bedgraph(bedgraph, ref_prob_cutoff, threads=threads)
+        if len(bam) > 1:
+            def generate_args(bam):
+                for bam in bam:
+                    yield (
+                        bam,
+                        fa_dict,
+                        hifi_methylation_dict,
+                        penalty,
+                        prob_cutoff,
+                        designate_mapq,
+                        recalculate_all,
+                        threads
+                    )
+            
+            out_bams = Parallel(n_jobs=process)(
+                delayed(parse_bam)(*arg) for arg in generate_args(bam)
+            )
+
+        else:
+            out_bam = parse_bam(
+                bam[0],
+                fa_dict,
+                hifi_methylation_dict,
+                penalty,
+                prob_cutoff,
+                designate_mapq,
+                recalculate_all,
+                threads
+            )
+
+            out_bams = [out_bam]
     
-    if len(bam) > 1:
-        def generate_args(bam):
-            for bam in bam:
-                yield (
-                    bam,
-                    fa_dict,
-                    hifi_methylation_dict,
+    else:
+        if len(bam) > 1:
+            args = []
+            for b in bam:
+                _output = Path(b).stem + '.refined.bam'
+                args.append((
+                    b,
+                    fasta,
+                    bedgraph,
                     penalty,
+                    ref_prob_cutoff,
                     prob_cutoff,
                     designate_mapq,
-                    recalculate_all,
+                    _output,
                     threads
-                )
-        
-        out_bams = Parallel(n_jobs=process)(
-            delayed(parse_bam)(*arg) for arg in generate_args(bam)
-        )
+                ))
+            out_bams = Parallel(n_jobs=process)(
+                delayed(refine)(*arg) for arg in args
+            )
 
-    else:
-        out_bam = parse_bam(
-            bam[0],
-            fa_dict,
-            hifi_methylation_dict,
-            penalty,
-            prob_cutoff,
-            designate_mapq,
-            recalculate_all,
-            threads
-        )
+        else:
+            out_bam = refine(
+                bam[0],
+                fasta,
+                bedgraph,
+                penalty,
+                ref_prob_cutoff,
+                prob_cutoff,
+                designate_mapq,
+                output=Path(bam[0]).stem + '.refined.bam',
+                threads=threads
+            )
 
-        out_bams = [out_bam]
-
+            out_bams = [out_bam]
+    
     def bam2paf(bam):
         cmd = ['cphasing-rs', 'bam2paf', bam, '-o', bam.replace('.bam', '.paf.gz')]
-
-        run_cmd(cmd)
+        log_dir = Path("logs").mkdir(exist_ok=True)
+        log = op.join("logs", f"{Path(bam).stem}.bam2paf.log")
+        flag = run_cmd(cmd, log=log)
+        assert flag == 0, f"Failed to convert {bam} to paf format."
 
         return bam.replace('.bam', '.paf.gz')
     
+    output_prefix = Path.Path(out_bams[0]).stem.split(".")[0]
 
-    pafs = Parallel(n_jobs=process)(
-            delayed(bam2paf)(bam) for bam in out_bams
-        )
-    
+
+    if len(out_bams) == 1:
+        pafs = [bam2paf(out_bams[0])]
+    else:
+        pafs = Parallel(n_jobs=process)(
+                delayed(bam2paf)(bam) for bam in out_bams
+            )
+
     if len(pafs) > 1:
-        cmd = ['cat'] + pafs + ['>', output]
+     
+        cmd = ['cat'] + pafs + ['>', f"{output_prefix}.{output}"]
         flag = os.system(' '.join(cmd))
         assert flag == 0, "Failed to concatenate paf files."
 
-        logger.info(f"Output merged paf file is saved to {output}")
+        logger.info(f"Output merged paf file is saved to {output_prefix}.{output}")
 
         ## remove pafs file 
         for paf in pafs:
             if Path(paf).exists():
                 os.remove(paf)  
+        
 
     else:
-        os.rename(pafs[0], output)
-        logger.info(f"Output paf file is saved to {output}")
+        os.rename(pafs[0], f"{output_prefix}.{output}")
+        logger.info(f"Output paf file is saved to {output_prefix}.{output}")
 
     paf2porec_cmd = ['cphasing-rs', 'paf2porec', output, '-q', '0',
-                     '-o', output.replace('.paf.gz', '.porec.gz')]
-    run_cmd(paf2porec_cmd)
+                     '-o', f"{output_prefix}.{output}".replace('.paf.gz', '.porec.gz')]
+    logs = op.join("logs", f"{output_prefix}.paf2porec.log")
+    flag = run_cmd(paf2porec_cmd, log=logs)
+    assert flag == 0, "Failed to convert paf to porec format."
+    output_porec = f"{output_prefix}.{output}".replace('.paf.gz', '.porec.gz')
+    logger.info(f"Output porec file is saved to {output_porec}")
 
     logger.info("All done.")
-
+    
 
 ALIASES = {
    

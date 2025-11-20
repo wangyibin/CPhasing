@@ -132,6 +132,7 @@ def get_5mc_sites_from_read(read_seq, MM_tag, ML_tag, prob_cutoff, pattern=re.co
     parts = MM_tag.rstrip(';').split(';')
     offset = 0
     shifts = None
+
     for part in parts:
         items = part.split(',')
         if 'C+m' in items[0]:
@@ -141,9 +142,8 @@ def get_5mc_sites_from_read(read_seq, MM_tag, ML_tag, prob_cutoff, pattern=re.co
     if not shifts:
         return ont_pos_index, ont_methylation_array
     MM_tags = shifts
-   
-    ML_tag = ML_tag[offset: offset + len(shifts)]
 
+    ML_tag = ML_tag[offset-1: offset + len(shifts)]
     for n, i in enumerate((int(shift) for shift in MM_tags)):
         index_sum += i
         if ML_tag[n] >= prob_cutoff:
@@ -268,6 +268,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
         _hifi = hifi_set
         seq = fa_seq
         inc = 0
+        print(ont_methylation_array, ont_pos_index)
         for rpos, refpos in aligned_pairs:
             if rpos is None or refpos is None:
                 continue
@@ -282,9 +283,18 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
             if is_forward:
                 if seq[refpos] != 'C':
                     continue
+                if (refpos + 1) >= len(seq):
+                    continue
+                elif seq[refpos+1] != 'G':
+                    continue 
+        
                 hit = (refpos in _hifi)
             else:
                 if seq[refpos] != 'G':
+                    continue
+                if refpos - 1 < 0:
+                    continue
+                elif seq[refpos-1] != 'C' :
                     continue
                 hit = ((refpos - 1) in _hifi)
             if hit != is_meth:
@@ -472,6 +482,7 @@ def parse_bam(bam, fa_dict, hifi_methylation_dict, penalty, prob_cutoff, designa
                     else:
                         mm_tag, ml_tag = '', ''
                     ont_pos_index, ont_methylation_array = get_5mc_sites_from_read(read_seq, mm_tag, ml_tag, prob_cutoff)
+                    
                     recalculate_score(aln, flg, ont_pos_index, ont_methylation_array)
                 else:
                     pass

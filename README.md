@@ -1,7 +1,6 @@
 ![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing
 ) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing)![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing
-)
-
+) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue)
 <img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
 <p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>/<b>C</b>iFi, Ultra-long, or Hi-<b>C</b> data</p>.
@@ -19,9 +18,11 @@ The advantages of `C-Phasing`:
 - High anchor rate of genome. 
 - High accuracy of polyploid phasing. 
 
+![Summary_of_CPhasing](./pictures/Summary_of_CPhasing.png)
 ## Installation
 
 ### Via activate_cphasing (Recommended)
+- linux-64 (x86-64)
 ```bash
 ## Download C-Phasing and install all dependencies
 git clone https://github.com/wangyibin/CPhasing.git
@@ -32,6 +33,10 @@ source ./CPhasing/bin/activate_cphasing
 ## deactivate environment
 exit
 ```
+
+- linux-aarch64
+**download from github release**
+
 
 ### Via Anaconda
 ```bash
@@ -151,6 +156,17 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 More details please check the documentation:  
 [Documentation](https://wangyibin.github.io/CPhasing/latest) | [中文文档](https://wangyibin.github.io/CPhasing/latest/zh)
 
+
+## Citation
+If you use C-Phasing in your work, please cite: 
+- **C-Phasing**
+    > Yibin Wang, Ping Zhao, Xiaofei Zeng, Jiaxin Yu, Aoqian Dong, Yi Liu, Mengwei Jiang, Fang Wang, Xiao Chen, Shengcheng Zhang, Shuai Chen, Yuqing Gong, Yixing Zhang, Ruicai Long, Maojun Wang, Haibao Tang and Xingtan Zhang. Enhanced Pore-C with C-Phasing Enables Chromosomal-Scale, Haplotype-Resolved Assembly of Ultra-Complex Genomes, 05 November 2025, PREPRINT (Version 1) available at Research Square [https://doi.org/10.21203/rs.3.rs-7343323/v1]
+
+- And HapHiC:
+    > Xiaofei Zeng, Zili Yi, Xingtan Zhang, Yuhui Du, Yu Li, Zhiqing Zhou, Sijie Chen, Huijie Zhao, Sai Yang, Yibin Wang, Guoan Chen. Chromosome-level scaffolding of haplotype-resolved assemblies using Hi-C data without reference genomes. Nature Plants, 10:1184-1200. doi: https://doi.org/10.1038/s41477-024-01755-3
+
+- And ALLHiC
+    > Xingtan Zhang, Shengcheng Zhang, Qian Zhao, Ray Ming, Haibao Tang. (2019) Assembly of allele-aware, chromosomal-scale autopolyploid genomes based on Hi-C data. Nature Plants, 5:833-845. doi: https://doi.org/10.1038/s41477-019-0487-8
 
 ## For Hi-C data
 For Hi-C data, users may also consider using our alternative software, [**HapHiC** (https://github.com/zengxiaofei/HapHiC)](https://github.com/zengxiaofei/HapHiC), which is specifically designed for Hi-C data and has demonstrated strong performance across multiple projects.

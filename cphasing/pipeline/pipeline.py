@@ -29,6 +29,7 @@ from ..cli import (mapper as porec_mapper,
                     plot
 )
 from ..core import Pairs2
+from .._config import *
 from ..expection import *
 from ..hic.cli import mapper as hic_mapper
 from ..pqs import PQS
@@ -64,8 +65,9 @@ def run(fasta,
         mapper_w=10,
         mm2_params="-x map-ont",
         mapping_quality=0,
-        hic_mapper_k=17,
-        hic_mapper_w=7,
+        hic_aligner="_chromap",
+        hic_mapper_k=None,
+        hic_mapper_w=None,
         chimeric_correct=False,
         chimeric_corrected=False,
         hcr_flag=False,
@@ -85,10 +87,13 @@ def run(fasta,
         alleles_minimum_similarity=0.2,
         alleles_diff_thres=0.1,
         alleles_trim_length=25000,
+        kprune_norm_method="auto",
         scaffolding_method="precision",
+        disable_haplotype_cluster=False,
         n="",
         use_pairs=False,
         edge_length=2e6,
+        split_length='auto',
         resolution1=1,
         resolution2=1,
         init_resolution1=1,
@@ -97,6 +102,7 @@ def run(fasta,
         normalize=False,
         allelic_factor=-1,
         disable_merge_in_first=False,
+        merge_use_allele=False,
         exclude_group_to_second=None,
         exclude_group_from_first=None,
         allelic_similarity=0.85,
@@ -251,6 +257,11 @@ def run(fasta,
             logger.info("The mode is `phasing`, the step '1. alleles' will be intergated into '3. hyparpartion'.")
         else:
             allele_table = None
+    
+    if mode == "basal_withprune":
+        split_length = 'none'
+        logger.warning("The mode is `basal_withprune`, the `split_length` is set to `none`. If you want to split contigs, please using the parameters `-n 1:x --mode phasing`")
+        
          
     filtered_pairs = None
    
@@ -327,6 +338,8 @@ def run(fasta,
 
         pairs_prefix = str(pairs_prefix).replace('_R1', '').replace('_1', '')
         pairs = f"{pairs_prefix}.pairs.gz"
+        if hic_aligner == "minimap2":
+            pairs = f"{pairs_prefix}.pairs.pqs"
         pqs_file = f"{pairs_prefix}.pairs.pqs"
         is_pairs2pqs = False
         hg_input = f"{pairs_prefix}.pairs.pqs"
@@ -425,6 +438,8 @@ def run(fasta,
                                     hic1,
                                     "-2",
                                     hic2,
+                                    "-a",
+                                    hic_aligner,
                                     "-k",
                                     hic_mapper_k,
                                     "-w",
@@ -470,7 +485,6 @@ def run(fasta,
         _pairs = Pairs2(pairs)
         if _pairs.is_pairs():
             if not Path(f"{pairs_prefix}.pairs.pqs").exists() or is_file_changed(pairs):
-                is_file_changed(pairs)
                 logger.info("Coverting pairs or pairs.gz to pairs.pqs ...")
                 args = [pairs, "-t", str(threads), "-o", f"{pairs_prefix}.pairs.pqs"]
                 try:
@@ -853,12 +867,14 @@ def run(fasta,
         os.chdir("..")
     
     if pattern is None:
-        pattern = "AAGCTT"
+        pattern = DEFAULT_PATTERN
+    
+    pattern = pattern.upper().replace("^", "").replace(",", "_")
     count_re = f"{prepare_dir}/{prepare_prefix}.counts_{pattern}.txt"
     clm = f"{prepare_dir}/{prepare_prefix}.clm.gz"
     
     
-    split_contacts = f"{prepare_dir}/{prepare_prefix}.split.contacts"
+    split_contacts = f"{prepare_dir}/{prepare_prefix}.split.contacts.gz"
 
     output_cluster = "output.clusters.txt"
     
@@ -976,6 +992,8 @@ def run(fasta,
                                 _mode,
                                 "-e",
                                 edge_length,
+                                "-sl",
+                                split_length,
                                 "-c",
                                 hyperpartition_contacts,
                                 "-r1",
@@ -1017,12 +1035,21 @@ def run(fasta,
                                 "-n",
                                 n,
                             ]
+        if kprune_norm_method != "auto":
+            hyperpartition_args.extend(["-knm", kprune_norm_method])
+            if kprune_norm_method == "re":
+                logger.info(f"Using `re` kprune norm method.")
+                hyperpartition_args.extend(["-cr", f"../{count_re}"])
 
         if allelic_factor != -1:
             hyperpartition_args.extend(["-af", allelic_factor])
         
         if disable_merge_in_first:
             hyperpartition_args.append("--disable-merge-in-first")
+        
+        if merge_use_allele:
+            hyperpartition_args.append("--merge-use-allele")
+            
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
         if refine:
@@ -1101,10 +1128,9 @@ def run(fasta,
             args = [
                 f"../{hyperpartition_dir}/{output_cluster}",
                 f"../{count_re}",
+                f"--clm",
                 f"../{clm}",
                 " ",
-                "-at",
-                f"../{allele_table}" if allele_table else None,
                 "-sc",
                 f"../{split_contacts}",
                 "-f",
@@ -1121,10 +1147,9 @@ def run(fasta,
             args=[
                 f"../{hyperpartition_dir}/{output_cluster}",
                 f"../{count_re}",
+                "--clm",
                 f"../{clm}",
                 " ",
-                "-at",
-                f"../{allele_table}" if allele_table else None,
                 "-sc",
                 f"../{split_contacts}",
                 "-f",
@@ -1135,6 +1160,13 @@ def run(fasta,
                 out_agp,
                 "-m",
                 scaffolding_method]
+
+        if allele_table:
+            args.extend(["-at",
+                        f"../{allele_table}"])
+            
+        if disable_haplotype_cluster:
+            args.append("--disable-haplotype-cluster")
             
         with open("scaffolding.cmd.sh", "w") as _out_sh:
             _out_sh.write("cphasing scaffolding \\\n    ")
@@ -1237,7 +1269,8 @@ def run(fasta,
                         f"../{contigsizes}",
                         f"../{scaffolding_dir}/{input_agp}", 
                         min_quality1, init_binsize,
-                        binsize, colormap, whitered)
+                        binsize, colormap, 
+                        whitered, mode,)
         args = [
                 "-a",
                 f"../{scaffolding_dir}/{input_agp}",
@@ -1254,7 +1287,8 @@ def run(fasta,
             args.extend(["--colormap", colormap])
         if whitered:
             args.append("--whitered")
-
+        if mode == "phasing":
+            args.extend(["--add-hap-border", "--no-lines"])
 
         try:
             plot.main(args=args,
@@ -1291,7 +1325,7 @@ def run(fasta,
         if corrected:
             logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")
     if "5" in steps:
-        res = glob.glob("5.plot/groups.*.wg.png")
-        if res:
-            for i in res:
-                logger.info(f"    {outdir}/{i}")
+        # res = glob.glob("5.plot/groups.*.wg.png")
+        # if res:
+        #     for i in res:
+        logger.info(f"    {outdir}/5.plot/groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png")

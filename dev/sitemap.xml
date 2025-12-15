@@ -2,294 +2,294 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CHANGES/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CHANGES/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CHANGES/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/basic_usage/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/basic_usage/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/basic_usage/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/citation/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/citation/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/citation/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/faq/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/faq/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/faq/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/alleles/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/alleles/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/alleles/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/collapse/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/collapse/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/collapse/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/hic_mapper/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/hic_mapper/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/hic_mapper/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/mapper/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/mapper/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/mapper/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/methalign/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/methalign/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/methalign/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/plot/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/plot/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/plot/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/CLI/rename/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/CLI/rename/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/CLI/rename/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/blog/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/blog/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/blog/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_decaploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_decaploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/hic/hic_decaploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_monoploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_monoploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/hic/hic_monoploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_sugarcane/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_sugarcane/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/hic/hic_sugarcane/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_tetraploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_tetraploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/hic/hic_tetraploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_decaploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_decaploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/porec/porec_decaploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_monoploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_monoploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/porec/porec_monoploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_sugarcane/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_sugarcane/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/porec/porec_sugarcane/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_tetraploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_tetraploid/"/>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/devzh/tutorials/porec/porec_tetraploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/dev"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CHANGES/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CHANGES/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCHANGES/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/basic_usage/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/basic_usage/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devbasic_usage/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/citation/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/citation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devcitation/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/faq/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devfaq/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/alleles/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/alleles/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/alleles/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/collapse/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/collapse/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/collapse/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/hic_mapper/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/hic_mapper/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/hic_mapper/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/mapper/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/mapper/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/mapper/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/methalign/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/methalign/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/methalign/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/plot/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/plot/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/plot/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/CLI/rename/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/CLI/rename/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devCLI/rename/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/blog/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/blog/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devblog/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_decaploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_decaploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/hic/hic_decaploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_monoploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_monoploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/hic/hic_monoploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_sugarcane/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_sugarcane/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/hic/hic_sugarcane/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_tetraploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/hic/hic_tetraploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/hic/hic_tetraploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_decaploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_decaploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/porec/porec_decaploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_monoploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_monoploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/porec/porec_monoploid/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_sugarcane/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_sugarcane/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/porec/porec_sugarcane/"/>
     </url>
     <url>
         <loc>https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_tetraploid/</loc>
-        <lastmod>2025-11-20</lastmod>
+        <lastmod>2025-12-15</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://wangyibin.github.io/CPhasing/dev/zh/tutorials/porec/porec_tetraploid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://wangyibin.github.io/CPhasing/devtutorials/porec/porec_tetraploid/"/>

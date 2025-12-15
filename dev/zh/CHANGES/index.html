@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#v027-2025-11-20" class="md-skip">
+        <a href="#v028-2025-12-15" class="md-skip">
           跳转至
         </a>
       
@@ -991,6 +991,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v028-2025-12-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.8] - 2025-12-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v027-2025-11-20" class="md-nav__link">
     <span class="md-ellipsis">
       [v0.2.7] - 2025-11-20
@@ -1679,6 +1688,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v028-2025-12-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      [v0.2.8] - 2025-12-15
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v027-2025-11-20" class="md-nav__link">
     <span class="md-ellipsis">
       [v0.2.7] - 2025-11-20
@@ -2360,12 +2378,37 @@
 
   <h1>CHANGES</h1>
 
-<h2 id="v027-2025-11-20">[v0.2.7] - 2025-11-20<a class="headerlink" href="#v027-2025-11-20" title="Permanent link">&para;</a></h2>
+<h2 id="v028-2025-12-15">[v0.2.8] - 2025-12-15<a class="headerlink" href="#v028-2025-12-15" title="Permanent link">&para;</a></h2>
 <h4 id="new-features">New features<a class="headerlink" href="#new-features" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>hic mapper</code>, add <code>BwaMapper</code>, which enables user choose the aligner to <code>bwa-mem2</code> through <code>--hic-alinger bwa-mem2</code>.</li>
+</ul>
+<h4 id="enhancement">Enhancement<a class="headerlink" href="#enhancement" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>alleles</code>
+    - speed up the calculation of similarity by parallelize</li>
+<li><code>hypergraph</code>
+    - speed up the hypergraph construction from <code>.porec.gz</code> or <code>pairs</code>.</li>
+</ul>
+<ul>
+<li><code>hyperpartition</code>,
+    - speed up the procedure of graph construction</li>
+</ul>
+<ul>
+<li><code>plot</code>
+    - reduced time consumption at least 60% and reduced the memory usage</li>
+</ul>
+<h4 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>hyperpartition</code>, fixed bug that when q1=0 q2=1, the program can not filter q2=1 in the second round cluster.</li>
+<li><code>plot</code>, fixed bug that "Found bin ID &lt; 0"</li>
+</ul>
+<h2 id="v027-2025-11-20">[v0.2.7] - 2025-11-20<a class="headerlink" href="#v027-2025-11-20" title="Permanent link">&para;</a></h2>
+<h4 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Supported for <code>linux-aarch64</code> platform, please download from github release.  </li>
 </ul>
-<h4 id="enhancement">Enhancement<a class="headerlink" href="#enhancement" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_1">Enhancement<a class="headerlink" href="#enhancement_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>mapper</code>
     - Changed default <code>--mm2-params</code> from "-x map-ont" to "-x lr:hq", which was recommended by ONT developer for chemistry v14.  </li>
@@ -2404,7 +2447,7 @@
     - add automatically vmax for <code>--scale log1p</code> or <code>--scale log</code><br />
     - only balance cis contacts and add custom iced balance function to accelerate it   </li>
 </ul>
-<h4 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_1">Bug fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>methalign</code>, fixed bug that input bam contain 5hmC </li>
 <li><code>hypergraph</code>, fixed bug that report at issue #40</li>
@@ -2416,11 +2459,11 @@
 <li>We are grateful to the Director of Bioinformatics (Zhang Yaolong) from <code>HuaBiology</code> for the optimization suggestions provided.</li>
 </ul>
 <h2 id="v026-2025-03-27">[v0.2.6] - 2025-03-27<a class="headerlink" href="#v026-2025-03-27" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_1">New features<a class="headerlink" href="#new-features_1" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_2">New features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>collapse</code>, rescue the collapsed contigs  </li>
 </ul>
-<h4 id="enhancement_1">Enhancement<a class="headerlink" href="#enhancement_1" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_2">Enhancement<a class="headerlink" href="#enhancement_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Parameter optimization.</li>
 <li>Supported pairs.pqs processing.</li>
@@ -2428,7 +2471,7 @@
 <li><code>pipeline</code>, if input pairs or pairs.gz, it will first convert it to pairs.pqs to speed up subsequence pairs data load. About a 15 percent increase in speed.</li>
 <li><code>plot</code>, enable plot the border or haplotypes (<code>--add-hap-border</code>)</li>
 </ul>
-<h4 id="bug-fixes_1">Bug fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_2">Bug fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, fixed bug that when user input uncommon suffix of Hi-C data (e.g. "_R1.f.fastq.gz") the pairs file could not be found. #issue17</li>
 <li><code>hypergraph</code><br />
@@ -2440,22 +2483,22 @@
     - generate the unrenamed chromosome, #issue16</li>
 </ul>
 <h2 id="v025-2025-02-07">[v0.2.5] - 2025-02-07<a class="headerlink" href="#v025-2025-02-07" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_2">New features<a class="headerlink" href="#new-features_2" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_3">New features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>PQS</code>, custom format of contacts to speed up the load and parse, do not used in this version.</li>
 </ul>
-<h4 id="enhancement_2">Enhancement<a class="headerlink" href="#enhancement_2" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_3">Enhancement<a class="headerlink" href="#enhancement_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>cphasing-rs</code>, slightly speed up <code>pairs2clm</code></li>
 <li><code>rename</code>, use g1, g2, g3 ... to rename duplicates chromosomes, when <code>--unphased</code> specified.</li>
 <li><code>hcr_by_contacts</code>, speed up it</li>
 </ul>
-<h4 id="bug-fixes_2">Bug fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_3">Bug fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, fixed bug that report error of polars prompt of set "skip_nulls=False"</li>
 </ul>
 <h2 id="v024-2025-01-25">[v0.2.4] - 2025-01-25<a class="headerlink" href="#v024-2025-01-25" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_3">Enhancement<a class="headerlink" href="#enhancement_3" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_4">Enhancement<a class="headerlink" href="#enhancement_4" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pairs2depth</code>, speed up by pipeline</li>
 <li><code>alleles</code>, add <code>--trim-length</code> to trim the both end of contigs to remove the 
@@ -2464,7 +2507,7 @@
     - <code>--preset precision</code>: Optimize parameters to improve accuracy at the expense of anchor rate
     - <code>--preset sensitive</code>: Using in some complex genome, which contain many fragmented contigs and low signals contigs</li>
 </ul>
-<h4 id="bug-fixes_3">Bug fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_4">Bug fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>activate_cphasing</code>, fixed bug that exit shell window when pixi failed to install</li>
 <li><code>pipeline</code>
@@ -2474,28 +2517,28 @@
 <li><code>plot</code>, fixed bug that program can not coarsen adjusted matrix to plot another binsize matrix</li>
 </ul>
 <h2 id="v023-2025-01-14">[v0.2.3] - 2025-01-14<a class="headerlink" href="#v023-2025-01-14" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_4">Enhancement<a class="headerlink" href="#enhancement_4" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_5">Enhancement<a class="headerlink" href="#enhancement_5" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, report peak memory usage</li>
 <li><code>hyperpartition</code>
     - add <code>--min-cis-weight=5.0</code> to remove low contacts contigs
     - increase <code>--min-contacts</code> to <code>25.0</code> to remove low contacts contigs</li>
 </ul>
-<h4 id="bug-fixes_4">Bug fixes<a class="headerlink" href="#bug-fixes_4" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_5">Bug fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pairs2cool</code>, fixed bug that "bin1_id &gt; bin2_id" in some cases</li>
 </ul>
 <h2 id="v022-2025-01-10">[v0.2.2] - 2025-01-10<a class="headerlink" href="#v022-2025-01-10" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_5">Enhancement<a class="headerlink" href="#enhancement_5" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_6">Enhancement<a class="headerlink" href="#enhancement_6" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, When mode=phasing, pipeline integrating 1.alleles into 3.hyperpartition to speed up</li>
 </ul>
-<h4 id="bug-fixes_5">Bug fixes<a class="headerlink" href="#bug-fixes_5" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_6">Bug fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>prepare</code>, fixed bug of "got unexpected keyword argument <code>has_header</code>'</li>
 </ul>
 <h2 id="v021-2025-01-07">[v0.2.1] - 2025-01-07<a class="headerlink" href="#v021-2025-01-07" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_6">Enhancement<a class="headerlink" href="#enhancement_6" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_7">Enhancement<a class="headerlink" href="#enhancement_7" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, add hcr_bed filter step.</li>
 <li><code>hyperpartition</code>, speed up the <code>phasing</code> mode</li>
@@ -2503,7 +2546,7 @@
 <li><code>pairs2cool</code>, speed up it at the expense of memory consumption</li>
 <li><code>plot</code>, speed up it</li>
 </ul>
-<h4 id="bug-fixes_6">Bug fixes<a class="headerlink" href="#bug-fixes_6" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_7">Bug fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>alleles</code>, a cheat method to fix bug of partig can not parse contig &gt; 130 Mb</li>
 <li><code>rename</code>, bug of read agp</li>
@@ -2512,23 +2555,23 @@
     - input hic can not find fastq path in <code>output dir</code></li>
 </ul>
 <h2 id="v020-2024-10-1">[v0.2.0] - 2024-10-1<a class="headerlink" href="#v020-2024-10-1" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_7">Enhancement<a class="headerlink" href="#enhancement_7" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_8">Enhancement<a class="headerlink" href="#enhancement_8" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>
     - change the normalization method of the hic pipeline
     - change pipeline output directories</li>
 <li><code>hyperpartition</code>, improve the performance of cluster merge</li>
 </ul>
-<h4 id="bug-fixes_7">Bug fixes<a class="headerlink" href="#bug-fixes_7" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_8">Bug fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug of split contigs</li>
 </ul>
 <h2 id="v019-2024-07-09">[v0.1.9] - 2024-07-09<a class="headerlink" href="#v019-2024-07-09" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_3">New features<a class="headerlink" href="#new-features_3" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_4">New features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>collapsed-rescue</code>, init a collapsed contigs rescue function</li>
 </ul>
-<h4 id="enhancement_8">Enhancement<a class="headerlink" href="#enhancement_8" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_9">Enhancement<a class="headerlink" href="#enhancement_9" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>higig</code>
     - support for hifi data. Moreover, support for junk and collapsed identification
@@ -2538,7 +2581,7 @@
 <li><code>scaffolding</code>, speed up split clm by <code>cphasing-rs splitclm</code></li>
 <li><code>alleles</code>, speed up</li>
 </ul>
-<h4 id="bug-fixes_8">Bug fixes<a class="headerlink" href="#bug-fixes_8" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_9">Bug fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code> 
     - fixed bug of contacts generating
@@ -2547,103 +2590,103 @@
 <li><code>hcr_from_contacts</code>, find error peak in low coverage regions</li>
 </ul>
 <h2 id="v018-2024-05-15">[v0.1.8] - 2024-05-15<a class="headerlink" href="#v018-2024-05-15" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_9">Enhancement<a class="headerlink" href="#enhancement_9" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_10">Enhancement<a class="headerlink" href="#enhancement_10" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, <code>Extractor</code>, add mapq to hypergraph</li>
 <li><code>remove_misassembly</code>, add remove_misassembly of error between homologous chromosome</li>
 </ul>
-<h4 id="bug-fixes_9">Bug fixes<a class="headerlink" href="#bug-fixes_9" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_10">Bug fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug of resolution not in filename</li>
 </ul>
 <h2 id="v017-2024-05-11">[v0.1.7] - 2024-05-11<a class="headerlink" href="#v017-2024-05-11" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_10">Enhancement<a class="headerlink" href="#enhancement_10" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_11">Enhancement<a class="headerlink" href="#enhancement_11" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, speed up data loading</li>
 <li><code>scaffolding</code>, speed up clm loadding </li>
 </ul>
 <h2 id="v016-2024-05-07">[v0.1.6] - 2024-05-07<a class="headerlink" href="#v016-2024-05-07" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_11">Enhancement<a class="headerlink" href="#enhancement_11" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_12">Enhancement<a class="headerlink" href="#enhancement_12" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hcr_by_contacts</code>, remove whole collapsed contigs </li>
 <li><code>stat_porec_table</code>, reduce memory usage</li>
 </ul>
-<h4 id="bug-fixes_10">Bug fixes<a class="headerlink" href="#bug-fixes_10" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_11">Bug fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>scaffolding</code>, length db not load contig that RE count &lt; 3</li>
 <li><code>simulate_collapse</code>, fixed bug of contig position in collapsed contigs</li>
 </ul>
 <h2 id="v015-2024-04-29">[v0.1.5] - 2024-04-29<a class="headerlink" href="#v015-2024-04-29" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_12">Enhancement<a class="headerlink" href="#enhancement_12" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_13">Enhancement<a class="headerlink" href="#enhancement_13" title="Permanent link">&para;</a></h4>
 <ul>
 <li>environment, add pigz </li>
 <li><code>hic mapper</code>, add "remove pcr duplicates" as default parameters</li>
 </ul>
 <h2 id="v014-2024-04-23">[v0.1.4] - 2024-04-23<a class="headerlink" href="#v014-2024-04-23" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_13">Enhancement<a class="headerlink" href="#enhancement_13" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_14">Enhancement<a class="headerlink" href="#enhancement_14" title="Permanent link">&para;</a></h4>
 <ul>
 <li>colorful the help text</li>
 <li><code>hcr</code>, use kde peaks </li>
 <li><code>pipeline</code>, use </li>
 </ul>
 <h2 id="v013-2024-04-22">[v0.1.3] - 2024-04-22<a class="headerlink" href="#v013-2024-04-22" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_4">New features<a class="headerlink" href="#new-features_4" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_5">New features<a class="headerlink" href="#new-features_5" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>_chromap</code>, add a modified <code>chromap</code></li>
 </ul>
-<h4 id="enhancement_14">Enhancement<a class="headerlink" href="#enhancement_14" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_15">Enhancement<a class="headerlink" href="#enhancement_15" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, reduce memory usage</li>
 </ul>
 <h2 id="v012-2024-04-18">[v0.1.2] - 2024-04-18<a class="headerlink" href="#v012-2024-04-18" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_15">Enhancement<a class="headerlink" href="#enhancement_15" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_16">Enhancement<a class="headerlink" href="#enhancement_16" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>scaffolding</code>, optimized</li>
 <li><code>cphasing-rs pairs2clm</code>, speed up</li>
 </ul>
 <h2 id="v011-2024-04-11">[v0.1.1] - 2024-04-11<a class="headerlink" href="#v011-2024-04-11" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_5">New features<a class="headerlink" href="#new-features_5" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_6">New features<a class="headerlink" href="#new-features_6" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hitig</code>
     - <code>scaffolding</code>, which enable to scaffolding by ultra-long reads.</li>
 </ul>
-<h4 id="enhancement_16">Enhancement<a class="headerlink" href="#enhancement_16" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_17">Enhancement<a class="headerlink" href="#enhancement_17" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, speed up</li>
 <li><code>alleles</code>, remove filter function</li>
 <li><code>hypergraph</code>, speed up by porec table load.</li>
 </ul>
 <h2 id="v010-2024-04-07">[v0.1.0] - 2024-04-07<a class="headerlink" href="#v010-2024-04-07" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_6">New features<a class="headerlink" href="#new-features_6" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_7">New features<a class="headerlink" href="#new-features_7" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>alleles2</code>, a method for allelic contig identification by self mapping</li>
 <li><code>cphasing-rs prune</code>, a method to prune by raw allele table (ALLHiC allele table)</li>
 </ul>
-<h4 id="enhancement_17">Enhancement<a class="headerlink" href="#enhancement_17" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_18">Enhancement<a class="headerlink" href="#enhancement_18" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>scaffolding</code>, increase the performance of long contigs</li>
 </ul>
-<h4 id="bug-fixes_11">Bug fixes<a class="headerlink" href="#bug-fixes_11" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_12">Bug fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, fixed bug that it can not be used in pandas v2.0</li>
 </ul>
 <h4 id="v0064-2024-03-11">[v0.0.64] - 2024-03-11<a class="headerlink" href="#v0064-2024-03-11" title="Permanent link">&para;</a></h4>
-<h4 id="bug-fixes_12">Bug fixes<a class="headerlink" href="#bug-fixes_12" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_13">Bug fixes<a class="headerlink" href="#bug-fixes_13" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, fixed the inconsistent of phasing results, when specified alleletable and prunetable</li>
 <li><code>alleles</code>, filterring by valid kmer length of contigs</li>
 </ul>
 <h4 id="v0062-2024-02-18">[v0.0.62] - 2024-02-18<a class="headerlink" href="#v0062-2024-02-18" title="Permanent link">&para;</a></h4>
-<h4 id="new-features_7">New features<a class="headerlink" href="#new-features_7" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_8">New features<a class="headerlink" href="#new-features_8" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>cphasing-rs</code> <code>kprune</code>, increase the recall of cross-allelic</li>
 </ul>
 <h4 id="v0061-2024-01-19">[v0.0.61] - 2024-01-19<a class="headerlink" href="#v0061-2024-01-19" title="Permanent link">&para;</a></h4>
-<h4 id="new-features_8">New features<a class="headerlink" href="#new-features_8" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_9">New features<a class="headerlink" href="#new-features_9" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot_high_order_distribution.py</code>, plot the contact order distribution of pore-c alignments</li>
 </ul>
-<h4 id="enhancement_18">Enhancement<a class="headerlink" href="#enhancement_18" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_19">Enhancement<a class="headerlink" href="#enhancement_19" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>scaffolding</code>, adopt the HapHiC_sort to scaffolding, and add HaplotypeAlign</li>
 <li><code>partig</code>, change <code>d</code> to <code>0.1</code></li>
@@ -2651,20 +2694,20 @@
 <li><code>Tour</code>, add <code>to_dict</code>, <code>backup</code>, <code>save</code></li>
 </ul>
 <h2 id="v0060">[v0.0.60]<a class="headerlink" href="#v0060" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_19">Enhancement<a class="headerlink" href="#enhancement_19" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_20">Enhancement<a class="headerlink" href="#enhancement_20" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, add prune based on hypergraph</li>
 <li><code>hyperpartition</code>, add different n setting</li>
 <li><code>pipeline</code>, remove single kprune, change it to hypergraph prune</li>
 </ul>
 <h2 id="v0059">[v0.0.59]<a class="headerlink" href="#v0059" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_20">Enhancement<a class="headerlink" href="#enhancement_20" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_21">Enhancement<a class="headerlink" href="#enhancement_21" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, add automatic search resolution</li>
 <li><code>kprune</code>, update the formulate of normalization</li>
 </ul>
 <h2 id="v0058">[v0.0.58]<a class="headerlink" href="#v0058" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_21">Enhancement<a class="headerlink" href="#enhancement_21" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_22">Enhancement<a class="headerlink" href="#enhancement_22" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>mapper</code>, add restriction site filter and realign</li>
 <li><code>hyperpartition</code>, new mode by phasing</li>
@@ -2672,40 +2715,40 @@
 <li><code>HyperEdges</code>, add contigsizes, mapq</li>
 </ul>
 <h2 id="v0057">[v0.0.57]<a class="headerlink" href="#v0057" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_22">Enhancement<a class="headerlink" href="#enhancement_22" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_23">Enhancement<a class="headerlink" href="#enhancement_23" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, add <code>hcr</code></li>
 <li><code>hcr</code>, optimized</li>
 </ul>
 <h2 id="v0056">[v0.0.56]<a class="headerlink" href="#v0056" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_23">Enhancement<a class="headerlink" href="#enhancement_23" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_24">Enhancement<a class="headerlink" href="#enhancement_24" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>cphasing-rs</code>, update <code>pairs-intersect</code> and <code>porec-intersect</code></li>
 <li><code>kprune</code>, remove <code>count_re</code> argument</li>
 </ul>
 <h2 id="v0055">[v0.0.55]<a class="headerlink" href="#v0055" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_9">New features<a class="headerlink" href="#new-features_9" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_10">New features<a class="headerlink" href="#new-features_10" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hcr_from_contacts</code>, add new function of hcr</li>
 <li><code>plot_lines</code>, plot lines of evaluation</li>
 </ul>
 <h2 id="v0054">[v0.0.54]<a class="headerlink" href="#v0054" title="Permanent link">&para;</a></h2>
-<h4 id="bug-fixes_13">Bug fixes<a class="headerlink" href="#bug-fixes_13" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_14">Bug fixes<a class="headerlink" href="#bug-fixes_14" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, fixed bugs</li>
 </ul>
 <h2 id="v0053">[v0.0.53]<a class="headerlink" href="#v0053" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_10">New features<a class="headerlink" href="#new-features_10" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_11">New features<a class="headerlink" href="#new-features_11" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pipeline</code>, add a pipeline of C-Phasing</li>
 </ul>
-<h4 id="enhancement_24">Enhancement<a class="headerlink" href="#enhancement_24" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_25">Enhancement<a class="headerlink" href="#enhancement_25" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>prepare</code>, restruct </li>
 <li><code>pairs2cool</code>, move to second command</li>
 </ul>
 <h2 id="v0052">[v0.0.52]<a class="headerlink" href="#v0052" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_25">Enhancement<a class="headerlink" href="#enhancement_25" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_26">Enhancement<a class="headerlink" href="#enhancement_26" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>kprune</code>, load data into tempfile to decrease the memory usage.</li>
 </ul>
@@ -2713,7 +2756,7 @@
 <ul>
 <li>2023-11-11</li>
 </ul>
-<h4 id="new-features_11">New features<a class="headerlink" href="#new-features_11" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_12">New features<a class="headerlink" href="#new-features_12" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>agp</code>, add <code>pseudo-agp</code>, create a pseudo agp from simulation contigs</li>
 </ul>
@@ -2725,7 +2768,7 @@
 <ul>
 <li>2023-11-10</li>
 </ul>
-<h4 id="enhancement_26">Enhancement<a class="headerlink" href="#enhancement_26" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_27">Enhancement<a class="headerlink" href="#enhancement_27" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>kprune</code>, add multiprocessing</li>
 </ul>
@@ -2733,11 +2776,11 @@
 <ul>
 <li>2023-11-10</li>
 </ul>
-<h4 id="enhancement_27">Enhancement<a class="headerlink" href="#enhancement_27" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_28">Enhancement<a class="headerlink" href="#enhancement_28" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>cphasing-rs</code>, update it into v0.0.10</li>
 </ul>
-<h4 id="new-features_12">New features<a class="headerlink" href="#new-features_12" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_13">New features<a class="headerlink" href="#new-features_13" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>porec2csv</code>, import porec table into pao csv</li>
 <li><code>PoreCTable.binnify</code>, binnify the contig by binsize</li>
@@ -2751,11 +2794,11 @@
 <ul>
 <li>2023-11-05</li>
 </ul>
-<h4 id="enhancement_28">Enhancement<a class="headerlink" href="#enhancement_28" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_29">Enhancement<a class="headerlink" href="#enhancement_29" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>kprune</code>, advanced it to identity more cross-allelic </li>
 </ul>
-<h4 id="new-features_13">New features<a class="headerlink" href="#new-features_13" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_14">New features<a class="headerlink" href="#new-features_14" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>evaluate_prune.py</code>, evaluate the result of <code>kprune</code></li>
 <li><code>methalign/pipe</code>, init the pipeline of methalign</li>
@@ -2764,12 +2807,12 @@
 <ul>
 <li>2023-10-15</li>
 </ul>
-<h4 id="enhancement_29">Enhancement<a class="headerlink" href="#enhancement_29" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_30">Enhancement<a class="headerlink" href="#enhancement_30" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>higig</code>, mv <code>ontig</code> to <code>hitig</code>.</li>
 </ul>
 <h2 id="v0046">[v0.0.46]<a class="headerlink" href="#v0046" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_30">Enhancement<a class="headerlink" href="#enhancement_30" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_31">Enhancement<a class="headerlink" href="#enhancement_31" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hcr</code>, add <code>break_pos</code> to correct hcr by break positions</li>
 </ul>
@@ -2778,7 +2821,7 @@
 <li><code>mapper</code>, fixed min_quality can not be adopt</li>
 </ul>
 <h2 id="v0045">[v0.0.45]<a class="headerlink" href="#v0045" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_31">Enhancement<a class="headerlink" href="#enhancement_31" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_32">Enhancement<a class="headerlink" href="#enhancement_32" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hcr</code>, intergated <code>bed2depth</code> into <code>hcr</code></li>
 </ul>
@@ -2787,21 +2830,21 @@
 <li><code>bed2depth</code>, fixed bug</li>
 </ul>
 <h2 id="v0044">[v0.0.44]<a class="headerlink" href="#v0044" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_32">Enhancement<a class="headerlink" href="#enhancement_32" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_33">Enhancement<a class="headerlink" href="#enhancement_33" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>ontig</code>, restruct the framework and add <code>split-reads</code>, <code>find-chimeric</code>, <code>hcr</code> three functions.</li>
 </ul>
 <h2 id="v0043-2023-09-24">[v0.0.43] - 2023-09-24<a class="headerlink" href="#v0043-2023-09-24" title="Permanent link">&para;</a></h2>
-<h4 id="new-features_14">New features<a class="headerlink" href="#new-features_14" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_15">New features<a class="headerlink" href="#new-features_15" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>methalign</code>, init</li>
 </ul>
-<h4 id="enhancement_33">Enhancement<a class="headerlink" href="#enhancement_33" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_34">Enhancement<a class="headerlink" href="#enhancement_34" title="Permanent link">&para;</a></h4>
 <ul>
 <li>rename <code>ultra_long</code> to <code>ontig</code></li>
 </ul>
 <h2 id="v0042-2023-09-22">[v0.0.42] - 2023-09-22<a class="headerlink" href="#v0042-2023-09-22" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_34">Enhancement<a class="headerlink" href="#enhancement_34" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_35">Enhancement<a class="headerlink" href="#enhancement_35" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>ultra_long</code>, expose ultra_long tutorial to C-Phasing README.md</li>
 </ul>
@@ -2814,7 +2857,7 @@
 <ul>
 <li>2023-08-19</li>
 </ul>
-<h4 id="enhancement_35">Enhancement<a class="headerlink" href="#enhancement_35" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_36">Enhancement<a class="headerlink" href="#enhancement_36" title="Permanent link">&para;</a></h4>
 <ul>
 <li>add <code>pyproject.toml</code></li>
 </ul>
@@ -2823,7 +2866,7 @@
 <li><code>setup.py</code>, fixed the setup_helper error.</li>
 </ul>
 <h2 id="v0039">[v0.0.39]<a class="headerlink" href="#v0039" title="Permanent link">&para;</a></h2>
-<h4 id="enhancement_36">Enhancement<a class="headerlink" href="#enhancement_36" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_37">Enhancement<a class="headerlink" href="#enhancement_37" title="Permanent link">&para;</a></h4>
 <ul>
 <li>before this version <code>cphasing-rs</code> can not found</li>
 </ul>
@@ -2840,7 +2883,7 @@
 <ul>
 <li>2023-08-16</li>
 </ul>
-<h4 id="enhancement_37">Enhancement<a class="headerlink" href="#enhancement_37" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_38">Enhancement<a class="headerlink" href="#enhancement_38" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>README.md</code>, add detail describtions</li>
 <li><code>scaffolding</code>, directly output <code>groups.agp</code></li>
@@ -2865,7 +2908,7 @@
 <ul>
 <li>2023-08-12</li>
 </ul>
-<h4 id="enhancement_38">Enhancement<a class="headerlink" href="#enhancement_38" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_39">Enhancement<a class="headerlink" href="#enhancement_39" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pairs2cool</code>, add <code>--fofn</code> parameter</li>
 <li><code>hyperpartition</code>, mask <code>ultra-complex</code> parameter</li>
@@ -2874,7 +2917,7 @@
 <ul>
 <li>2023-08-11</li>
 </ul>
-<h4 id="enhancement_39">Enhancement<a class="headerlink" href="#enhancement_39" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_40">Enhancement<a class="headerlink" href="#enhancement_40" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>mapper</code>, compress hic mapper result</li>
 <li><code>hyperpartition</code>, add contig filter when import first cluster result</li>
@@ -2896,7 +2939,7 @@
 <ul>
 <li>2023-08-02</li>
 </ul>
-<h4 id="new-features_15">New features<a class="headerlink" href="#new-features_15" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_16">New features<a class="headerlink" href="#new-features_16" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>ultra_long</code>, add v1 pipeline</li>
 </ul>
@@ -2904,7 +2947,7 @@
 <ul>
 <li>2023-08-02</li>
 </ul>
-<h4 id="enhancement_40">Enhancement<a class="headerlink" href="#enhancement_40" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_41">Enhancement<a class="headerlink" href="#enhancement_41" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, speed up</li>
 </ul>
@@ -2924,11 +2967,11 @@
 <ul>
 <li>2023-07-29</li>
 </ul>
-<h4 id="new-features_16">New features<a class="headerlink" href="#new-features_16" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_17">New features<a class="headerlink" href="#new-features_17" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>collapse</code>, create a collapse rescued contact matrix</li>
 </ul>
-<h4 id="enhancement_41">Enhancement<a class="headerlink" href="#enhancement_41" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_42">Enhancement<a class="headerlink" href="#enhancement_42" title="Permanent link">&para;</a></h4>
 <ul>
 <li>update <code>environment.yml</code></li>
 <li>update <code>cphasing-rs</code>, which reduce the size of binary and update to <code>v0.0.4</code></li>
@@ -2941,7 +2984,7 @@
 <ul>
 <li>2023-07-14</li>
 </ul>
-<h4 id="enhancement_42">Enhancement<a class="headerlink" href="#enhancement_42" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_43">Enhancement<a class="headerlink" href="#enhancement_43" title="Permanent link">&para;</a></h4>
 <ul>
 <li>remove <code>check_allhic_version</code></li>
 </ul>
@@ -2949,12 +2992,12 @@
 <ul>
 <li>2023-07-12</li>
 </ul>
-<h4 id="new-features_17">New features<a class="headerlink" href="#new-features_17" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_18">New features<a class="headerlink" href="#new-features_18" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>statcluster</code>, stat the clustertable</li>
 <li><code>plot_hist</code>, plot the distribution of somethings</li>
 </ul>
-<h4 id="enhancement_43">Enhancement<a class="headerlink" href="#enhancement_43" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_44">Enhancement<a class="headerlink" href="#enhancement_44" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, add prune allelic hyperedges</li>
 <li><code>statagp</code>, change <code>agpstat</code> to <code>statagp</code></li>
@@ -2970,13 +3013,13 @@
 <ul>
 <li>2023-07-05</li>
 </ul>
-<h4 id="new-features_18">New features<a class="headerlink" href="#new-features_18" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_19">New features<a class="headerlink" href="#new-features_19" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>evalutate_known_assembly.py</code>, evalutate the simulated human genome</li>
 <li><code>cis_trans_by_contigs.py</code>, calculate the cis and trans contacts by pairs</li>
 <li><code>logo</code>, add logo</li>
 </ul>
-<h4 id="enhancement_44">Enhancement<a class="headerlink" href="#enhancement_44" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_45">Enhancement<a class="headerlink" href="#enhancement_45" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, automatic using the exists first clusters results</li>
 </ul>
@@ -2984,11 +3027,11 @@
 <ul>
 <li>2023-06-20</li>
 </ul>
-<h4 id="new-features_19">New features<a class="headerlink" href="#new-features_19" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_20">New features<a class="headerlink" href="#new-features_20" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>ultra_long</code>, init ultra_long method</li>
 </ul>
-<h4 id="enhancement_45">Enhancement<a class="headerlink" href="#enhancement_45" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_46">Enhancement<a class="headerlink" href="#enhancement_46" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>mapper</code>, add <code>outprefix</code> prameter</li>
 </ul>
@@ -2996,11 +3039,11 @@
 <ul>
 <li>2023-06-17</li>
 </ul>
-<h4 id="new-features_20">New features<a class="headerlink" href="#new-features_20" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_21">New features<a class="headerlink" href="#new-features_21" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>pictures</code>, add the heatmap of M1</li>
 </ul>
-<h4 id="enhancement_46">Enhancement<a class="headerlink" href="#enhancement_46" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_47">Enhancement<a class="headerlink" href="#enhancement_47" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, expose <code>--min-allelic-overlap</code></li>
 <li><code>kprune</code>, add sort and normalize function</li>
@@ -3009,12 +3052,12 @@
 <ul>
 <li>2023-06-16</li>
 </ul>
-<h4 id="new-features_21">New features<a class="headerlink" href="#new-features_21" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_22">New features<a class="headerlink" href="#new-features_22" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>tmpoptimze</code>, a temp function for order and orientation</li>
 <li><code>PoreCMapper</code>, based on minimap2 and cphasing-rs</li>
 </ul>
-<h4 id="enhancement_47">Enhancement<a class="headerlink" href="#enhancement_47" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_48">Enhancement<a class="headerlink" href="#enhancement_48" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, add <code>--no-ticks</code> to remove ticks from picture</li>
 </ul>
@@ -3022,7 +3065,7 @@
 <ul>
 <li>2023-06-12</li>
 </ul>
-<h4 id="enhancement_48">Enhancement<a class="headerlink" href="#enhancement_48" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_49">Enhancement<a class="headerlink" href="#enhancement_49" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>
     - change <code>zero-allelic</code> to <code>allelic-factor</code>
@@ -3037,12 +3080,12 @@
 <ul>
 <li>2023-06-07</li>
 </ul>
-<h4 id="enhancement_49">Enhancement<a class="headerlink" href="#enhancement_49" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_50">Enhancement<a class="headerlink" href="#enhancement_50" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>AlleleTable</code>, load info</li>
 <li><code>PartigRecord</code>, output allele table with additional information</li>
 </ul>
-<h4 id="new-features_22">New features<a class="headerlink" href="#new-features_22" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_23">New features<a class="headerlink" href="#new-features_23" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>AlleleInfo</code>, object function of allele table information</li>
 </ul>
@@ -3054,7 +3097,7 @@
 <ul>
 <li>2023-06-06</li>
 </ul>
-<h4 id="enhancement_50">Enhancement<a class="headerlink" href="#enhancement_50" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_51">Enhancement<a class="headerlink" href="#enhancement_51" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>KPruneHyperGraph</code>, speed up</li>
 <li><code>HyperPartition</code>, add the get_prunetable_KPrune</li>
@@ -3063,13 +3106,13 @@
 <ul>
 <li>2023-06-06</li>
 </ul>
-<h4 id="enhancement_51">Enhancement<a class="headerlink" href="#enhancement_51" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_52">Enhancement<a class="headerlink" href="#enhancement_52" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>
     - <code>min_weight</code>, add a parameter of the graph minimum weight </li>
 <li><code>IRMM</code>, add a function of the graph filter by minimum weight</li>
 </ul>
-<h4 id="new-features_23">New features<a class="headerlink" href="#new-features_23" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_24">New features<a class="headerlink" href="#new-features_24" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>KPruneHyperGraph</code>, add a function that implement pruning on hypergraph</li>
 </ul>
@@ -3077,7 +3120,7 @@
 <ul>
 <li>2023-06-01</li>
 </ul>
-<h4 id="enhancement_52">Enhancement<a class="headerlink" href="#enhancement_52" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_53">Enhancement<a class="headerlink" href="#enhancement_53" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>environment.yml</code>, update</li>
 <li><code>hyperpartition</code>
@@ -3086,14 +3129,14 @@
     - expose <code>--allelic-similarity</code> parameter</li>
 <li><code>PoreCTable</code>, change to cphasing-rs porec table</li>
 </ul>
-<h4 id="new-features_24">New features<a class="headerlink" href="#new-features_24" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_25">New features<a class="headerlink" href="#new-features_25" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>docs</code>, add docs</li>
 <li><code>utils</code>
     - <code>extract_matrix</code>, extract matrix by th contig list
     - <code>prune_matrix</code>, prune matrix by prune table</li>
 </ul>
-<h4 id="bug-fixes_14">Bug fixes<a class="headerlink" href="#bug-fixes_14" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_15">Bug fixes<a class="headerlink" href="#bug-fixes_15" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>merge-matrix</code>, fixed the empty contact in result</li>
 </ul>
@@ -3101,11 +3144,11 @@
 <ul>
 <li>2023-05-05</li>
 </ul>
-<h4 id="enhancement_53">Enhancement<a class="headerlink" href="#enhancement_53" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_54">Enhancement<a class="headerlink" href="#enhancement_54" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, add mutual exclusion merge</li>
 </ul>
-<h4 id="bug-fixes_15">Bug fixes<a class="headerlink" href="#bug-fixes_15" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_16">Bug fixes<a class="headerlink" href="#bug-fixes_16" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hyperpartition</code>, fixed the bug that incorrect scaffold length in<code>_incremental_partition</code> </li>
 </ul>
@@ -3113,11 +3156,11 @@
 <ul>
 <li>2023-05-01</li>
 </ul>
-<h4 id="new-features_25">New features<a class="headerlink" href="#new-features_25" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_26">New features<a class="headerlink" href="#new-features_26" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>PruneTable</code>, Object for prune table.</li>
 </ul>
-<h4 id="enhancement_54">Enhancement<a class="headerlink" href="#enhancement_54" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_55">Enhancement<a class="headerlink" href="#enhancement_55" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>kprune</code>, output prune table</li>
 <li><code>hyperpartition</code>
@@ -3127,11 +3170,11 @@
 <ul>
 <li>2023-03-22</li>
 </ul>
-<h4 id="new-features_26">New features<a class="headerlink" href="#new-features_26" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_27">New features<a class="headerlink" href="#new-features_27" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot_heatmap</code>, custom function to plot heatmap </li>
 </ul>
-<h4 id="enhancement_55">Enhancement<a class="headerlink" href="#enhancement_55" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_56">Enhancement<a class="headerlink" href="#enhancement_56" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>HyperPartition</code>
     - add post check to increase the accuracy of partition
@@ -3140,7 +3183,7 @@
     - change multi to incremental
     - add <code>whitelist</code> and <code>blacklist</code> parameters</li>
 </ul>
-<h4 id="bug-fixes_16">Bug fixes<a class="headerlink" href="#bug-fixes_16" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_17">Bug fixes<a class="headerlink" href="#bug-fixes_17" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>KPrune</code>, dropna in pixels which will let igraph fall into loops</li>
 </ul>
@@ -3148,18 +3191,18 @@
 <ul>
 <li>2023-03-15</li>
 </ul>
-<h4 id="new-features_27">New features<a class="headerlink" href="#new-features_27" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_28">New features<a class="headerlink" href="#new-features_28" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>KPruner</code>, prune contig contacts according similarity allele table</li>
 </ul>
-<h4 id="enhancement_56">Enhancement<a class="headerlink" href="#enhancement_56" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_57">Enhancement<a class="headerlink" href="#enhancement_57" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>extract_incidence_matrix</code>, restruct to speed up </li>
 <li><code>extract</code>, <code>hyperpartition</code>, import contig sizes instead of fasta</li>
 <li><code>HyperPartition</code>, add filter function of minimum scaffolding length  </li>
 <li><code>build</code>, add only-agp option</li>
 </ul>
-<h5 id="bug-fixes_17">Bug fixes<a class="headerlink" href="#bug-fixes_17" title="Permanent link">&para;</a></h5>
+<h5 id="bug-fixes_18">Bug fixes<a class="headerlink" href="#bug-fixes_18" title="Permanent link">&para;</a></h5>
 <ul>
 <li><code>HyperExtractor</code>, fixed the problem of read index for multi dataframe concat</li>
 </ul>
@@ -3167,13 +3210,13 @@
 <ul>
 <li>2023-03-11</li>
 </ul>
-<h4 id="new-features_28">New features<a class="headerlink" href="#new-features_28" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_29">New features<a class="headerlink" href="#new-features_29" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>HyperGraph</code>, instead of hypernetx to speed up </li>
 <li><code>prepare</code>, a cli function for some preparation for C-Phasing</li>
 <li><code>optimize.cpp</code>, optimize algorithm v1</li>
 </ul>
-<h4 id="enhancement_57">Enhancement<a class="headerlink" href="#enhancement_57" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_58">Enhancement<a class="headerlink" href="#enhancement_58" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>HyperEdges</code>, restruct to {idx, row, col}</li>
 <li><code>Extractor</code> and <code>HyperExtractor</code>, change to export <code>HyperEdges</code> </li>
@@ -3182,7 +3225,7 @@
 <li><code>merge_matrix</code>, merge binning matrix into whole contigs</li>
 <li><code>optimize</code>, cli for optimize score cacluation</li>
 </ul>
-<h4 id="bug-fixes_18">Bug fixes<a class="headerlink" href="#bug-fixes_18" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_19">Bug fixes<a class="headerlink" href="#bug-fixes_19" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>alleles</code>, fix the bug of empty allele table</li>
 </ul>
@@ -3190,7 +3233,7 @@
 <ul>
 <li>2023-03-08</li>
 </ul>
-<h4 id="enhancement_58">Enhancement<a class="headerlink" href="#enhancement_58" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_59">Enhancement<a class="headerlink" href="#enhancement_59" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>Extractor</code> and <code>HyperExtractor</code>, change to export dict to list</li>
 <li><code>HyperPartition</code>, add parallel in hypergraph generation </li>
@@ -3199,13 +3242,13 @@
 <ul>
 <li>2023-03-08</li>
 </ul>
-<h4 id="new-features_29">New features<a class="headerlink" href="#new-features_29" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_30">New features<a class="headerlink" href="#new-features_30" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>Extractor</code>, extract edges from pairs file</li>
 <li><code>HyperExtractor</code>, extract hyperedges from pore-c table</li>
 <li><code>HyperEdges</code>, msgspec Struct for hyperedges serialization</li>
 </ul>
-<h4 id="enhancement_59">Enhancement<a class="headerlink" href="#enhancement_59" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_60">Enhancement<a class="headerlink" href="#enhancement_60" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>HyperPartition</code>, divesting edges extract function to improve usability</li>
 </ul>
@@ -3214,7 +3257,7 @@
 <li>2023-01-06
 <code>refactor the frame of cphasing that seperating the hic and pore-c pipelines</code></li>
 </ul>
-<h4 id="new-features_30">New features<a class="headerlink" href="#new-features_30" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_31">New features<a class="headerlink" href="#new-features_31" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>agp2assembly</code>, convert agp to assembly file</li>
 <li><code>pairs2mnd</code>, convert pairs to mnd file</li>
@@ -3223,14 +3266,14 @@
 <li><code>pairs_chrom2contig</code>, convert chromosome-level to contig-level</li>
 <li><code>optimzie</code>, init add optimize</li>
 </ul>
-<h4 id="enhancement_60">Enhancement<a class="headerlink" href="#enhancement_60" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_61">Enhancement<a class="headerlink" href="#enhancement_61" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>PAFTable</code>, speed up</li>
 <li><code>PoreCTable</code>, speed up and add <code>chrom2contig</code></li>
 <li><code>HyperPartition</code>, speed up the pore-c reads process</li>
 <li><code>paf2pairs</code>, speed up</li>
 </ul>
-<h4 id="bug-fixes_19">Bug fixes<a class="headerlink" href="#bug-fixes_19" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_20">Bug fixes<a class="headerlink" href="#bug-fixes_20" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, to humanized</li>
 </ul>
@@ -3238,7 +3281,7 @@
 <ul>
 <li>2022-11-17</li>
 </ul>
-<h4 id="new-features_31">New features<a class="headerlink" href="#new-features_31" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_32">New features<a class="headerlink" href="#new-features_32" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>hypergraph</code>, contain a hypergraph cluster algorithms</li>
 <li><code>HyperPartition</code>, partition contigs in diploid or allopolyploid</li>
@@ -3246,11 +3289,11 @@
 <li><code>PAFTable</code>, filter alignment</li>
 <li><code>PoreCTable</code>, stat alignment information</li>
 </ul>
-<h4 id="enhancement_61">Enhancement<a class="headerlink" href="#enhancement_61" title="Permanent link">&para;</a></h4>
+<h4 id="enhancement_62">Enhancement<a class="headerlink" href="#enhancement_62" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>agp2fasta</code>, <code>build</code>, using dictory instead of faidx to speed up</li>
 </ul>
-<h4 id="bug-fixes_20">Bug fixes<a class="headerlink" href="#bug-fixes_20" title="Permanent link">&para;</a></h4>
+<h4 id="bug-fixes_21">Bug fixes<a class="headerlink" href="#bug-fixes_21" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>PairHeader</code>, save header without "\n".</li>
 <li><code>rescue</code>, fix CountRE only default load &gt;=3.</li>
@@ -3260,14 +3303,14 @@
 <ul>
 <li>2022-10-31</li>
 </ul>
-<h4 id="new-features_32">New features<a class="headerlink" href="#new-features_32" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_33">New features<a class="headerlink" href="#new-features_33" title="Permanent link">&para;</a></h4>
 <ul>
 <li><code>plot</code>, provide adjust matrix and plot matrix function.</li>
 <li><code>AdapativePartition</code>, partition by adapative pipeline for find best results</li>
 <li><code>PoreCMapper</code>, Pore-C reads mapping pipeline.</li>
 <li><code>PAFTable</code>, a function for processing paf file. (include <code>to_pairs</code>)</li>
 </ul>
-<h5 id="enhancement_62">Enhancement<a class="headerlink" href="#enhancement_62" title="Permanent link">&para;</a></h5>
+<h5 id="enhancement_63">Enhancement<a class="headerlink" href="#enhancement_63" title="Permanent link">&para;</a></h5>
 <ul>
 <li><code>correct</code>, increase recall and precision to 70%</li>
 <li><code>pairs</code>, add <code>chrom2contig</code> to convert a chrom-level pairs to contig-level</li>
@@ -3276,7 +3319,7 @@
 <ul>
 <li>2022-10-07</li>
 </ul>
-<h4 id="new-features_33">New features<a class="headerlink" href="#new-features_33" title="Permanent link">&para;</a></h4>
+<h4 id="new-features_34">New features<a class="headerlink" href="#new-features_34" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Change packages name to CPhasing.</li>
 <li>New function of 
@@ -3286,7 +3329,7 @@
     - <code>partition</code></li>
 <li>New API of <code>Pairs</code> in <code>core</code>.</li>
 </ul>
-<h5 id="bug-fixes_21">Bug fixes<a class="headerlink" href="#bug-fixes_21" title="Permanent link">&para;</a></h5>
+<h5 id="bug-fixes_22">Bug fixes<a class="headerlink" href="#bug-fixes_22" title="Permanent link">&para;</a></h5>
 <ul>
 <li>Using normalized signal in <code>prune</code>.</li>
 </ul>
@@ -3351,7 +3394,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright © 2022-2025 Tanger-lab
+      Copyright © 2022-2026 Tanger-lab
     </div>
   
   

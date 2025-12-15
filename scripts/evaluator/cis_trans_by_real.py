@@ -76,27 +76,30 @@ def main(args):
         assert len(args.cool) == len(args.labels), "number of labels must equal to cool files"
 
     results = []
+    pair_num = 0
     for i, cool_file in enumerate(args.cool):
         cool = cooler.Cooler(cool_file)
         matrix = cool.matrix(balance=False, sparse=True)
 
         homo_chroms = [i.strip().split() for i in open(args.homo_list) if i.strip()]
 
-
         total_cis = 0 
         total_trans = 0
         res = []
         for homo in homo_chroms:
-            homo.sort()
+            homo = sorted(homo)
             for pair in combinations(homo, 2):
+                pair_num += 1
                 try:
                     cis1 = matrix.fetch(pair[0]).sum()
                     cis2 = matrix.fetch(pair[1]).sum()
                     trans = matrix.fetch(*pair).sum()
                 except:
                     continue 
+                    
+                # data = trans / sqrt(cis1 * cis2)
+                data = trans / (trans + cis1 + cis2)
 
-                data = trans / sqrt(cis1 * cis2)
 
                 res.append(data)
 
@@ -108,6 +111,7 @@ def main(args):
     
 
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     fig, ax = plt.subplots(figsize=(5, 7))
     boxprops_r = dict(facecolor='#a83836',color='black', linewidth=1.5)
     boxprops_b = dict(facecolor='#265e8a',color='black', linewidth=1.5)
@@ -158,7 +162,7 @@ def main(args):
         for group, label in zip(args.group, args.labels):
             
             res_df.loc[res_df['variable'] == label, 'group'] = group 
-
+   
     if args.color_index:
         new_color = []
         for i in args.color_index:
@@ -172,7 +176,10 @@ def main(args):
         hue_order = None
 
     res_df.to_csv(args.output.replace(".png", "") + ".csv", sep='\t', index=True, header=True)
-    ax = sns.violinplot(data=res_df, x='variable', y='value', hue_order=hue_order, ax=ax, palette=new_color, alpha=1)
+    print(res_df)
+    ax = sns.violinplot(data=res_df, x='variable',
+                        y='value', hue_order=hue_order, ax=ax, 
+                        palette=new_color, alpha=1, legend=True)
     if args.wi_test:
         annotator = Annotator(ax, pairs, data=res_df, x='variable', y='value')
         annotator.configure(test="Mann-Whitney", text_format='full', show_test_name=False, loc='inside')
@@ -209,11 +216,36 @@ def main(args):
     # ax.set_xticks([0, 1, 2, 3])
     # ax.set_xticklabels(["Pore-C\n$\it{Hin}$dIII", "Pore-C\n$\it{Dpn}$II", "Hi-C\n$\it{Dpn}$II", "Hi-C\nArima"], fontsize=20)
     ylim = ax.get_ylim()
+    if args.group:
+        import matplotlib.patches as mpatches
+        
+        unique_groups = []
+        seen = set()
+        group_color_map = {}
+        
+        for grp, col in zip(args.group, new_color):
+            if grp not in seen:
+                unique_groups.append(grp)
+                seen.add(grp)
+                group_color_map[grp] = col
+        
+        legend_handles = []
+        for grp in unique_groups:
+            patch = mpatches.Patch(facecolor=group_color_map[grp], 
+                                   label=grp, edgecolor='black',
+                                   linewidth=1.5)
+            legend_handles.append(patch)
 
-    plt.text(0, ylim[1] * 0.05, f"n={len(homo_chroms)}", fontsize=18)
+        ax.legend(handles=legend_handles, title="", loc='best', frameon=False, fontsize=12)
+    sns.despine()
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    plt.tick_params(which='both', width=1.5, length=5)
+
+    plt.text(0, ylim[1] * 0.05, f"n={pair_num}", fontsize=18)
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=16)
-    ax.set_ylabel("Normalized contacts", fontsize=20)
+    ax.set_ylabel(r"h-$\mathit{trans}$ error rate", fontsize=20)
     plt.savefig(args.output, dpi=600, bbox_inches='tight')
     plt.savefig(args.output.replace("png", "pdf"), dpi=600, bbox_inches='tight')
 

@@ -41,7 +41,6 @@ elif pd.__version__.split(".")[0] == 2:
 else:
     pandas_version = 1
 
-
 class Extractor:
     """
     extract edges from pairs file.
@@ -103,7 +102,30 @@ class Extractor:
         df = df.dropna(subset=['chrom1', 'chrom2'], axis=0, how="any")
 
         return df
+    @staticmethod
+    def _process_df_pl(df, contig_idx, threads=1):
 
+        mapping_df = pl.DataFrame(
+            {
+                "chrom": list(contig_idx.keys()),
+                "idx": list(contig_idx.values()),
+            }
+        ).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+
+        df = (
+            df
+            .join(mapping_df.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+            .drop("chrom1")
+            .rename({"idx": "chrom1"})
+            .join(mapping_df.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+            .drop("chrom2")
+            .rename({"idx": "chrom2"})
+        )
+
+        return df.to_pandas()
+    
     def generate_edges(self):
         """
         """
@@ -226,51 +248,63 @@ class Extractor:
                     
                     if self.edge_length:
                         edge_length = self.edge_length
+                        mapping_df = pl.DataFrame(
+                            {
+                                "chrom": list(self.contigsizes.keys()),
+                                "length": list(self.contigsizes.values()),
+                            }
+                        ).with_columns(
+                            pl.col("chrom").cast(pl.Categorical)
+                        )
+
                         p = (
-                            p.with_columns(
-                                [
-                                    pl.col("chrom1")
-                                    .map_elements(
-                                        self.contigsizes.get, skip_nulls=False
-                                    )
-                                    .alias("length1"),
-                                    pl.col("chrom2")
-                                    .map_elements(
-                                        self.contigsizes.get, skip_nulls=False
-                                    )
-                                    .alias("length2"),
-                                ]
-                            )
+                            p
+                            .join(mapping_df.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+                            .rename({"length": "length1"})
+                            .join(mapping_df.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+                            .rename({"length": "length2"})
                             .filter(
                                 ((pl.col("pos1") < edge_length)
-                                    | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                                 | (pl.col("pos1") > (pl.col("length1") - edge_length)))
                                 & ((pl.col("pos2") < edge_length)
-                                    | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                                   | (pl.col("pos2") > (pl.col("length2") - edge_length)))
                             )
                             .select(columns)
                         )
+
                     if self.split_length and self.split_contig_boundarys:
+                        split_map = pl.DataFrame(
+                            {
+                                "chrom": list(self.split_contig_boundarys.keys()),
+                                "init_idx": list(self.split_contig_boundarys.values()),
+                            }
+                        ).with_columns(
+                            pl.col("chrom").cast(pl.Categorical)
+                        )
+                       
                         p = (
                             p.with_columns(
-                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
-                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
-                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
-                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
-                        ))
+                                (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                                (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                            )
+                            .join(split_map.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+                            .rename({"init_idx": "init_idx1"})
+                            .join(split_map.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+                            .rename({"init_idx": "init_idx2"})
+                        )
 
                         p = (
                             p.with_columns(
-                                        (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
-                                        (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
-                            ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                                (pl.col("init_idx1") + pl.col("sub_idx1")).alias("chrom1"),
+                                (pl.col("init_idx2") + pl.col("sub_idx2")).alias("chrom2"),
+                            )
+                            .drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
                             .drop_nulls(subset=['chrom1', 'chrom2'])
                             .select(['chrom1', 'chrom2', 'mapq'])
                         )
-
                         res = p.to_pandas()
                     else:
-                        p = p.to_pandas()
-                        res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                        res = Extractor._process_df_pl(p, self.contig_idx, self.threads)   
                         
                     res = res.reset_index(drop=True).reset_index()
             
@@ -319,27 +353,38 @@ class Extractor:
                         )
 
                     if self.split_length and self.split_contig_boundarys:
-                        p = (
-                            p.with_columns(
-                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
-                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
-                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
-                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
-                        ))
-
-                        p = (
-                            p.with_columns(
-                                        (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
-                                        (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
-                            ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
-                            .drop_nulls(subset=['chrom1', 'chrom2'])
-                            .select(['chrom1', 'chrom2'])
+                        split_map = pl.DataFrame(
+                            {
+                                "chrom": list(self.split_contig_boundarys.keys()),
+                                "init_idx": list(self.split_contig_boundarys.values()),
+                            }
+                        ).with_columns(
+                            pl.col("chrom").cast(pl.Categorical)
                         )
 
+                        p = (
+                            p.with_columns(
+                                (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                                (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                            )
+                            .join(split_map.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+                            .rename({"init_idx": "init_idx1"})
+                            .join(split_map.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+                            .rename({"init_idx": "init_idx2"})
+                        )
+
+                        p = (
+                            p.with_columns(
+                                (pl.col("init_idx1") + pl.col("sub_idx1")).alias("chrom1"),
+                                (pl.col("init_idx2") + pl.col("sub_idx2")).alias("chrom2"),
+                            )
+                            .drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                            .drop_nulls(subset=['chrom1', 'chrom2'])
+                            .select(['chrom1', 'chrom2', 'mapq'])
+                        )
                         res = p.to_pandas()
                     else:
-                        p = p.to_pandas()
-                        res = Extractor._process_df(p, self.contig_idx, self.threads)   
+                        res = Extractor._process_df_pl(p, self.contig_idx, self.threads)   
 
                     res = res.reset_index(drop=True).reset_index()
                     res = pd.concat([res[['chrom1', 'index']].rename(
@@ -405,58 +450,72 @@ class Extractor:
                 res = Parallel(n_jobs=min(self.threads, len(p_list)))(delayed(
                                 lambda x: read_csv(get_file(x)))(i) for i in p_list)
 
-            
+            if self.edge_length:
+                mapping_df = pl.DataFrame(
+                    {
+                        "chrom": list(self.contigsizes.keys()),
+                        "length": list(self.contigsizes.values()),
+                    }
+                ).with_columns(
+                    pl.col("chrom").cast(pl.Categorical)
+                )
+            if self.split_length and self.split_contig_boundarys:
+                split_map = pl.DataFrame(
+                        {
+                            "chrom": list(self.split_contig_boundarys.keys()),
+                            "init_idx": list(self.split_contig_boundarys.values()),
+                        }
+                    ).with_columns(
+                        pl.col("chrom").cast(pl.Categorical)
+                    )
+
             for i, p in enumerate(res):
                 if self.edge_length:
                     edge_length = self.edge_length
                     p = (
-                        p.with_columns(
-                            [
-                                pl.col("chrom1")
-                                .map_elements(
-                                    self.contigsizes.get, skip_nulls=False
-                                )
-                                .alias("length1"),
-                                pl.col("chrom2")
-                                .map_elements(
-                                    self.contigsizes.get, skip_nulls=False
-                                )
-                                .alias("length2"),
-                            ]
-                        )
+                        p
+                        .join(mapping_df.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+                        .rename({"length": "length1"})
+                        .join(mapping_df.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+                        .rename({"length": "length2"})
                         .filter(
                             ((pl.col("pos1") < edge_length)
-                                | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                             | (pl.col("pos1") > (pl.col("length1") - edge_length)))
                             & ((pl.col("pos2") < edge_length)
-                                | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                               | (pl.col("pos2") > (pl.col("length2") - edge_length)))
                         )
                         .select(columns)
                     )
+                
                 if self.split_length and self.split_contig_boundarys:
                     p = (
-                            p.with_columns(
-                                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
-                                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
-                                            pl.col("chrom1").map_elements(self.split_contig_boundarys.get).alias("init_idx1"),
-                                            pl.col("chrom2").map_elements(self.split_contig_boundarys.get).alias("init_idx2"),
-                        ))
+                        p.with_columns(
+                            (pl.col("pos1") // self.split_length).alias("sub_idx1"),
+                            (pl.col("pos2") // self.split_length).alias("sub_idx2"),
+                        )
+                        .join(split_map.rename({"chrom": "chrom1"}), on="chrom1", how="inner")
+                        .rename({"init_idx": "init_idx1"})
+                        .join(split_map.rename({"chrom": "chrom2"}), on="chrom2", how="inner")
+                        .rename({"init_idx": "init_idx2"})
+                    )
 
                     p = (
                         p.with_columns(
-                                    (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
-                                    (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
-                        ).drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
+                            (pl.col("init_idx1") + pl.col("sub_idx1")).alias("chrom1"),
+                            (pl.col("init_idx2") + pl.col("sub_idx2")).alias("chrom2"),
+                        )
+                        .drop(['init_idx1', 'init_idx2', 'sub_idx1', 'sub_idx2'])
                         .drop_nulls(subset=['chrom1', 'chrom2'])
-                        .select(['chrom1', 'chrom2'])
+                        .select(['chrom1', 'chrom2', 'mapq'])
                     )
-
                     res[i] = p.to_pandas()        
                 
             if not self.split_length or not self.split_contig_boundarys:
-                args = [ (i.to_pandas(), self.contig_idx, threads_2) for i in res ]
+                args = [ (i, self.contig_idx, threads_2) for i in res ]
                 with Parallel(backend="loky", n_jobs=threads_1) as parallel:
                     res = parallel(delayed(
-                                    Extractor._process_df)(i, j, k) for i, j, k in args)
+                                    Extractor._process_df_pl)(i, j, k) for i, j, k in args)
+
                 
             if len(p.columns) >= 8  and isinstance(p[7].values[0], np.int64) and p[7].values[0] <= 60:
                 res = pd.concat(res, axis=0).reset_index(drop=True).reset_index()
@@ -485,7 +544,7 @@ class Extractor:
             return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
-                            # count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
+                            count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
                             contigsizes=self.contigsizes,
                             mapq=res['mapq'].values.tolist())
 
@@ -493,7 +552,7 @@ class Extractor:
             return HyperEdges(idx=self.contig_idx, 
                             row=res['row'].values.tolist(), 
                             col=res['col'].values.tolist(),
-                            # count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
+                            count=np.ones(len(res['col']), dtype=np.uint32).tolist(),
                             contigsizes=self.contigsizes,
                             mapq=[])
 
@@ -657,7 +716,7 @@ class ExtractorSplit:
 
 
 def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
-                            min_order=2, max_order=50, 
+                            min_order=2, max_order=10, 
                             min_alignments=50, is_parquet=False,
                             edge_length=2e6, split_length=None,
                             split_contig_boundarys=None,
@@ -670,17 +729,39 @@ def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
                              (pl.col('start') + (pl.col('end') - pl.col('start'))//2).alias('pos')
         )
         df = df.with_columns((pl.col('pos') // split_length).alias('sub_idx'))
-        df = df.with_columns(pl.col('chrom').map_elements(split_contig_boundarys.get).alias('init_idx')).drop_nulls()
+        mapping_df = pl.DataFrame({
+            "chrom": list(split_contig_boundarys.keys()),
+            "init_idx": list(split_contig_boundarys.values()),
+        }).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+        df = df.join(mapping_df, on="chrom", how="inner")
+        # df = df.with_columns(pl.col('chrom').map_elements(split_contig_boundarys.get).alias('init_idx')).drop_nulls()
 
         df = df.with_columns((pl.col('init_idx') + pl.col('sub_idx')).alias('chrom_idx'))
         df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
        
     else:
-        df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
+        mapping_df = pl.DataFrame({
+            "chrom": list(contig_idx.keys()),
+            "chrom_idx": list(contig_idx.values()),
+        }).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+        df = df.join(mapping_df, on="chrom", how="inner")
+        # df = df.with_columns(pl.col('chrom').map_elements(contig_idx.get).alias('chrom_idx')).drop_nulls()
         df = df.with_columns(pl.col('chrom_idx').cast(pl.UInt32))
         
         if edge_length:
-            df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
+            mapping_df = pl.DataFrame({
+                "chrom": list(contigsizes.keys()),
+                "length": list(contigsizes.values()),
+            }).with_columns(
+                pl.col("chrom").cast(pl.Categorical)
+            )
+            df = df.join(mapping_df, on="chrom", how="inner")
+        
+            # df = df.with_columns(pl.col('chrom').map_elements(contigsizes.get, skip_nulls=False).alias('length')).drop_nulls()
             df = df.with_columns(pl.col('length').cast(pl.UInt32),
                                 (pl.col('start') + (pl.col('end') - pl.col('start'))//2).alias('pos')
                                 )
@@ -694,17 +775,22 @@ def process_pore_c_table(df, contig_idx, contigsizes, threads=1,
 
     df = df.filter((pl.col('chrom_idx_nunique') >= min_order) & (pl.col('chrom_idx_nunique') <= max_order))
 
-    # df_grouped_count = df.group_by(['read_idx', 'chrom_idx']).agg(pl.col('chrom_idx').count().alias('chrom_idx_count'))
-    # df = df.join(df_grouped_count, on=['read_idx', 'chrom_idx'])
+    # df_fragments_count = df.group_by(['read_idx']).count().rename({'count': 'fragments_count'})
+    # df = df.join(df_fragments_count, on='read_idx')
+    df_grouped_count = df.group_by(['read_idx', 'chrom_idx']).agg(pl.col('chrom_idx').count().alias('chrom_idx_count'))
+    df = df.join(df_grouped_count, on=['read_idx', 'chrom_idx'])
     df = df.select(['read_idx', 'chrom_idx', 'mapping_quality', 
-                    # 'chrom_idx_count'
+                    'chrom_idx_count',
+                    # 'fragments_count'
                     ])
-    
+
     df = df.unique(['read_idx', 'chrom_idx'], maintain_order=True)
     # df_grouped_read_idx_count = df.group_by(['read_idx'], maintain_order=True).count()
     # print(df_grouped_read_idx_count.with_columns(((pl.col('count') * (pl.col('count') - 1)) // 2 ).alias('contact'))['contact'].to_numpy().sum())
+    
 
     # df = df.with_columns((pl.col('chrom_idx_count') * (pl.col('chrom_idx_count') - 1) // 2).alias('chrom_idx_count'))
+    
     df = df.with_columns(pl.col('read_idx').cast(pl.Utf8).cast(pl.Categorical).to_physical())
 
     df = df.to_pandas()
@@ -956,6 +1042,7 @@ class HyperExtractor:
                                         self.min_alignments, self.is_parquet,
                                         self.edge_length, self.split_length,
                                         self.split_contig_boundarys)]
+
         idx = 0
         mapping_quality_res = []
         
@@ -977,11 +1064,11 @@ class HyperExtractor:
         if len(res_df) < 1:
             raise ValueError("No pore-c reads are retained, please check the pore-c table.")
 
-        
         edges = HyperEdges(idx=self.contig_idx, 
                        row=res_df['chrom_idx'].values.flatten().tolist(),
                        col=res_df['read_idx'].values.flatten().tolist(),
-                    #    count=res_df['chrom_idx_count'].values.flatten().tolist(),
+                       count=res_df['chrom_idx_count'].values.flatten().tolist(),
+                        # count=res_df['fragments_count'].values.flatten().tolist(),
                        mapq=mapping_quality_res.to_numpy().flatten().tolist(),
                        contigsizes=self.contigsizes)
         

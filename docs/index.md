@@ -29,6 +29,17 @@ The advantages of `C-Phasing`:
         For the first configuration, run it when the network is accessible.
     
     !!! note
+        If you can not download the `pixi`, you can download it from the github release page:
+        ```bash
+        mkdir -p ~/.pixi/bin
+        cd ~/.pixi/bin
+        wget https://github.com/prefix-dev/pixi/releases/download/v0.60.0/pixi-x86_64-unknown-linux-musl.tar.gz
+        tar xzvf pixi-x86_64-unknown-linux-musl.tar.gz
+        ```
+
+        And rerun the `activate_cphasing` to install the dependencies of `CPhasing`
+
+    !!! note
         If you do not have direct access to the anaconda repository, you can set the mirror for pixi.
     !!! note
         For the platform of **`linux-aarch64`**, please download from github release.

@@ -175,7 +175,7 @@ PIPE_OPTION_GROUPS = [
                         "--resolution1", "--resolution2",
                          "--init-resolution1",  "--init-resolution2",
                           "--first-cluster", "--kprune-norm-method", "--normalize", 
-                          "--min-quality1", "--min-quality2",
+                          "--min-quality1", "--min-quality2", "--cluster-method",
                            "--min-scaffold-length", "--allelic-factor",
                           "--allelic-similarity", "--min-allelic-overlap",
                           "--disable-merge-in-first", "--merge-use-allele",
@@ -227,7 +227,11 @@ click.rich_click.OPTION_GROUPS = {
                         "--width", "--height",
                         "--fontsize",
                         "--dpi", "--cmap", "--whitered",
+                        "--plot-cis-only", "--plot-hap-only",
                         "--hap-pattern", "--add-hap-border",
+                        "--hap-border-color", "--hap-border-width",
+                        "--add-hap-shadow", "--hap-shadow-color",
+                        "--hap-shadow-alpha",
                         "--no-lines", "--no-x-ticks", 
                         "--no-y-ticks", "--no-ticks", 
                         "--rotate-xticks", "--rotate-yticks",
@@ -421,7 +425,7 @@ def cli(verbose, quiet):
     '--hic-aligner',
     help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
     'if you want to use the offical version you can set aligner to `chromap`',
-    type=click.Choice(['_chromap', 'chromap', 'minimap2']),#, 'hisat2']),
+    type=click.Choice(['_chromap', 'chromap', 'minimap2', 'bwa-mem2']),#, 'hisat2']),
     default=DEFAULT_HIC_ALIGNER,
     show_default=True
 )
@@ -615,9 +619,9 @@ def cli(verbose, quiet):
     'kprune_norm_method',
     metavar="STR",
     help="Normalization method of contacts for kprune",
-    default="auto",
-    show_default=True ,
-    type=click.Choice(["none", "re", "cis", "cis_unique", "auto"])
+    default="cis",
+    show_default=True,
+    type=click.Choice(["none", "re", "cis", "cis_density"])
 )
 @click.option(
     "--use-pairs",
@@ -767,7 +771,7 @@ def cli(verbose, quiet):
     "allelic_factor",
     metavar="INT",
     help="Factor of inter-allelic weight.",
-    default=-1,
+    default=ALLELIC_FACTOR,
     type=float,
     show_default=True
 )
@@ -866,6 +870,14 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "-cm",
+    "--cluster-method",
+    help="Clustering method, louvain or leiden.",
+    type=click.Choice(["louvain", "leiden"]),
+    default=CLUSTER_METHOD,
+    show_default=True,
+)
+@click.option(
     "--enable-misassembly-remove",
     "enable_misassembly_remove",
     help="enable misassembly after second round partition.",
@@ -891,6 +903,20 @@ def cli(verbose, quiet):
     default=None,
     show_default=True,
     type=click.Path(exists=True)
+)
+@click.option(
+    "-bl",
+    "--blacklist",
+    metavar="PATH",
+    help="""
+    Path to 1-column list file containing
+    contigs to exclude from hypergraph to partition.  
+    [default: None]
+    """,
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True),
+    hidden=True
 )
 @click.option(
     '-scaf-method',
@@ -926,7 +952,6 @@ def cli(verbose, quiet):
 )
 @click.option(
     '-cmap',
-    "-cm",
     '--cmap',
     "--colormap",
     help="""
@@ -1056,9 +1081,11 @@ def pipeline(fasta,
             min_length,
             nx,
             min_scaffold_length,
+            cluster_method,
             enable_misassembly_remove,
             refine,
             whitelist,
+            blacklist,
             scaffolding_method, 
             disable_haplotype_cluster,
             binsize,
@@ -1233,6 +1260,7 @@ def pipeline(fasta,
             exclude_group_to_second=exclude_group_to_second,
             exclude_group_from_first=exclude_group_from_first,
             whitelist=whitelist,
+            blacklist=blacklist,
             allelic_similarity=allelic_similarity,
             min_allelic_overlap=min_allelic_overlap,
             min_weight=min_weight,
@@ -1243,6 +1271,7 @@ def pipeline(fasta,
             min_length=min_length,
             Nx=nx,
             min_scaffold_length=min_scaffold_length,
+            cluster_method=cluster_method,
             enable_misassembly_remove=enable_misassembly_remove,
             refine=refine,
             binsize=binsize,
@@ -2732,25 +2761,33 @@ def alleles(fasta, output,
         current_dir = Path.cwd()
         Path("alleles_workdir/").mkdir(exist_ok=True)
         fastas = ct.to_fasta(fasta, trim_length=trim_length, split=split, outdir=f"{current_dir}/alleles_workdir")
+        file_sizes = [Path(f).stat().st_size for f in fastas]
+
+        total_size = sum(file_sizes)
+        avg_size = total_size / len(fastas) if len(fastas) > 0 and total_size > 0 else 1
         # fastas = list(map(lambda x: Path(x).name, fastas))
         Path("logs").mkdir(exist_ok=True)
-        
+
         args = []
         allele_tables = []
-        for fa in fastas:
+        for i, fa in enumerate(fastas):
+            raw_threads = (threads / len(fastas)) * (file_sizes[i] / avg_size)
+            sub_threads = int(raw_threads)
+            sub_threads = max(2, sub_threads)
+            sub_threads = min(sub_threads, threads)
             fasta_prefix2 = Path(Path(fa).name).with_suffix("")
             while fasta_prefix2.suffix in {".fasta", "gz", "fa", '.fa', '.gz'}:
                 fasta_prefix2 = fasta_prefix2.with_suffix("")
             output2 = f"{current_dir}/alleles_workdir/{fasta_prefix2}.allele.table"
             allele_tables.append(f"{output2}")
-            if Path(output2).exists():
-                is_file_changed(output2)
-            if not is_file_changed(fa) and Path(output2).exists() and not is_file_changed(output2):
-                continue
+            # if Path(output2).exists():
+            #     is_file_changed(output2)
+            # if not is_file_changed(fa) and Path(output2).exists() and not is_file_changed(output2):
+            #     continue
             
             args.append((str(Path(fa).absolute()), kmer_size, window_size, max_occurance, 
                             min_cnt, minimum_similarity, diff_thres,
-                            min_length, output2, 4))
+                            min_length, output2, sub_threads))
             
         def func(fa, kmer_size, window_size, max_occurance, 
                     min_cnt, minimum_similarity, diff_thres,
@@ -3213,7 +3250,7 @@ def kprune(alleletable, contacts,
     help="Maximum contig order of pore-c reads",
     metavar="INT",
     type=int,
-    default=50,
+    default=MAX_ORDER,
     show_default=True,
     hidden=True
 )
@@ -3234,7 +3271,7 @@ def kprune(alleletable, contacts,
     'edge_length',
     help='Only load contacts that in the both ends of contigs',
     metavar="STR",
-    default=EDGE_LENGTH,
+    default=0,
     show_default=True
 )
 @click.option(
@@ -3635,7 +3672,7 @@ def hypergraph(contacts,
     "allelic_factor",
     metavar="INT",
     help="Factor of inter-allelic weight.",
-    default=-1,
+    default=ALLELIC_FACTOR,
     type=float,
     show_default=True
 )
@@ -3645,7 +3682,7 @@ def hypergraph(contacts,
     "cross_allelic_factor",
     metavar="INT",
     help="Factor of cross-allelic weight.",
-    default=0,
+    default=CROSS_ALLELIC_FACTOR,
     type=float,
     show_default=True
 )
@@ -3684,9 +3721,9 @@ def hypergraph(contacts,
     'kprune_norm_method',
     metavar="STR",
     help="Normalization method of contacts for kprune",
-    default="auto",
+    default="cis",
     show_default=True ,
-    type=click.Choice(["none", "re", "cis", "cis_unique", "auto"])
+    type=click.Choice(["none", "re", "cis", "cis_density"])
 )
 @click.option(
     '-cr',
@@ -3908,6 +3945,14 @@ def hypergraph(contacts,
     show_default=True,
 )
 @click.option(
+    "-cm",
+    "--cluster-method",
+    help="Clustering method, louvain or leiden.",
+    type=click.Choice(["louvain", "leiden"]),
+    default=CLUSTER_METHOD,
+    show_default=True,
+)
+@click.option(
     "-ms",
     "--min-scaffold-length",
     "min_scaffold_length",
@@ -4024,6 +4069,7 @@ def hyperpartition(hypergraph,
                     min_cis_weight,
                     min_quality1,
                     min_quality2,
+                    cluster_method,
                     min_scaffold_length,
                     enable_misassembly_remove,
                     is_recluster_contigs,
@@ -4092,7 +4138,7 @@ def hyperpartition(hypergraph,
 
     elif mode == "basal_withprune":
         incremental = False
-        assert alleletable or prunetable, \
+        assert alleletable or prunetable or fasta, \
             "basal_withprune modemust add `-pt` or `-at` param"
         logger.info("Running hyperpartition with `basal_withprune` mode.")
     else:
@@ -4186,16 +4232,16 @@ def hyperpartition(hypergraph,
     if split_length.lower() == "auto":
         split_length = determine_split_length(contigsizes)
     elif split_length.lower() in ["none", "no", "null"]:
-        logger.info("The `--split-length` parameter was set to None, will not split contigs.")
+        logger.info(f"The `--split-length` parameter was set to None, will not split contigs.")
         split_length = None
     elif isinstance(split_length, str):
         if split_length.isdigit():
             split_length = int(split_length)
-            logger.info("The `--split-length` parameter was set to {split_length}.")
+            logger.info(f"The `--split-length` parameter was set to {split_length}.")
         else:
             try:
                 split_length = humanized2numeric(split_length)
-                logger.info("The `--split-length` parameter was set to {split_length}.")
+                logger.info(f"The `--split-length` parameter was set to {split_length}.")
             except ValueError:
                 logger.warning(f"Split length `{split_length}` is not a valid integer, "
                                 "will try to determine the split length automatically.")
@@ -4361,6 +4407,7 @@ def hyperpartition(hypergraph,
                             init_resolution2,
                             min_weight,
                             min_cis_weight,
+                            cluster_method,
                             min_quality1,
                             min_quality2,
                             mapq_filter_1_to_2,
@@ -4786,12 +4833,12 @@ def fasta_dup(fasta, collapsed_list, output):
     "--scaffolding-method",
     "method",
     metavar="STR",
-    help="The method of scaffolding, `['precision', 'allhic', 'fast']`. "
+    help="The method of scaffolding, `['precision', 'cphasing', 'allhic', 'haphic_fast']`. "
     "precision: haphic_fastsort + allhic, which will quicker than allhic only. "
     "It is worth noting that `allhic` in `C-Phasing` is parameterized to "
     "achieve better results than the previous version",
     default="precision",
-    type=click.Choice(["precision", "allhic", "fast"]),
+    type=click.Choice(["precision", "cphasing", "allhic", "haphic_fast"]),
     show_default=True
 )
 @click.option(
@@ -4857,18 +4904,18 @@ def scaffolding(clustertable, count_re, clm,
 
     """
 
-    from .algorithms.scaffolding import AllhicOptimize, HapHiCSort
+    from .algorithms.scaffolding import AllhicOptimize, HapHiCSort, CPhasingOptimize
     
     if clm is None and split_contacts is None:
         logger.error("The clm (-c) and split_contacts (-sc) not be specified, please specify one of them.")
         sys.exit(-1)
     
     if clm is None and (method == "precision" or method == "allhic"):
-        logger.warning("The clm file not be specified, change the method to `fast`.")
-        method = "fast"
+        logger.warning("The clm file not be specified, change the method to `cphasing`.")
+        method = "cphasing"
     
 
-    if split_contacts is None and (method == "precision" or method == "fast"):
+    if split_contacts is None and (method == "precision" or method == "fast" or method == "cphasing"):
         logger.warning("The split contacts not be specified, change the method to `allhic`.")
         method = "allhic"
 
@@ -4887,7 +4934,12 @@ def scaffolding(clustertable, count_re, clm,
                                 disable_haplotype_cluster=disable_haplotype_cluster,
                                 fasta=fasta, output=output, threads=threads)
         hs.run()
-
+    elif method == "cphasing":
+        assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
+        co = CPhasingOptimize(clustertable, count_re, split_contacts, allele_table=allele_table, corrected=corrected,
+                                disable_haplotype_cluster=disable_haplotype_cluster,
+                                fasta=fasta, keep_temp=keep_temp, output=output, threads=threads)
+        co.run()
     else:
         assert split_contacts is not None, "split_contacts file must specified by `-sc` parameters"
         hs = HapHiCSort(clustertable, count_re, clm, split_contacts, disable_haplotype_cluster=disable_haplotype_cluster,
@@ -5189,7 +5241,7 @@ def chromsizes(fasta, output):
     "max_order",
     metavar="INT",
     help="Maximum order of porec reads.",
-    default=50,
+    default=MAX_ORDER,
     type=int,
     show_default=True
 )
@@ -5334,7 +5386,7 @@ def paf2depth(paf, contigsizes, min_mapq, window, step, output):
     "max_order",
     metavar="INT",
     help="Maximum order of porec reads.",
-    default=50,
+    default=MAX_ORDER,
     type=int,
     show_default=True
 )
@@ -5432,7 +5484,7 @@ def porec_merge(porec, output):
     "max_order",
     metavar="INT",
     help="Maximum order of porec reads.",
-    default=50,
+    default=MAX_ORDER,
     type=int,
     show_default=True
 )
@@ -6627,12 +6679,73 @@ def pairs2cool2(pairs, outcool,
     show_default=True
 )
 @click.option(
+    '--plot-cis-only',
+    help="""
+    Only show the cis contacts.
+    """,
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
+    '--plot-hap-only',
+    help="""
+    Only show the inner-haplotype contacts.
+    """,
+    default=False,
+    is_flag=True,
+    show_default=True
+)
+@click.option(
     '--add-hap-border',
     help="""
     Add border between haplotypes, effective when `--hap-pattern` is set consistent with the chromosome name. 
     """,
     is_flag=True,
     default=False,
+    show_default=True
+)
+@click.option(
+    '--hap-border-color',
+    help="""
+    Color of border between haplotypes, effective when `--add-hap-border` is set.
+    """,
+    default='black',
+    show_default=True
+)
+@click.option(
+    '--hap-border-width',
+    help="""
+    Width of border between haplotypes, effective when `--add-hap-border` is set.
+    """,
+    default=0.8,
+    type=float,
+    show_default=True
+)
+@click.option(
+    '--add-hap-shadow',
+    help="""
+    Add shadow between haplotypes, effective when `--hap-pattern` is set consistent with the chromosome name.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '--hap-shadow-color',
+    help="""
+    Color of shadow between haplotypes, effective when `--add-hap-shadow` is set.
+    """,
+    default='grey',
+    show_default=True
+)
+@click.option(
+    '--hap-shadow-alpha',
+    help="""
+    Alpha of shadow between haplotypes, effective when `--add-hap-shadow` is set.
+    """,
+    default=0.1,
+    type=float,
     show_default=True
 )
 @click.option(
@@ -6645,6 +6758,31 @@ def pairs2cool2(pairs, outcool,
     default=False,
     show_default=True,
     is_flag=True,
+)
+@click.option(
+    '--line-color',
+    help="""
+    Color of line in chromosome boundaries.
+    """,
+    default='black',
+    show_default=True
+)
+@click.option(
+    '--line-width',
+    help="""
+    Width of line in chromosome boundaries.
+    """,
+    default=0.5,
+    type=float,
+    show_default=True
+)
+@click.option(
+    '--line-style',
+    help="""
+    Style of line in chromosome boundaries.
+    """,
+    default='--',
+    show_default=True
 )
 @click.option(
     '-nxt',
@@ -6742,8 +6880,18 @@ def plot(matrix,
             whitered,
             balance,
             balanced,
+            plot_cis_only,
+            plot_hap_only,
             add_hap_border,
+            hap_border_color,
+            hap_border_width,
+            add_hap_shadow,
+            hap_shadow_color,
+            hap_shadow_alpha,
             no_lines,
+            line_color,
+            line_width,
+            line_style,
             no_x_ticks,
             no_y_ticks,
             no_ticks,
@@ -6837,13 +6985,16 @@ def plot(matrix,
         if not no_adjust:
             if which("bedtools") is None:
                 raise ValueError(f"bedtools: command not found.")
-            matrix = adjust_matrix(matrix, agp, threads=threads)
+            if not no_coarsen:
+                matrix = adjust_matrix(matrix, agp, threads=threads, coarsen_factor=factor)
+            else:
+                matrix = adjust_matrix(matrix, agp, threads=threads)
 
         if only_adjust:
             sys.exit()
         
-        if not no_coarsen and factor > 1:
-            matrix = coarsen_matrix(matrix, cool_binsize, factor, None, threads)   
+        # if not no_coarsen and factor > 1:
+        #     matrix = coarsen_matrix(matrix, cool_binsize, factor, None, threads)   
     
     else:
         if only_coarsen or coarsen:
@@ -6964,30 +7115,40 @@ def plot(matrix,
 
     if not only_coarsen:
         plot_heatmap(matrix,
-                 output,
-                 chromosomes=chromosomes,
-                 hap_pattern=hap_pattern,
-                 per_chromosomes=per_chromosomes,
-                 chrom_per_row=chrom_per_row,
-                 figwidth=width,
-                 figheight=height,
-                 fontsize=fontsize,
-                 dpi=dpi,
-                 cmap=cmap, 
-                 scale=scale,
-                 triangle=triangle,
-                 vmin=vmin,
-                 vmax=vmax,
-                 balanced=balanced,
-                 xticks=xticks, 
-                 yticks=yticks,
-                 rotate_xticks=rotate_xticks,
-                 rotate_yticks=rotate_yticks,
-                 avoid_overlap_yticks=avoid_overlap_yticks,
-                 ytick_min_dist=ytick_min_dist,
-                 add_hap_border=add_hap_border,
-                 add_lines=False if no_lines else True,
-                 threads=threads)
+                output,
+                chromosomes=chromosomes,
+                hap_pattern=hap_pattern,
+                per_chromosomes=per_chromosomes,
+                chrom_per_row=chrom_per_row,
+                figwidth=width,
+                figheight=height,
+                fontsize=fontsize,
+                dpi=dpi,
+                cmap=cmap, 
+                scale=scale,
+                triangle=triangle,
+                plot_cis_only=plot_cis_only,
+                plot_hap_only=plot_hap_only,
+                vmin=vmin,
+                vmax=vmax,
+                balanced=balanced,
+                xticks=xticks, 
+                yticks=yticks,
+                rotate_xticks=rotate_xticks,
+                rotate_yticks=rotate_yticks,
+                avoid_overlap_yticks=avoid_overlap_yticks,
+                ytick_min_dist=ytick_min_dist,
+                add_hap_border=add_hap_border,
+                hap_border_color=hap_border_color,
+                hap_border_width=hap_border_width,
+                add_hap_shadow=add_hap_shadow,
+                hap_shadow_color=hap_shadow_color,
+                hap_shadow_alpha=hap_shadow_alpha,
+                add_lines=False if no_lines else True,
+                line_color=line_color,
+                line_width=line_width,
+                line_style=line_style,
+                threads=threads)
 
 
 
@@ -7912,7 +8073,7 @@ def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, output):
     else:
         P_allelic_idx = None
         P_weak_idx = None
-    min_weight = 2.0
+    min_weight = 0.1
     A = hg.clique_expansion_init(H, 
                                  min_weight=min_weight,
                                  allelic_factor=0,

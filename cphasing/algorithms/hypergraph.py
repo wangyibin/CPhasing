@@ -3,6 +3,8 @@
 import logging
 import os
 import gc
+import random
+
 import numpy as np
 import pandas as pd
 import msgspec
@@ -11,6 +13,7 @@ import igraph as ig
 from .._config import HYPERGRAPH_ORDER_DTYPE, HYPERGRAPH_COL_DTYPE
 from joblib import Parallel, delayed
 from scipy.sparse import (
+    triu,
     identity, 
     dia_matrix, 
     csr_matrix, 
@@ -36,20 +39,20 @@ class HyperEdges(msgspec.Struct):
     idx: dict 
     row: list
     col: list
-    # count: list
+    count: list
     contigsizes: dict 
     mapq: list
 
     def to_numpy(self):
         self.row = np.array(self.row, dtype=np.int32)
         self.col = np.array(self.col, dtype=HYPERGRAPH_COL_DTYPE)
-        # self.count = np.array(self.count, dtype=np.uint32)
+        self.count = np.array(self.count, dtype=np.uint32)
         self.mapq = np.array(self.mapq, dtype=np.int8)
 
     def to_list(self):
         self.row = self.row.tolist()
         self.col = self.col.tolist()
-        # self.count = self.count.tolist()
+        self.count = self.count.tolist()
         self.mapq = self.mapq.tolist()
         
 
@@ -67,8 +70,8 @@ def merge_hyperedges(HE_list: list) -> HyperEdges:
         init_HE.col += HE.col 
         if HE.mapq:
             init_HE.mapq += HE.mapq
-        # if HE.count:
-        #     init_HE.count += HE.count
+        if HE.count:
+            init_HE.count += HE.count
 
     return init_HE
 
@@ -83,10 +86,11 @@ class HyperGraph:
         HyperEdges
     """
 
-    def __init__(self, edges, min_quality=1):
+    def __init__(self, edges, min_quality=1, mapq_filter=True):
         self.edges = edges 
         self.contigsizes = self.edges.contigsizes
         self.min_quality = min_quality
+        self.mapq_filter = mapq_filter
         self.get_data()
 
     def get_data(self):
@@ -96,7 +100,7 @@ class HyperGraph:
         if len(self.edges.row) == 0:
             raise ValueError("No hyperedges found.")
 
-        if self.min_quality > 1 and len(self.edges.mapq) > 1:
+        if self.min_quality > 0 and len(self.edges.mapq) > 1 and self.mapq_filter:
             self.mapq = np.array(self.edges.mapq, dtype=np.int8)
 
             retain_idx = self.mapq >= self.min_quality
@@ -106,8 +110,8 @@ class HyperGraph:
             total_edge_counts = self.row.shape[0]
             self.row = self.row[retain_idx]
             self.col = self.edges.col[retain_idx]
-            # self.count = self.edges.count[retain_idx]
-           
+        
+            self.count = self.edges.count[retain_idx]
 
             # self.idx = np.sort(np.array(pd.unique(self.row)))
             self.idx = np.unique(self.row)
@@ -123,7 +127,7 @@ class HyperGraph:
             self.nodes = np.array([k for k, v in sorted(self.edges.idx.items(), key=lambda item: item[1])])
             self.row = self.edges.row
             self.col = self.edges.col
-            # self.count = self.edges.count
+            self.count = self.edges.count
             self.remove_contigs = np.array([])
 
         self.shape = (len(self.nodes), max(self.col) + 1)
@@ -142,7 +146,7 @@ class HyperGraph:
 
         self.row = self.row[~remove_idx]
         self.col = self.col[~remove_idx]
-        # self.count = self.count[~remove_idx]
+        self.count = self.count[~remove_idx]
 
         # if len(self.mapq) > 1:
         #     self.mapq = self.mapq[~remove_idx]
@@ -164,7 +168,7 @@ class HyperGraph:
 
         self.row = self.row[remove_idx]
         self.col = self.col[remove_idx]
-        # self.count = self.count[remove_idx]
+        self.count = self.count[remove_idx]
         # if len(self.mapq) > 1:
         #     self.mapq = self.mapq[remove_idx]
 
@@ -180,18 +184,27 @@ class HyperGraph:
 
         """
 
-        matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
+        # matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
+        #                         (self.row, self.col)
+        #                         ), 
+        #                         shape=self.shape
+        #                         )
+
+        try:
+            matrix = csr_matrix((self.count, (self.row, self.col)), 
+                             shape=self.shape)
+        except AttributeError:
+             matrix = csr_matrix((np.ones(len(self.row), dtype=HYPERGRAPH_ORDER_DTYPE), 
                                 (self.row, self.col)
                                 ), 
                                 shape=self.shape
                                 )
-        # matrix = csr_matrix((self.count, (self.row, self.col)), 
-        #                      shape=self.shape)
 
         if min_contacts:
             non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
             matrix = matrix[non_zero_contig_idx]
             self.remove_contigs = self.nodes[~non_zero_contig_idx]
+            self.remove_contig_idx = np.where(~non_zero_contig_idx)[0]
             self.nodes = self.nodes[non_zero_contig_idx]
            
             logger.info(f"Total {self.shape[0] - matrix.shape[0]:,} "
@@ -199,32 +212,46 @@ class HyperGraph:
             
             non_zero_edges_idx = matrix.sum(axis=0).A1 >= 2
             matrix = matrix[:, non_zero_edges_idx]
-         
             self.shape = matrix.shape 
 
         else:
-            self.remove_contigs = []
+            self.remove_contig_idx = np.array([])
+            self.remove_contigs = np.array([])
        
-        del self.row, self.col
-        gc.collect()
 
         return matrix 
 
+    def clear(self):
+        del self.row, self.col
+        gc.collect()
+
+
     @staticmethod
-    def clique_expansion_init(H, P_allelic_idx=None, 
+    def clique_expansion_init(H,
+                              cis_count=None, 
+                              P_allelic_idx=None, 
                               P_weak_idx=None, 
                               NW=None,
                               W=None,
                               allelic_factor=-1,
-                              min_weight=0.1):
+                              min_weight=0.1,
+                              use_high_order=True):
         """
         clique expansion/reduction
         """
         m = H.shape[1]
 
-        # D_e - I
-        D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
-        
+        if use_high_order:
+            # D_e - I
+            # D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+            if cis_count is None:
+                D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+                # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
+            else:
+                D_e_num = (cis_count - H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+        else:
+            D_e_num = np.ones(H.shape[1], dtype=HYPERGRAPH_ORDER_DTYPE)
+            
         # W = identity(m, dtype=np.float32)
         # if W is not None:
         #     W = dia_matrix((W, np.array([0])), shape=(m, m), dtype=np.float32)
@@ -232,10 +259,7 @@ class HyperGraph:
         
        
         ## inverse diagonal matrix D_e
-        D_e_inv = 1/D_e_num
-        D_e_inv[D_e_inv == -np.inf] = 0
-        D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                                (m, m), dtype=np.float32)
+        D_e_inv = dia_matrix((1 / np.maximum(D_e_num, 1), [0]), shape=(m, m))
     
         if W is not None:
             A = H @ W @ D_e_inv @ H.T
@@ -246,65 +270,44 @@ class HyperGraph:
             mask = A >= min_weight
             A = A.multiply(mask)
 
+        if cis_count is not None:
+            diag_indices = np.arange(A.shape[0])
+            A.setdiag(cis_count[diag_indices])
+
         if NW is not None:
-            A = A.toarray() 
-            diag_A = np.diagonal(A)
-            NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
-            np.fill_diagonal(NW, 1)
-            A = A * NW
-            row, col = np.nonzero(A)
-            values = A[row, col]
-            A = csr_matrix((values, (row, col)), shape=A.shape)
+            A = HyperGraph.normalize_adjacency_matrix(A, NW=NW)
 
 
         if P_allelic_idx or P_weak_idx:
-            # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
-            # P[np.diag_indices_from(P)] = 0
-            # P[P_idx[0], P_idx[1]] = 0
-            # A = A * P 
-            A = A.tolil()
-            if P_allelic_idx:
-                if allelic_factor == 0: 
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
-                else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+            if not isinstance(A, csr_matrix):
+                A = A.tocsr()
             
+            if P_allelic_idx:
+                rows, cols = P_allelic_idx
+                if allelic_factor == 0:
+                    A[rows, cols] = 0
+                else:
+                    A[rows, cols] = A[rows, cols].multiply(allelic_factor)
+
             if P_weak_idx:
-                A[P_weak_idx[0], P_weak_idx[1]] = 0 
+                rows, cols = P_weak_idx
+                A[rows, cols] = 0
                 
-            A = A.tocsr()
-
- 
-        # if P_allelic_idx or P_weak_idx:
-        #     A = A.tocoo()
-        #     if P_allelic_idx:
-        #         if allelic_factor == 0: 
-        #             A.data[np.in1d(A.row, P_allelic_idx[0]) & np.in1d(A.col, P_allelic_idx[1])] = 0
-        #         else:
-        #             A.data[np.in1d(A.row, P_allelic_idx[0]) & np.in1d(A.col, P_allelic_idx[1])] *= allelic_factor
-                    
-        #     if P_weak_idx:
-        #         A.data[np.in1d(A.row, P_weak_idx[0]) & np.in1d(A.col, P_weak_idx[1])] = 0 
-
-        #     A = A.tocsr()
-
-
         return A
 
     @staticmethod
     def normalize_adjacency_matrix(A, NW=None):
         if NW is not None:
             logger.info("Normalizing the weight of edges.")
-            A = A.toarray() 
-            # diag_A = np.diagonal(A)
-            # NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
-            # np.fill_diagonal(NW, 1)
-            A = A * NW
-            row, col = np.nonzero(A)
-            values = A[row, col]
-            A = csr_matrix((values, (row, col)), shape=A.shape)
-        
-        return A 
+            A_coo = A.tocoo()
+            row, col, data = A_coo.row, A_coo.col, A_coo.data
+
+            scales = NW[row, col]
+            data = data * scales
+
+            A = csr_matrix((data, (row, col)), shape=A.shape)
+
+        return A
     
 
     @staticmethod
@@ -562,6 +565,7 @@ def IRMM(H, A=None,
             max_round=1, 
             chunk=10000, 
             threads=10, 
+            method="louvain",
             outprefix="all"):
     """
     Iteratively reweight modularity maximization. （Kumar et al. Applied Network Science）
@@ -611,16 +615,12 @@ def IRMM(H, A=None,
         ## diagonal matrix of weights
         W = identity(m, dtype=np.float32)
         
-        ## D_e - I 
-        # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
-    
+        ## D_e - I             
         D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
-        
+        # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
+
         ## inverse diagonal matrix D_e
-        D_e_inv = 1/D_e_num
-        D_e_inv[D_e_inv == -np.inf] = 0
-        D_e_inv = dia_matrix((D_e_inv, np.array([0])), 
-                                W.shape, dtype=np.float32)
+        D_e_inv = dia_matrix((1 / np.maximum(D_e_num, 1), [0]), shape=(m, m))
 
         if max_round <= 1:
             A = H @ W @ D_e_inv @ H.T
@@ -634,74 +634,78 @@ def IRMM(H, A=None,
             # mask = (A >= min_weight).astype(bool)
             # mask += (A <= -min_weight).astype(bool)
             A = A.multiply(mask)
+
         # normalization
         if NW is not None:
-            A = A.toarray()
-            diag_A = np.diagonal(A)
-            NW = 1 / np.sqrt(np.outer(diag_A, diag_A))
-            np.fill_diagonal(NW, 1)
-
-            A = A * NW
-            row, col = np.nonzero(A)
-            values = A[row, col]
-            A = csr_matrix((values, (row, col)), shape=A.shape, dtype=np.float32)
+            A = HyperGraph.normalize_adjacency_matrix(A, NW=NW)
 
         A.setdiag(0)
-        A.prune()
+        A.eliminate_zeros()
 
         if max_round <= 1:
             del W, D_e_num, D_e_inv
             gc.collect() 
 
         raw_A = A.copy()
+
         if P_allelic_idx or P_weak_idx:
-            A = A.tolil()
+            if not isinstance(A, csr_matrix):
+                A = A.tocsr()
+            
             if P_allelic_idx:
-        
-                if allelic_factor == 0: 
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
-                else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+                rows, cols = P_allelic_idx
+                A[rows, cols] *= allelic_factor
             if P_weak_idx:
-                if cross_allelic_factor == 0:
-                    A[P_weak_idx[0], P_weak_idx[1]] = 0
-                else:
-                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
-                
-            A = A.tocsr()
+                rows, cols = P_weak_idx
+                A[rows, cols] = 0
+
 
     else:
         raw_A = A.copy()
+
         if P_allelic_idx or P_weak_idx:
-            A = A.tolil()
+            if not isinstance(A, csr_matrix):
+                A = A.tocsr()
             if P_allelic_idx:
-                if allelic_factor == 0: 
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
-                else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+                rows, cols = P_allelic_idx
+                A[rows, cols] *= allelic_factor
             if P_weak_idx:
-                if cross_allelic_factor == 0:
-                    A[P_weak_idx[0], P_weak_idx[1]] = 0
-                else:
-                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
-                
-            A = A.tocsr()
+                rows, cols = P_weak_idx
+                A[rows, cols] = 0
+
+    A.setdiag(0)
+    A_upper = triu(A, format='csr')
+    A_upper.eliminate_zeros() 
+
+    random.seed(os.getenv("CPHASING_RANDOM_SEED", 42))
+    ig.set_random_number_generator(random)
 
     try:
-        G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+        # G = ig.Graph.Weighted_Adjacency(A_upper, mode='undirected', loops=False)
+        A_coo = A_upper.tocoo()
+        G = ig.Graph(
+            n=A.shape[0], 
+            edges=list(zip(A_coo.row, A_coo.col)), 
+            edge_attrs={'weight': A_coo.data},
+            directed=False
+        )
     except ValueError:
         return raw_A, A, None, []
+    if allelic_factor < 0 or method == 'leiden':
+        cluster_assignments = G.community_leiden(weights='weight', 
+                                            resolution_parameter=resolution, 
+                                            objective_function='modularity')
+    else:
+        cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
 
-    cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-    # cluster_assignments = G.community_leiden(weights='weight', resolution=resolution)
+    # cluster_assignments = G.community_leiden(weights='weight', resolution_parameter=resolution, objective_function='modularity')
     # import leidenalg as la
     # cluster_assignments = la.find_partition(G, la.CPMVertexPartition, resolution_parameter=0.01)
-    cluster_results = list(map(set, list(cluster_assignments.as_cover())))
+    # cluster_results = list(map(set, list(cluster_assignments.as_cover())))
+    cluster_results = [set(c) for c in cluster_assignments]
   
     cluster_stat = list(map(len, cluster_results))
-    # del A, G
-    # gc.collect()
-    
+    current_membership = cluster_assignments.membership
     if max_round > 1:
         W_prev = W.copy()
 
@@ -726,7 +730,7 @@ def IRMM(H, A=None,
         res = [i[1] for i in sorted(res, key=lambda x: x[0])]
         W.data[0] = np.concatenate(res)
 
-        del a, args, res
+        a, args, res = None, None, None
         gc.collect()
 
         A = H @ W @ D_e_inv @ H_T
@@ -745,34 +749,46 @@ def IRMM(H, A=None,
             # P[np.diag_indices_from(P)] = 0
             # P[P_idx[0], P_idx[1]] = 0
             # A = A * P 
-            A = A.tolil()
+            if not isinstance(A, csr_matrix):
+                A = A.tocsr()
             if P_allelic_idx:
-                if allelic_factor == 0: 
-                    A[P_allelic_idx[0], P_allelic_idx[1]] = 0
-                else:
-                    A[P_allelic_idx[0], P_allelic_idx[1]] *= allelic_factor
+                rows, cols = P_allelic_idx
+                A[rows, cols] *= allelic_factor
             if P_weak_idx:
-                if cross_allelic_factor == 0:
-                    A[P_weak_idx[0], P_weak_idx[1]] = 0
-                else:
-                    A[P_weak_idx[0], P_weak_idx[1]] *= cross_allelic_factor
+                rows, cols = P_weak_idx
+                A[rows, cols] = 0
 
-            A = A.tocsr()
+        A.setdiag(0)
+        A_upper = triu(A, format='csr')
+        A_upper.eliminate_zeros()
 
         try:
-            G = ig.Graph.Weighted_Adjacency(A, mode='undirected', loops=False)
+            # G = ig.Graph.Weighted_Adjacency(A_upper, mode='undirected', loops=False)
+            A_coo = A_upper.tocoo()
+            G = ig.Graph(
+                n=A.shape[0], 
+                edges=list(zip(A_coo.row, A_coo.col)), 
+                edge_attrs={'weight': A_coo.data},
+                directed=False
+            )
         except ValueError:
             return A, None, []
         
         # ## use igraph 
-        cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
-        cluster_results = list(map(set, list(cluster_assignments.as_cover())))
-
+        if allelic_factor < 0 or method == 'leiden':
+            cluster_assignments = G.community_leiden(weights='weight', 
+                                                resolution_parameter=resolution, 
+                                                objective_function='modularity',
+                                                initial_membership=current_membership)
+        else:
+            cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
+        
+        
+        cluster_results = [set(c) for c in cluster_assignments]
+        current_membership = cluster_assignments.membership
         ## use networkx 
         # G = G.to_networkx()
         # cluster_assignments = nx.community.louvain_communities(G, resolution=resolution)
-        # del A, G
-        # gc.collect()
 
         cluster_stat = list(map(len, cluster_results))
         logger.info(f"Cluster Statistics: {cluster_stat}")

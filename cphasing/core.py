@@ -1167,8 +1167,6 @@ class ClusterTable:
    
         agp_df.to_csv(output, sep='\t', index=None, header=None)
 
-
-
     def to_fasta(self, fasta, trim_length=25000, split=True, outdir="./"):
         """
         extract fasta by cluster table 

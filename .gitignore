@@ -135,9 +135,9 @@ dmypy.json
 .pixi
 *.egg-info
 
-notebooks
 cphasing/algorithms/overlapgraph.py
+notebooks/collapsed_partition.ipynb
 scripts/evaluator/demo_overlap_sbm.py
 scripts/evaluator/eval_porec_alignment.py
-scripts/simulation/simulate_porec_data.py
 scripts/simulation/simulate_overlap_network.py
+scripts/simulation/simulate_porec_data.py

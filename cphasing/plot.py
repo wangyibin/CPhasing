@@ -430,12 +430,37 @@ class OrderContigMatrix(object):
         pass
     
 
+def aggregate_chunk_static(args):
+    chunk, contig2chrom_index, agg_dict, index_columns = args
+    
+    new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
+    new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
+    
+    chunk = chunk.with_columns([
+        pl.Series('bin1_id', new_bin1_id),
+        pl.Series('bin2_id', new_bin2_id)
+    ])
+
+    chunk = chunk.filter((pl.col('bin1_id') >= 0) & (pl.col('bin2_id') >= 0))
+    
+    if agg_dict['count'] == 'sum':
+        result = (chunk.group_by(index_columns, maintain_order=True)
+                    .agg(pl.sum('count')).to_pandas().reset_index())
+    else:
+        result = (chunk.to_pandas().groupby(index_columns, sort=True)
+                        .agg(agg_dict)
+                        .reset_index())
+    
+    result = result[(result['bin1_id'] >= 0) & (result['bin2_id'] >= 0)]
+
+    return result
+
 class sumSmallContig(object):
     """
     Sum small conitg count into one chromosome bin
     """
     def __init__(self, chrom_pixels, contig2chrom, edges,
-                    columns, map, batchsize=5000):
+                    columns, map, batchsize=10000):
 
         self._map = map
         # self.cool_path = cool_path
@@ -464,57 +489,74 @@ class sumSmallContig(object):
 
         self.pixels = chrom_pixels
 
-    # @profile
-    def _aggregate(self, span):
+        bin1 = self.pixels['bin1_id'].to_numpy()
+        self.pixel_boundaries = np.searchsorted(bin1, edges, side='left')
 
-        # cool = cooler.Cooler(self.cool_path)
+    # # @profile
+    # def _aggregate(self, span):
+
+    #     # cool = cooler.Cooler(self.cool_path)
     
-        # pixels = self.pixels
-        # pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)
-        contig2chrom_index = self.contig2chrom_index
-        lo, hi = span
+    #     # pixels = self.pixels
+    #     # pixels = cool.matrix(balance=False, sparse=True, as_pixels=True)
+    #     contig2chrom_index = self.contig2chrom_index
+    #     lo, hi = span
         
-        chunk = self.pixels.filter(pl.col('bin1_id').is_between(lo, hi))
+    #     chunk = self.pixels.filter(pl.col('bin1_id').is_between(lo, hi))
         
-        new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
-        new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
+    #     new_bin1_id = np.searchsorted(contig2chrom_index, chunk['bin1_id'].to_numpy(), side='right') - 1
+    #     new_bin2_id = np.searchsorted(contig2chrom_index, chunk['bin2_id'].to_numpy(), side='right') - 1
         
-        chunk = chunk.with_columns([
-            pl.Series('bin1_id', new_bin1_id),
-            pl.Series('bin2_id', new_bin2_id)
-        ])
+    #     chunk = chunk.with_columns([
+    #         pl.Series('bin1_id', new_bin1_id),
+    #         pl.Series('bin2_id', new_bin2_id)
+    #     ])
 
-        chunk = chunk.filter((pl.col('bin1_id') >= 0) & (pl.col('bin2_id') >= 0))
-        if self.agg['count'] == 'sum':
-            result = (chunk.group_by(self.index_columns, maintain_order=True)
-                        .agg(pl.sum('count')).to_pandas().reset_index())
-        else:
-            result = (chunk.to_pandas().groupby(self.index_columns, sort=True)
-                            .agg(self.agg)
-                            .reset_index())
+    #     chunk = chunk.filter((pl.col('bin1_id') >= 0) & (pl.col('bin2_id') >= 0))
+    #     if self.agg['count'] == 'sum':
+    #         result = (chunk.group_by(self.index_columns, maintain_order=True)
+    #                     .agg(pl.sum('count')).to_pandas().reset_index())
+    #     else:
+    #         result = (chunk.to_pandas().groupby(self.index_columns, sort=True)
+    #                         .agg(self.agg)
+    #                         .reset_index())
         
-        result = result[(result['bin1_id'] >= 0) & (result['bin2_id'] >= 0)]
+    #     result = result[(result['bin1_id'] >= 0) & (result['bin2_id'] >= 0)]
 
-        return result
+    #     return result
 
-    def aggregate(self, span):
-        try:
-            chunk = self._aggregate(span)
+    # def aggregate(self, span):
+    #     try:
+    #         chunk = self._aggregate(span)
     
-        except MemoryError as e:
-            raise RuntimeError(str(e))
-        return chunk
+    #     except MemoryError as e:
+    #         raise RuntimeError(str(e))
+    #     return chunk
     
+
     def __iter__(self):
         
         batchsize = self.batchsize
-        spans = self.edges
+        boundaries = self.pixel_boundaries
+        spans = list(zip(boundaries[:-1], boundaries[1:]))
         spans_length = len(spans)
+        
         for i in range(0, spans_length, batchsize):
+            current_spans = spans[i: i+batchsize]
+            tasks = []
+            for start, end in current_spans:
+                if start >= end:
+                    continue
+                chunk = self.pixels[start:end]
+                tasks.append((chunk, self.contig2chrom_index, self.agg, self.index_columns))
+            
+            if not tasks:
+                continue
+
             try:
                 if batchsize > 1:
                     lock.acquire()
-                results = self._map(self.aggregate, spans[i: i+batchsize])
+                results = self._map(aggregate_chunk_static, tasks)
                 
             finally:
                 if batchsize > 1:
@@ -522,6 +564,24 @@ class sumSmallContig(object):
         
             for df in results:
                 yield {k: v.values for k, v in df.items()}
+
+    # def __iter__(self):
+        
+    #     batchsize = self.batchsize
+    #     spans = self.edges
+    #     spans_length = len(spans)
+    #     for i in range(0, spans_length, batchsize):
+    #         try:
+    #             if batchsize > 1:
+    #                 lock.acquire()
+    #             results = self._map(self.aggregate, spans[i: i+batchsize])
+                
+    #         finally:
+    #             if batchsize > 1:
+    #                 lock.release()
+        
+    #         for df in results:
+    #             yield {k: v.values for k, v in df.items()}
                 
 def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output, 
                 dtypes=None, columns=['count'], threads=1, **kwargs):
@@ -547,10 +607,7 @@ def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output,
         if threads > 1:
             pool = Pool(threads)
             kwargs.setdefault('lock', lock)
-        
-            # from mpire import WorkerPool
-            # with WorkerPool(threads) as pool:
-        
+               
             iterator = sumSmallContig(chrom_pixels, 
                 contig2chrom,
                 edges,
@@ -575,7 +632,7 @@ def sum_small_contig(chrom_pixels, contig2chrom, new_bins, output,
         if threads > 1:
             pool.close()
 
-def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
+def adjust_matrix_slow(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     start_time = time.time()
    
@@ -649,6 +706,7 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
 
     split_contig_on_chrom_df['contigidx'] = contig_bins_index.loc[
         split_contig_on_chrom_df['contig_region']]['contigidx'].values
+    split_contig_on_chrom_df.sort_values(by=['chromidx'], inplace=True)
 
     split_contig_on_chrom_df.drop(['chrom', 'start', 'end',
                                    'contig', 'tig_start', 'tig_end',
@@ -658,10 +716,12 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     ## Solve the problem that the dotted line of the heat map will drift when the bin is relatively large
     chrom_bin_interval_df = chrom_bin_interval_df.loc[split_contig_on_chrom_df['chromidx'].drop_duplicates()]
     chrom_bin_interval_df.reset_index(drop=True, inplace=True)
+    shift_index = False
     if chrom_bin_interval_df.loc[0, 'start'] != 0:
         ## if the first bin is not start with 0, then we need to insert a new row before the first bin
         # logger.warning('The first bin of chromosome is not start with 0, '
         #                   'adjust the first bin to start with 0.')
+        shift_index = True
         new_row = pd.DataFrame({
             'chrom': raw_chrom_interval_df.iloc[0]['chrom'],
             'start': 0,
@@ -679,20 +739,54 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     contig2chrom = split_contig_on_chrom_df[['chromidx', 'contigidx']]
     contig2chrom.set_index('chromidx', inplace=True)
     # reorder matrix 
+    # reordered_contigidx = contig2chrom['contigidx'].values
+    # reordered_matrix = matrix[:].tocsr(
+    #                      )[:, reordered_contigidx][reordered_contigidx, :]
+    # reordered_matrix = triu(reordered_matrix).tocoo()
+    n_bins = matrix.shape[0]
     reordered_contigidx = contig2chrom['contigidx'].values
-    reordered_matrix = matrix[:].tocsr(
-                         )[:, reordered_contigidx][reordered_contigidx, :]
-    reordered_matrix = triu(reordered_matrix).tocoo()
+    
+    map_array = np.full(n_bins, -1, dtype=np.int32)
+    map_array[reordered_contigidx] = np.arange(len(reordered_contigidx), dtype=np.int32)
+
+    pixels = cool.pixels()[:]
+    old_bin1 = pixels['bin1_id'].to_numpy()
+    old_bin2 = pixels['bin2_id'].to_numpy()
+    counts = pixels['count'].to_numpy()
+
+    new_bin1 = map_array[old_bin1]
+    new_bin2 = map_array[old_bin2]
+
+    valid_mask = (new_bin1 != -1) & (new_bin2 != -1)
+    
+    new_bin1 = new_bin1[valid_mask]
+    new_bin2 = new_bin2[valid_mask]
+    counts = counts[valid_mask]
+
+    swap_mask = new_bin1 > new_bin2
+    final_bin1 = np.where(swap_mask, new_bin2, new_bin1)
+    final_bin2 = np.where(swap_mask, new_bin1, new_bin2)
+    
     os.environ["POLARS_MAX_THREADS"]  = str(threads)
 
     chrom_pixels = pl.DataFrame({
-        'bin1_id': reordered_matrix.row,
-        'bin2_id': reordered_matrix.col,
-        'count': reordered_matrix.data,
+        'bin1_id': final_bin1,
+        'bin2_id': final_bin2,
+        'count': counts,
     })
-    
-    del reordered_matrix
-    gc.collect()
+    chrom_pixels = chrom_pixels.sort('bin1_id')
+
+    # os.environ["POLARS_MAX_THREADS"]  = str(threads)
+
+    # chrom_pixels = pl.DataFrame({
+    #     'bin1_id': reordered_matrix.row,
+    #     'bin2_id': reordered_matrix.col,
+    #     'count': reordered_matrix.data,
+    # })
+    # chrom_pixels = chrom_pixels.sort('bin1_id')
+
+    # del reordered_matrix
+    # gc.collect()
     # order_cool_path = f"{outprefix}.ordered.cool"
     # cooler.create_cooler(order_cool_path, reordered_contig_bins,
     #                      chrom_pixels, dtypes=dtypes, triucheck=False,
@@ -702,7 +796,14 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     logger.info('Starting to convert contig bin to chromosome bin ...')
     contig2chrom['contigidx'] = range(len(contig2chrom))
-    contig2chrom = contig2chrom.reset_index().set_index('chromidx')
+    # contig2chrom = contig2chrom.reset_index().set_index('chromidx')
+
+    if shift_index:
+        contig2chrom['chromidx'] += 1
+        dummy = pd.DataFrame({'chromidx': [0], 'contigidx': [0]})
+        contig2chrom = pd.concat([dummy, contig2chrom], ignore_index=True)
+
+    contig2chrom.reset_index().set_index('chromidx', inplace=True)
 
     sum_small_contig(chrom_pixels, contig2chrom, chrom_bin_interval_df, 
                      f'{outprefix}.chrom.cool', dtypes=dtypes)#, metadata=HIC_METADATA)
@@ -713,6 +814,308 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4):
     logger.info('Successful, adjusted matrix to chromosome-level, elasped time {:.2f}s'.format(time.time() - start_time))
     
     return f'{outprefix}.chrom.cool'
+
+def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
+    target_bin_size = bin_size * coarsen_factor
+    
+    contig_bins = cool.bins()[['chrom', 'start', 'end']][:]
+    n_old_bins = len(contig_bins)
+    dtype_id = np.int32 if n_old_bins < 2**31 - 1 else np.int64
+
+    agp_df = agp_df.copy()
+
+    chrom_lengths = agp_df.groupby(agp_df.index)['end'].max().to_dict()
+
+    new_bins_list = []
+    chrom_offset = {}
+    current_max_bin = 0
+
+    sorted_chroms = list(dict.fromkeys(agp_df.index))
+    
+    for chrom in sorted_chroms:
+        length = chrom_lengths[chrom]
+
+        n_bins = int(np.ceil(length / target_bin_size))
+        chrom_offset[chrom] = current_max_bin
+
+        starts = np.arange(0, length, target_bin_size, dtype=np.int64) 
+        ends = np.clip(starts + target_bin_size, 0, length).astype(np.int64)
+        
+        chrom_df = pd.DataFrame({
+            'chrom': chrom,
+            'start': starts,
+            'end': ends
+        })
+        new_bins_list.append(chrom_df)
+        current_max_bin += n_bins
+        
+    new_bins_df = pd.concat(new_bins_list, ignore_index=True)
+    
+    map_array = np.full(n_old_bins, -1, dtype=dtype_id)
+
+    if contig_bins['chrom'].dtype == 'object':
+        contig_bins['chrom'] = contig_bins['chrom'].astype('category')
+
+    contig_groups = contig_bins.reset_index().groupby('chrom')['index'].agg(['min', 'max'])
+    contig_id_map = contig_groups.to_dict('index')
+    
+    contig_starts = contig_bins['start'].values
+    contig_ends = contig_bins['end'].values
+    
+    for chrom_name, row in agp_df.iterrows():
+        contig_name = row.id
+        orientation = row.orientation
+        agp_start = row.start - 1 # 0-based
+        
+        if contig_name not in contig_id_map:
+            continue
+            
+        c_info = contig_id_map[contig_name]
+        old_start_id, old_end_id = c_info['min'], c_info['max']
+
+        tig_starts = contig_starts[old_start_id : old_end_id+1]
+        
+        if orientation == '+':
+            chrom_coords = agp_start + tig_starts
+        else:
+            tig_len = row.tig_end
+            tig_ends = contig_ends[old_start_id : old_end_id+1]
+            chrom_coords = agp_start + (tig_len - tig_ends)
+  
+        rel_bin_indices = (chrom_coords // target_bin_size).astype(dtype_id)
+        base_offset = chrom_offset[chrom_name]
+        new_bin_ids = base_offset + rel_bin_indices
+        
+        map_array[old_start_id : old_end_id+1] = new_bin_ids
+
+    return map_array, new_bins_df
+
+
+def process_chunk(chunk_df, map_array, temp_path, chunk_idx, bin_dtype, count_dtype):
+    old_b1 = chunk_df['bin1_id'].values
+    old_b2 = chunk_df['bin2_id'].values
+    counts = chunk_df['count'].values
+
+    new_b1 = map_array[old_b1]
+    new_b2 = map_array[old_b2]
+    
+    valid_mask = (new_b1 != -1) & (new_b2 != -1)
+    if not np.all(valid_mask):
+        new_b1 = new_b1[valid_mask]
+        new_b2 = new_b2[valid_mask]
+        counts = counts[valid_mask]
+    
+    if len(new_b1) == 0:
+        return False
+
+    swap_mask = new_b1 > new_b2
+    final_b1 = np.where(swap_mask, new_b2, new_b1)
+    final_b2 = np.where(swap_mask, new_b1, new_b2)
+
+    chunk_pl = pl.DataFrame({
+        'bin1_id': final_b1,
+        'bin2_id': final_b2,
+        'count': counts
+    }).select([
+        pl.col('bin1_id').cast(bin_dtype),
+        pl.col('bin2_id').cast(bin_dtype),
+        pl.col('count').cast(count_dtype)
+    ])
+    
+    chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
+    return True
+
+def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4, coarsen_factor=1):
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    start_time = time.time()
+    
+    cool = cooler.Cooler(matrix)
+    agp_df, _ = import_agp(agp)
+    bin_size = int(cool.binsize)
+
+    target_bin_size = bin_size * coarsen_factor
+
+    if outprefix is None:
+        agpprefix = op.basename(agp).rsplit(".", 1)[0]
+        outprefix = op.basename(cool.filename).rsplit(".", 1)[0]
+        
+        input_res_str = to_humanized2(bin_size)
+        target_res_str = to_humanized2(target_bin_size)
+        
+        if input_res_str in outprefix:
+            outprefix = outprefix.replace(input_res_str, target_res_str)
+        
+        outprefix = agpprefix + "." + outprefix
+
+    logger.info(f"Generating bin mapping (Contig -> Chromosome) with coarsen factor {coarsen_factor}...")
+    
+    map_array, new_bins_df = build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=coarsen_factor)
+    new_bins_df['chrom'] = new_bins_df['chrom'].astype(str)
+    new_bins_df['start'] = new_bins_df['start'].astype(int)
+    new_bins_df['end'] = new_bins_df['end'].astype(int)
+    if (new_bins_df['end'] <= new_bins_df['start']).any():
+        new_bins_df = new_bins_df[new_bins_df['end'] > new_bins_df['start']].reset_index(drop=True)
+
+    max_bin_id = new_bins_df.index.max()
+    bin_dtype = pl.Int32 if max_bin_id < 2**32 / 2 else pl.Int64
+
+    logger.info("Loading and aggregating pixels (Chunked Processing)...")
+    
+    os.environ["POLARS_MAX_THREADS"] = str(threads)
+    
+    chunksize = 10_000_000 
+    nnz = cool.info['nnz']
+
+    pixel_selector = cool.pixels()
+
+    temp_dir = tempfile.TemporaryDirectory(
+        dir=op.dirname(op.abspath(outprefix)) if outprefix else None, prefix="plot_tmp_"
+    )
+    temp_path = Path(temp_dir.name)
+    logger.info(f"Using temporary directory: {temp_path}")
+
+    chunk_idx = 0
+    has_data = False
+
+    # for i in range(0, nnz, chunksize):
+    #     lo, hi = i, min(i + chunksize, nnz)
+    #     chunk_df = pixel_selector[lo:hi]
+        
+    #     has_data = True
+    #     old_b1 = chunk_df['bin1_id'].values
+    #     old_b2 = chunk_df['bin2_id'].values
+    #     counts = chunk_df['count'].values
+
+    #     if np.issubdtype(counts.dtype, np.integer):
+    #         count_dtype = pl.Int32
+    #     else:
+    #         count_dtype = pl.Float32 
+        
+
+    #     new_b1 = map_array[old_b1]
+    #     new_b2 = map_array[old_b2]
+        
+    #     valid_mask = (new_b1 != -1) & (new_b2 != -1)
+    #     if not np.all(valid_mask):
+    #         new_b1 = new_b1[valid_mask]
+    #         new_b2 = new_b2[valid_mask]
+    #         counts = counts[valid_mask]
+        
+    #     if len(new_b1) == 0:
+    #         continue
+
+    
+    #     swap_mask = new_b1 > new_b2
+    #     final_b1 = np.where(swap_mask, new_b2, new_b1)
+    #     final_b2 = np.where(swap_mask, new_b1, new_b2)
+
+    #     chunk_pl = pl.DataFrame({
+    #         'bin1_id': final_b1,
+    #         'bin2_id': final_b2,
+    #         'count': counts
+    #     }).select([
+    #         pl.col('bin1_id').cast(bin_dtype),
+    #         pl.col('bin2_id').cast(bin_dtype),
+    #         pl.col('count').cast(count_dtype)
+    #     ])
+        
+    #     chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
+    #     chunk_idx += 1
+        
+    #     del old_b1, old_b2, counts, new_b1, new_b2, final_b1, final_b2, chunk_df, chunk_pl
+
+
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = []
+        
+        for i in range(0, nnz, chunksize):
+            lo, hi = i, min(i + chunksize, nnz)
+            chunk_df = pixel_selector[lo:hi]
+            
+            if np.issubdtype(chunk_df['count'].values.dtype, np.integer):
+                count_dtype = pl.Int32
+            else:
+                count_dtype = pl.Float32 
+
+            future = executor.submit(
+                process_chunk, 
+                chunk_df, 
+                map_array, 
+                temp_path, 
+                chunk_idx, 
+                bin_dtype, 
+                count_dtype
+            )
+            futures.append(future)
+            chunk_idx += 1
+        
+        for future in futures:
+            if future.result():
+                has_data = True
+
+    if not has_data or chunk_idx == 0:
+        logger.warning("No valid pixels found after mapping.")
+        agg_df = pl.DataFrame({'bin1_id': [], 'bin2_id': [], 'count': []}, 
+                              schema={'bin1_id': bin_dtype, 'bin2_id': bin_dtype, 'count': count_dtype})
+    else:
+        logger.info(f"Processed {chunk_idx} chunks. Starting global aggregation...")
+        
+        try:
+            agg_df = pl.scan_parquet(temp_path / "*.parquet") \
+                .group_by(['bin1_id', 'bin2_id']) \
+                .agg(pl.col('count').sum()) \
+                .sort(['bin1_id', 'bin2_id']) \
+                .collect(streaming=True)
+        except Exception as e:
+            logger.warning(f"Streaming aggregation failed ({e}), falling back to standard collection.")
+            agg_df = pl.scan_parquet(temp_path / "*.parquet") \
+                .group_by(['bin1_id', 'bin2_id']) \
+                .agg(pl.col('count').sum()) \
+                .sort(['bin1_id', 'bin2_id']) \
+                .collect()
+
+    temp_dir.cleanup()
+    
+    output_cool = f'{outprefix}.chrom.cool'
+    logger.info(f"Writing to cooler file `{output_cool}`")
+    
+    b1 = agg_df['bin1_id'].to_numpy()
+    b2 = agg_df['bin2_id'].to_numpy()
+    c = agg_df['count'].to_numpy()
+    
+    del agg_df
+    gc.collect()
+
+    def pixel_iterator(chunksize=10_000_000):
+        total_len = len(b1)
+        for i in range(0, total_len, chunksize):
+            yield {
+                'bin1_id': b1[i:i+chunksize],
+                'bin2_id': b2[i:i+chunksize],
+                'count': c[i:i+chunksize]
+            }
+
+    Path(output_cool).parent.mkdir(parents=True, exist_ok=True)
+    cooler.create.create(
+        output_cool,
+        new_bins_df,
+        pixel_iterator(), 
+        dtypes={'count': 'float32' if count_dtype == pl.Float32 else 'int32'},
+        ordered=True,
+        triucheck=False,
+        dupcheck=False,
+        boundscheck=False,
+        # h5opts={'compression': 'lzf'}
+    )
+    if coarsen_factor > 1:
+        logger.info(f'Successful, adjusted and coarsen matrix to chromosome-level, elapsed time {time.time() - start_time:.2f}s')
+    
+    else:
+        logger.info(f'Successful, adjusted matrix to chromosome-level, elapsed time {time.time() - start_time:.2f}s')
+    
+    return output_cool
 
 def coarsen_matrix(cool, cool_binsize, k, out, threads):
     """
@@ -969,7 +1372,7 @@ def cluster_chrom_by_inter_contacts(matrix, bins,
         fcluster,
     )
     from scipy.spatial.distance import pdist, squareform
-    # 1) chromnames / chrom_offset
+
     if chromnames is None or chrom_offset is None:
         if isinstance(bins, pd.DataFrame):
             if 'chrom' in bins.columns:
@@ -1104,8 +1507,18 @@ def plot_heatmap(matrix, output,
                     avoid_overlap_yticks=True,
                     remove_short_bin=True,
                     add_hap_border=False,
+                    hap_border_color='black',
+                    hap_border_width=1.0,
+                    add_hap_shadow=False,
+                    hap_shadow_color='grey',
+                    hap_shadow_alpha=0.1,
                     add_lines=False,
+                    line_color='black',
+                    line_width=0.5,
+                    line_style='--',
                     chromosomes=None, 
+                    plot_cis_only=False,
+                    plot_hap_only=True,
                     sort_chromosome_by_inter_contacts=False,
                     hap_pattern=r'(Chr\d+)g(\d+)',
                     per_chromosomes=False,
@@ -1169,8 +1582,7 @@ def plot_heatmap(matrix, output,
                 matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
         else:
             matrix = cool.matrix(balance=balanced, sparse=True)[:].tocsr()
-            
-
+ 
         if chromosomes:
             if len(chromosomes) == 1:
                 bins = cool.bins().fetch(chromosomes[0])
@@ -1371,7 +1783,7 @@ def plot_heatmap(matrix, output,
         # logger.info(f"  Set fontsize to `{tick_fontsize}`.")
 
         if fontsize is None:
-            if hap_names is None or not add_hap_border:
+            if hap_names is None or (not add_hap_border and not add_hap_shadow):
                 n_labels = len(chromnames) if chromnames is not None else 1
             else:
                 n_labels = len(hap_names) if hap_names is not None else 1
@@ -1384,18 +1796,28 @@ def plot_heatmap(matrix, output,
         else:
             tick_fontsize = int(fontsize)
         logger.info(f"  Set fontsize to `{tick_fontsize}`.")
-        
+
         ax = plot_heatmap_core(matrix, ax, bins=bins, 
                                chromnames=chromnames, 
                                hap_name_df=hap_name_df,
                                chromsizes=chromsizes,
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,
+                            plot_cis_only=plot_cis_only,
+                            plot_hap_only=plot_hap_only,
                             xticks=xticks, yticks=yticks, 
                             rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
                             vmin=vmin, vmax=vmax, 
                             cmap=cmap, add_lines=add_lines,
                             add_hap_border=add_hap_border,
+                            hap_border_color=hap_border_color,
+                            hap_border_width=hap_border_width,
+                            add_hap_shadow=add_hap_shadow,
+                            hap_shadow_color=hap_shadow_color,
+                            hap_shadow_alpha=hap_shadow_alpha,
+                            line_color=line_color,
+                            line_width=line_width,
+                            line_style=line_style,
                             tick_fontsize=tick_fontsize,
                             ytick_min_dist=ytick_min_dist,
                             avoid_overlap_yticks=avoid_overlap_yticks)
@@ -1546,6 +1968,8 @@ def plot_heatmap_core(matrix,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
                         triangle=False,
+                        plot_cis_only=False,
+                        plot_hap_only=False,
                         xlabel=None, ylabel=None, 
                         xticks=True, yticks=True,
                         rotate_xticks=False, rotate_yticks=False,
@@ -1554,12 +1978,21 @@ def plot_heatmap_core(matrix,
                         tick_fontsize=16,
                         cmap="redp1_r",
                         add_hap_border=False,
-                        add_lines=False):
+                        hap_border_color='black',
+                        hap_border_width=1.0,
+                        add_hap_shadow=False,
+                        hap_shadow_color='grey',
+                        hap_shadow_alpha=0.1,
+                        add_lines=False,
+                        line_color='black',
+                        line_width=0.5,
+                        line_style='--'):
     import colormaps as cmaps
     import matplotlib.pyplot as plt 
     import matplotlib
     matplotlib.use('Agg')       
     from matplotlib import colors
+    from matplotlib.patches import Rectangle
     import seaborn as sns 
 
     if cmap.endswith('_half'):
@@ -1582,15 +2015,37 @@ def plot_heatmap_core(matrix,
                     colormap = getattr(cmaps, "redp1_r")
 
     
+    if plot_cis_only:
+        new_matrix = np.zeros(matrix.shape)
+        for i in range(len(chrom_offset) - 1):
+            new_matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                            chrom_offset[i]:chrom_offset[i+1]] = \
+                                                matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                            chrom_offset[i]:chrom_offset[i+1]]
+        matrix = new_matrix
+
+    if plot_hap_only and hap_name_df is not None:
+        new_matrix = np.zeros(matrix.shape)
+        for chrom, idx_list in hap_name_df.items():
+            idx_list = list(idx_list)
+            if not idx_list:
+                continue
+            start = chrom_offset[idx_list[0]]
+            
+            end = chrom_offset[idx_list[-1] + 1]
+            new_matrix[start:end, start:end] = matrix[start:end, start:end]
+        matrix = new_matrix
+        
     
     if norm is None or norm == "balanced":
         if vmax is None:
             cis_matrix = []
+            
             for i in range(len(chrom_offset) - 1):
                 cis_matrix.append(
                                 np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
                                         chrom_offset[i]:chrom_offset[i+1]]))
-
+              
             # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
             # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix])
             ## remove diagonal
@@ -1612,15 +2067,19 @@ def plot_heatmap_core(matrix,
             vmax = vmax_by_iqr(cis_matrix, 1.5)
 
             if vmax == 0:
-                vmax = np.min(cis_matrix[cis_matrix != 0])
-                tiny_vmax_thr = 1e-20
-                if vmax < 1e-20:
-                    if (norm is None or norm == "balanced") and (vmax is not None) and np.isfinite(vmax) and (vmax > 0) and (vmax < tiny_vmax_thr):
-                        with np.errstate(divide='ignore', invalid='ignore'):
-                            matrix = np.asarray(matrix, dtype=float) / max(vmax, 1e-12)
-                        vmin = 0.0
-                        vmax = 1.0
-                        logger.info("  Rescaled by tiny vmax; set vmin=0, vmax=1 for colorbar.")
+                try:
+                    vmax = np.min(cis_matrix[cis_matrix != 0])
+                
+                    tiny_vmax_thr = 1e-20
+                    if vmax < 1e-20:
+                        if (norm is None or norm == "balanced") and (vmax is not None) and np.isfinite(vmax) and (vmax > 0) and (vmax < tiny_vmax_thr):
+                            with np.errstate(divide='ignore', invalid='ignore'):
+                                matrix = np.asarray(matrix, dtype=float) / max(vmax, 1e-12)
+                            vmin = 0.0
+                            vmax = 1.0
+                            logger.info("  Rescaled by tiny vmax; set vmin=0, vmax=1 for colorbar.")
+                except:
+                    vmax = 0
                 # if np.min(cis_matrix[cis_matrix != 0]) == 1:
                 #     vmax = np.min(cis_matrix[cis_matrix != 0])
                 # else:
@@ -1634,6 +2093,7 @@ def plot_heatmap_core(matrix,
             except Exception:
                 logger.info(f"  Set vmax to `{vmax}`.")
            
+        
 
             if norm is None and vmin is None:
                 vmin = 0
@@ -1679,7 +2139,9 @@ def plot_heatmap_core(matrix,
     else:
         fig = plt.gcf()
         cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
-                            interpolation=None)
+                            interpolation=None, rasterized=True)
+      
+
         
     binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
 
@@ -1714,9 +2176,9 @@ def plot_heatmap_core(matrix,
 
     if add_lines and chrom_offset:
         ax.hlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_xlim(), 
-                    linewidth=0.5, color='black', linestyles="--")
+                    linewidth=line_width, color=line_color, linestyles=line_style)
         ax.vlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_ylim(), 
-                    linewidth=0.5, color='black', linestyles="--")
+                    linewidth=line_width, color=line_color, linestyles=line_style)
     
     if chrom_offset:
         mid_tick_pos = list((np.array(chrom_offset)[:-1] + np.array(chrom_offset)[1:]) / 2)
@@ -1746,7 +2208,7 @@ def plot_heatmap_core(matrix,
     else:
         ax.set_xticks([])
     if chromnames:
-        if hap_name_df is not None and add_hap_border:
+        if hap_name_df is not None and (add_hap_border or add_hap_shadow):
             add_hap_internal_lines = True 
             hap_internal_mode = 'grid'
             new_mid_tick_pos = []
@@ -1768,17 +2230,26 @@ def plot_heatmap_core(matrix,
                 ax.set_yticks([])
             
 
-            border_color = 'black'
-            border_linewidth = 1.0
             for start, end in zip(new_chrom_offset[:-1], new_chrom_offset[1:]):
-                plt.plot([start, start], [start, end], color=border_color, linestyle='-', linewidth=border_linewidth)
-                plt.plot([start, end], [start, start], color=border_color, linestyle='-', linewidth=border_linewidth)
-                plt.plot([end, end], [start, end], color=border_color, linestyle='-', linewidth=border_linewidth)
-                plt.plot([start, end], [end, end], color=border_color, linestyle='-', linewidth=border_linewidth)
-            
+                if add_hap_border:
+                    plt.plot([start, start], [start, end], color=hap_border_color, linestyle='-', linewidth=hap_border_width)
+                    plt.plot([start, end], [start, start], color=hap_border_color, linestyle='-', linewidth=hap_border_width)
+                    plt.plot([end, end], [start, end], color=hap_border_color, linestyle='-', linewidth=hap_border_width)
+                    plt.plot([start, end], [end, end], color=hap_border_color, linestyle='-', linewidth=hap_border_width)
+
+                if add_hap_shadow:
+                    rect = Rectangle(
+                            xy=(start, start), 
+                            width=end - start, 
+                            height=end - start, 
+                            facecolor=hap_shadow_color, 
+                            alpha=hap_shadow_alpha,        
+                            edgecolor=None,
+                        )
+                    ax.add_patch(rect)
             if add_hap_internal_lines and not add_lines:
-                small_lw = 0.6
-                small_color = 'black' 
+                small_lw = line_width
+                small_color = line_color
                 if hap_internal_mode == "box":
                     for chrom, idx in hap_name_df.items():
                         local_offsets = [chrom_offset[i] for i in idx] + [chrom_offset[idx[-1] + 1]]
@@ -1793,8 +2264,8 @@ def plot_heatmap_core(matrix,
                         group_end = chrom_offset[idx[-1] + 1]
                         boundaries = [chrom_offset[i] for i in idx] + [group_end]
                         for b in boundaries[1:-1]:
-                            plt.plot([b, b], [group_start, group_end], color=small_color, linestyle='--', linewidth=small_lw)
-                            plt.plot([group_start, group_end], [b, b], color=small_color, linestyle='--', linewidth=small_lw)
+                            plt.plot([b, b], [group_start, group_end], color=small_color, linestyle=line_style, linewidth=small_lw)
+                            plt.plot([group_start, group_end], [b, b], color=small_color, linestyle=line_style, linewidth=small_lw)
 
         else:
             if yticks:

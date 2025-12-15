@@ -35,6 +35,7 @@ def main(args):
     df = pd.read_csv(args.table, sep='\t', header=0, index_col=None, engine='python')
     
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     fig, ax = plt.subplots(figsize=(3.5, 5))
     # color = [ "#8896ae", "#cb6e7f"]
     color = ["#B3CDE3", "#FBB4AE" ]

@@ -126,7 +126,7 @@ def hic(ctx):
     '--aligner',
     help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
     'if you want to use the offical version you can set aligner to `chromap`',
-    type=click.Choice(['_chromap', 'chromap', 'minimap2']),#, 'hisat2']),
+    type=click.Choice(['_chromap', 'chromap', 'minimap2', 'bwa-mem2']),#, 'hisat2']),
     default=DEFAULT_HIC_ALIGNER,
     show_default=True
 )
@@ -208,6 +208,16 @@ def mapper(
     elif aligner == 'minimap2':
         from ..mapper import MinimapMapper
         cm = MinimapMapper(reference, read1, read2, 
+                            # kmer_size=kmer_size,
+                            # window_size=window_size,
+                            # min_quality=mapq, 
+                            threads=threads,
+                            path=aligner)
+        cm.run()
+
+    elif aligner == 'bwa-mem2':
+        from ..mapper import BwaMapper
+        cm = BwaMapper(reference, read1, read2,
                             # kmer_size=kmer_size,
                             # window_size=window_size,
                             # min_quality=mapq, 

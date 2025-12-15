@@ -411,6 +411,7 @@ def pseudo_agp(real_list, contigsizes, output):
         end = 1
         idx += 1 
         for j, contig in enumerate(contig_df[1].values.tolist()):
+            contig = str(contig)
             start = end
             contig_length = int(contig_sizes[contig])
             end = start + contig_length - 1

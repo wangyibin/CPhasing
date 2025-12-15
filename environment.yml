@@ -49,3 +49,5 @@ dependencies:
 - cdlib >=0.4.0,<0.5
 - graph-tool >=2.97,<3
 - plotly >=6.2.0,<7
+- bwa-mem2 >=2.3,<3
+- samblaster >=0.1.26,<0.2

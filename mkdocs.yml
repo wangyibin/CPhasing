@@ -1,7 +1,7 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing
 repo_url: https://github.com/wangyibin/CPhasing
-copyright: Copyright © 2022-2025 Tanger-lab
+copyright: Copyright © 2022-2026 Tanger-lab
 theme:
   name: material
   highlight: monokai

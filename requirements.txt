@@ -13,11 +13,14 @@ natsort
 ncls
 networkx == 3.4.2
 numpy >= 1.22.0
-matplotlib == 3.8.0
+matplotlib >= 3.9.3
 msgspec
 pandas >= 2.2.0
 pandarallel
 patchworklib
+plotly >= 6.2.0 
+cdlib >= 0.4.0
+graph-tool >=2.97 
 portion 
 polars >= 0.20.29
 pyarrow >= 8.0.0

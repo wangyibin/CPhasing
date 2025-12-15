@@ -114,9 +114,9 @@ def _normalize_group_name(s: str) -> str:
             x = x[len(pref) :]
             x_low = x_low[len(pref) :]
             break
-    # 去掉前导 0
+
     x = x.lstrip("0")
-    # 常见同义
+
     if x_low in ("mt", "m", "mitochondria"):
         return "MT"
     if x_low in ("x", "y"):
@@ -199,6 +199,112 @@ def _build_contig_lengths(*dfs):
                     lens[cid] = L
     return lens
 
+def get_contig_strand_maps(paths):
+    """
+    Returns a map of contig_id -> strand (+ or -)
+    """
+    contig_strand = {}
+    for _, path in paths.items():
+        for c in path:
+            cid = c[:-1]
+            strand = c[-1]
+            contig_strand[cid] = strand
+    return contig_strand
+
+def evaluate_single_contig_orientation(truth_paths, test_paths, alias, normalize=True):
+    
+    truth_strand_map = get_contig_strand_maps(truth_paths)
+    test_strand_map = get_contig_strand_maps(test_paths)
+    tmap = _build_contig_group_map(truth_paths, normalize=normalize)
+    pmap = _build_contig_group_map(test_paths, normalize=normalize)
+    
+    misoriented_contigs = set()
+    
+
+    for truth_group, test_group in alias.items():
+
+        group_contigs = [cid for cid in truth_strand_map.keys() 
+                         if tmap.get(cid) == truth_group and pmap.get(cid) == test_group]
+
+        if not group_contigs:
+            continue
+
+
+        match_count = 0
+        mismatch_count = 0
+        
+        for cid in group_contigs:
+            if truth_strand_map.get(cid) == test_strand_map.get(cid):
+                match_count += 1
+            else:
+                mismatch_count += 1
+
+
+        global_flip_needed = mismatch_count > match_count
+
+        for cid in group_contigs:
+            t_strand = truth_strand_map.get(cid)
+            p_strand = test_strand_map.get(cid)
+            
+            # Apply global flip correction
+            effective_p_strand = p_strand
+            if global_flip_needed:
+
+                effective_p_strand = "+" if p_strand == "-" else "-"
+
+            if t_strand != effective_p_strand:
+                misoriented_contigs.add(cid)
+                
+    return sorted(list(misoriented_contigs))
+
+
+def compute_lcs(X, Y):
+
+    m = len(X)
+    n = len(Y)
+
+    L = [[0] * (n + 1) for i in range(m + 1)]
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if X[i - 1] == Y[j - 1]:
+                L[i][j] = L[i - 1][j - 1] + 1
+            else:
+                L[i][j] = max(L[i - 1][j], L[i][j - 1])
+    return L[m][n]
+
+def compute_misplaced_contigs_lcs(truth_paths, test_paths, alias):
+
+    tmap = _build_contig_group_map(truth_paths)
+    pmap = _build_contig_group_map(test_paths)
+    
+    total_misplaced_contigs = 0
+
+    for truth_group, test_group in alias.items():
+        
+
+        T_full = [c[:-1] for c in truth_paths.get(truth_group, [])]
+        P_full = [c[:-1] for c in test_paths.get(test_group, [])]
+        
+
+        common_ids = set(T_full) & set(P_full)
+        
+        T_filtered = [cid for cid in T_full if cid in common_ids]
+        P_filtered = [cid for cid in P_full if cid in common_ids]
+        
+
+        if len(T_filtered) < 2:
+            continue
+ 
+        lcs_length = compute_lcs(T_filtered, P_filtered)
+
+  
+        misplaced_count = len(T_filtered) - lcs_length
+        
+        
+        total_misplaced_contigs += misplaced_count
+        
+    return total_misplaced_contigs
 
 def get_weighted_adjacencies(paths, contig_len):
     adj_w = {}
@@ -246,7 +352,8 @@ def scaf_eval(truth_agp, test_agp):
 
     truth_paths = defaultdict(list)
     test_paths = defaultdict(list)
-
+    alias = infer_group_alias_by_overlap(truth_paths, test_paths)
+    order_misplaced_lcs = compute_misplaced_contigs_lcs(truth_paths, test_paths, alias)
     grouped_contigs = set()
     for _, row in test_agp_df.iterrows():
         if row["type"] == "W":
@@ -282,8 +389,22 @@ def scaf_eval(truth_agp, test_agp):
     ori_test = get_oriented_adjacencies_by_id(test_paths)
     orient_err = [p for p in id_tp if ori_test.get(p) != ori_truth.get(p)]
 
+    lens = _build_contig_lengths(truth_agp_df, test_agp_df)
+    
+    single_orient_err_ids = evaluate_single_contig_orientation(truth_paths, test_paths, alias)
+    common_contigs = set(test_agp_df[test_agp_df['type'] == 'W']['id']) & set(truth_agp_df[truth_agp_df['type'] == 'W']['id'])
+    total_len = sum(lens.get(cid, 0) for cid in common_contigs)
+    err_len = sum(lens.get(cid, 0) for cid in single_orient_err_ids)
+    w_ori_err_rate = err_len / total_len if total_len > 0 else 0.0
+
+
+
+
+    # print(
+    #     "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\twPrecision\twRecall\twF1"
+    # )
     print(
-        "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\twPrecision\twRecall\twF1"
+        "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\twPrecision\twRecall\twF1\twOriErrRate" # 添加新的指标
     )
 
     print(
@@ -301,34 +422,38 @@ def scaf_eval(truth_agp, test_agp):
                 f"{res_w.get('w_precision', 0.0):.4f}",
                 f"{res_w.get('w_recall', 0.0):.4f}",
                 f"{res_w.get('w_f1', 0.0):.4f}",
+                f"{res_w.get('w_f1', 0.0):.4f}",
+                f"{w_ori_err_rate:.4f}"
             ]
         )
     )
 
-    print("OrderFP\tOrderFN\tOrientErr")
-    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(orient_err)}")
-
-
+    print("OrderFP\tOrderFN\tOrientErrContigs\tMisplacedContigs(LCS)") 
+    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(single_orient_err_ids)}\t{order_misplaced_lcs}")
     # output order and orientation errors
     # if results.get("misjoins_list", []):
     #     print("\nMisjoins (false positives):")
     #     for adj in results["misjoins_list"]:
     #         print(f"{adj[0]}\t{adj[1]}")
-    # if order_fp:
-    #     print("\nOrder false positives:")
-    #     for pair in order_fp:
-    #         print(f"{pair[0]}\t{pair[1]}")
+    if order_fp:
+        print("\nOrder false positives:", file=sys.stderr)
+        for pair in order_fp:
+            print(f"{pair[0]}\t{pair[1]}", file=sys.stderr)
     if order_fn:
-        print("\nOrder errors:")
+        print("\nOrder errors:", file=sys.stderr)
         for pair in order_fn:
             print(f"{pair[0]}\t{pair[1]}", file=sys.stderr)
     
 
 
-    if orient_err:
-        print("\nOrientation errors:")
-        for pair in orient_err:
-            # o1 = ori_test.get(pair)
-            # o2 = ori_truth.get(pair)
-            print(f"{pair[0]}\t{pair[1]}", file=sys.stderr)
+    # if orient_err:
+    #     print("\nOrientation errors:", file=sys.stderr)
+    #     for pair in orient_err:
+    #         # o1 = ori_test.get(pair)
+    #         # o2 = ori_truth.get(pair)
+    #         print(f"{pair[0]}\t{pair[1]}", file=sys.stderr)
     
+    if single_orient_err_ids: 
+        print("\nSingle Contig Orientation errors:", file=sys.stderr)
+        for cid in single_orient_err_ids:
+            print(f"{cid}", file=sys.stderr)

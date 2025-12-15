@@ -4,7 +4,7 @@ channels = ["conda-forge", "bioconda", "anaconda", "hcc"]
 description = "Add a short description here"
 name = "CPhasing"
 platforms = ["linux-64", "linux-aarch64"]
-version = "0.2.0"
+version = "0.2.8"
 
 [system-requirements]
 linux = "3.10.0"
@@ -58,6 +58,8 @@ cdlib = ">=0.4.0,<0.5"
 graph-tool = ">=2.97,<3"
 plotly = ">=6.2.0,<7"
 crabz = ">=0.10.0,<0.11"
+bwa-mem2 = ">=2.3,<3"
+samblaster = ">=0.1.26,<0.2"
 
 
 [feature.methalign.system-requirements]

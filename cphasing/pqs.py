@@ -129,7 +129,7 @@ q1 mean the mapping quality of data >= 1.
 |   |-- ...
 """
 
-            
+
 class PQS:
     """
     A class to represent a .pqs file.
@@ -625,8 +625,8 @@ class PQS:
                 pl.sum("count").alias("count")
             )
             pixels = pixels.sort(["bin1_id", "bin2_id"])  
-            create(output, bins, pixels.to_pandas(), 
-                    triucheck=False, dupcheck=False, boundscheck=False,)
+            create(output, bins, pixels.to_pandas(), dtypes={'count': np.int32},
+                    triucheck=False, dupcheck=False, boundscheck=False)
 
         logger.info(f"Successful output cooler file into `{output}`.")
     
@@ -635,7 +635,7 @@ class PQS:
         Write the .pqs file to the given path.
         """
         pass
-
+    
     def to_hg_df(self, chunks, contig_idx, 
                  min_mapq=1, edge_length=0,
                  split_length=None, split_contig_boundarys=None,
@@ -1063,29 +1063,44 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
         chunk = chunk.filter(pl.col("mapq") >= min_mapq)
 
     # chunk = chunk.filter(pl.col("chrom1") != pl.col("chrom2"))
+    chunk = chunk.collect()
+    if split_length and split_contig_boundarys:
+        edge_length = 0
 
     if edge_length > 0:
+        mapping_df = pl.DataFrame(
+            {
+                "chrom": list(contigsizes.keys()),
+                "length": list(contigsizes.values()),
+            }
+        ).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+        
+        mapping1 = mapping_df.rename({"chrom": "chrom1"})
         chunk = (
-            chunk.with_columns(
-                pl.col("chrom1")
-                    .map_elements(contigsizes.get, skip_nulls=False, return_dtype=schema["pos1"] if False else pl.Int64)
-                    .alias("length1"),
-                pl.col("chrom2")
-                    .map_elements(contigsizes.get, skip_nulls=False, return_dtype=schema["pos2"] if False else pl.Int64)
-                    .alias("length2"),
-            )
+            chunk
+            .join(mapping1, on="chrom1", how="inner")
+            .rename({"length": "length1"})
+        )
+
+        mapping2 = mapping_df.rename({"chrom": "chrom2"})
+        chunk = (
+            chunk
+            .join(mapping2, on="chrom2", how="inner")
+            .rename({"length": "length2"})
+        )
+        chunk = (
+            chunk
             .filter(
                 (
                     ((pl.col("pos1") < edge_length)
-                    | (pl.col("pos1") > (pl.col("length1") - edge_length)))
+                     | (pl.col("pos1") > (pl.col("length1") - edge_length)))
                     & ((pl.col("pos2") < edge_length)
-                    | (pl.col("pos2") > (pl.col("length2") - edge_length)))
+                       | (pl.col("pos2") > (pl.col("length2") - edge_length)))
                 )
-            )
-            .select(["chrom1", "pos1", "chrom2", "pos2", "mapq"])
+            ).select(["chrom1", "pos1", "chrom2", "pos2", "mapq"])
         )
-    
-   
 
     if bed_dict:
         # chunk = chunk.filter(
@@ -1104,29 +1119,67 @@ def process_chunk_hg(chunk_name, bed_dict, contigsizes,
     
 
     if split_length and split_contig_boundarys:
+
         chunk = (
             chunk.with_columns((pl.col("pos1") // split_length).alias('sub_idx1'),
                                (pl.col("pos2") // split_length).alias('sub_idx2'),
-                                pl.col("chrom1").map_elements(
-                                    split_contig_boundarys.get, skip_nulls=False, return_dtype=pl.Int64).alias('init_idx1'),
-                                pl.col("chrom2").map_elements(
-                                    split_contig_boundarys.get, skip_nulls=False, return_dtype=pl.Int64).alias('init_idx2'),
             )   
         )
+        split_map = pl.DataFrame(
+            {
+                "chrom": list(split_contig_boundarys.keys()),
+                "init_idx": list(split_contig_boundarys.values()),
+            }
+        ).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+
+        chunk = (
+            chunk
+            .join(split_map, left_on="chrom1", right_on="chrom", how="inner")
+            .rename({"init_idx": "init_idx1"})
+        )
+        chunk = (
+            chunk
+            .join(split_map, left_on="chrom2", right_on="chrom", how="inner")
+            .rename({"init_idx": "init_idx2"})
+        )
+   
 
         chunk = chunk.with_columns(
-                   (pl.col('init_idx1') + pl.col('sub_idx1')).alias('chrom1'),
-                     (pl.col('init_idx2') + pl.col('sub_idx2')).alias('chrom2'),
-        ).drop(['sub_idx1', 'sub_idx2', 'init_idx1', 'init_idx2']).drop_nulls(subset=["chrom1", "chrom2"])
+            (pl.col("init_idx1") + pl.col("sub_idx1")).alias("chrom1"),
+            (pl.col("init_idx2") + pl.col("sub_idx2")).alias("chrom2"),
+        ).drop(["sub_idx1", "sub_idx2", "init_idx1", "init_idx2"])
+
+        chunk = chunk.drop_nulls(subset=["chrom1", "chrom2"])
 
     else: 
+        mapping_df = pl.DataFrame(
+            {
+                "chrom": list(contig_idx.keys()),
+                "chrom_idx": list(contig_idx.values()),
+            }
+        ).with_columns(
+            pl.col("chrom").cast(pl.Categorical)
+        )
+     
+        mapping1 = mapping_df.rename({"chrom": "chrom1"})
+        chunk = chunk.join(mapping1, on="chrom1", how="inner")
+        chunk = chunk.drop("chrom1").rename({"chrom_idx": "chrom1"})
+        
+        mapping2 = mapping_df.rename({"chrom": "chrom2"})
+        chunk = chunk.join(mapping2, on="chrom2", how="inner")
+        chunk = chunk.drop("chrom2").rename({"chrom_idx": "chrom2"})
 
-        chunk = chunk.with_columns(
-            pl.col("chrom1").map_elements(contig_idx.get, skip_nulls=False).alias("chrom1"),
-            pl.col("chrom2").map_elements(contig_idx.get, skip_nulls=False).alias("chrom2"),
-        ).drop_nulls(subset=["chrom1", "chrom2"])
+        chunk = chunk.drop_nulls(subset=["chrom1", "chrom2"])
 
-    return chunk.collect()
+        # chunk = chunk.with_columns(
+        #     pl.col("chrom1").map_elements(contig_idx.get, skip_nulls=False).alias("chrom1"),
+        #     pl.col("chrom2").map_elements(contig_idx.get, skip_nulls=False).alias("chrom2"),
+        # ).drop_nulls(subset=["chrom1", "chrom2"])
+
+    return chunk
+
 
 
 def process_chunk_clm(chunk, contigsizes_db, schema,

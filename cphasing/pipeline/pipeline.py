@@ -115,6 +115,7 @@ def run(fasta,
         min_length=10000,
         Nx=100,
         min_scaffold_length=5e6,
+        cluster_method="louvain",
         enable_misassembly_remove=False,
         refine=False,
         whitelist=None,
@@ -209,6 +210,9 @@ def run(fasta,
     
     if whitelist:
         whitelist = str(Path(whitelist).absolute())
+
+    if blacklist:
+        blacklist = str(Path(blacklist).absolute())
 
     os.chdir(outdir)
 
@@ -338,7 +342,7 @@ def run(fasta,
 
         pairs_prefix = str(pairs_prefix).replace('_R1', '').replace('_1', '')
         pairs = f"{pairs_prefix}.pairs.gz"
-        if hic_aligner == "minimap2":
+        if hic_aligner == "minimap2" or hic_aligner == "bwa-mem2":
             pairs = f"{pairs_prefix}.pairs.pqs"
         pqs_file = f"{pairs_prefix}.pairs.pqs"
         is_pairs2pqs = False
@@ -1057,7 +1061,9 @@ def run(fasta,
         if hyperpartition_normalize:
             hyperpartition_args.append(hyperpartition_normalize)
 
-    
+        if blacklist:
+            hyperpartition_args.extend(["--blacklist", f"{blacklist}"])
+
         if hcr_bed:
             hyperpartition_args.extend(["--hcr-bed", f"{hcr_bed}"])
             if hcr_invert:
@@ -1074,6 +1080,9 @@ def run(fasta,
         else:
             hyperpartition_args.extend(["-at",
                          f"../{allele_table}" if allele_table else None,])
+        
+        if cluster_method != CLUSTER_METHOD:
+            hyperpartition_args.extend(["-cm", cluster_method])
             
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
             _out_sh.write('cphasing hyperpartition \\\n    ')

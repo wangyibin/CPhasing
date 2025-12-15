@@ -1218,12 +1218,12 @@ def recommend_binsize_by_genomesize(genomesize):
         init_binsize = 20000
     
     elif genomesize < 5e10:
-        binsize = 2000000
-        init_binsize = 50000
+        binsize = 5000000
+        init_binsize = 100000
 
     else:
-        binsize = 5000000
-        init_binsize = 50000
+        binsize = 10000000
+        init_binsize = 200000
     
     return init_binsize, binsize
 

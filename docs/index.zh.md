@@ -24,6 +24,22 @@
         第一次配置需要在有网络的情况下运行`./CPhasing/bin/activate_cphasing`.
     
     !!! note
+        大陆用户由于网络问题可能没办法安装`pixi`这个软件，可以直接自行从github release快速下载通道下载：
+        例如：
+        ```bash
+        mkdir -p ~/.pixi/bin
+        cd ~/.pixi/bin
+        wget https://gh.zwy.one/https://github.com/prefix-dev/pixi/releases/download/v0.60.0/pixi-x86_64-unknown-linux-musl.tar.gz
+        tar xzvf pixi-x86_64-unknown-linux-musl.tar.gz
+
+        ```
+
+        之后再次运行`activate_cphasing`安装`CPhasing`依赖的包
+
+        
+        
+
+    !!! note
         如果你的服务器不能访问anaconda的仓库，可以配置镜像源，如配置浙江大学的镜像源：  
         1. 打开配置文件
         ```bash
@@ -42,7 +58,7 @@
         ```
         3. ++ctrl+x+y++ : 按`ctrl + X`，然后再按`Y`, 保存退出
         
-    !!! not
+    !!! note
         如果你想运行在arm(**aarch64**)平台上，请从github release页面下载，git仓库里默认存放x86-64版本
         
 

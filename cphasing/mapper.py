@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 """
-mapper of Hi-C data.
+mapper of Pore-C/CiFi and Hi-C data.
 """
 
 import logging
@@ -552,7 +552,162 @@ class MinimapMapper:
         self.mapping()
         self.paf2pairs()
 
+class BwaMapper:
+    """
+    Mapper for Hi-C reads using bwa-mem2.
 
+    Params:
+    --------
+    reference: str
+        contig-level assembly.
+    read1: list
+        Hi-C paired-end read1.
+    read2: list
+        Hi-C paired-end read2.
+    min_quality: int, default 0
+        minimum number of mapping quality
+    threads: int, default 4
+        number of threads.
+    path: str, default "bwa-mem2"
+        Path of bwa-mem2.
+    log_dir: str, default "logs"
+        directory of logs.
+    """
+    def __init__(self, reference, read1, read2, 
+                    min_quality=0, threads=4, 
+                    additional_arguments=(), 
+                    output_format='pairs.pqs',
+                    path='bwa-mem2', log_dir='logs'):
+        
+        self.reference = Path(reference)
+        self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
+        self.read1 = read1 
+        self.read2 = read2
+        self.threads = threads
+        self.min_quality = min_quality
+        self.output_format = output_format
+        self.additional_arguments = additional_arguments
+        
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._path = path
+        if which(self._path) is None:
+             raise ValueError(f"{self._path}: command not found")
+        
+        if which('samtools') is None:
+            raise ValueError("samtools: command not found")
+
+        if which('crabz') is None and which('pigz') is None:
+            raise ValueError(f"pigz: command not found")
+    
+        if which('crabz') is None:
+            self.compressor = 'pigz'
+        else:
+            self.compressor = 'crabz'
+
+        self.prefix = Path(Path(self.read1[0]).stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
+            self.prefix = self.prefix.with_suffix('')
+        
+        if str(self.prefix).endswith("_R1"):
+            self.prefix = Path(str(self.prefix)[:-3])
+        elif str(self.prefix).endswith("_1"):
+            self.prefix = Path(str(self.prefix)[:-2])
+
+        self.prefix = Path(str(self.prefix).replace('_R1', '').replace('_1', ''))
+
+        self.output_bam = Path(f'{self.prefix}.bam')
+        self.output_pairs = Path(f'{self.prefix}.{self.output_format}')
+
+    def get_contig_sizes(self):
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
+                "-o", str(self.contigsizes)]
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        assert flag == 0, "Failed to execute command, please check log."
+
+    def index(self):
+        """
+        Create bwa-mem2 index.
+        """
+        if Path(f"{self.reference}.0123").exists():
+            logger.warning(f'The index of `{self.reference}` was existing, skipped ...')
+            return
+
+        cmd = [self._path, 'index', str(self.reference)]
+        
+        with open("hicmapper.index.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(" ".join(cmd) + "\n")
+
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.reference.name}.index.log', out2err=True)
+        assert flag == 0, "Failed to execute command, please check log."
+
+    def mapping(self):
+        if self.compressor == 'crabz':
+            decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+        else:
+            decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+        
+        reads_1 = " ".join(self.read1)
+        reads_2 = " ".join(self.read2)
+        
+        cmd = f"{self._path} mem -t {self.threads} -5SPM " \
+              f"{self.reference} " \
+              f"<({decompress_cmd} {reads_1}) <({decompress_cmd} {reads_2}) " \
+              f"2>{self.log_dir}/{self.prefix}.hic.mapping.log | " \
+              f"samblaster 2>{self.log_dir}/{self.prefix}.hic.samblaster.log | " \
+              f"samtools view -@ 12 -bS -F 3340 - > {self.output_bam}"
+
+        with open("hicmapper.cmd.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(cmd + "\n")
+        
+        logger.info('Running command:')
+        logger.info('\t' + cmd)
+
+        subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)
+
+        if not self.output_bam.exists():
+            logger.error(f"Failed to create bam of `{self.output_bam}`.")
+            sys.exit(1)
+
+    def bam2pairs(self):
+        cmd = ['cphasing-rs', 'bam2pairs',
+               '-q', str(self.min_quality),
+               str(self.output_bam),
+               ]
+
+        cmd2 = ['cphasing-rs', 'pairs2pqs', 
+                '-', 
+                '-o', f'{str(self.output_pairs)}',
+               ]
+        
+        cmd = cmd + [f"2>{str(self.log_dir)}/{str(self.prefix)}.bam2pairs.log"] + ['|'] + cmd2 + [f"2>>{str(self.log_dir)}/{str(self.prefix)}.bam2pairs.log"]
+        
+        with open("hicmapper.cmd.sh", "a") as f:
+            f.write(" ".join(cmd) + "\n")
+
+        logger.info('Running command:')
+        logger.info('\t' + " ".join(cmd))
+    
+        flag = subprocess.run(" ".join(cmd), shell=True, executable='/bin/bash')
+        assert flag.returncode == 0, "Failed to execute command, please check log."
+        if not Path(self.output_pairs).exists():
+            logger.error(f"Failed to create pairs of `{self.output_pairs}`.")
+            sys.exit(1)
+
+        if is_empty(self.output_pairs):
+            logger.error(f"Empty pairs of `{self.output_pairs}`.")
+            sys.exit(1)
+
+        logger.info("Done.")
+
+    def run(self):
+        self.get_contig_sizes()
+        self.index()
+        self.mapping()
+        self.bam2pairs()
 class PoreCMapper:
     def __init__(self, reference, reads, pattern="GATC", 
                     k=15, w=10, min_quality=1, 
@@ -687,87 +842,6 @@ class PoreCMapper:
         logger.info('Running command:')
         logger.info('\t' + cmd)
         subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)
-
-
-        
-        # if len(self.reads) == 1:
-        #     cmd = [self._path, 
-        #             '-t', str(self.threads),
-        #             '-c',
-        #             f'--secondary={secondary}',
-        #             '-I', self.batchsize,
-        #             ]
-        #     cmd.extend(list(self.additional_arguments))
-        #     cmd.extend([str(self.reference),
-        #             str(self.reads[0])])
-        #     cmd2 = ["pigz", "-c", "-p", "8"]
-
-        #     logger.info('Running command:')
-        #     logger.info('\t' + ' '.join(cmd) + ' | ' + ' '.join(cmd2)
-        #                 + ' > ' + str(self.outpaf))
-
-        #     pipelines = []
-        #     try:
-        #         pipelines.append(
-        #             Popen(cmd, stdout=PIPE,
-        #             stderr=open(f'{self.log_dir}/{self.prefix}'
-        #             '.mapping.log', 'w'),
-        #             bufsize=-1)
-        #         )
-
-        #         pipelines.append(
-        #             Popen(cmd2, stdin=pipelines[-1].stdout,
-        #                 stdout=open(self.outpaf, 'wb'),
-        #                 stderr=open(f'{self.log_dir}/{self.prefix}'
-        #             '.mapping.log', 'w'),
-        #             bufsize=-1)
-        #         )
-        #         pipelines[-1].wait()
-            
-        #     finally:
-        #         for p in pipelines:
-        #             if p.poll() is None:
-        #                 p.terminate()
-        #         else:
-        #             assert pipelines != [], \
-        #                 "Failed to execute command, please check log."
-        
-        # else:
-        #     # logger.error("Developing")
-        #     # raise ValueError("Developing")
-        #     if self.reads[0][-3:] == ".gz":
-        #         cat_cmd = "zcat"
-        #     else:
-        #         cat_cmd = "cat"
-            
-        #     cmd0 = [cat_cmd]
-        #     cmd0.extend(self.reads)
-
-
-            # cmd = [self._path, 
-            #         '-t', str(self.threads),
-            #         '-k', str(self.k),
-            #         '-w', str(self.w),
-            #         '-c',
-            #         f'--secondary={secondary}',
-            #         '-I', self.batchsize,
-            #         ]
-            # cmd.extend(list(self.additional_arguments))
-            # cmd.append(str(self.reference))
-            # cmd.append("-")
-
-
-            # cmd2 = ["pigz", "-c", "-p", "8"]
-
-            # logger.info('Running command:')
-            # logger.info(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + ' '.join(cmd)  + f' 2 > {self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
-            #             + ' > ' + str(self.outpaf))
-
-            # os.system(f'{cat_cmd} {" ".join(self.reads)} ' + '|' + ' '.join(cmd) + f' 2>{self.log_dir}/{self.prefix}.mapping.log' + ' | ' + ' '.join(cmd2)
-            #             + ' > ' + str(self.outpaf))
-            
-            
-
     
     def run_realign(self):
         cmd = ["cphasing-rs", "realign", f"{self.outpaf}", "-o", f"{self.realign_outpaf}"]

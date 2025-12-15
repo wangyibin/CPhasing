@@ -1279,6 +1279,173 @@ class HapHiCSort:
 
 
 
+class CPhasingOptimize:
+
+    def __init__(self, clustertable, count_re, split_contacts,
+                    allele_table=None,
+                    fasta=None, 
+                    corrected=False,
+                    output="groups.agp", 
+                    tmp_dir='scaffolding_tmp', 
+                    disable_haplotype_cluster=False,
+                    keep_temp=False,
+                    log_dir="logs",
+                    threads=4):
+        self.clusterfile = str(Path(clustertable).absolute())
+        self.clustertable = ClusterTable(clustertable)
+        
+        self.count_re = CountRE(count_re, minRE=1)
+        self.split_contacts = str(Path(split_contacts).absolute())
+        self.allele_table = str(Path(allele_table).absolute()) if allele_table else None
+        self.fasta = Path(fasta).absolute() if fasta else None
+        self.corrected = corrected
+        self.output = output
+        self.tmp_dir = tmp_dir 
+        self.disable_haplotype_cluster = disable_haplotype_cluster
+        self.delete_temp = False if keep_temp else True 
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.threads = threads 
+
+        self.cphasing_path = "cphasing-rs"
+        os.environ["POLARS_MAX_THREADS"] = str(self.threads)
+        
+
+    @staticmethod
+    def extract_count_re(group, contigs, count_re):
+        tmp_df = count_re.data.reindex(contigs)
+        tmp_df.dropna(inplace=True, axis=0)
+        tmp_df = tmp_df.astype({'RECounts': int, 'Length': int})
+        tmp_df.to_csv(f"{group}.txt", sep='\t', header=None)
+
+        return f"{group}.txt"
+
+    @staticmethod
+    def extract_clm_rust(clm_file, cluster_file, log_dir):
+        if clm_file.endswith(".gz"):
+            cmd0 = decompress_cmd(clm_file, threads=10)
+            cmd = ['cphasing-rs', 'splitclm', '-', cluster_file]
+            logger.info("Splitting clm file ...")
+            flag = os.system(
+                " ".join(cmd0)
+                + f" 2>../{log_dir}/clm_decompress.log"
+                + " | "
+                + " ".join(cmd)
+                + f" 2>../{log_dir}/splitclm.log"
+            )
+        else:
+            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+
+            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+
+        assert flag == 0, "Failed to execute command, please check log."
+
+
+    @staticmethod
+    def extract_contacts_rust(split_contacts, cluster_file, log_dir):
+        cmd = ["cphasing-rs", "splitcontacts", split_contacts, cluster_file]
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitcontacts.log", out2err=True)
+
+        assert flag == 0, "Failed to execute command, please check log."
+
+    @staticmethod
+    def run_cphasing_optimize(cphasing_path, count_re, split_contacts):
+        cmd = [cphasing_path, "optimize", count_re, split_contacts]
+        run_cmd(cmd, log=os.devnull, out2err=True)
+        return count_re.replace(".txt", ".tour")
+
+    @staticmethod
+    def _run(allhic_path, count_re, split_contacts, workdir):
+        os.chdir(workdir)
+        tmp_res = CPhasingOptimize.run_cphasing_optimize(allhic_path, count_re, split_contacts)
+
+        return tmp_res
+    
+
+    @staticmethod
+    def _process_group(args):
+        group, contigs, count_re, cphasing_path, workdir = args
+        tmp_count_re = CPhasingOptimize.extract_count_re(group, contigs, count_re)
+        tmp_clm = f"{group}.split.contacts.gz"
+        return (cphasing_path, tmp_count_re, tmp_clm, workdir)
+
+    def run(self):
+        from ..cli import build
+    
+        tmpDir =  tempfile.mkdtemp(prefix=self.tmp_dir, dir='./')
+        logger.info('Working on temporary directory: {}'.format(tmpDir))
+        os.chdir(tmpDir)
+        workdir = os.getcwd()
+        args = []
+
+        groups = list(self.clustertable.data.keys())
+        args = []
+
+        args = []
+        for group in groups:
+            contigs = self.clustertable.data[group]
+            args.append((group, contigs, self.count_re, self.cphasing_path, workdir))
+        
+        with multiprocessing.Pool(processes=min(10, self.threads)) as pool:
+            args = pool.map(CPhasingOptimize._process_group, args)
+ 
+        CPhasingOptimize.extract_contacts_rust(self.split_contacts, self.clusterfile, self.log_dir)
+        
+        total_cpu_of_machine = cpu_count()
+        if self.threads * 2 > total_cpu_of_machine:
+            threads = self.threads // 2
+            logger.info(f"Use {threads} threads to run optimize.")
+        else:
+            threads = self.threads
+
+        logger.info("Running scaffolding in each group ...")
+        tour_res = Parallel(n_jobs=min(len(args), threads))(delayed(
+                        self._run)(i, j, k, l) for i, j, k, l in args)
+        
+        os.chdir(workdir)
+        if self.allele_table and len(tour_res) > 1:
+            at = AlleleTable(self.allele_table, sort=False, fmt='allele2')
+            if at.data.shape[0] == 0:
+                logger.warning("Allele table is empty, skipped Haplotype parallel process.")
+            else:
+                hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
+                hap_align.run()
+                if self.disable_haplotype_cluster:
+                    hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
+                    hap_cluster.run()
+
+        if not self.fasta:
+            for file in glob.glob("*.tour"):
+                shutil.copy(file, "../")
+        else:
+            try:
+                if self.corrected:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output, "--corrected"], 
+                                prog_name='build')
+                else:
+                    build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], prog_name='build')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                
+            shutil.copy(f"{self.output}", "../")
+            if self.corrected:
+                if Path(self.output.replace("agp", "corrected.agp")).exists():
+                    shutil.copy(f"{self.output.replace('agp', 'corrected.agp')}", "../")
+             
+        os.chdir("../")
+        if self.delete_temp is True:
+            shutil.rmtree(tmpDir)
+            logger.info("Removed temporary directory.")
+
+        logger.info("Scaffolding done.")
+
+
 ##Deprecated
 class OldOptimize0:
     

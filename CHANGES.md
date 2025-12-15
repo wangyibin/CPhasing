@@ -1,3 +1,23 @@
+## [v0.2.8] - 2025-12-15
+#### New features
+- `hic mapper`, add `BwaMapper`, which enables user choose the aligner to `bwa-mem2` through `--hic-alinger bwa-mem2`.
+
+#### Enhancement
+- `alleles`
+    - speed up the calculation of similarity by parallelize
+- `hypergraph`
+    - speed up the hypergraph construction from `.porec.gz` or `pairs`.
+
+- `hyperpartition`,
+    - speed up the procedure of graph construction
+
+- `plot`
+    - reduced time consumption at least 60% and reduced the memory usage
+
+#### Bug fixes
+- `hyperpartition`, fixed bug that when q1=0 q2=1, the program can not filter q2=1 in the second round cluster.
+- `plot`, fixed bug that "Found bin ID < 0"
+
 ## [v0.2.7] - 2025-11-20
 #### New features
 - Supported for `linux-aarch64` platform, please download from github release.  

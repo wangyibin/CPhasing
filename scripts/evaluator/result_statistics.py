@@ -51,7 +51,7 @@ def parse_groups(groups, fa_len_dict):
     chr4_8_excluded_inter_nonhomo_err = 0
 
     largest_group_dict = collections.defaultdict(int)
-
+    inter_homo_contigs = []
     for group in groups.values.tolist():
         
         source_chr_len_dict = collections.defaultdict(int)
@@ -60,6 +60,7 @@ def parse_groups(groups, fa_len_dict):
         nctgs = len(group)
 
         most_group_length_db = defaultdict(int)
+        ctg_info_list = []
         for ctg in group:
             if 'collapsed' in ctg or 'chimeric' in ctg:
                 continue 
@@ -67,6 +68,7 @@ def parse_groups(groups, fa_len_dict):
             source_chr = ctg.split('.')[0]
             
             most_group_length_db[source_chr] += length 
+            ctg_info_list.append((ctg, source_chr, length))
 
         most_group = max(most_group_length_db, key=lambda x: most_group_length_db[x])
 
@@ -76,6 +78,8 @@ def parse_groups(groups, fa_len_dict):
             print('group file {} is skipped because of {} contig inside'.format(
                 group, nctgs), file=sys.stderr)
             continue
+
+        source_chr_len_dict.clear()
 
         for ctg in group:
             # collapsed and chimeric contigs are skipped
@@ -116,14 +120,20 @@ def parse_groups(groups, fa_len_dict):
         for source_chr, length in source_chr_len_list:
             if length > largest_group_dict[source_chr]:
                 largest_group_dict[source_chr] = length
-            if source_chr != dominant_chr:
-                if source_chr[0] == dominant_chr[0]:
-                    inter_homo_err += length
-                else:
-                    inter_nonhomo_err += length
+
+        for ctg, source_chr, length in ctg_info_list:
+            if source_chr == dominant_chr:
+                continue
+            if source_chr[0] == dominant_chr[0]:
+                inter_homo_err += length
+                inter_homo_contigs.append(
+                    (ctg, source_chr, dominant_chr, length)
+                )
+            else:
+                inter_nonhomo_err += length
     
 
-    return n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict
+    return n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict, inter_homo_contigs
 
 
 def main():
@@ -167,7 +177,7 @@ def main():
         else:
             total_ctg_len += fa_len_dict[ctg]
     
-    n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict = parse_groups(cluster_df, fa_len_dict)
+    n_groups, anchored_len_dict, inter_homo_err, inter_nonhomo_err, largest_group_dict, inter_homo_contigs = parse_groups(cluster_df, fa_len_dict)
 
     anchored_len = sum(anchored_len_dict.values())
 
@@ -186,6 +196,11 @@ def main():
     print('Ngroups\t{}'.format(n_groups))
     print('Anchoring rate(%)\t{}'.format(anchored_len/total_ctg_len*100))
 
-
+    out_tsv = os.path.splitext(agp)[0] + ".inter_homo_contigs.tsv"
+    with open(out_tsv, "w") as fh:
+        print("contig\tcurrent_chr\tcorrect_chr\tlength", file=fh)
+        for ctg, cur_chr, cor_chr, length in inter_homo_contigs:
+            print(f"{ctg}\t{cur_chr}\t{cor_chr}\t{length}", file=fh)
+    print(f"Inter-homo error contig list written to {out_tsv}", file=sys.stderr)
 if __name__ == '__main__':
     main()

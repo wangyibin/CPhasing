@@ -1,5 +1,5 @@
 site_name: "C-Phasing"
-site_url: https://wangyibin.github.io/CPhasing
+site_url: https://wangyibin.github.io/CPhasing/zh
 repo_url: https://github.com/wangyibin/CPhasing
 docs_dir: "docs/zh/"
 site_dir: "site/zh"
@@ -145,7 +145,7 @@ extra:
       link: /
       lang: en
     - name: 简体中文
-      link: /zh/
+      link: /CPhasing/zh/
       lang: zh
 
 

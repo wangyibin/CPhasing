@@ -1691,26 +1691,44 @@ def plot_heatmap(matrix, output,
 
         if log1p or log:
             logger.debug("Masking the zero ...")
-            mask = matrix == 0
-            mask_nan = np.isnan(matrix)
-            mask_inf = np.isinf(matrix)
+            if sp.issparse(matrix):
+                mask_nan = np.isnan(matrix.data)
+                mask_inf = np.isinf(matrix.data)
+                
+                if mask_nan.any() or mask_inf.any():
+                    try:
+                        min_value = np.nanmin(matrix.data[~(mask_nan | mask_inf)])
+                        matrix.data[mask_nan] = min_value
+                        matrix.data[mask_inf] = min_value
+                    except Exception:
+                        pass
+            else:
+                mask = matrix == 0
+                mask_nan = np.isnan(matrix)
+                mask_inf = np.isinf(matrix)
 
-            try:
-                min_value = np.nanmin(matrix[~(mask | mask_nan | mask_inf)])
-                matrix[mask] = min_value
-                matrix[mask_nan] = min_value
-                matrix[mask_inf] = min_value
-            except Exception:
-                pass 
+                try:
+                    min_value = np.nanmin(matrix[~(mask | mask_nan | mask_inf)])
+                    matrix[mask] = min_value
+                    matrix[mask_nan] = min_value
+                    matrix[mask_inf] = min_value
+                except Exception:
+                    pass 
 
         if log1p:
-            matrix += 1 
-            # norm = LogNorm(vmax=vmax, vmin=vmin)
+            if sp.issparse(matrix):
+                matrix.data = np.log10(matrix.data + 1)
+            else:
+                matrix += 1 
+                # norm = LogNorm(vmax=vmax, vmin=vmin)
+                matrix = np.log10(matrix)
             norm = "log1p"
-            matrix = np.log10(matrix)
         elif log:
             norm = "log"
-            matrix = np.log(matrix)
+            if sp.issparse(matrix):
+                matrix.data = np.log(matrix.data)
+            else:
+                matrix = np.log(matrix)
             # norm = LogNorm(vmax=vmax, vmin=vmin)
         else:
             if balanced:
@@ -2040,18 +2058,26 @@ def plot_heatmap_core(matrix,
     if norm is None or norm == "balanced":
         if vmax is None:
             cis_matrix = []
-            
-            for i in range(len(chrom_offset) - 1):
-                cis_matrix.append(
-                                np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
-                                        chrom_offset[i]:chrom_offset[i+1]]))
-              
-            # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
-            # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix])
-            ## remove diagonal
-            cis_matrix = [arr[np.triu_indices(arr.shape[0], k=1)] for arr in cis_matrix]
-            cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
-            cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
+            if sp.issparse(matrix):
+                for i in range(len(chrom_offset) - 1):
+                    sub_mat = matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                    chrom_offset[i]:chrom_offset[i+1]]
+                    sub_triu = sp.triu(sub_mat, k=1)
+                    cis_matrix.append(sub_triu.data)
+
+                cis_matrix = np.concatenate(cis_matrix)
+            else:
+                for i in range(len(chrom_offset) - 1):
+                    cis_matrix.append(
+                                    np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                            chrom_offset[i]:chrom_offset[i+1]]))
+                
+                # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
+                # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix])
+                ## remove diagonal
+                cis_matrix = [arr[np.triu_indices(arr.shape[0], k=1)] for arr in cis_matrix]
+                cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
+                cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
             
             def vmax_by_iqr(vals, k):
                 q1, q3 = np.percentile(vals, [25, 75])
@@ -2065,7 +2091,6 @@ def plot_heatmap_core(matrix,
          
             # vmax = vmax_by_mad(cis_matrix, 5)
             vmax = vmax_by_iqr(cis_matrix, 1.5)
-
             if vmax == 0:
                 try:
                     vmax = np.min(cis_matrix[cis_matrix != 0])
@@ -2099,13 +2124,42 @@ def plot_heatmap_core(matrix,
                 vmin = 0
             del cis_matrix
     else:
-        if norm == 'log1p':
+        # if norm == 'log1p':
+        #     if vmax is None:
+        #         vmax = np.ceil(np.max(matrix))
+        #         logger.info(f"  Set vmax to `{vmax}`.")
+
+        # elif norm == 'log':
+        #     if vmax is None:
+        #         vmax = np.ceil(np.max(matrix))
+        #         logger.info(f"  Set vmax to `{vmax}`.")
+
+        if norm == 'log1p' or norm == 'log':
             if vmax is None:
-                vmax = np.ceil(np.log10(np.max(matrix + 1)))
-                logger.info(f"  Set vmax to `{vmax}`.")
-        elif norm == 'log':
-            if vmax is None:
-                vmax = np.ceil(np.log(np.max(matrix)))
+                cis_matrix = []
+                if sp.issparse(matrix):
+                    for i in range(len(chrom_offset) - 1):
+                        sub_mat = matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                        chrom_offset[i]:chrom_offset[i+1]]
+                        sub_triu = sp.triu(sub_mat, k=1)
+                        cis_matrix.append(sub_triu.data)
+
+                    cis_matrix = np.concatenate(cis_matrix)
+                
+                    vmax = np.percentile(cis_matrix, 99) if matrix.nnz > 0 else 1.0
+                else:
+                    for i in range(len(chrom_offset) - 1):
+                       
+                        sub_mat = np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
+                                            chrom_offset[i]:chrom_offset[i+1]])
+                      
+                        rows, cols = np.triu_indices(sub_mat.shape[0], k=1)
+                        cis_matrix.append(sub_mat[rows, cols])
+                        
+                    cis_matrix = np.concatenate(cis_matrix)
+                    vmax = np.percentile(np.asarray(cis_matrix), 99)
+                
+                vmax = np.ceil(vmax)
                 logger.info(f"  Set vmax to `{vmax}`.")
     
     if triangle:
@@ -2114,6 +2168,9 @@ def plot_heatmap_core(matrix,
         # grid = GridSpec(1, 1, figure=fig, left=0.1, right=0.9,
         #             bottom=0.1, top=0.9, hspace=0.04, height_ratios=[5])
         # ax = fig.add_subplot(grid[0])
+        if sp.issparse(matrix):
+            matrix = matrix.todense()
+
         add_lines = False
         # fig, ax = plt.subplots(figsize=(7, 3.2))
         n = matrix.shape[0]
@@ -2137,6 +2194,8 @@ def plot_heatmap_core(matrix,
         ax.spines['left'].set_visible(False)
         
     else:
+        if sp.issparse(matrix):
+            matrix = matrix.todense()
         fig = plt.gcf()
         cax = ax.imshow(matrix, cmap=colormap, aspect='equal',
                             interpolation=None, rasterized=True)
@@ -2144,11 +2203,6 @@ def plot_heatmap_core(matrix,
 
         
     binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
-
-    # tmp_chrom_offset = np.array(chrom_offset.copy())
-    # tmp_chrom_range = list(zip(bins.iloc[tmp_chrom_offset[:-1]]['start'].values, bins.iloc[(tmp_chrom_offset - 1)[1:]]['end'].values))
-    # tmp_chrom_start = tmp_chrom_range[0][0]
-    # tmp_chrom_size = tmp_chrom_range[0][0] + sum(list(map(lambda x:(x[1] - x[0]), tmp_chrom_range)))
     
     cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
 

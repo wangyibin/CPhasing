@@ -1,3 +1,10 @@
+
+## [v0.2.8.r306] - 2026-12-17
+#### Bug fixes 
+- `pipeline`  
+    - fixed bug that when `-ss 5`, the program cannot report logs.
+
+
 ## [v0.2.8] - 2025-12-15
 #### New features
 - `hic mapper`, add `BwaMapper`, which enables user choose the aligner to `bwa-mem2` through `--hic-alinger bwa-mem2`.

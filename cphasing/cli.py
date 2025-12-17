@@ -924,13 +924,13 @@ def cli(verbose, quiet):
     'scaffolding_method',
     metavar='STR',
     help="""
-    The method of scaffolding, `['precision', 'allhic', 'fast']`.  
+    The method of scaffolding, `['precision', 'cphasing', 'allhic', 'fast']`.  
     precision: fast + allhic, which will quicker than allhic only.  
     It is worth noting that `allhic` in `C-Phasing` is parameterized to 
     achieve better results than the previous version
     """,
     default="precision",
-    type=click.Choice(["precision", "allhic", "fast"]),
+    type=click.Choice(["precision", "cphasing", "allhic", "fast"]),
     show_default=True
 )
 @click.option(

@@ -1,19 +1,19 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing
 repo_url: https://github.com/wangyibin/CPhasing
-docs_dir: docs
-site_dir: site
-copyright: Copyright © 2022-2026 Tanger-lab
+docs_dir: "docs/zh/"
+site_dir: "site/zh"
+copyright: Copyright © 2022-2026 Tanger-lab 保留所有权利。
 theme:
   name: material
-  language: en
-  # custom_dir: docs/overrides/
+  language: zh
+  custom_dir: docs/overrides/
   highlight: monokai
-  favicon: logo/logo.png
-  logo: logo/logo.png
-  font:
-    text: Red Hat Text
-    code: JetBrains Mono
+  favicon: https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png
+  logo: https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png
+  # font:
+    # text: Red Hat Text
+    # code: JetBrains Mono
     
 
   palette:
@@ -77,11 +77,12 @@ theme:
     - navigation.instant.progress
     - navigation.tracking
     - navigation.sections
-    # - navigation.prune
+    - navigation.prune
     - navigation.top
     - navigation.indexes
     - navigation.footer
     - navigation.tabs
+    - navigation.version
     - toc.follow
     - search.share
     - search.highlight
@@ -91,15 +92,18 @@ markdown_extensions:
   - admonition
   - attr_list
   - def_list
+  - tables
   - footnotes
-  - md_in_html
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.critic
+  - pymdownx.caret
   - pymdownx.keys
+  - pymdownx.mark
   - pymdownx.inlinehilite
   - pymdownx.snippets:
       base_path: ./
@@ -108,11 +112,15 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tabbed:
       alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - toc:
       toc_depth: 3
       permalink: true
@@ -120,10 +128,10 @@ markdown_extensions:
   - md_in_html
 
 extra_css:
-  - styles/extra.css
+  - stylesheets/style.css
 
-# extra_javascript:
-#   - javascript/extra.js
+extra_javascript:
+  - javascript/extra.js
 
 extra:
   homepage: https://wangyibin.github.io/CPhasing
@@ -143,38 +151,6 @@ extra:
 
 plugins:
   - search
-    # lang: en
-  - i18n:
-      docs_structure: suffix
-      languages:
-        - locale: en
-          name: English
-          build: true
-          default: true
-          site_name: "C-Phasing Docs"
-
-        - locale: zh
-          name: 中文
-          build: true
-          site_name: "C-Phasing 文档"
-          theme:
-            palette:
-              primary: red
-            font:
-              text: Roboto
-              code: JetBrains Mono
-          nav_translations:
-            Home: 首页
-            Introduction & Installation: 介绍&安装
-            Get Started: 快速入门
-            Tutorials: 教程
-            CLI: 工具
-            Pore-C&HiFi-C: Pore-C或HiFi-C数据
-            Hi-C: Hi-C数据
-            FAQ: 常见问题
-            Citation: 引用
-            Changelog: 更新日志
-            Misc: 其他
   # - ultralytics:
   #     add_desc: False
   #     add_image: True
@@ -186,9 +162,10 @@ plugins:
 
 
 nav:
-  - Home: index.md
-  - Get Started: basic_usage.md
-  - Tutorials: 
+  - 主页: index.md
+  - 安装: installation.md
+  - 快速开始: basic_usage.md
+  - 教程: 
     - Pore-C&HiFi-C:
       - tutorials/porec/porec_monoploid.md
       - tutorials/porec/porec_decaploid.md
@@ -198,7 +175,7 @@ nav:
       - tutorials/hic/hic_decaploid.md
       - tutorials/hic/hic_sugarcane.md
 
-  - CLI: 
+  - 工具: 
     - CLI/mapper.md
     - CLI/methalign.md
     - CLI/hic_mapper.md
@@ -207,9 +184,9 @@ nav:
     - CLI/rename.md
     - CLI/plot.md
   
-  - Citation: citation.md
-  - Misc:
-    - FAQ: faq.md
+  - 引用: citation.md
+  - 其它:
+    - 常见问题: faq.md
     - Changelog: CHANGES.md
   
   

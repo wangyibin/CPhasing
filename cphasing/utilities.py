@@ -1144,7 +1144,7 @@ def pretty_cmd(cmd_list, n=4):
     return list(map(str, new_cmd ))
 
 
-def generate_to_hic_cmd(agp, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
+def generate_to_hic_cmd(agp, fasta, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
 
     pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
     agp_prefix = str(Path(agp).name).replace(".agp", "")
@@ -1160,7 +1160,7 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.asse
 
 ## After curation, convert review.assembly to new agp 
 # cphasing utils assembly2agp groups.review.assembly -o groups.review -n {n}
-# cphasing utils agp2fasta groups.review.agp -o groups.review.fasta
+# cphasing utils agp2fasta groups.review.agp {fasta} -o groups.review.fasta
     """
 
     with open(output, 'w') as out:

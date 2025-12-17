@@ -1196,10 +1196,10 @@ def run(fasta,
                 raise e
         
         # shutil.copy('groups.agp', '..')
-        generate_to_hic_cmd('groups.agp', f"../{pairs}", n=n )
+        generate_to_hic_cmd('groups.agp', f"../{fasta}", f"../{pairs}", n=n )
         if corrected:
             # shutil.copy('groups.corrected.agp', '..')
-            generate_to_hic_cmd('groups.corrected.agp', f"../{pairs}", n=n)
+            generate_to_hic_cmd('groups.corrected.agp', f"../{fasta}", f"../{pairs}", n=n)
         
         os.chdir("..")
 
@@ -1333,7 +1333,7 @@ def run(fasta,
         logger.info(f"    {outdir}/4.scaffolding/groups.agp")
         if corrected:
             logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")
-    if "5" in steps:
+    if "5" in steps and "5" not in skip_steps:
         # res = glob.glob("5.plot/groups.*.wg.png")
         # if res:
         #     for i in res:

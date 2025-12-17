@@ -1,67 +1,67 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing
 repo_url: https://github.com/wangyibin/CPhasing
-docs_dir: docs
-site_dir: site
-copyright: Copyright © 2022-2026 Tanger-lab
+docs_dir: "docs/en"
+site_dir: "site/"
+copyright: Copyright © 2022-2026 Tanger-lab, All rights reserved.
 theme:
   name: material
   language: en
-  # custom_dir: docs/overrides/
+  custom_dir: docs/overrides/
   highlight: monokai
-  favicon: logo/logo.png
-  logo: logo/logo.png
-  font:
-    text: Red Hat Text
-    code: JetBrains Mono
+  favicon: https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png
+  logo: https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png
+  # font:
+    # text: Red Hat Text
+    # code: JetBrains Mono
     
 
-  palette:
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
-
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: prefix-light
-      accent: prefix-light
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: prefix
-      accent: prefix
-      toggle:
-        icon: material/brightness-4
-        name: Switch to system preference
-  icon:
-    edit: material/pencil
-    view: material/eye
   # palette:
   #   - media: "(prefers-color-scheme)"
   #     toggle:
-  #       icon: lucide/sun-moon
+  #       icon: material/brightness-auto
   #       name: Switch to light mode
+
   #   - media: "(prefers-color-scheme: light)"
   #     scheme: default
-  #     primary: indigo
-  #     accent: indigo
+  #     primary: prefix-light
+  #     accent: prefix-light
   #     toggle:
-  #       icon: lucide/sun
+  #       icon: material/brightness-7
   #       name: Switch to dark mode
+
   #   - media: "(prefers-color-scheme: dark)"
   #     scheme: slate
-  #     primary: indigo
-  #     accent: orange
+  #     primary: prefix
+  #     accent: prefix
   #     toggle:
-  #       icon: lucide/moon-star
+  #       icon: material/brightness-4
   #       name: Switch to system preference
   # icon:
-  #   tag:
-  #     default: lucide/hash
+  #   edit: material/pencil
+  #   view: material/eye
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: lucide/sun-moon
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: lucide/sun
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: orange
+      toggle:
+        icon: lucide/moon-star
+        name: Switch to system preference
+  icon:
+    tag:
+      default: lucide/hash
 
 
   features:
@@ -77,11 +77,12 @@ theme:
     - navigation.instant.progress
     - navigation.tracking
     - navigation.sections
-    # - navigation.prune
+    - navigation.prune
     - navigation.top
     - navigation.indexes
     - navigation.footer
     - navigation.tabs
+    - navigation.version
     - toc.follow
     - search.share
     - search.highlight
@@ -90,16 +91,19 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - tables
   - def_list
   - footnotes
-  - md_in_html
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.critic
+  - pymdownx.caret
   - pymdownx.keys
+  - pymdownx.mark
   - pymdownx.inlinehilite
   - pymdownx.snippets:
       base_path: ./
@@ -108,11 +112,15 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tabbed:
       alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - toc:
       toc_depth: 3
       permalink: true
@@ -120,10 +128,10 @@ markdown_extensions:
   - md_in_html
 
 extra_css:
-  - styles/extra.css
+  - stylesheets/style.css
 
-# extra_javascript:
-#   - javascript/extra.js
+extra_javascript:
+  - javascript/extra.js
 
 extra:
   homepage: https://wangyibin.github.io/CPhasing
@@ -143,38 +151,6 @@ extra:
 
 plugins:
   - search
-    # lang: en
-  - i18n:
-      docs_structure: suffix
-      languages:
-        - locale: en
-          name: English
-          build: true
-          default: true
-          site_name: "C-Phasing Docs"
-
-        - locale: zh
-          name: 中文
-          build: true
-          site_name: "C-Phasing 文档"
-          theme:
-            palette:
-              primary: red
-            font:
-              text: Roboto
-              code: JetBrains Mono
-          nav_translations:
-            Home: 首页
-            Introduction & Installation: 介绍&安装
-            Get Started: 快速入门
-            Tutorials: 教程
-            CLI: 工具
-            Pore-C&HiFi-C: Pore-C或HiFi-C数据
-            Hi-C: Hi-C数据
-            FAQ: 常见问题
-            Citation: 引用
-            Changelog: 更新日志
-            Misc: 其他
   # - ultralytics:
   #     add_desc: False
   #     add_image: True
@@ -187,6 +163,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Installation: installation.md
   - Get Started: basic_usage.md
   - Tutorials: 
     - Pore-C&HiFi-C:

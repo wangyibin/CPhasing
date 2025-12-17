@@ -134,10 +134,10 @@ extra:
     provider: mike
   alternate:
     - name: English
-      link: /CPhasing/
+      link: /
       lang: en
     - name: 简体中文
-      link: /CPhasing/zh/
+      link: /zh/
       lang: zh
 
 

@@ -142,10 +142,10 @@ extra:
     provider: mike
   alternate:
     - name: English
-      link: /
+      link: /CPhasing/
       lang: en
     - name: 简体中文
-      link: /zh/
+      link: /CPhasing/zh/
       lang: zh
 
 

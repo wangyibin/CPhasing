@@ -20,9 +20,9 @@ jobs:
         with:
           environments: docs
       - run: |
-        pixi run -e docs zensical build -f mkdocs_en.yml --clean 
+          pixi run -e docs zensical build -f mkdocs_en.yml --clean 
       - run: |
-        pixi run -e docs  zensical build -f mkdocs_zh.yml 
+          pixi run -e docs  zensical build -f mkdocs_zh.yml 
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site

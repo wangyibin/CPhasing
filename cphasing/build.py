@@ -20,10 +20,11 @@ from .utilities import xopen, list_flatten
 
 logger = logging.getLogger(__name__)
 
-GAP = 'N'*100
 
-def Build(fasta_file, output='groups.asm.fasta', corrected=False,
+
+def Build(fasta_file, gap_size=100, output='groups.asm.fasta', corrected=False,
             output_agp='groups.agp', only_agp=False):
+    
     if fasta_file[-3:] == ".gz":
         handle = xopen(fasta_file)
         fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
@@ -45,7 +46,7 @@ def Build(fasta_file, output='groups.asm.fasta', corrected=False,
     agp_res = []
     corrected_contigs = []
     for tour in tour_list:
-        _tmp_corrected_contigs, _tmp_agp = tour.to_agp(fasta, corrected=corrected)
+        _tmp_corrected_contigs, _tmp_agp = tour.to_agp(fasta, gap_length=gap_size, corrected=corrected)
         agp_res.append(_tmp_agp)
         if _tmp_corrected_contigs:
             corrected_contigs.append(_tmp_corrected_contigs)

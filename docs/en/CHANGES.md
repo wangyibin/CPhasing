@@ -1,8 +1,23 @@
 
-## [v0.2.8.r306] - 2026-12-17
+## [v0.2.9] - 2026-01-08
+#### Enhancement
+- `hyperpartition`
+    - reduced the time consumption of the large hypergraph processing
+
+- `curation`: `6.curation` for `pipeline`  
+    - add a step to generate the commands related for curation
+
 #### Bug fixes 
+- `pairs-break`  
+    - fixed bug that reported in issue #39, which observed the loss signals of broken contigs
+- `hyperpartition`  
+    - fixed bug that run alleles when `--merge-use-allele` specified 
 - `pipeline`  
     - fixed bug that when `-ss 5`, the program cannot report logs.
+- `plot`  
+    - fixed bug of total chromsizes error showed in the picture, when a chromosome length larger than 2^32/2
+- `mapper`
+    - Fixed bug that conflicts with the loading of .fai when submitting multiple jobs.
 
 
 ## [v0.2.8] - 2025-12-15
@@ -29,11 +44,10 @@
 #### New features
 - Supported for `linux-aarch64` platform, please download from github release.  
 #### Enhancement  
-
-- `mapper`
+- `mapper`  
     - Changed default `--mm2-params` from "-x map-ont" to "-x lr:hq", which was recommended by ONT developer for chemistry v14.  
 
-- `hic mapper`
+- `hic mapper`  
     - Updated `chromap` from `v0.2.5` to `v0.3.2`, which will reduce the runtime on the used CPU larger than 12.  
     - Enabled input multiple Hi-C data  
 
@@ -44,13 +58,13 @@
     - add `--split-length` to automatically split contig to partition, which avoid the extremely long contig errors clustered together  
     - add `--merge-use-allele`, use the allelic information to help the homologous chromosome clustering  
     
-- `hyperpartition`
+- `hyperpartition`  
     - Partially resolved problem that extremely long contig errors aggregated together by splitting contigs  
     - Enable the first round partition to merge groups that contain slightly h-trans signals (`--merge-use-allele`)  
     - Improved the accuracy of results when merging N groups to k groups.   
 
-- `scaffolding`
-    - Significantly reduce the number of large-scale false orientation errors.
+- `scaffolding`  
+    - Significantly reduce the number of large-scale false orientation errors.  
     - Sort haplotypes by pairwise similarity.
 
 - `plot`  

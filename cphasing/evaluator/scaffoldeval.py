@@ -273,6 +273,48 @@ def compute_lcs(X, Y):
                 L[i][j] = max(L[i - 1][j], L[i][j - 1])
     return L[m][n]
 
+def compute_signed_edit_distance(truth_paths, test_paths, alias):
+    total_edit_distance = 0
+    evaluated_groups = 0
+    for truth_group, test_group in alias.items():
+      
+        T_path = truth_paths.get(f"Chr{truth_group}", [])
+        P_path = test_paths.get(f"Chr0{test_group}", [])
+        
+        T_ids = set(x[:-1] for x in T_path)
+        P_ids = set(x[:-1] for x in P_path)
+     
+        common_ids = T_ids & P_ids
+        
+        
+        if not common_ids:
+            continue
+
+        T_filtered = [x for x in T_path if x[:-1] in common_ids]
+        P_filtered = [x for x in P_path if x[:-1] in common_ids]
+        
+        if not T_filtered:
+            continue
+
+        evaluated_groups += 1
+
+        lcs_fwd = compute_lcs(T_filtered, P_filtered)
+
+        P_rc = []
+        for item in reversed(P_filtered):
+            cid, strand = item[:-1], item[-1]
+            new_strand = "-" if strand == "+" else "+"
+            P_rc.append(f"{cid}{new_strand}")
+        
+        lcs_rc = compute_lcs(T_filtered, P_rc)
+        
+        best_lcs = max(lcs_fwd, lcs_rc)
+
+        dist = len(T_filtered) - best_lcs
+        total_edit_distance += dist
+            
+    return total_edit_distance
+
 def compute_misplaced_contigs_lcs(truth_paths, test_paths, alias):
 
     tmap = _build_contig_group_map(truth_paths)
@@ -282,11 +324,11 @@ def compute_misplaced_contigs_lcs(truth_paths, test_paths, alias):
 
     for truth_group, test_group in alias.items():
         
-
-        T_full = [c[:-1] for c in truth_paths.get(truth_group, [])]
-        P_full = [c[:-1] for c in test_paths.get(test_group, [])]
         
-
+        T_full = [c[:-1] for c in truth_paths.get(f"Chr{truth_group}", [])]
+        P_full = [c[:-1] for c in test_paths.get(f"Chr0{test_group}", [])]
+        
+        
         common_ids = set(T_full) & set(P_full)
         
         T_filtered = [cid for cid in T_full if cid in common_ids]
@@ -295,12 +337,10 @@ def compute_misplaced_contigs_lcs(truth_paths, test_paths, alias):
 
         if len(T_filtered) < 2:
             continue
- 
+            
         lcs_length = compute_lcs(T_filtered, P_filtered)
-
-  
         misplaced_count = len(T_filtered) - lcs_length
-        
+
         
         total_misplaced_contigs += misplaced_count
         
@@ -352,8 +392,7 @@ def scaf_eval(truth_agp, test_agp):
 
     truth_paths = defaultdict(list)
     test_paths = defaultdict(list)
-    alias = infer_group_alias_by_overlap(truth_paths, test_paths)
-    order_misplaced_lcs = compute_misplaced_contigs_lcs(truth_paths, test_paths, alias)
+  
     grouped_contigs = set()
     for _, row in test_agp_df.iterrows():
         if row["type"] == "W":
@@ -368,7 +407,10 @@ def scaf_eval(truth_agp, test_agp):
             contig_str = f"{row['id']}{'+' if row['orientation'] == '+' else '-'}"
             truth_paths[row["chrom"]].append(contig_str)
     
-
+    alias = infer_group_alias_by_overlap(truth_paths, test_paths)
+ 
+    order_misplaced_lcs = compute_misplaced_contigs_lcs(truth_paths, test_paths, alias)
+    signed_edit_dist = compute_signed_edit_distance(truth_paths, test_paths, alias)
     truth_adjacencies = get_adjacencies(truth_paths)
     test_adjacencies = get_adjacencies(test_paths)
     results = evaluate_adjacencies(test_adjacencies, truth_adjacencies)
@@ -428,8 +470,9 @@ def scaf_eval(truth_agp, test_agp):
         )
     )
 
-    print("OrderFP\tOrderFN\tOrientErrContigs\tMisplacedContigs(LCS)") 
-    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(single_orient_err_ids)}\t{order_misplaced_lcs}")
+    print("OrderFP\tOrderFN\tOrientErrContigs\tEditDistance(SignedLCS)") 
+    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(single_orient_err_ids)}\t{signed_edit_dist}")
+    # output order and orientation errors
     # output order and orientation errors
     # if results.get("misjoins_list", []):
     #     print("\nMisjoins (false positives):")

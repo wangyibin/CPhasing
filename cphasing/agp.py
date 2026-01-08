@@ -6,6 +6,7 @@ import os
 import os.path as op
 import shutil
 import sys
+import re
 
 import pandas as pd 
 
@@ -688,3 +689,52 @@ def agp_dup(agp, output):
     agp_df.drop('index', axis=1, inplace=True)
 
     agp_df.to_csv(output, sep='\t', header=None, index=None)
+
+
+def split_agp(agp, hap_pattern=r"(Chr\d+)g(\d+)",
+              output="agp_split"):
+    """
+    Split agp file into different chro
+    Params:
+    --------
+    agp: str
+        Path to agp file.
+    hap_pattern: str
+        Regex pattern to identify haplotypes.
+
+    outdir: str
+
+        Output directory.
+
+    Returns:
+    --------
+    None
+
+    Examples:
+    --------
+    >>> split_agp('groups.agp', hap_pattern=r"(Chr\d+)g(\d+)")
+    """
+    agp_df = import_agp(agp, split=False)
+
+    agp_df.reset_index(inplace=True)
+
+
+    agp_df['hap'] = agp_df[0].apply(
+        lambda x: re.match(hap_pattern, x).group(1) if re.match(hap_pattern, x) else "unhap"
+    )
+    agp_df = agp_df[agp_df['hap'] != "unhap"]
+    agp_df.drop(0, axis=1, inplace=True)
+    hap_df = agp_df.groupby('hap')
+    
+
+    outdir = Path(output)
+    outdir.mkdir(parents=True, exist_ok=True)
+    for hap, df in hap_df:
+        out_agp = outdir / f"{hap}.agp"
+        df.drop('hap', axis=1, inplace=True)
+    
+        df.to_csv(out_agp, sep='\t', header=None, index=False)
+        logger.info(f"Output split agp file: `{out_agp}`")
+
+    
+

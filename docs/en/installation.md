@@ -7,10 +7,15 @@ tags:
 === "recommended" 
     Download the CPhasing and activate environments by the `activate_cphasing`
     ```shell
-    git clone https://github.com/wangyibin/CPhasing.git 
+    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-x86.tar.gz" | cut -d '"' -f 4)
+    wget $LATEST_URL
+    
+    tar xzvf CPhasing*.tar.gz
+    
+    source ./CPhasing*/bin/activate_cphasing
     
     ### activate environment
-    source ./CPhasing/bin/activate_cphasing
+    source ./CPhasing*/bin/activate_cphasing
 
     ### deactivate
     source deactivate 
@@ -32,7 +37,7 @@ tags:
     !!! note
         If you do not have direct access to the anaconda repository, you can set the mirror for pixi.
     !!! note
-        For the platform of **`linux-aarch64`**, please download from github release.
+        For the platform of **`linux-aarch64`**, please download from [github release](https://github.com/wangyibin/CPhasing/releases/tag/v0.2.8).
     
 === "conda"
     Download the CPhasing and install environment by conda

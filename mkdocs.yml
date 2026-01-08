@@ -1,7 +1,7 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing
 repo_url: https://github.com/wangyibin/CPhasing
-docs_dir: docs
+docs_dir: .docs
 site_dir: site
 copyright: Copyright © 2022-2026 Tanger-lab
 theme:
@@ -175,15 +175,6 @@ plugins:
             Citation: 引用
             Changelog: 更新日志
             Misc: 其他
-  # - ultralytics:
-  #     add_desc: False
-  #     add_image: True
-  #     add_authors: True
-  #     add_json_ld: True
-  #     add_share_buttons: True
-  #     add_css: False
-
-
 
 nav:
   - Home: index.md

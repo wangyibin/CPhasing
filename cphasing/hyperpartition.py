@@ -211,6 +211,9 @@ class HyperPartition:
         Path(self.log_dir).mkdir(exist_ok=True)
 
         self.contig_sizes = self.contigsizes.to_dict()['length'] ## dictionary
+
+        if self.split:
+            self.parse_trimmed_contig()
         self.contigs = self.contigsizes.index.values.tolist()
         self.K = []
 
@@ -352,6 +355,7 @@ class HyperPartition:
         remove too short contigs and according the whitelist or blacklist 
         to remove contigs
         """
+        logger.debug("Start to filter hypergraph ...")
         short_contigs = self.contigsizes[self.contigsizes < self.min_length]
         short_contigs = short_contigs.dropna().index.tolist()
 
@@ -379,12 +383,12 @@ class HyperPartition:
         
         if len(remove_contigs) == 0:
             return
-    
+        
+        self.HG.remove_rows(remove_contigs)
         logger.info(f"Total {len(remove_contigs):,} contigs were removed,")
         logger.info(f"\tbecause it's length too short (<{self.min_length}) "
                         "or your specified in blacklist or not in whitelist.")
 
-        self.HG.remove_rows(remove_contigs)
 
     def get_prune_pairs_kprune(self):
         """
@@ -612,6 +616,7 @@ class HyperPartition:
                                         #   NW=self.NW,
                                           allelic_factor=self.allelic_factor, 
                                           min_weight=self.min_weight)
+        self.H = None 
 
         dia = A.diagonal()
         raw_contig_counts = A.shape[0]
@@ -938,6 +943,9 @@ class HyperPartition:
         sub_A = HyperGraph.clique_expansion_init(sub_H, 
                                                  cis_count=sub_cis_counts,
                                                  min_weight=min_weight)
+        if sub_A.dtype != np.float32:
+            sub_A = sub_A.astype(np.float32)
+        
         sub_A = HyperGraph.normalize_adjacency_matrix(sub_A, sub_NW)
 
 
@@ -1344,6 +1352,87 @@ class HyperPartition:
         
         A = HyperGraph.normalize_adjacency_matrix(A, self.NW)
         
+        if self.merge_use_allele:
+            logger.info("Use allelic information for implementing 1st-round merging...")
+            if self.fasta is not None:
+                fasta_stem = Path(self.fasta).stem
+                _contigsizes = self.contigsizes[self.contigsizes['length'] > self.min_length]
+                if self.split:
+                    split_fasta_path = get_fasta_from_split_contig(
+                        self.fasta,
+                        _contigsizes,
+                        f"{fasta_stem}.split.fasta",
+                    )
+                    self.alleles(
+                        split_fasta_path,
+                        k=self.alleles_kmer_size,
+                        w=self.alleles_window_size,
+                        tl=0,
+                        output=f"{fasta_stem}.allele.table",
+                        split=True,
+                        threads=self.threads,
+                    )
+                    fast_alleletable = f"{fasta_stem}.split.allele.table"
+
+                    if Path(split_fasta_path).exists():
+                        logger.debug(f"Removing temporary split fasta file: {split_fasta_path}")
+                        os.remove(split_fasta_path)
+                    if Path(f"{split_fasta_path}.fai").exists():
+                        logger.debug(f"Removing temporary split fasta index file: {split_fasta_path}.fai")
+                        os.remove(f"{split_fasta_path}.fai")
+
+                else:
+                    fast_alleletable = self.alleles(
+                        self.fasta,
+                        k=self.alleles_kmer_size,
+                        w=self.alleles_window_size,
+                        tl=0,
+                        output=f"{fasta_stem}.allele.table",
+                        threads=self.threads,
+                    )
+
+                at = AlleleTable(fast_alleletable, fmt="allele2", sort=False)
+                at_df = at.data
+                at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
+                at_df[1] = at_df[1].map(vertices_idx.get)
+                at_df[2] = at_df[2].map(vertices_idx.get)
+                at_df = at_df.dropna()
+                at_df[1] = at_df[1].astype(int)
+                at_df[2] = at_df[2].astype(int)
+                self.alleletable = fast_alleletable
+                allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+            elif self.prune_pair_df is not None:
+                allelic_idx_set = set(map(tuple, 
+                    self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
+                                        (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
+                    [['contig1', 'contig2']].values)
+                    )
+                at_df = None
+            elif self.alleletable:
+                at = AlleleTable(self.alleletable, fmt="allele2", sort=False)
+                at_df = at.data
+                at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
+                at_df[1] = at_df[1].map(vertices_idx.get)
+                at_df[2] = at_df[2].map(vertices_idx.get)
+                at_df.dropna(inplace=True)
+                at_df[1] = at_df[1].astype(int)
+                at_df[2] = at_df[2].astype(int)
+                allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
+                
+            else:
+                allelic_idx_set = set()
+                at_df = None
+        else:
+            allelic_idx_set = None
+            at_df = None
+
+
+        if allelic_idx_set is not None and self.merge_use_allele:
+            
+            P_allelic_idx = list(zip(*allelic_idx_set))[0], list(zip(*allelic_idx_set))[1]
+            A = HyperGraph.reweight_adjacency_matrix(A, P_allelic_idx, allelic_factor=3)
+                
+
         if not first_cluster:
             
             if self.resolution1 < 0 :
@@ -1426,7 +1515,7 @@ class HyperPartition:
             self.K = list(map(list, self.K))
 
             if self.split:
-                _, self.K = self.merge_split()
+                _, self.K, _ = self.merge_split()
             self.K = self.filter_cluster()
 
             if k[0] and len(self.K) > k[0]:
@@ -1441,92 +1530,7 @@ class HyperPartition:
                     )
                     self.K = self.K[: k[0]]
                 else:
-                    if self.merge_use_allele:
-                        logger.info("Use allelic information for implementing 1st-round merging...")
-                        if self.fasta is not None:
-                            fasta_stem = Path(self.fasta).stem
-                            _contigsizes = self.contigsizes[self.contigsizes['length'] > self.min_length]
-                            if self.split:
-                                if not Path(
-                                    f"{fasta_stem}.fast.split.allele.table"
-                                ).exists():
-                                    
-                                    split_fasta_path = get_fasta_from_split_contig(
-                                        self.fasta,
-                                        _contigsizes,
-                                        f"{fasta_stem}.fast.split.fasta",
-                                    )
-                                    fast_alleletable = self.alleles(
-                                        split_fasta_path,
-                                        k=59,
-                                        w=59,
-                                        tl=0,
-                                        output=f"{fasta_stem}.fast.split.allele.table",
-                                        split=True,
-                                        threads=self.threads,
-                                    )
-                                else:
-                                    logger.warning(
-                                        f"Load exists alleletable file `{fasta_stem}.fast.split.allele.table`, if you want to re-generate it, please remove this file first."
-                                    )
-                                    fast_alleletable = (
-                                        f"{fasta_stem}.fast.split.allele.table"
-                                    )
-                            else:
-                                if not Path(
-                                    f"{fasta_stem}.fast.allele.table"
-                                ).exists():
-                                    fast_alleletable = self.alleles(
-                                        self.fasta,
-                                        k=59,
-                                        w=59,
-                                        tl=0,
-                                        output=f"{fasta_stem}.fast.allele.table",
-                                        threads=self.threads,
-                                    )
-                                else:
-                                    logger.warning(
-                                        f"Load exists alleletable file `{fasta_stem}.fast.allele.table`, if you want to re-generate it, please remove this file first."
-                                    )
-                                    fast_alleletable = (
-                                        f"{fasta_stem}.fast.allele.table"
-                                    )
-
-                            at = AlleleTable(fast_alleletable, fmt="allele2", sort=False)
-                            at_df = at.data
-                            at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
-                            at_df[1] = at_df[1].map(vertices_idx.get)
-                            at_df[2] = at_df[2].map(vertices_idx.get)
-                            at_df = at_df.dropna()
-                            at_df[1] = at_df[1].astype(int)
-                            at_df[2] = at_df[2].astype(int)
-                            
-                            allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
-                        elif self.prune_pair_df is not None:
-                            allelic_idx_set = set(map(tuple, 
-                                self.prune_pair_df[(self.prune_pair_df['type'] == 0) & 
-                                                    (self.prune_pair_df['similarity'] >= self.allelic_similarity)]
-                                [['contig1', 'contig2']].values)
-                                )
-                            at_df = None
-                        elif self.alleletable:
-                            at = AlleleTable(self.alleletable, fmt="allele2", sort=False)
-                            at_df = at.data
-                            at_df = at_df[at_df['similarity'] >= self.allelic_similarity]
-                            at_df[1] = at_df[1].map(vertices_idx.get)
-                            at_df[2] = at_df[2].map(vertices_idx.get)
-                            at_df.dropna(inplace=True)
-                            at_df[1] = at_df[1].astype(int)
-                            at_df[2] = at_df[2].astype(int)
-                            allelic_idx_set = set(map(tuple, at_df[[1, 2]].values))
-                            
-                        else:
-                            allelic_idx_set = set()
-                            at_df = None
-                    else:
-                        allelic_idx_set = None
-                        at_df = None
-                
+                    
                     if allelic_idx_set is not None and self.merge_use_allele:
                         self.K = HyperPartition._merge(A, self.K, vertices_idx_sizes, k[0], 
                                                         allelic_idx_set=allelic_idx_set,
@@ -1556,9 +1560,7 @@ class HyperPartition:
 
             assert len(self.K) > 0, "Couldn't run first cluster."
 
-            self.to_cluster(f'first.clusters.txt', merge=False)
-          
-            first_cluster_file = f'first.clusters.txt'
+            
 
             length_contents = list(map(
                 lambda  x: "{:,}".format(vertices_idx_sizes.loc[x]['length'].sum()), self.K))
@@ -1582,6 +1584,10 @@ class HyperPartition:
                 console_html.print(table)
             logger.info(capture.get())   
             mapq_filter = True
+
+            self.to_cluster(f'first.clusters.txt', merge=False)
+          
+            first_cluster_file = f'first.clusters.txt'
         else:
             vertices_idx = self.vertices_idx
             first_cluster_list = list(first_cluster.data.values())
@@ -1721,15 +1727,14 @@ class HyperPartition:
 
         if self.split:
             new_results = []
-            raw_contig_results = []
+          
             for _K in results:
-                self.K = _K 
-                _raw_K, _K = self.merge_split()
+                self.K = _K
+                _raw_K, _K, _raw_idx_sizes = self.merge_split()
                 new_results.append(_K)
-                raw_contig_results.append(_raw_K)
             
             results = new_results
-    
+          
         self.inc_chr_idx = []
         for i, j in enumerate(results):
             for _ in j:
@@ -1746,12 +1751,21 @@ class HyperPartition:
         self.K = list_flatten(results)
         self.K = self.filter_cluster()
         
-
         if self.exclude_group_to_second:
             self.K.extend(self.exclude_groups)
 
-        length_contents = list(map(
-            lambda  x: "{:,}".format(int(vertices_idx_sizes.reindex(x).dropna()['length'].sum())), self.K))
+
+        if self.split:
+           
+            
+            raw_K, _, raw_contig_sizes = self.merge_split()
+            length_contents = list(map(
+            lambda x: "{:,}".format(int(sum(raw_contig_sizes.get(i, 0) for i in x))), raw_K
+            ))
+        else:
+            vertices_idx_sizes = self.vertices_idx_sizes
+            length_contents = list(map(
+                lambda x: "{:,}".format(int(sum(vertices_idx_sizes.get(i, 0) for i in x))), self.K))
         second_length_contents = list(zip(second_group_info, length_contents))
         
         if self.exclude_group_to_second:
@@ -2392,135 +2406,407 @@ class HyperPartition:
         
         return K
     
-    @staticmethod
-    def refine_allelic_errors(K, k, A, idx_size, prune_pair_df, 
-                              min_weight, allelic_similarity=0.99, 
-                              rel_tol=0.2):
-        if prune_pair_df is None:
-            return K 
-        if len(K) == 1:
-            return K
+    # @staticmethod
+    # def refine_allelic_errors(K, k, A, idx_size, prune_pair_df, 
+    #                           min_weight, allelic_similarity=0.99, 
+    #                           rel_tol=0.2):
+    #     if prune_pair_df is None:
+    #         return K 
+    #     if len(K) == 1:
+    #         return K
     
         
+    #     tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) &
+    #                             (prune_pair_df['similarity'] >= allelic_similarity)]
+        
+    #     idx_size_db = idx_size.to_dict()['length']
+
+    #     tmp_df['length1'] = tmp_df['contig1'].map(idx_size_db)
+    #     tmp_df['length2'] = tmp_df['contig2'].map(idx_size_db)
+    
+    #     high_similar_pairs = set()
+    #     for idx, row in tmp_df.iterrows():
+    #         contig1, contig2 = row['contig1'], row['contig2']
+    #         mz1, mz2 = row['mz1'], row['mz2']
+    #         length1, length2 = row['length1'], row['length2']
+    #         if math.isclose(mz1, mz2, rel_tol=rel_tol) or \
+    #             math.isclose(length1, length2, rel_tol=rel_tol):
+    #             if contig1 > contig2:
+    #                 contig1, contig2 = contig2, contig1
+    #             high_similar_pairs.add((contig1, contig2))
+
+
+    #     if not high_similar_pairs:
+    #         return K
+        
+    #     retain_res = OrderedDict()
+    #     candicate_error_contig_pairs = OrderedDict()
+    #     all_candicate_error_contigs = set()
+    #     all_candicate_error_contig_db = defaultdict(set)
+    #     for idx, group in enumerate(K):
+    #         group_set = set(combinations(sorted(group), 2))
+    #         candicate_allelic_error_pairs = group_set.intersection(high_similar_pairs)
+    #         candicate_error_contigs = set(list_flatten(candicate_allelic_error_pairs))
+    #         all_candicate_error_contigs.update(candicate_error_contigs)
+    #         for pair in candicate_allelic_error_pairs:
+    #             all_candicate_error_contig_db[pair[0]].add(pair[0])
+    #             all_candicate_error_contig_db[pair[0]].add(pair[1]
+    #                                                        )
+
+    #         retain_contigs = set(group).difference(candicate_error_contigs)
+    #         retain_res[idx] = retain_contigs
+    
+    #         for pair in candicate_allelic_error_pairs:
+    #             if pair not in candicate_error_contig_pairs:
+    #                 candicate_error_contig_pairs[pair] = idx
+        
+    #     for pair in candicate_error_contig_pairs:
+    #         idx = candicate_error_contig_pairs[pair]
+    #         retain_contigs = retain_res[idx]
+    #         other_idxes = sorted(set(list(retain_res)).difference([idx]))
+
+    #         counts_list = []
+    #         for contig in pair:
+                
+    #             interaction_pairs = list(product([int(contig)], retain_contigs))
+                
+    #             interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
+    #             contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
+                
+    #             sub_A = A[contig1_idxes, :][:, contig2_idxes]
+
+    #             counts_list.append(sub_A.sum())
+            
+    #         max_idx = pair[np.argmax(counts_list)]
+    #         min_idx = pair[np.argmin(counts_list)]
+
+    #         retain_res[idx].add(max_idx)
+
+    #         other_counts_list = []
+    #         for other_idx in other_idxes:
+    #             other_retain_contigs = retain_res[other_idx]
+    #             if len(other_retain_contigs) == 0:
+    #                 continue
+    #             interaction_pairs = list(product([min_idx], other_retain_contigs))
+    #             interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
+    #             contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
+    #             if len(contig1_idxes) == 0 or len(contig2_idxes) == 0:
+    #                 other_counts_list.append(0)
+    #             else:
+    #                 sub_A = A[contig1_idxes,  contig2_idxes]
+    #                 other_counts_list.append(sub_A.sum())
+            
+    #         other_counts_db = dict(zip(other_idxes, other_counts_list))
+
+    #         other_counts_list = sorted(other_counts_db, 
+    #                                    key=lambda x: other_counts_db[x],
+    #                                    reverse=True)
+
+    #         for i in range(len(other_counts_list)):
+    #             max_chrom = other_counts_list[i]
+    #             try:
+    #                 second_chrom = other_counts_list[i+1]
+    #             except:
+    #                 second_chrom = None
+                
+    #             tmp_error_contigs = all_candicate_error_contig_db[min_idx]
+    #             tmp_counts = len(retain_res[max_chrom].intersection(tmp_error_contigs))
+    #             if tmp_counts > 0:
+    #                 continue 
+    #             if second_chrom:
+    #                 if (other_counts_db[max_chrom] > min_weight) and (other_counts_db[max_chrom] != other_counts_db[second_chrom]):
+    #                     retain_res[max_chrom].add(min_idx)
+    #                     break
+    #             else:
+    #                 if other_counts_db[max_chrom] > min_weight:
+    #                     retain_res[max_chrom].add(min_idx)
+    #                     break
+
+    #     new_K = []
+    #     for idx in sorted(retain_res):
+    #         new_K.append(sorted(retain_res[idx]))
+        
+
+    #     return new_K 
+         
+    @staticmethod
+    def refine_allelic_errors(K, k, A, idx_size, prune_pair_df, 
+                                min_weight, allelic_similarity=0.99, 
+                                rel_tol=0.2):
+        """
+        Improvements:
+        1. Competitive Scoring: Maximize global fitness (Score(u, cur) + Score(v, other)) vs (Score(v, cur) + Score(u, other)).
+        2. Strict Constraint Check: Ensure moving a contig doesn't create new conflicts in the target group.
+        """
+        if prune_pair_df is None:
+            return K 
+        if len(K) < 2:
+            return K
+    
+        # 1. Identify high similarity pairs (allelic candidates)
         tmp_df = prune_pair_df[(prune_pair_df['type'] == 0) &
                                 (prune_pair_df['similarity'] >= allelic_similarity)]
         
         idx_size_db = idx_size.to_dict()['length']
-
         tmp_df['length1'] = tmp_df['contig1'].map(idx_size_db)
         tmp_df['length2'] = tmp_df['contig2'].map(idx_size_db)
     
         high_similar_pairs = set()
+        high_similar_lookup = defaultdict(set)
+        
         for idx, row in tmp_df.iterrows():
-            contig1, contig2 = row['contig1'], row['contig2']
+            contig1, contig2 = int(row['contig1']), int(row['contig2'])
             mz1, mz2 = row['mz1'], row['mz2']
             length1, length2 = row['length1'], row['length2']
+            
             if math.isclose(mz1, mz2, rel_tol=rel_tol) or \
                 math.isclose(length1, length2, rel_tol=rel_tol):
                 if contig1 > contig2:
                     contig1, contig2 = contig2, contig1
                 high_similar_pairs.add((contig1, contig2))
-
+                high_similar_lookup[contig1].add(contig2)
+                high_similar_lookup[contig2].add(contig1)
 
         if not high_similar_pairs:
             return K
         
-        retain_res = OrderedDict()
-        candicate_error_contig_pairs = OrderedDict()
-        all_candicate_error_contigs = set()
-        all_candicate_error_contig_db = defaultdict(set)
+        cluster_sets = {i: set(group) for i, group in enumerate(K)}
+        contig_to_group = {}
         for idx, group in enumerate(K):
-            group_set = set(combinations(sorted(group), 2))
-            candicate_allelic_error_pairs = group_set.intersection(high_similar_pairs)
-            candicate_error_contigs = set(list_flatten(candicate_allelic_error_pairs))
-            all_candicate_error_contigs.update(candicate_error_contigs)
-            for pair in candicate_allelic_error_pairs:
-                all_candicate_error_contig_db[pair[0]].add(pair[0])
-                all_candicate_error_contig_db[pair[0]].add(pair[1]
-                                                           )
+            for c in group:
+                contig_to_group[c] = idx
 
-            retain_contigs = set(group).difference(candicate_error_contigs)
-            retain_res[idx] = retain_contigs
-    
-            for pair in candicate_allelic_error_pairs:
-                if pair not in candicate_error_contig_pairs:
-                    candicate_error_contig_pairs[pair] = idx
+        conflicting_pairs_queue = []
+        for c1, c2 in high_similar_pairs:
+            g1 = contig_to_group.get(c1)
+            g2 = contig_to_group.get(c2)
+            if g1 is not None and g2 is not None and g1 == g2:
+                combined_len = idx_size_db.get(c1, 0) + idx_size_db.get(c2, 0)
+                conflicting_pairs_queue.append((c1, c2, g1, combined_len))
         
-        for pair in candicate_error_contig_pairs:
-            idx = candicate_error_contig_pairs[pair]
-            retain_contigs = retain_res[idx]
-            other_idxes = sorted(set(list(retain_res)).difference([idx]))
-
-            counts_list = []
-            for contig in pair:
-                
-                interaction_pairs = list(product([int(contig)], retain_contigs))
-                
-                interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
-                contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
-                
-                sub_A = A[contig1_idxes, :][:, contig2_idxes]
-
-                counts_list.append(sub_A.sum())
-            
-            max_idx = pair[np.argmax(counts_list)]
-            min_idx = pair[np.argmin(counts_list)]
-
-            retain_res[idx].add(max_idx)
-
-            other_counts_list = []
-            for other_idx in other_idxes:
-                other_retain_contigs = retain_res[other_idx]
-                if len(other_retain_contigs) == 0:
-                    continue
-                interaction_pairs = list(product([min_idx], other_retain_contigs))
-                interaction_pairs = [(c1, c2) if c1 < c2 else (c2, c1) for c1, c2 in interaction_pairs] 
-                contig1_idxes, contig2_idxes = list(zip(*interaction_pairs))
-                if len(contig1_idxes) == 0 or len(contig2_idxes) == 0:
-                    other_counts_list.append(0)
-                else:
-                    sub_A = A[contig1_idxes,  contig2_idxes]
-                    other_counts_list.append(sub_A.sum())
-            
-            other_counts_db = dict(zip(other_idxes, other_counts_list))
-
-            other_counts_list = sorted(other_counts_db, 
-                                       key=lambda x: other_counts_db[x],
-                                       reverse=True)
-
-            for i in range(len(other_counts_list)):
-                max_chrom = other_counts_list[i]
-                try:
-                    second_chrom = other_counts_list[i+1]
-                except:
-                    second_chrom = None
-                
-                tmp_error_contigs = all_candicate_error_contig_db[min_idx]
-                tmp_counts = len(retain_res[max_chrom].intersection(tmp_error_contigs))
-                if tmp_counts > 0:
-                    continue 
-                if second_chrom:
-                    if (other_counts_db[max_chrom] > min_weight) and (other_counts_db[max_chrom] != other_counts_db[second_chrom]):
-                        retain_res[max_chrom].add(min_idx)
-                        break
-                else:
-                    if other_counts_db[max_chrom] > min_weight:
-                        retain_res[max_chrom].add(min_idx)
-                        break
-
-        new_K = []
-        for idx in sorted(retain_res):
-            new_K.append(sorted(retain_res[idx]))
+        if not conflicting_pairs_queue:
+            return K
         
+        conflicting_pairs_queue.sort(key=lambda x: x[3], reverse=True)
 
-        return new_K 
-         
+        def get_connection_strength(contig, target_group_set, ignore_set=None):
+            if not target_group_set: 
+                return 0.0
+            
+            if ignore_set:
+                targets = list(target_group_set - ignore_set)
+            else:
+                targets = list(target_group_set)
+            
+            if not targets: 
+                return 0.0
 
-    def rescue(self):
+            return A[contig, targets].sum()
+
+        corrected_count = 0
+        
+        for c1, c2, origin_g, _ in conflicting_pairs_queue:
+            curr_g1 = -1
+            curr_g2 = -2
+            
+            for gid, gset in cluster_sets.items():
+                if c1 in gset: 
+                    curr_g1 = gid
+                if c2 in gset: 
+                    curr_g2 = gid
+
+            if curr_g1 != curr_g2:
+                continue
+            
+            group_idx = curr_g1
+            current_group_set = cluster_sets[group_idx]
+            
+            other_groups = [g for g in cluster_sets.keys() if g != group_idx]
+            
+            ignore_pair = {c1, c2}
+            score_c1_curr = get_connection_strength(c1, current_group_set, ignore_pair)
+            score_c2_curr = get_connection_strength(c2, current_group_set, ignore_pair)
+
+            best_other_g_c1 = None
+            best_score_c1_other = 0.0
+            
+            for og in other_groups:
+                target_set = cluster_sets[og]
+              
+                conflicts = high_similar_lookup[c1]
+                if not conflicts.intersection(target_set):
+                    s = get_connection_strength(c1, target_set)
+                    if s > best_score_c1_other:
+                        best_score_c1_other = s
+                        best_other_g_c1 = og
+
+            best_other_g_c2 = None
+            best_score_c2_other = 0.0
+            
+            for og in other_groups:
+                target_set = cluster_sets[og]
+                conflicts = high_similar_lookup[c2]
+                if not conflicts.intersection(target_set):
+                    s = get_connection_strength(c2, target_set)
+                    if s > best_score_c2_other:
+                        best_score_c2_other = s
+                        best_other_g_c2 = og
+
+            if best_score_c1_other < min_weight: 
+                best_other_g_c1 = None
+            if best_score_c2_other < min_weight: 
+                best_other_g_c2 = None
+
+            score_keep_c1 = score_c1_curr + (best_score_c2_other if best_other_g_c2 is not None else -9999)
+            
+            score_keep_c2 = score_c2_curr + (best_score_c1_other if best_other_g_c1 is not None else -9999)
+            
+            if best_other_g_c1 is None and best_other_g_c2 is None:
+                continue
+            
+            move_c1 = False
+            move_c2 = False
+            
+            if best_other_g_c1 is not None and best_other_g_c2 is None:
+                move_c1 = True
+            elif best_other_g_c1 is None and best_other_g_c2 is not None:
+                move_c2 = True
+            else:
+                if score_keep_c1 >= score_keep_c2:
+                    move_c2 = True
+                else:
+                    move_c1 = True
+                    
+            if move_c1:
+                cluster_sets[group_idx].remove(c1)
+                cluster_sets[best_other_g_c1].add(c1)
+                corrected_count += 1
+            elif move_c2:
+                cluster_sets[group_idx].remove(c2)
+                cluster_sets[best_other_g_c2].add(c2)
+                corrected_count += 1
+
+        if corrected_count > 0:
+            logger.info(f"Refined {corrected_count} allelic mis-assignments using competitive scoring.")
+
+        new_K = [sorted(list(cluster_sets[i])) for i in sorted(cluster_sets.keys())]
+
+        return new_K
+
+
+    def rescue(self, rescue_threshold=0.1, allelic_similarity=0.99):
         """
         rescue unanchor contigs 
         """
-        pass 
+        if not self.K:
+            return
+
+        logger.info("Start rescuing unanchored contigs...")
+
+        # 1. Identify Unanchored Contigs
+        # Correctly reconstruct set of anchored indices from self.K
+        anchored_indices = set(list_flatten(self.K))
+        all_indices = set(self.vertices_idx.values())
+        unanchored_indices = list(all_indices - anchored_indices)
+        
+        if not unanchored_indices:
+            logger.info("No unanchored contigs found to rescue.")
+            return
+
+        # 2. Prepare Allelic Constraints (if available)
+        allelic_constraints = defaultdict(set)
+        if self.prune_pair_df is not None:
+                # Get pairs that are highly similar (allelic)
+                high_sim_df = self.prune_pair_df[
+                    (self.prune_pair_df['type'] == 0) & 
+                    (self.prune_pair_df['similarity'] >= allelic_similarity)
+                ]
+                # Map names to indices
+                vertices_idx_map = self.vertices_idx
+                
+                # Note: prune_pair_df contig names might need mapping to indices if not already done
+                # Assuming we need to map names to indices here safely:
+                for _, row in high_sim_df.iterrows():
+                    c1_name = row['contig1']
+                    c2_name = row['contig2']
+                    # Check if names are strings (vertices names) or already indices
+                    c1_idx = vertices_idx_map.get(c1_name) if isinstance(c1_name, str) else c1_name
+                    c2_idx = vertices_idx_map.get(c2_name) if isinstance(c2_name, str) else c2_name
+                    
+                    if c1_idx is not None and c2_idx is not None:
+                        allelic_constraints[c1_idx].add(c2_idx)
+                        allelic_constraints[c2_idx].add(c1_idx)
+
+        # 3. Calculate Interaction Strength
+        # We need A (Adjacency Matrix) to calculate connection strength.
+        # Recalculate A if not available or passed in. 
+        # Typically rescue is called after partitioning, so we generate a fresh A.
+        # Using simple clique expansion for rescue is usually sufficient.
+        logger.debug("Generating adjacency matrix for rescue...")
+        A = HyperGraph.clique_expansion_init(self.H, min_weight=self.min_weight)
+
+        rescued_count = 0
+        
+        # Sort unanchored by length (rescue larger ones first)
+        vertices_idx_sizes = self.vertices_idx_sizes.to_dict()['length']
+        unanchored_indices.sort(key=lambda x: vertices_idx_sizes.get(x, 0), reverse=True)
+
+        for contig_idx in unanchored_indices:
+            best_group_idx = -1
+            best_score = 0.0
+            total_connection = 0.0
+            
+            # Calculate connections to all groups
+            group_scores = []
+            
+            for g_idx, group in enumerate(self.K):
+                # Calculate raw connection strength sum
+                # A[contig_idx, group] returns a matrix/vector, we sum it up
+                score = A[contig_idx, group].sum()
+                group_scores.append(score)
+                total_connection += score
+
+            if total_connection == 0:
+                continue
+
+            # Find candidate group
+            max_score = max(group_scores)
+            candidate_g_idx = group_scores.index(max_score)
+            
+            # Threshold Check:
+            # Does this contig have enough specific connection to this group relative to total?
+            # Or absolute weight check? Here using relative ratio.
+            ratio = max_score / total_connection
+            
+            if ratio < rescue_threshold:
+                continue
+
+            # Allelic Conflict Check
+            target_group = self.K[candidate_g_idx]
+            is_conflict = False
+            
+            if contig_idx in allelic_constraints:
+                conflict_partners = allelic_constraints[contig_idx]
+                # Check if any conflict partner is already in the target group
+                intersection = conflict_partners.intersection(set(target_group))
+                if intersection:
+                    # Conflict found!
+                    # Advanced strategy: Compare strength. 
+                    # If this contig connects MUCH stronger than the existing partner, maybe swap?
+                    # For simple rescue, we just ABORT rescue to avoid introducing errors.
+                    is_conflict = True
+            
+            if not is_conflict:
+                self.K[candidate_g_idx].append(contig_idx)
+                rescued_count += 1
+        
+        if rescued_count > 0:
+            logger.info(f"Rescued {rescued_count} contigs into existing groups.")
+            
+            # Re-sort groups if needed
+            self.K = sorted(self.K, 
+                            key=lambda x: self.vertices_idx_sizes.reindex(x)['length'].sum(), 
+                            reverse=True)
 
     @staticmethod
     def recluster_contigs(K, k, A, raw_A, idx_size, idx2vertices=None,
@@ -2859,6 +3145,9 @@ class HyperPartition:
                             >= self.min_scaffold_length, 
                         self.K))
             
+        
+        logger.info(f"After filtering, {len(_K)} groups remain.")
+            
         return _K 
     
     def filter_cluster_ctg(self, verbose=1):
@@ -2890,6 +3179,58 @@ class HyperPartition:
             
         return _K 
     
+    def get_raw_contigsizes(self):
+        contigsizes = self.contigsizes.copy()
+        contigsizes.reset_index(inplace=True)
+        contigsizes[['source_chrom', 'start_end']] = contigsizes['chrom'].str.rsplit("|", n=1, expand=True)
+        contigsizes[['start', 'end']] = contigsizes['start_end'].str.split("_", n=1, expand=True).astype(int)
+        
+        return contigsizes.groupby(['source_chrom'])['length'].sum()
+        
+
+    def parse_trimmed_contig(self):
+        contigsizes = self.contigsizes.copy()
+        contigsizes.reset_index(inplace=True)
+        contigsizes[['source_chrom', 'start_end']] = contigsizes['chrom'].str.rsplit("|", n=1, expand=True)
+      
+        contigsizes[['start', 'end']] = contigsizes['start_end'].str.split("_", n=1, expand=True).dropna().astype(int)
+
+
+        for i, df in contigsizes.groupby('source_chrom', sort=False):
+            df = df.sort_values('start')
+            if len(df) > 1:
+                first_idx = df.index[0]
+                last_idx = df.index[-1] 
+                sum_length = df['length'].sum()
+                trim_length = df.loc[first_idx, 'start'] 
+                if trim_length <= 0:
+                    continue 
+                # if sum_length <= 3 * trim_length:
+                #     continue
+
+                df.loc[first_idx, 'length'] += trim_length
+
+                df.loc[last_idx, 'length'] += trim_length
+
+            elif len(df) == 1:
+                sum_length = df['length'].sum()
+                first_idx = df.index[0]
+                trim_length = df.loc[first_idx, 'start'] 
+                if trim_length <= 0:
+                    continue 
+                # if sum_length <= 3 * trim_length:
+                #     continue
+
+                df.loc[first_idx, 'length'] += trim_length * 2
+
+            else:
+                pass
+            contigsizes.loc[df.index, 'length'] = df['length']
+        
+        self.contigsizes = contigsizes.set_index('chrom')[['length']]
+        self.contigsizes.to_csv('test.contigsizes', sep='\t', header=None, index=True)
+        self.contig_sizes = dict(zip(self.contigsizes.index, self.contigsizes['length']))
+
     def merge_split(self, secondary=False):
         idx_to_vertices = self.idx_to_vertices
         vertices_to_idx = self.vertices_idx
@@ -2912,11 +3253,11 @@ class HyperPartition:
                                     key=lambda x: x[1], reverse=True)
             new_res_db[contig] = res_db[contig][0]
         
+        merged_contig_sizes =  self.get_raw_contigsizes().to_dict()
         clusters_db = defaultdict(list)
         for contig, (group_idx, length) in new_res_db.items():
             clusters_db[group_idx].append(contig)
         
-
         
         if secondary:
             tmp_inc_chr_idx = {}
@@ -2945,9 +3286,15 @@ class HyperPartition:
 
             new_split_clusters[group_idx].append(vertices_to_idx[v])
 
-        new_split_clusters = list(filter(lambda x: len(x) > 0, new_split_clusters))
+        final_split_clusters = []
+        for i in range(len(clusters)):
+            if len(clusters_db[i]) > 0:
+                final_split_clusters.append(new_split_clusters[i])
         
-        return merged_clusters, new_split_clusters
+        new_split_clusters = final_split_clusters
+
+
+        return merged_clusters, new_split_clusters, merged_contig_sizes
         
     
     def to_cluster(self, output, merge=True):
@@ -2958,9 +3305,9 @@ class HyperPartition:
             secondary = False 
         
         if secondary and self.split and merge:
-            clusters, _ = self.merge_split(secondary=secondary)
+            clusters, _, _ = self.merge_split(secondary=secondary)
         elif self.split and merge:
-            clusters, _ = self.merge_split()
+            clusters, _, _ = self.merge_split()
         else:
             idx_to_vertices = self.idx_to_vertices
 

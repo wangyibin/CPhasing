@@ -3,6 +3,7 @@
 import logging
 import os
 import os.path as op
+import re
 import sys
 import time
 import tempfile
@@ -34,7 +35,7 @@ from multiprocessing import Lock, Pool
 from joblib import Parallel, delayed
 from pandarallel import pandarallel
 from pathlib import Path
-from scipy.sparse import triu
+from scipy.sparse import triu, coo_matrix, csr_matrix
 
 from .agp import import_agp
 from .utilities import to_humanized, to_humanized2, chrom_ticks_convert
@@ -62,8 +63,38 @@ except AttributeError:
 _BALANCE_BLOCKS = None
 _BALANCE_BLOCK_RANGES = None
 
+RED12 = ["#FFFFFF",
+"#FEE8E8",
+"#FED1D1",
+"#FDB9B9",
+"#FCA2A2",
+"#FB8B8B",
+"#FB7474",
+"#FA5D5D",
+"#F94646",
+"#F82E2E",
+"#F81717",
+"#F70000",]
+
+
+REDD12 = [
+"#FFFFFF",
+"#F6ECEB",
+"#EED9D7",
+"#E5C6C3",
+"#DCB3AF",
+"#D4A09B",
+"#CB8E87",
+"#C37B73",
+"#BA685F",
+"#B1554B",
+"#A94237",
+"#A02F23",
+]
+
 ## https://github.com/XiaoTaoWang/NeoLoopFinder/blob/master/neoloop/visualize/core.py
-whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
+RED5 = ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000']
+whitered_cmap = LinearSegmentedColormap.from_list('whitered', ['#FFFFFF', '#FF0000'])
 
 lock = Lock()
 
@@ -88,7 +119,12 @@ def half_colormaps(cmap):
     if cmap == 'whitered':
         whitered_cmap = LinearSegmentedColormap.from_list('interaction', ['#FFFFFF','#FFDFDF','#FF7575'])
         return whitered_cmap
-    
+    elif cmap == 'reds':
+        colormap = getattr(cmaps, cmap)
+        color_list = colormap.colors
+        half_cmap = LinearSegmentedColormap.from_list(
+                f"{cmap}_half", ['white', color_list[5]])
+
     else:
         try:
             """
@@ -109,6 +145,7 @@ def half_colormaps(cmap):
                 logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
                 colormap = getattr(cmaps, "redp1_r")
                 color_list = colormap.colors[:128]
+                
                 half_cmap = LinearSegmentedColormap.from_list(
                     f"{cmap}_half", color_list)
 
@@ -887,15 +924,17 @@ def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
         new_bin_ids = base_offset + rel_bin_indices
         
         map_array[old_start_id : old_end_id+1] = new_bin_ids
-
+    
     return map_array, new_bins_df
 
 
 def process_chunk(chunk_df, map_array, temp_path, chunk_idx, bin_dtype, count_dtype):
+    chunk_df = chunk_df[(chunk_df['bin1_id'] > 0) & (chunk_df['bin2_id'] > 0)]
     old_b1 = chunk_df['bin1_id'].values
     old_b2 = chunk_df['bin2_id'].values
     counts = chunk_df['count'].values
-
+    
+    
     new_b1 = map_array[old_b1]
     new_b2 = map_array[old_b2]
     
@@ -923,6 +962,7 @@ def process_chunk(chunk_df, map_array, temp_path, chunk_idx, bin_dtype, count_dt
     ])
     
     chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
+
     return True
 
 def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4, coarsen_factor=1):
@@ -953,12 +993,12 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4, coarse
     
     map_array, new_bins_df = build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=coarsen_factor)
     new_bins_df['chrom'] = new_bins_df['chrom'].astype(str)
-    new_bins_df['start'] = new_bins_df['start'].astype(int)
-    new_bins_df['end'] = new_bins_df['end'].astype(int)
-    if (new_bins_df['end'] <= new_bins_df['start']).any():
-        new_bins_df = new_bins_df[new_bins_df['end'] > new_bins_df['start']].reset_index(drop=True)
+    new_bins_df['start'] = new_bins_df['start'].astype(np.int64)
+    new_bins_df['end'] = new_bins_df['end'].astype(np.int64)
+    # if (new_bins_df['end'] <= new_bins_df['start']).any():
+    #     new_bins_df = new_bins_df[new_bins_df['end'] > new_bins_df['start']].reset_index(drop=True)
 
-    max_bin_id = new_bins_df.index.max()
+    max_bin_id = new_bins_df['end'].max()
     bin_dtype = pl.Int32 if max_bin_id < 2**32 / 2 else pl.Int64
 
     logger.info("Loading and aggregating pixels (Chunked Processing)...")
@@ -978,54 +1018,6 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4, coarse
 
     chunk_idx = 0
     has_data = False
-
-    # for i in range(0, nnz, chunksize):
-    #     lo, hi = i, min(i + chunksize, nnz)
-    #     chunk_df = pixel_selector[lo:hi]
-        
-    #     has_data = True
-    #     old_b1 = chunk_df['bin1_id'].values
-    #     old_b2 = chunk_df['bin2_id'].values
-    #     counts = chunk_df['count'].values
-
-    #     if np.issubdtype(counts.dtype, np.integer):
-    #         count_dtype = pl.Int32
-    #     else:
-    #         count_dtype = pl.Float32 
-        
-
-    #     new_b1 = map_array[old_b1]
-    #     new_b2 = map_array[old_b2]
-        
-    #     valid_mask = (new_b1 != -1) & (new_b2 != -1)
-    #     if not np.all(valid_mask):
-    #         new_b1 = new_b1[valid_mask]
-    #         new_b2 = new_b2[valid_mask]
-    #         counts = counts[valid_mask]
-        
-    #     if len(new_b1) == 0:
-    #         continue
-
-    
-    #     swap_mask = new_b1 > new_b2
-    #     final_b1 = np.where(swap_mask, new_b2, new_b1)
-    #     final_b2 = np.where(swap_mask, new_b1, new_b2)
-
-    #     chunk_pl = pl.DataFrame({
-    #         'bin1_id': final_b1,
-    #         'bin2_id': final_b2,
-    #         'count': counts
-    #     }).select([
-    #         pl.col('bin1_id').cast(bin_dtype),
-    #         pl.col('bin2_id').cast(bin_dtype),
-    #         pl.col('count').cast(count_dtype)
-    #     ])
-        
-    #     chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
-    #     chunk_idx += 1
-        
-    #     del old_b1, old_b2, counts, new_b1, new_b2, final_b1, final_b2, chunk_df, chunk_pl
-
 
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = []
@@ -1102,12 +1094,14 @@ def adjust_matrix(matrix, agp, outprefix=None, chromSize=None, threads=4, coarse
         output_cool,
         new_bins_df,
         pixel_iterator(), 
-        dtypes={'count': 'float32' if count_dtype == pl.Float32 else 'int32'},
+        dtypes={'count': 'float64' if count_dtype == pl.Float32 else 'int64',
+                'bin1_id': 'int32' if bin_dtype == pl.Int32 else 'int64',
+                'bin2_id': 'int32' if bin_dtype == pl.Int32 else 'int64',
+                },
         ordered=True,
         triucheck=False,
         dupcheck=False,
         boundscheck=False,
-        # h5opts={'compression': 'lzf'}
     )
     if coarsen_factor > 1:
         logger.info(f'Successful, adjusted and coarsen matrix to chromosome-level, elapsed time {time.time() - start_time:.2f}s')
@@ -1522,6 +1516,7 @@ def plot_heatmap(matrix, output,
                     sort_chromosome_by_inter_contacts=False,
                     hap_pattern=r'(Chr\d+)g(\d+)',
                     per_chromosomes=False,
+                    group_by_homologs=False,
                     chrom_per_row=4,
                     factor=None,
                     factor_formula="genome_log",
@@ -1532,7 +1527,9 @@ def plot_heatmap(matrix, output,
                     fontsize=None,
                     dpi=1200, 
                     cmap="redp1_r",
+                    cbar_bottom=False,
                     balanced=False,
+                    remove_empty=True,
                     threads=1):
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -1564,8 +1561,15 @@ def plot_heatmap(matrix, output,
     if not per_chromosomes:
         chrom_offset = cool._load_dset('indexes/chrom_offset')
         chromsizes = cool.chromsizes
+        if chromsizes.dtype == np.int32:
+            chromsizes = chromsizes.astype(np.uint32).astype(np.int64)
+
         binsize = cool.binsize
         bins = cool.bins()[:].reset_index(drop=False)
+        if bins['start'].dtype == np.int32:
+            bins['start'] = bins['start'].astype(np.uint32).astype(np.int64)
+        if bins['end'].dtype == np.int32:
+            bins['end'] = bins['end'].astype(np.uint32).astype(np.int64)
         bins['chrom'] = bins['chrom'].astype('str')
         bins = bins.set_index('chrom')
         if binsize is None:
@@ -1599,6 +1603,10 @@ def plot_heatmap(matrix, output,
             else:
                 bins = bins.loc[chromosomes]
                 new_idx = bins['index']
+                bins.drop('index', axis=1, inplace=True)
+                bins.reset_index(drop=False, inplace=True)
+                bins.reset_index(drop=False, inplace=True)
+                bins.set_index('chrom', inplace=True)
                 matrix = matrix[new_idx, :][:, new_idx]
                 chromnames = chromosomes
                 chromsizes = chromsizes.loc[chromnames]
@@ -1611,20 +1619,48 @@ def plot_heatmap(matrix, output,
                                                 .values
                                                 .flatten())
                                                     ].tolist()
-        else:
-            if remove_short_bin:
-                logger.debug("Removing the short bin ...")
-                retain_chroms = chromsizes[chromsizes >= binsize].index.values
-                if len(retain_chroms) < len(chromsizes): 
-                    bins = bins.loc[retain_chroms]
-                    new_idx = bins['index']
-                    matrix = matrix[new_idx, :][:, new_idx]
-                    chromnames = retain_chroms.tolist()
-                    grouped_counts = new_idx.reset_index().groupby('chrom', sort=False).count().values.flatten()
-                    chrom_offset = np.r_[0, np.cumsum(grouped_counts)].tolist()
-                    chromsizes = chromsizes.loc[chromnames]
-                else:
-                    chrom_offset = chrom_offset.tolist()
+        # else:
+        if remove_short_bin:
+            logger.debug("Removing the short bin ...")
+            retain_chroms = chromsizes[chromsizes >= binsize].index.values
+            if len(retain_chroms) < len(chromsizes): 
+                bins = bins.loc[retain_chroms]
+
+                new_idx = bins['index']
+                matrix = matrix[new_idx, :][:, new_idx]
+                chromnames = retain_chroms.tolist()
+                chrom_offset = np.r_[0, 
+                                np.cumsum(new_idx
+                                            .reset_index()
+                                            .groupby('chrom', sort=False)
+                                            .count()
+                                            .values
+                                            .flatten())
+                                                ].tolist()
+                chromsizes = chromsizes.loc[chromnames]
+            else:
+                chrom_offset = chrom_offset
+
+        if balanced and remove_empty:
+             if 'weight' in bins.columns:
+                valid_mask = bins['weight'].notna().values
+                if not np.all(valid_mask):
+                    logger.info(f"Removing {np.sum(~valid_mask)} bins masked by balancing.")
+                    matrix = matrix[valid_mask, :][:, valid_mask]
+                    bins = bins.iloc[valid_mask]
+                    
+                    new_counts = bins.groupby(level=0, sort=False).size()
+                    new_counts = new_counts.reindex(chromnames).fillna(0).astype(int)
+                    
+                    keep_chroms = new_counts[new_counts > 0].index.tolist()
+                    
+                    if len(keep_chroms) < len(chromnames):
+                        chromnames = keep_chroms
+                        new_counts = new_counts.loc[chromnames]
+                        chromsizes = chromsizes.loc[chromnames]
+                        
+                    chrom_offset = np.r_[0, np.cumsum(new_counts.values)].tolist()
+
 
         if sort_chromosome_by_inter_contacts and len(chromnames) > 1:
             order_idx, order_labels = cluster_chrom_by_inter_contacts(
@@ -1826,7 +1862,7 @@ def plot_heatmap(matrix, output,
                             xticks=xticks, yticks=yticks, 
                             rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
                             vmin=vmin, vmax=vmax, 
-                            cmap=cmap, add_lines=add_lines,
+                            cmap=cmap, cbar_bottom=cbar_bottom, add_lines=add_lines,
                             add_hap_border=add_hap_border,
                             hap_border_color=hap_border_color,
                             hap_border_width=hap_border_width,
@@ -1841,9 +1877,11 @@ def plot_heatmap(matrix, output,
                             avoid_overlap_yticks=avoid_overlap_yticks)
     
     else: 
-        ax = plot_per_chromosome_heatmap(cool, chromosomes,
+        ax = plot_per_chromosome_heatmap(cool, chromosomes, fontsize=fontsize,
                                          chrom_per_row=chrom_per_row, triangle=triangle,
-                                        cmap=cmap, balanced=balanced, threads=threads)
+                                        cmap=cmap, balanced=balanced,
+                                        vmin=vmin, vmax=vmax, group_by_homologs=group_by_homologs,
+                                        hap_pattern=hap_pattern, threads=threads)
 
     logger.info(f"  Set dpi to `{dpi}`.")
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
@@ -1853,9 +1891,11 @@ def plot_heatmap(matrix, output,
     return ax
 
 
-def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, 
+def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True, fontsize=10,
                                     chrom_per_row=4, remove_short_bin=True, triangle=False,
-                                    cmap='redp1_r', balanced=False, threads=1):
+                                    cmap='redp1_r', balanced=False, vmin=None, vmax=None,
+                                    group_by_homologs=False, hap_pattern=r'(Chr\d+)g(\d+)',
+                                    threads=1):
     """
     modified from hicPlotMatrix plotPerChr
     """
@@ -1870,8 +1910,16 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
     chrom_offset = cool._load_dset('indexes/chrom_offset')
     chromsizes = cool.chromsizes
+    if chromsizes.dtype == np.int32:
+        chromsizes = chromsizes.astype(np.uint32).astype(np.int64)
+
     binsize = cool.binsize
+
     bins = cool.bins()[:].reset_index(drop=False)
+    if bins['start'].dtype == np.int32:
+        bins['start'] = bins['start'].astype(np.uint32).astype(np.int64)
+        bins['end'] = bins['end'].astype(np.uint32).astype(np.int64)
+        
     bins['chrom'] = bins['chrom'].astype('str')
     bins = bins.set_index('chrom')
     if binsize is None:
@@ -1905,34 +1953,80 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
 
     matrix = matrix.todense()
     chromosomes = chromosomes if chromosomes else cool.chromnames
+
+
+    if group_by_homologs:
+
+        def _compute_chrom_offset(bins_df, chrom_list):
+            b = bins_df.reset_index() if 'chrom' not in bins_df.columns else bins_df.reset_index()
+            if 'chrom' not in b.columns:
+                b.columns.values[0] = 'chrom'
+            counts = b.groupby('chrom', sort=False)['index'].count() if 'index' in b.columns else b.groupby('chrom', sort=False).size()
+            counts = counts.reindex(chrom_list).fillna(0).astype(int)
+            return np.r_[0, np.cumsum(counts.values)].tolist()
+        
+        pat = re.compile(hap_pattern)
+        groups = OrderedDict()
+        order_seen = []
+        for ch in chromosomes:
+            m = pat.match(str(ch))
+            key = m.group(1) if m else str(ch)
+            if key not in groups:
+                groups[key] = []
+                order_seen.append(key)
+            groups[key].append(ch)
+
+        ordered_chroms = [c for key in order_seen for c in groups[key]]
+
+        try:
+            chromsizes = chromsizes.loc[ordered_chroms]
+            bins = bins.loc[ordered_chroms]
+            chromosomes = ordered_chroms
+            chrom_offset = _compute_chrom_offset(bins, chromosomes)
+
+        except Exception:
+            groups = OrderedDict()
+            groups_list = [[c] for c in chromosomes]
+            groups = OrderedDict((str(i), g) for i, g in enumerate(groups_list))
+
+        num_rows = len(groups)
+        num_cols = max(len(g) for g in groups.values()) if groups else 0
+        width_ratios = [1.0] * num_cols + [0.05]
     
-    num_rows = int(ceil(float(len(chromosomes)) / chrom_per_row))
-    num_cols = min(chrom_per_row, len(chromosomes))
-    width_ratios = [1.0] * num_cols + [0.05]
-    grids = gridspec.GridSpec(num_rows, num_cols + 1,
-                                width_ratios=width_ratios,
-                                height_ratios=[1] * num_rows)
+        grid_chrom = []
+        for g in groups.values():
+            row = list(g) + [None] * (num_cols - len(g))
+            grid_chrom.append(row)
+    else:
+        num_rows = int(ceil(float(len(chromosomes)) / chrom_per_row))
+        num_cols = min(chrom_per_row, len(chromosomes))
+        width_ratios = [1.0] * num_cols + [0.05]
+
 
     if triangle:
         grids = gridspec.GridSpec(num_rows, num_cols + 1,
                                 width_ratios=width_ratios,
                                 height_ratios=[1] * num_rows,
-                                hspace=0.4, wspace=0.1)
+                                hspace=0.4, wspace=0.2)
      
-        fig_height = 3.8 * num_rows
-        fig_width = 7 * num_cols
+        fig_height = 1.9 * num_rows
+        fig_width = 3.5 * num_cols
         fig = plt.figure(figsize=(fig_width, fig_height))
 
     else:
         grids = gridspec.GridSpec(num_rows, num_cols + 1,
                                 width_ratios=width_ratios,
-                                height_ratios=[1] * num_rows)
-        fig_height = 6 * num_rows
-        fig_width = sum((np.array(width_ratios) + 0.05) * 6)
+                                height_ratios=[1] * num_rows,
+                                hspace=0.4, wspace=0.2)
+        fig_height = 3 * num_rows
+        fig_width = sum((np.array(width_ratios) + 0.05) * 3)
         
         fig = plt.figure(figsize=(fig_width, fig_height))
 
-    def _plot(ax, chrom, matrix, chrom_range):
+    plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
+
+    def _plot(ax, chrom, matrix, chrom_range, plot_cbar=False, fontsize=12):
         chrom_matrix = matrix[chrom_range[0]:chrom_range[1], :][:, chrom_range[0]:chrom_range[1]]
         chrom_matrix = chrom_matrix
         if log1p or log:
@@ -1961,19 +2055,166 @@ def plot_per_chromosome_heatmap(cool, chromosomes, log1p=True,
             norm = None
 
 
-        plot_heatmap_core(chrom_matrix, ax, chromsizes=chromsizes.loc[chrom], bins=bins, chrom_offset=chrom_offset,
+        plot_heatmap_core(chrom_matrix, ax, tick_fontsize=fontsize,
+                          chromsizes=chromsizes.loc[chrom], bins=bins, chrom_offset=chrom_offset,
                           norm=norm, xlabel=chrom, triangle=triangle,
-                            cmap=cmap, xticks=True, yticks=False)
-    args = []
-    for i, chrom in enumerate(chromosomes):
-        row = i // chrom_per_row
-        col = i % chrom_per_row
+                            cmap=cmap, xticks=True, yticks=False,
+                            vmin=vmin, vmax=vmax, plot_cbar=plot_cbar)
     
-        ax = plt.subplot(grids[row, col])
-        chrom_range = (chrom_offset[i], chrom_offset[i+1])
-        args.append((ax, chrom, matrix, chrom_range))
-        logger.debug(f"Plotting the heatmap of `{chrom}` ...")
-        _plot(ax, chrom, matrix, chrom_range)
+    if vmax is None:
+        plot_cbar = True
+    else:
+        plot_cbar = False
+
+    args = []
+    if group_by_homologs:
+        index_map = {ch: idx for idx, ch in enumerate(chromosomes)}
+        for r in range(num_rows):
+            for c in range(num_cols):
+                chrom = grid_chrom[r][c]
+              
+                if chrom is None:
+                    continue
+                i = index_map[chrom]
+                ax = plt.subplot(grids[r, c])
+                
+                chrom_range = (chrom_offset[i], chrom_offset[i+1])
+                args.append((ax, chrom, matrix, chrom_range))
+                logger.debug(f"Plotting the heatmap of `{chrom}` (group row {r}, col {c}) ...")
+                _plot(ax, chrom, matrix, chrom_range, plot_cbar=plot_cbar, fontsize=fontsize)
+    else:
+        for i, chrom in enumerate(chromosomes):
+            row = i // chrom_per_row
+            col = i % chrom_per_row
+            ax = plt.subplot(grids[row, col])
+            chrom_range = (chrom_offset[i], chrom_offset[i+1])
+            args.append((ax, chrom, matrix, chrom_range))
+            logger.debug(f"Plotting the heatmap of `{chrom}` ...")
+            _plot(ax, chrom, matrix, chrom_range, plot_cbar=plot_cbar, fontsize=fontsize)
+
+    if plot_cbar is False:
+        try:
+            import colormaps as cmaps
+            from matplotlib import colors as mcolors
+        except Exception:
+            from matplotlib import colors as mcolors
+            cmaps = None
+
+        if cmap.endswith('_half'):
+            colormap = half_colormaps(cmap.replace('_half', ''))    
+        else:
+            if cmap == 'whitered':
+                colormap = whitered_cmap
+            else:
+                try:
+                    colormap = getattr(cmaps, cmap)
+                except Exception:
+                    try:
+                        colormap = getattr(plt.cm, cmap)
+                    except Exception:
+                        logger.warning(f"Colormap `{cmap}` not found, use `redp1_r` instead.")
+                        colormap = getattr(cmaps, "redp1_r") if cmaps is not None else plt.cm.get_cmap('Reds')
+
+        img = None
+        for ax in fig.axes:
+            ims = ax.get_images()
+            if ims:
+                img = ims[0]
+                break
+
+        from matplotlib import colors as mcolors
+
+        if img is not None:
+            cmap_getter = getattr(img, 'get_cmap', None)
+            try:
+                cmap_used = cmap_getter() if callable(cmap_getter) else (cmap_getter if cmap_getter is not None else None)
+            except Exception:
+                cmap_used = None
+            if cmap_used is None:
+                try:
+                    cmap_used = getattr(plt.cm, cmap)
+                except Exception:
+                    cmap_used = plt.cm.viridis
+
+            norm_used = None
+            get_norm = getattr(img, 'get_norm', None)
+            if callable(get_norm):
+                try:
+                    norm_used = get_norm()
+                except Exception:
+                    norm_used = None
+
+            if norm_used is None and hasattr(img, 'norm'):
+                try:
+                    norm_used = getattr(img, 'norm')
+                except Exception:
+                    norm_used = None
+
+            if norm_used is None:
+                try:
+                    vmin_img, vmax_img = img.get_clim()
+                except Exception:
+                    vmin_img, vmax_img = (None, None)
+                vmin_final = vmin if vmin is not None else (vmin_img if vmin_img is not None else 0.0)
+                vmax_final = vmax if vmax is not None else (vmax_img if vmax_img is not None else 1.0)
+                norm_used = mcolors.Normalize(vmin=vmin_final, vmax=vmax_final)
+            else:
+                try:
+                    if vmin is not None:
+                        setattr(norm_used, 'vmin', vmin)
+                    if vmax is not None: 
+                        setattr(norm_used, 'vmax', vmax)
+                except Exception:
+                    pass
+
+            sm = plt.cm.ScalarMappable(cmap=cmap_used, norm=norm_used)
+            v0 = getattr(norm_used, 'vmin', (vmin if vmin is not None else 0.0))
+            v1 = getattr(norm_used, 'vmax', (vmax if vmax is not None else 1.0))
+            sm.set_array(np.linspace(v0, v1, 256))
+        else:
+            norm_obj = mcolors.Normalize(vmin=vmin if vmin is not None else 0.0,
+                                        vmax=vmax if vmax is not None else 1.0)
+            sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm_obj)
+            sm.set_array(np.linspace(norm_obj.vmin, norm_obj.vmax, 256))
+       
+        from matplotlib.transforms import Bbox
+        try:
+            ax_positions = [a.get_position() for a in fig.axes if a is not None and a.get_axes_locator() is None]
+        except Exception:
+            ax_positions = [a.get_position() for a in fig.axes]
+        if ax_positions:
+            bbox = Bbox.union(ax_positions)
+            pad = 0.01  
+            cbar_width = 0.015  
+            cbar_height = 0.18  
+            x = bbox.x1 + pad
+            y = bbox.y1 - cbar_height - pad
+           
+            if x + cbar_width > 0.98:
+                x = bbox.x1 - cbar_width - pad
+            if y < 0.02:
+                y = bbox.y0 + pad
+            cax = fig.add_axes([x, y, cbar_width, cbar_height])
+            cbar = fig.colorbar(sm, cax=cax, orientation='vertical')
+            cbar.ax.tick_params(labelsize=fontsize)
+            try:
+                cbar.set_label("Contacts", fontsize=fontsize)
+            except Exception:
+                pass
+        else:
+            cax = plt.subplot(grids[:, -1])
+            cbar = fig.colorbar(sm, cax=cax, shrink=0.4, pad=0.3)
+
+
+
+        if log1p:
+            cbar.set_label("Log$_{10}$(Contact + 1)")
+        elif log:
+            cbar.set_label("Log(Contact)")
+        elif balanced:
+            cbar.set_label("Normalized Contacts")
+        else:
+            cbar.set_label("Contacts")
 
     return fig
 
@@ -2004,7 +2245,9 @@ def plot_heatmap_core(matrix,
                         add_lines=False,
                         line_color='black',
                         line_width=0.5,
-                        line_style='--'):
+                        line_style='--',
+                        plot_cbar=True,
+                        cbar_bottom=False):
     import colormaps as cmaps
     import matplotlib.pyplot as plt 
     import matplotlib
@@ -2066,18 +2309,17 @@ def plot_heatmap_core(matrix,
                     cis_matrix.append(sub_triu.data)
 
                 cis_matrix = np.concatenate(cis_matrix)
+                cis_matrix = cis_matrix[cis_matrix > 0] 
             else:
                 for i in range(len(chrom_offset) - 1):
                     cis_matrix.append(
                                     np.array(matrix[chrom_offset[i]:chrom_offset[i+1], 
                                             chrom_offset[i]:chrom_offset[i+1]]))
                 
-                # cis_matrix_median = np.median(np.concatenate([arr.ravel() for arr in cis_matrix]))
-                # cis_matrix_std = np.std(np.concatenate([arr.ravel() for arr in cis_matrix])
-                ## remove diagonal
                 cis_matrix = [arr[np.triu_indices(arr.shape[0], k=1)] for arr in cis_matrix]
                 cis_matrix = np.concatenate([arr.flatten().ravel() for arr in cis_matrix])
                 cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
+                cis_matrix = cis_matrix[cis_matrix > 0] 
             
             def vmax_by_iqr(vals, k):
                 q1, q3 = np.percentile(vals, [25, 75])
@@ -2091,6 +2333,7 @@ def plot_heatmap_core(matrix,
          
             # vmax = vmax_by_mad(cis_matrix, 5)
             vmax = vmax_by_iqr(cis_matrix, 1.5)
+          
             if vmax == 0:
                 try:
                     vmax = np.min(cis_matrix[cis_matrix != 0])
@@ -2105,10 +2348,7 @@ def plot_heatmap_core(matrix,
                             logger.info("  Rescaled by tiny vmax; set vmin=0, vmax=1 for colorbar.")
                 except:
                     vmax = 0
-                # if np.min(cis_matrix[cis_matrix != 0]) == 1:
-                #     vmax = np.min(cis_matrix[cis_matrix != 0])
-                # else:
-                #     vmax = 0.1 
+       
             try:
                 if isinstance(vmax, (int, np.integer)):
                     s_vmax = str(int(vmax))
@@ -2182,7 +2422,7 @@ def plot_heatmap_core(matrix,
         y[y<0] = -y[y<0]
     
         cax = ax.pcolormesh(x, y, np.flipud(np.array(matrix)), cmap=colormap, edgecolor='none',
-                            snap=True, linewidth=.001, rasterized=False)
+                            snap=True, linewidth=.001, rasterized=True)
         fig = plt.gcf()
         # ax.plot(100, 3, marker='v', markersize=2, linestyle=None, color='blue')
         # ax.axis('off')
@@ -2204,37 +2444,59 @@ def plot_heatmap_core(matrix,
         
     binsize = np.argmax(np.bincount(bins['end'] - bins['start']))
     
-    cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
+    if plot_cbar:
+        cax.set_norm(colors.Normalize(vmin=vmin, vmax=vmax))
 
-    ax.set_xlim(0, matrix.shape[0])
-    ax.set_ylim(0, matrix.shape[1])
+        ax.set_xlim(0, matrix.shape[0])
+        ax.set_ylim(0, matrix.shape[1])
 
-
-    cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
-    cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
-    cbar.locator = plt.MaxNLocator(5)
-    fmt = ScalarFormatter(useMathText=True)
-    fmt.set_scientific(True)
-    fmt.set_powerlimits((-3, 3))
-    fmt.set_useOffset(False)
-    cbar.formatter = fmt 
-    cbar.update_ticks()
-    if norm == 'log1p':
-        cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=tick_fontsize)
-    elif norm == 'log':
-        cbar.set_label("Log(Contact)", fontsize=tick_fontsize)
-    elif norm == 'balanced':
-        cbar.set_label("Normalized Contacts", fontsize=tick_fontsize)
+        if cbar_bottom:
+            cbar = fig.colorbar(cax, ax=ax, orientation='horizontal', shrink=.3, pad=0.06, location='bottom')
+        else:
+            cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
+        
+        cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
+        cbar.locator = plt.MaxNLocator(3)
+        fmt = ScalarFormatter(useMathText=True)
+        fmt.set_scientific(True)
+        fmt.set_powerlimits((-3, 3))
+        fmt.set_useOffset(False)
+        cbar.formatter = fmt 
+        if cbar.orientation == 'vertical':
+            cbar.ax.yaxis.set_major_formatter(fmt)
+            cbar.ax.ticklabel_format(style='sci', axis='y', scilimits=(-3, 3))
+            try:
+                cbar.ax.yaxis.set_offset_position('right')
+                cbar.ax.yaxis.get_offset_text().set_fontsize(int(tick_fontsize * 0.75))
+            except Exception:
+                pass
+        else:
+            cbar.ax.xaxis.set_major_formatter(fmt)
+            cbar.ax.ticklabel_format(style='sci', axis='x', scilimits=(-3, 3))
+            try:
+                cbar.ax.xaxis.set_offset_position('top')
+                cbar.ax.xaxis.get_offset_text().set_fontsize(int(tick_fontsize * 0.75))
+            except Exception:
+                pass
+        cbar.update_ticks()
+        if norm == 'log1p':
+            cbar.set_label("Log$_{10}$(Contact + 1)", fontsize=tick_fontsize)
+        elif norm == 'log':
+            cbar.set_label("Log(Contact)", fontsize=tick_fontsize)
+        elif norm == 'balanced':
+            cbar.set_label("Normalized Contacts", fontsize=tick_fontsize)
+        else:
+            cbar.set_label("Contacts", fontsize=tick_fontsize)
     else:
-        cbar.set_label("Contacts", fontsize=tick_fontsize)
+        cbar = None
 
-    if add_lines and chrom_offset:
+    if add_lines and chrom_offset is not None:
         ax.hlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_xlim(), 
                     linewidth=line_width, color=line_color, linestyles=line_style)
         ax.vlines(np.array(chrom_offset[1:-1]) - 0.5, *ax.get_ylim(), 
                     linewidth=line_width, color=line_color, linestyles=line_style)
     
-    if chrom_offset:
+    if chrom_offset is not None:
         mid_tick_pos = list((np.array(chrom_offset)[:-1] + np.array(chrom_offset)[1:]) / 2)
     else:
         mid_tick_pos = [0]
@@ -2244,13 +2506,19 @@ def plot_heatmap_core(matrix,
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
         ax.tick_params(axis='x', length=5, width=1)
-        _xticks = ax.get_xticks()[:-1]
-        dist = _xticks[1] - _xticks[0]
- 
-        if (ax.get_xlim()[1] - _xticks[-1]) <= (dist / 2):
-            _xticks = _xticks[:-1]
+        x_limit = ax.get_xlim()[1]
+        _xticks = ax.get_xticks()
+        _xticks = _xticks[_xticks < x_limit]
+        
+        if len(_xticks) > 1:
+            dist = _xticks[1] - _xticks[0]
+            if len(_xticks) > 0 and (x_limit - _xticks[-1]) <= (dist / 2):
+                _xticks = _xticks[:-1]
 
-        _xticks = np.r_[_xticks, ax.get_xlim()[1]]
+        _xticks = np.r_[_xticks, x_limit]
+
+        dist = _xticks[1] - _xticks[0]
+
         ax.set_xticks(_xticks)
         _xticks = _xticks * binsize 
         total_size = chromsizes.sum()
@@ -2368,3 +2636,941 @@ def plot_heatmap_core(matrix,
         ax.axis([0, matrix.shape[0], matrix.shape[1], 0])
 
     return ax
+
+
+def sort_chromosome_by_interaction(cool, size_penalty_coef: float = 0.5, collapse_small_threshold_factor: float = 0.5):
+    import numpy as np
+    from scipy.cluster.hierarchy import linkage, optimal_leaf_ordering, leaves_list
+    from scipy.spatial.distance import squareform
+
+    c = cooler.Cooler(cool)
+    chromnames = list(c.chromnames)
+    chrom_offset = np.asarray(c._load_dset('indexes/chrom_offset'), dtype=np.int64)
+    n_chr = len(chromnames)
+    if n_chr <= 1:
+        return np.arange(n_chr, dtype=int), chromnames
+
+    pixels = c.pixels()
+    nnz = len(pixels)
+    if nnz == 0:
+        return np.arange(n_chr, dtype=int), chromnames
+
+    try:
+        chrom_sizes = np.asarray([float(c.chromsizes[name]) for name in chromnames], dtype=float)
+    except Exception:
+        chrom_sizes = None
+
+    collapsed_map = None
+    keep_idx = None
+    new_n_chr = n_chr
+    if chrom_sizes is not None and n_chr > 200:
+        thr = max(np.median(chrom_sizes) * collapse_small_threshold_factor, 1e4)
+        small_idx = np.where(chrom_sizes < thr)[0]
+        if 0 < small_idx.size < n_chr:
+            small_set = set(small_idx.tolist())
+            keep_idx = [i for i in range(n_chr) if i not in small_set]
+            other_bucket = len(keep_idx)
+            new_n_chr = other_bucket + 1
+            collapsed_map = np.full(n_chr, other_bucket, dtype=np.int32)
+            for newi, oldi in enumerate(keep_idx):
+                collapsed_map[oldi] = newi
+        else:
+            collapsed_map = None
+            new_n_chr = n_chr
+    else:
+        collapsed_map = None
+        new_n_chr = n_chr
+
+    S = np.zeros((new_n_chr, new_n_chr), dtype=float)
+
+    chunksize = max(1_000_000, nnz // 50)  
+    for i in range(0, nnz, chunksize):
+        chunk = pixels[i: i + chunksize]
+        b1 = np.asarray(chunk['bin1_id'], dtype=np.int64)
+        b2 = np.asarray(chunk['bin2_id'], dtype=np.int64)
+        cnt = np.asarray(chunk['count'], dtype=float)
+
+        chr1 = np.searchsorted(chrom_offset, b1, side='right') - 1
+        chr2 = np.searchsorted(chrom_offset, b2, side='right') - 1
+
+        mask = chr1 != chr2
+        if not np.any(mask):
+            continue
+        i1 = chr1[mask].astype(np.int64)
+        i2 = chr2[mask].astype(np.int64)
+        w = cnt[mask].astype(float)
+
+        if collapsed_map is not None:
+            i1 = collapsed_map[i1]
+            i2 = collapsed_map[i2]
+            valid = (i1 >= 0) & (i2 >= 0)
+            if not np.any(valid):
+                continue
+            i1 = i1[valid].astype(np.int64)
+            i2 = i2[valid].astype(np.int64)
+            w = w[valid]
+
+        flat_idx = i1 * new_n_chr + i2
+        flat = np.bincount(flat_idx, weights=w, minlength=new_n_chr * new_n_chr)
+        S += flat.reshape((new_n_chr, new_n_chr))
+
+    S = S + S.T
+
+    if np.all(S == 0):
+        if collapsed_map is not None and keep_idx is not None:
+            labels = [chromnames[i] for i in keep_idx] + ["small_contigs"]
+            return np.arange(new_n_chr, dtype=int), labels
+        return np.arange(n_chr, dtype=int), chromnames
+
+    if collapsed_map is not None and keep_idx is not None:
+        chromnames_new = [chromnames[i] for i in keep_idx] + ["small_contigs"]
+        chromnames = chromnames_new
+        n_chr = new_n_chr
+    else:
+        n_chr = new_n_chr
+
+    S_max = float(np.nanmax(S))
+    D = (S_max - S).astype(float)
+    np.fill_diagonal(D, 0.0)
+
+    try:
+        if chrom_sizes is not None and size_penalty_coef > 0.0:
+            if collapsed_map is not None and keep_idx is not None:
+                keep_sizes = [chrom_sizes[i] for i in keep_idx]
+                small_sizes = chrom_sizes[np.where(collapsed_map == collapsed_map[keep_idx[0]])] if False else chrom_sizes[np.isin(np.arange(len(chrom_sizes)), np.where(collapsed_map == (len(keep_idx)))[0])]
+                small_sizes = chrom_sizes[[i for i in range(len(chrom_sizes)) if i not in keep_idx]] if len(keep_idx) < len(chrom_sizes) else np.array([1.0])
+                new_sizes = np.concatenate([np.array(keep_sizes, dtype=float), [float(np.median(small_sizes)) if small_sizes.size else 1.0]])
+                log_sizes = np.log1p(new_sizes)
+            else:
+                log_sizes = np.log1p(chrom_sizes)
+            size_diff = np.abs(log_sizes[:, None] - log_sizes[None, :])
+            max_diff = float(np.nanmax(size_diff)) if size_diff.size else 0.0
+            if max_diff > 0:
+                size_penalty_norm = size_diff / max_diff
+                D = D + (size_penalty_coef * S_max) * size_penalty_norm
+    except Exception:
+        pass
+
+    try:
+        dist_vec = squareform(D, checks=False)
+    except Exception:
+        jitter = 1e-12 * np.random.RandomState(0).rand(D.shape[0], D.shape[1])
+        D = D + jitter
+        dist_vec = squareform(D, checks=False)
+
+    Z = linkage(dist_vec, method='average')
+    try:
+        Z_opt = optimal_leaf_ordering(Z, dist_vec)
+        leaves = leaves_list(Z_opt).astype(int)
+    except Exception:
+        leaves = leaves_list(Z).astype(int)
+
+    order_idx = np.asarray(leaves, dtype=int)
+    order_labels = [chromnames[i] for i in order_idx]
+
+    return order_idx, order_labels
+
+
+def sort_chromosome_by_interaction_fast(
+    cool,
+    method: str = "greedy",
+    size_penalty_coef: float = 0.5,
+    collapse_small_threshold_factor: float = 0.5,
+    collapse_min_chrs: int = 200,
+):
+    import numpy as np
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import minimum_spanning_tree
+
+    c = cooler.Cooler(cool)
+    chromnames = list(c.chromnames)
+    chrom_offset = np.asarray(c._load_dset("indexes/chrom_offset"), dtype=np.int64)
+    n_chr = len(chromnames)
+    if n_chr <= 1:
+        return np.arange(n_chr, dtype=int), chromnames
+
+    pixels = c.pixels()
+    nnz = len(pixels)
+    if nnz == 0:
+        return np.arange(n_chr, dtype=int), chromnames
+
+    # optional: collapse many small contigs -> one bucket
+    try:
+        chrom_sizes = np.asarray([float(c.chromsizes[name]) for name in chromnames], dtype=float)
+    except Exception:
+        chrom_sizes = None
+
+    collapsed_map = None
+    keep_idx = None
+    new_n_chr = n_chr
+    if chrom_sizes is not None and n_chr >= collapse_min_chrs:
+        thr = max(np.median(chrom_sizes) * collapse_small_threshold_factor, 1e4)
+        small_idx = np.where(chrom_sizes < thr)[0]
+        if 0 < small_idx.size < n_chr:
+            small_set = set(small_idx.tolist())
+            keep_idx = [i for i in range(n_chr) if i not in small_set]
+            other_bucket = len(keep_idx)
+            new_n_chr = other_bucket + 1
+            collapsed_map = np.full(n_chr, other_bucket, dtype=np.int32)
+            for newi, oldi in enumerate(keep_idx):
+                collapsed_map[oldi] = newi
+
+    S = np.zeros((new_n_chr, new_n_chr), dtype=float)
+    chunksize = max(1_000_000, nnz // 50)
+    for i in range(0, nnz, chunksize):
+        chunk = pixels[i : i + chunksize]
+        b1 = np.asarray(chunk["bin1_id"], dtype=np.int64)
+        b2 = np.asarray(chunk["bin2_id"], dtype=np.int64)
+        cnt = np.asarray(chunk["count"], dtype=float)
+
+        chr1 = np.searchsorted(chrom_offset, b1, side="right") - 1
+        chr2 = np.searchsorted(chrom_offset, b2, side="right") - 1
+        mask = chr1 != chr2
+        if not np.any(mask):
+            continue
+        i1 = chr1[mask].astype(np.int64)
+        i2 = chr2[mask].astype(np.int64)
+        w = cnt[mask].astype(float)
+
+        if collapsed_map is not None:
+            i1 = collapsed_map[i1]
+            i2 = collapsed_map[i2]
+            valid = (i1 >= 0) & (i2 >= 0)
+            if not np.any(valid):
+                continue
+            i1 = i1[valid].astype(np.int64)
+            i2 = i2[valid].astype(np.int64)
+            w = w[valid]
+
+        flat_idx = i1 * new_n_chr + i2
+        flat = np.bincount(flat_idx, weights=w, minlength=new_n_chr * new_n_chr)
+        S += flat.reshape((new_n_chr, new_n_chr))
+
+    S = S + S.T
+    if np.all(S == 0):
+        # no inter-chromosomal signal
+        if collapsed_map is not None and keep_idx is not None:
+            labels = [chromnames[i] for i in keep_idx] + ["small_contigs"]
+            return np.arange(new_n_chr, dtype=int), labels
+        return np.arange(n_chr, dtype=int), chromnames
+
+    # optionally incorporate size penalty into a modified score matrix (only used by greedy/mst)
+    if chrom_sizes is not None and size_penalty_coef > 0.0:
+        if collapsed_map is not None and keep_idx is not None:
+            keep_sizes = np.array([chrom_sizes[i] for i in keep_idx], dtype=float)
+            small_sizes = chrom_sizes[[i for i in range(len(chrom_sizes)) if i not in keep_idx]]
+            small_val = float(np.median(small_sizes)) if small_sizes.size else 1.0
+            sizes = np.concatenate([keep_sizes, [small_val]])
+        else:
+            sizes = chrom_sizes.astype(float)
+        log_sizes = np.log1p(sizes)
+        size_diff = np.abs(log_sizes[:, None] - log_sizes[None, :])
+        # normalize and scale relative to S max
+        max_diff = float(np.nanmax(size_diff)) if size_diff.size else 0.0
+        if max_diff > 0:
+            size_penalty = (size_diff / max_diff) * (size_penalty_coef * float(np.nanmax(S)))
+        else:
+            size_penalty = np.zeros_like(S)
+    else:
+        size_penalty = np.zeros_like(S)
+
+    # fast strategies
+    if method == "sum":
+        scores = S.sum(axis=1)
+        order_idx = np.argsort(-scores)
+    elif method == "size_then_sum" and chrom_sizes is not None:
+        if collapsed_map is not None and keep_idx is not None:
+            sizes = np.array([float(chrom_sizes[i]) for i in keep_idx] + [np.median(chrom_sizes[[i for i in range(len(chrom_sizes)) if i not in keep_idx]])])
+        else:
+            sizes = chrom_sizes.astype(float)
+        sums = S.sum(axis=1)
+        # sort by size desc, tie-breaker sums desc
+        order_idx = np.lexsort(( -sums, -sizes ))
+    elif method == "greedy":
+        # seed by highest total inter-contact (or largest size)
+        totals = S.sum(axis=1)
+        seed = int(np.argmax(totals))
+        visited = [seed]
+        unvisited = set(range(new_n_chr))
+        unvisited.remove(seed)
+        while unvisited:
+            last = visited[-1]
+            # score = S[last] - size_penalty[last]  (apply penalty)
+            scores = S[last].copy() - size_penalty[last]
+            # ignore visited
+            for v in visited:
+                scores[v] = -np.inf
+            nxt = int(np.argmax(scores[list(unvisited)]))
+            # map back index in list(unvisited)
+            nxt = list(unvisited)[nxt]
+            visited.append(nxt)
+            unvisited.remove(nxt)
+        order_idx = np.array(visited, dtype=int)
+    elif method == "mst":
+        # maximum spanning tree -> DFS order
+        # use minimum_spanning_tree on negative weights to get maximum spanning tree
+        W = -S
+        W[np.isinf(W)] = 0.0
+        csr = csr_matrix(W)
+        T = minimum_spanning_tree(csr)  # returns sparse tree for min; since W=-S, this is max tree
+        # build adjacency
+        T = T.toarray()
+        T = T + T.T  # undirected
+        # adjacency weights positive
+        adj = (T != 0).astype(int)
+        # DFS
+        root = int(np.argmax(S.sum(axis=1)))
+        stack = [root]
+        visited = set()
+        order = []
+        while stack:
+            node = stack.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            order.append(node)
+            nbrs = np.where(adj[node] != 0)[0]
+            # sort neighbors by descending weight to make DFS greedy
+            nbrs_sorted = sorted(nbrs.tolist(), key=lambda x: -S[node, x])
+            for nb in nbrs_sorted[::-1]:
+                if nb not in visited:
+                    stack.append(nb)
+        # append any disconnected nodes
+        for i in range(new_n_chr):
+            if i not in visited:
+                order.append(i)
+        order_idx = np.array(order, dtype=int)
+    else:
+        raise ValueError(f"Unknown method `{method}`")
+
+    # map back collapsed labels if needed
+    if collapsed_map is not None and keep_idx is not None:
+        labels = [chromnames[i] for i in keep_idx] + ["small_contigs"]
+        order_labels = [labels[i] for i in order_idx]
+    else:
+        order_labels = [chromnames[i] for i in order_idx]
+    return order_idx, order_labels
+
+
+# def compute_chrom_interaction_matrix_from_pixels(cool, chrom_offset, collapse_map=None, chunksize=5_000_000):
+#     import numpy as np
+#     pixels = cool.pixels()
+#     nnz = len(pixels)
+#     if nnz == 0:
+#         n_new = (np.max(collapse_map) + 1) if collapse_map is not None else (len(chrom_offset) - 1)
+#         return np.zeros((n_new, n_new), dtype=float)
+
+#     if collapse_map is None:
+#         n_new = len(chrom_offset) - 1
+#     else:
+#         n_new = int(collapse_map.max() + 1)
+#     S = np.zeros((n_new, n_new), dtype=float)
+#     for i in range(0, nnz, chunksize):
+#         chunk = pixels[i: i + chunksize]
+#         b1 = np.asarray(chunk['bin1_id'], dtype=np.int64)
+#         b2 = np.asarray(chunk['bin2_id'], dtype=np.int64)
+#         w = np.asarray(chunk['count'], dtype=float)
+#         chr1 = np.searchsorted(chrom_offset, b1, side='right') - 1
+#         chr2 = np.searchsorted(chrom_offset, b2, side='right') - 1
+#         mask = chr1 != chr2
+#         if not np.any(mask):
+#             continue
+#         i1 = chr1[mask].astype(np.int64)
+#         i2 = chr2[mask].astype(np.int64)
+#         weights = w[mask]
+#         if collapse_map is not None:
+#             i1 = collapse_map[i1]
+#             i2 = collapse_map[i2]
+#             valid = (i1 >= 0) & (i2 >= 0)
+#             if not np.any(valid):
+#                 continue
+#             i1 = i1[valid]; i2 = i2[valid]; weights = weights[valid]
+#         flat = i1 * n_new + i2
+#         binc = np.bincount(flat, weights=weights, minlength=n_new * n_new)
+#         S += binc.reshape((n_new, n_new))
+
+#     S = S + S.T
+#     return S
+
+# def sort_chromosomes_grouped(cool, bins,
+#                              hap_pattern=r'(Chr\d+)g(\d+)',
+#                              intra_method='sum',
+#                              inter_method='sum',
+#                              contig_method='size',
+#                              compute_chunksize=5_000_000):
+
+#     import re
+#     import numpy as np
+#     from collections import OrderedDict
+#     from scipy.sparse import csr_matrix, issparse
+#     from scipy.sparse.csgraph import minimum_spanning_tree
+
+#     if isinstance(cool, str):
+#         c = cooler.Cooler(cool)
+#     else:
+#         c = cool
+
+
+#     if isinstance(bins, np.ndarray) or isinstance(bins, list):
+#         raise ValueError("bins must be a DataFrame-like with 'chrom' and 'index'")
+#     if 'chrom' in bins.columns:
+#         bdf = bins[['chrom', 'index']].copy()
+#     else:
+#         bdf = bins.reset_index()[['chrom', 'index']].copy()
+#     grp = bdf.groupby('chrom', sort=False)['index'].count()
+#     chromnames = grp.index.tolist()
+#     counts = grp.values.astype(int)
+#     chrom_offset = np.r_[0, np.cumsum(counts)].astype(np.int64)
+
+#     n_chr = len(chromnames)
+#     if n_chr <= 1:
+#         return np.arange(n_chr, dtype=int), chromnames
+
+#     S = compute_chrom_interaction_matrix_from_pixels(c, chrom_offset, collapse_map=None, chunksize=compute_chunksize)
+
+#     S = np.nan_to_num(np.asarray(S, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+#     if S.shape[0] != n_chr:
+
+#         S = np.zeros((n_chr, n_chr), dtype=float)
+
+#     def sort_members(members, method='sum'):
+#         k = len(members)
+#         if k <= 1:
+#             return members[:]
+#         sub = S[np.ix_(members, members)]
+#         if method == 'sum':
+#             scores = np.asarray(sub.sum(axis=1)).ravel()
+#             order = np.argsort(-scores)
+#             return [members[i] for i in order]
+#         elif method == 'greedy':
+#             totals = np.asarray(sub.sum(axis=1)).ravel()
+#             seed = int(np.argmax(totals))
+#             visited = [members[seed]]
+#             unvisited = set(members) - {visited[0]}
+#             # map value->pos helper
+#             idx_map = {m: i for i, m in enumerate(members)}
+#             while unvisited:
+#                 last = visited[-1]
+#                 li = idx_map[last]
+#                 # scores to unvisited
+#                 cand_list = list(unvisited)
+#                 cand_idx = [idx_map[c] for c in cand_list]
+#                 cand_scores = sub[li, cand_idx]
+#                 best_rel = int(np.argmax(cand_scores))
+#                 best = cand_list[best_rel]
+#                 visited.append(best)
+#                 unvisited.remove(best)
+#             return visited
+#         elif method == 'mst':
+#             # build complete weight matrix W for these members
+#             W = np.asarray(sub, dtype=float)
+#             # negative for minimum spanning tree
+#             M = -W
+#             csr = csr_matrix(M)
+#             T = minimum_spanning_tree(csr).toarray()
+#             T = T + T.T
+#             adj = (T != 0).astype(int)
+#             # root = node with largest total weight
+#             root = int(np.argmax(W.sum(axis=1)))
+#             stack = [root]
+#             visited = set()
+#             order = []
+#             while stack:
+#                 node = stack.pop()
+#                 if node in visited:
+#                     continue
+#                 visited.add(node)
+#                 order.append(members[node])
+#                 nbrs = np.where(adj[node] != 0)[0]
+#                 nbrs_sorted = sorted(nbrs.tolist(), key=lambda x: -W[node, x])
+#                 for nb in nbrs_sorted[::-1]:
+#                     if nb not in visited:
+#                         stack.append(nb)
+#             # append any missing
+#             for i in range(k):
+#                 if members[i] not in order:
+#                     order.append(members[i])
+#             return order
+#         else:
+#             raise ValueError(f"unknown intra_method `{method}`")
+
+
+#     pat = re.compile(hap_pattern)
+#     group_members = OrderedDict()
+#     group_order = []
+#     for i, name in enumerate(chromnames):
+#         m = pat.match(str(name))
+#         key = m.group(1) if m else str(name)
+#         if key not in group_members:
+#             group_members[key] = []
+#             group_order.append(key)
+#         group_members[key].append(i)
+
+   
+#     ordered_group_members = {}
+#     for key, members in group_members.items():
+#         if len(members) <= 1:
+#             ordered_group_members[key] = members[:]
+#             continue
+#         ordered_group_members[key] = sort_members(members, method=intra_method)
+
+#     group_keys = list(group_order)
+#     Gk = len(group_keys)
+#     G = np.zeros((Gk, Gk), dtype=float)
+
+#     for a, ka in enumerate(group_keys):
+#         ma = ordered_group_members[ka]
+#         for b, kb in enumerate(group_keys[a+1:], start=a+1):
+#             mb = ordered_group_members[kb]
+#             # sum over cross-block using S and numpy indexing
+#             sa = S[np.ix_(ma, mb)].sum()
+#             G[a, b] = sa
+#             G[b, a] = sa
+
+#     def sort_groups(group_idx_list, method='sum'):
+#         m = len(group_idx_list)
+#         if m <= 1:
+#             return group_idx_list[:]
+#         if method == 'sum':
+#             scores = G.sum(axis=1)
+#             order = np.argsort(-scores)
+#             return [group_idx_list[i] for i in order]
+#         elif method == 'greedy':
+#             totals = G.sum(axis=1)
+#             seed = int(np.argmax(totals))
+#             visited = [group_idx_list[seed]]
+#             unvisited = set(group_idx_list) - {visited[0]}
+#             while unvisited:
+#                 last = visited[-1]
+#                 last_idx = group_idx_list.index(last)
+#                 best = max(unvisited, key=lambda x: G[last_idx, group_idx_list.index(x)])
+#                 visited.append(best)
+#                 unvisited.remove(best)
+#             return visited
+#         elif method == 'mst':
+#             M = -G
+#             csr = csr_matrix(M)
+#             T = minimum_spanning_tree(csr).toarray()
+#             T = T + T.T
+#             adj = (T != 0).astype(int)
+#             root = int(np.argmax(G.sum(axis=1)))
+#             stack = [root]
+#             visited = set()
+#             order = []
+#             while stack:
+#                 node = stack.pop()
+#                 if node in visited:
+#                     continue
+#                 visited.add(node)
+#                 order.append(group_idx_list[node])
+#                 nbrs = np.where(adj[node] != 0)[0]
+#                 nbrs_sorted = sorted(nbrs.tolist(), key=lambda x: -G[node, x])
+#                 for nb in nbrs_sorted[::-1]:
+#                     if nb not in visited:
+#                         stack.append(nb)
+#             for i in range(m):
+#                 if group_idx_list[i] not in order:
+#                     order.append(group_idx_list[i])
+#             return order
+#         else:
+#             raise ValueError(f"unknown inter_method `{method}`")
+
+#     group_idx_list = list(range(Gk))
+#     ordered_group_idx = sort_groups(group_idx_list, method=inter_method)
+
+#     final_order = []
+#     final_labels = []
+#     for gi in ordered_group_idx:
+#         key = group_keys[gi]
+#         members = ordered_group_members[key]
+#         final_order.extend(members)
+#         final_labels.extend([chromnames[i] for i in members])
+
+#     return np.asarray(final_order, dtype=int), final_labels
+
+# def compute_chrom_interaction_matrix_from_pixels(cool, chrom_offset, collapse_map=None, chunksize=5_000_000):
+#     import numpy as np
+#     from scipy.sparse import coo_matrix, csr_matrix
+
+#     pixels = cool.pixels()
+#     nnz = len(pixels)
+#     if nnz == 0:
+#         n_new = (int(collapse_map.max()) + 1) if collapse_map is not None else (len(chrom_offset) - 1)
+#         return csr_matrix((n_new, n_new), dtype=float)
+
+#     if collapse_map is None:
+#         n_new = len(chrom_offset) - 1
+#     else:
+#         n_new = int(collapse_map.max() + 1)
+
+#     rows = []
+#     cols = []
+#     data = []
+
+#     for i in range(0, nnz, chunksize):
+#         chunk = pixels[i: i + chunksize]
+#         b1 = np.asarray(chunk['bin1_id'], dtype=np.int64)
+#         b2 = np.asarray(chunk['bin2_id'], dtype=np.int64)
+#         w = np.asarray(chunk['count'], dtype=float)
+
+#         chr1 = np.searchsorted(chrom_offset, b1, side='right') - 1
+#         chr2 = np.searchsorted(chrom_offset, b2, side='right') - 1
+
+#         mask = chr1 != chr2
+#         if not np.any(mask):
+#             continue
+
+#         i1 = chr1[mask].astype(np.int64)
+#         i2 = chr2[mask].astype(np.int64)
+#         weights = w[mask]
+
+#         if collapse_map is not None:
+#             i1 = collapse_map[i1]
+#             i2 = collapse_map[i2]
+#             valid = (i1 >= 0) & (i2 >= 0)
+#             if not np.any(valid):
+#                 continue
+#             i1 = i1[valid].astype(np.int64)
+#             i2 = i2[valid].astype(np.int64)
+#             weights = weights[valid]
+
+#         flat = i1 * n_new + i2
+
+#         uniq, inv = np.unique(flat, return_inverse=True)
+#         sums = np.bincount(inv, weights=weights)
+#         if sums.size == 0:
+#             continue
+#         rows_chunk = (uniq // n_new).astype(np.int32)
+#         cols_chunk = (uniq % n_new).astype(np.int32)
+
+#         rows.extend(rows_chunk.tolist())
+#         cols.extend(cols_chunk.tolist())
+#         data.extend(sums.tolist())
+
+#     if len(data) == 0:
+#         return csr_matrix((n_new, n_new), dtype=float)
+
+#     S = coo_matrix((data, (rows, cols)), shape=(n_new, n_new), dtype=float)
+
+#     S = (S + S.T).tocsr()
+#     return S
+
+
+def compute_chrom_interaction_matrix_from_pixels(
+    cool, chrom_offset, collapse_map=None, chunksize=5_000_000):
+
+    # pixels = cool.pixels()
+    nnz = cool.info['nnz']
+    
+    if collapse_map is None:
+        n_new = len(chrom_offset) - 1
+    else:
+        n_new = int(collapse_map.max() + 1)
+
+    if nnz == 0:
+        return csr_matrix((n_new, n_new), dtype=float)
+
+    n_bins = cool.info['nbins']
+    bin_to_chrom = np.full(n_bins, -1, dtype=np.int32)
+    for i, (start, end) in enumerate(zip(chrom_offset[:-1], chrom_offset[1:])):
+        if start < n_bins:
+            # Ensure we don't go out of bounds if chrom_offset is weird
+            end = min(end, n_bins)
+            bin_to_chrom[start:end] = i
+
+    use_dense = (n_new <= 5000)
+    
+    if use_dense:
+        S_dense = np.zeros((n_new, n_new), dtype=np.float64)
+    else:
+        rows_list = []
+        cols_list = []
+        data_list = []
+
+    pixels = cool.pixels()
+    
+    for i in range(0, nnz, chunksize):
+        chunk = pixels[i: i + chunksize]
+        b1 = np.asarray(chunk['bin1_id'], dtype=np.int64)
+        b2 = np.asarray(chunk['bin2_id'], dtype=np.int64)
+        w = np.asarray(chunk['count'], dtype=float)
+
+        chr1 = bin_to_chrom[b1]
+        chr2 = bin_to_chrom[b2]
+
+        mask = (chr1 != -1) & (chr2 != -1) & (chr1 != chr2)
+        if not np.any(mask):
+            continue
+
+        i1 = chr1[mask]
+        i2 = chr2[mask]
+        weights = w[mask]
+
+        if collapse_map is not None:
+            i1 = collapse_map[i1]
+            i2 = collapse_map[i2]
+            valid = (i1 >= 0) & (i2 >= 0)
+            if not np.any(valid):
+                continue
+            i1 = i1[valid]
+            i2 = i2[valid]
+            weights = weights[valid]
+
+        flat = i1.astype(np.int64) * n_new + i2.astype(np.int64)
+
+        if use_dense:
+            if flat.size == 0:
+                continue
+            counts = np.bincount(flat, weights=weights, minlength=n_new*n_new)
+            if counts.size > n_new*n_new:
+                counts = counts[:n_new*n_new]
+            S_dense += counts.reshape((n_new, n_new))
+        else:
+            uniq, inv = np.unique(flat, return_inverse=True)
+            sums = np.bincount(inv, weights=weights)
+            
+            rows_chunk = (uniq // n_new).astype(np.int32)
+            cols_chunk = (uniq % n_new).astype(np.int32)
+
+            rows_list.append(rows_chunk)
+            cols_list.append(cols_chunk)
+            data_list.append(sums)
+
+    if use_dense:
+        S_dense += S_dense.T
+        return csr_matrix(S_dense)
+    else:
+        if not data_list:
+            return csr_matrix((n_new, n_new), dtype=float)
+        
+        rows = np.concatenate(rows_list)
+        cols = np.concatenate(cols_list)
+        data = np.concatenate(data_list)
+
+        S = coo_matrix((data, (rows, cols)), shape=(n_new, n_new), dtype=float)
+        S = (S + S.T).tocsr()
+        return S
+
+
+def sort_chromosomes_grouped(cool, 
+                             hap_pattern=r'(Chr\d+)g(\d+)',
+                             intra_method='greedy',
+                             inter_method='greedy',
+                             contig_method='size',
+                             compute_chunksize=5_000_000):
+    import re
+    import numpy as np
+    from collections import OrderedDict
+    from scipy.sparse import csr_matrix, issparse
+    from scipy.sparse.csgraph import minimum_spanning_tree
+
+    if isinstance(cool, str):
+        c = cooler.Cooler(cool)
+    else:
+        c = cool
+
+    bins = c.bins()[:]['chrom'].reset_index()
+
+    if isinstance(bins, np.ndarray) or isinstance(bins, list):
+        raise ValueError("bins must be a DataFrame-like with 'chrom' and 'index'")
+    if 'chrom' in bins.columns:
+        bdf = bins[['chrom', 'index']].copy()
+    else:
+        bdf = bins.reset_index()[['chrom', 'index']].copy()
+    grp = bdf.groupby('chrom', sort=False)['index'].count()
+    chromnames = grp.index.tolist()
+    counts = grp.values.astype(int)
+    chrom_offset = np.r_[0, np.cumsum(counts)].astype(np.int64)
+
+    n_chr = len(chromnames)
+    if n_chr <= 1:
+        return np.arange(n_chr, dtype=int), chromnames
+
+
+    S = compute_chrom_interaction_matrix_from_pixels(
+        c, chrom_offset, collapse_map=None, chunksize=compute_chunksize)
+    if not issparse(S):
+        S = csr_matrix(S)
+    S = S.tocsr()  # ensure csr
+
+ 
+    def sort_members(members, method='sum'):
+        k = len(members)
+        if k <= 1:
+            return members[:]
+        sub = S[members, :][:, members]  # sparse k x k
+        sub_arr = sub.toarray() if hasattr(sub, "toarray") else np.asarray(sub, dtype=float)
+        if method == 'sum':
+            scores = sub_arr.sum(axis=1)
+            order = np.argsort(-scores)
+            return [members[i] for i in order]
+        elif method == 'greedy':
+            n = sub_arr.shape[0]
+            if n == 0:
+                return []
+            
+            # Vectorized greedy sort
+            totals = sub_arr.sum(axis=1)
+            current = np.argmax(totals)
+            
+            path = np.zeros(n, dtype=int)
+            path[0] = current
+            
+            mask = np.ones(n, dtype=bool)
+            mask[current] = False
+            
+            for i in range(1, n):
+                # Get interactions of current node
+                scores = sub_arr[current].copy()
+                # Mask visited nodes with -1.0 (assuming interactions >= 0)
+                scores[~mask] = -1.0
+                
+                nxt = np.argmax(scores)
+                path[i] = nxt
+                mask[nxt] = False
+                current = nxt
+                
+            return [members[i] for i in path]
+        elif method == 'mst':
+            W = sub_arr.copy()
+            M = -W
+            csr = csr_matrix(M)
+            T = minimum_spanning_tree(csr).toarray()
+            T = T + T.T
+            adj = (T != 0).astype(int)
+            root = int(np.argmax(W.sum(axis=1)))
+            stack = [root]
+            visited_nodes = set()
+            order = []
+            while stack:
+                node = stack.pop()
+                if node in visited_nodes:
+                    continue
+                visited_nodes.add(node)
+                order.append(members[node])
+                nbrs = np.where(adj[node] != 0)[0]
+                nbrs_sorted = sorted(nbrs.tolist(), key=lambda x: -W[node, x])
+                for nb in nbrs_sorted[::-1]:
+                    if nb not in visited_nodes:
+                        stack.append(nb)
+            for i in range(k):
+                if members[i] not in order:
+                    order.append(members[i])
+            return order
+        else:
+            raise ValueError(f"unknown intra_method `{method}`")
+
+
+    pat = re.compile(hap_pattern)
+    group_members = OrderedDict()
+    group_order = []
+    for i, name in enumerate(chromnames):
+        m = pat.match(str(name))
+        key = m.group(1) if m else str(name)
+        if key not in group_members:
+            group_members[key] = []
+            group_order.append(key)
+        group_members[key].append(i)
+
+    ordered_group_members = {}
+    for key, members in group_members.items():
+        if len(members) <= 1:
+            ordered_group_members[key] = members[:]
+        else:
+            ordered_group_members[key] = sort_members(members, method=intra_method)
+
+    group_keys = list(group_order)
+    Gk = len(group_keys)
+    
+
+    row_ind = []
+    col_ind = []
+    for g_idx, key in enumerate(group_keys):
+        mems = ordered_group_members[key]
+        row_ind.extend(mems)
+        col_ind.extend([g_idx] * len(mems))
+    
+    data = np.ones(len(row_ind), dtype=float)
+    P = csr_matrix((data, (row_ind, col_ind)), shape=(n_chr, Gk))
+    
+    # G = P.T @ S @ P
+    G_mat = P.T @ S @ P
+    
+    if issparse(G_mat):
+        G = G_mat.toarray()
+    else:
+        G = np.asarray(G_mat)
+        
+    np.fill_diagonal(G, 0.0)
+
+    def sort_groups(group_idx_list, method='sum'):
+        m = len(group_idx_list)
+        if m <= 1:
+            return group_idx_list[:]
+        if method == 'sum':
+            scores = G.sum(axis=1)
+            order = np.argsort(-scores)
+            return [group_idx_list[i] for i in order]
+        elif method == 'greedy':
+            n = G.shape[0]
+            if n == 0:
+                return []
+            
+            totals = G.sum(axis=1)
+            current = np.argmax(totals)
+            
+            path = np.zeros(n, dtype=int)
+            path[0] = current
+            
+            mask = np.ones(n, dtype=bool)
+            mask[current] = False
+            
+            for i in range(1, n):
+                scores = G[current].copy()
+                scores[~mask] = -1.0
+                nxt = np.argmax(scores)
+                path[i] = nxt
+                mask[nxt] = False
+                current = nxt
+                
+            return [group_idx_list[i] for i in path]
+        elif method == 'mst':
+            M = -G
+            csr = csr_matrix(M)
+            T = minimum_spanning_tree(csr).toarray()
+            T = T + T.T
+            adj = (T != 0).astype(int)
+            root = int(np.argmax(G.sum(axis=1)))
+            stack = [root]
+            visited = set()
+            order = []
+            while stack:
+                node = stack.pop()
+                if node in visited:
+                    continue
+                visited.add(node)
+                order.append(group_idx_list[node])
+                nbrs = np.where(adj[node] != 0)[0]
+                nbrs_sorted = sorted(nbrs.tolist(), key=lambda x: -G[node, x])
+                for nb in nbrs_sorted[::-1]:
+                    if nb not in visited:
+                        stack.append(nb)
+            for i in range(m):
+                if group_idx_list[i] not in order:
+                    order.append(group_idx_list[i])
+            return order
+        else:
+            raise ValueError(f"unknown inter_method `{method}`")
+
+    group_idx_list = list(range(Gk))
+    ordered_group_idx = sort_groups(group_idx_list, method=inter_method)
+ 
+    final_order = []
+    final_labels = []
+    for gi in ordered_group_idx:
+        key = group_keys[gi]
+        members = ordered_group_members[key]
+        final_order.extend(members)
+        final_labels.extend([chromnames[i] for i in members])
+
+    return np.asarray(final_order, dtype=int), final_labels

@@ -46,6 +46,7 @@ from ..utilities import (
     is_file_changed,
     generate_to_hic_cmd,
     generate_plot_cmd,
+    generate_curation_cmd,
     MemoryMonitor
     )
 
@@ -89,7 +90,7 @@ def run(fasta,
         alleles_trim_length=25000,
         kprune_norm_method="auto",
         scaffolding_method="precision",
-        disable_haplotype_cluster=False,
+        enable_haplotype_cluster=False,
         n="",
         use_pairs=False,
         edge_length=2e6,
@@ -102,7 +103,7 @@ def run(fasta,
         normalize=False,
         allelic_factor=-1,
         disable_merge_in_first=False,
-        merge_use_allele=False,
+        disable_merge_use_allele=True,
         exclude_group_to_second=None,
         exclude_group_from_first=None,
         allelic_similarity=0.85,
@@ -123,6 +124,7 @@ def run(fasta,
         binsize="500k",
         colormap="viridis",
         whitered=False,
+        balance=False,
         low_memory=False,
         outdir="cphasing_output",
         threads=4):
@@ -593,11 +595,11 @@ def run(fasta,
                 if is_pairs2pqs:
                     corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
                                         f"{fasta_prefix}.corrected.fasta", 
-                                        f"{pairs_prefix}.corrected.pairs.gz")
+                                        f"{pairs_prefix}.corrected.pairs.pqs")
                 else:
                     corrected_items = (f"{fasta_prefix}.chimeric.contigs.bed",
                                         f"{fasta_prefix}.corrected.fasta", 
-                                        f"{pairs_prefix}.corrected.pairs.pqs")
+                                        f"{pairs_prefix}.corrected.pairs.gz")
                 if not all(map(lambda x: Path(x).exists(), corrected_items)):
                     corrected_items = ()
                     logger.warning("The corrected files are not exists, please specify `--chimeric-correct`.")
@@ -1051,8 +1053,8 @@ def run(fasta,
         if disable_merge_in_first:
             hyperpartition_args.append("--disable-merge-in-first")
         
-        if merge_use_allele:
-            hyperpartition_args.append("--merge-use-allele")
+        if disable_merge_use_allele:
+            hyperpartition_args.append("--disable-merge-use-allele")
             
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
@@ -1174,8 +1176,8 @@ def run(fasta,
             args.extend(["-at",
                         f"../{allele_table}"])
             
-        if disable_haplotype_cluster:
-            args.append("--disable-haplotype-cluster")
+        if enable_haplotype_cluster:
+            args.append("--enable-haplotype-cluster")
             
         with open("scaffolding.cmd.sh", "w") as _out_sh:
             _out_sh.write("cphasing scaffolding \\\n    ")
@@ -1203,10 +1205,25 @@ def run(fasta,
         
         os.chdir("..")
 
+    if binsize == "auto" or binsize is None:
+        init_binsize, binsize = recommend_binsize_by_genomesize(genomesize)
+        
+        logger.info(f"Recommended cool's binsize: `{to_humanized2(init_binsize)}`, heatmap's binsizs: `{to_humanized2(binsize)}`")
+    else:
+        init_binsize = 10000
+        binsize = '500k'
 
-
-    plot_dir = str("5.plot")
     
+    
+    if corrected:
+        if Path(f"{scaffolding_dir}/{corrected_agp}").exists():
+            input_agp = corrected_agp
+        else:
+            input_agp = out_agp
+    else:
+        input_agp = out_agp
+    
+    plot_dir = str("5.plot")
     if "5" not in skip_steps and "5" in steps:
         logger.info("""
 #----------------------------------#
@@ -1215,13 +1232,6 @@ def run(fasta,
         Path(plot_dir).mkdir(exist_ok=True)
 
         os.chdir(plot_dir)
-
-        if binsize == "auto" or binsize is None:
-            init_binsize, binsize = recommend_binsize_by_genomesize(genomesize)
-            
-            logger.info(f"Recommended cool's binsize: `{to_humanized2(init_binsize)}`, heatmap's binsizs: `{to_humanized2(binsize)}`")
-        else:
-            init_binsize = 10000
 
         out_small_cool = f"{pairs_prefix}.q{min_quality1}.{to_humanized2(init_binsize)}.cool"
 
@@ -1265,13 +1275,6 @@ def run(fasta,
                     raise e
                 
         
-        if corrected:
-            if Path(f"../{scaffolding_dir}/{corrected_agp}").exists():
-                input_agp = corrected_agp
-            else:
-                input_agp = out_agp
-        else:
-            input_agp = out_agp
 
         generate_plot_cmd(f"../{pairs}",
                         f"{pairs_prefix}",
@@ -1296,6 +1299,9 @@ def run(fasta,
             args.extend(["--colormap", colormap])
         if whitered:
             args.append("--whitered")
+        if balance:
+            args.append("--balance")
+
         if mode == "phasing":
             args.extend(["--add-hap-border", "--no-lines"])
 
@@ -1310,13 +1316,43 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
-            
+
         os.chdir("../")
+
+    if "6" not in skip_steps and "6" in steps:
+        logger.info("""
+#----------------------------------#
+#    Running step 6. curation      #
+#        (only generated cmd)      #
+#----------------------------------#""")
+        curation_dir = str("6.curation")
+        Path(curation_dir).mkdir(exist_ok=True)
+        os.chdir(curation_dir)
+        
+        cmd_output = generate_curation_cmd(
+                        f"{input_agp}",
+                        f"../{fasta}",
+                        f"../{pairs}",
+                        binsize,
+                        init_binsize,
+                        min_quality1,
+                        scaffolding_dir,
+                        plot_dir,
+                        n,
+                    )
+        
+        logger.info("Output curation command script.")
+
+        os.chdir("..")
 
     today = date.today().strftime("%Y-%m-%d")
     end_time = time.time() - start_time
     monitor.join()
-    peak_memory = max(monitor.memory_buffer) / 1024 / 1024 / 1024
+    if monitor.memory_buffer:
+        peak_memory = max(monitor.memory_buffer) / 1024 / 1024 / 1024
+    else:
+        peak_memory = 0.0
+
     columns = shutil.get_terminal_size((80, 20)).columns
     logger.info("\n")
     today = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
@@ -1334,7 +1370,15 @@ def run(fasta,
         if corrected:
             logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")
     if "5" in steps and "5" not in skip_steps:
-        # res = glob.glob("5.plot/groups.*.wg.png")
-        # if res:
-        #     for i in res:
-        logger.info(f"    {outdir}/5.plot/groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png")
+        if corrected:
+            logger.info(f"    {outdir}/5.plot/groups.corrected.q{min_quality1}.{to_humanized2(binsize)}.wg.png")
+        else:
+            logger.info(f"    {outdir}/5.plot/groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png")
+
+
+    if "6" in steps and "6" not in skip_steps:
+        logger.info("\n")
+        logger.info("-" * (columns // 2))
+        logger.info("If you want to curate the assembly, please check:")
+        logger.info(f"    {outdir}/6.curation/curation.cmd.sh")
+    

@@ -561,9 +561,23 @@ def get_genome_size(fasta):
         fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
         sizes = [len(record) for record in fasta]
     else:
-        fasta = Fasta(fasta)
-        sizes = [record.unpadded_len for record in fasta]
-    
+        fai_file = str(fasta) + ".fai"
+        if os.path.exists(fai_file):
+            sizes = []
+            with open(fai_file) as f:
+                for line in f:
+                    sizes.append(int(line.split("\t")[1]))
+        else:
+            try:
+                sizes = []
+                for record in SeqIO.parse(fasta, "fasta"):
+                    sizes.append(len(record))
+            
+            except Exception:
+                sizes = []
+                for record in SeqIO.parse(fasta, "fasta"):
+                    sizes.append(len(record))
+
     return sum(sizes)
 
 def get_contigs(fasta):
@@ -770,18 +784,36 @@ def read_fasta(fasta: str) ->OrderedDict:
     >>> read_fasta('sample.fasta')
     OrderedDict(('ctg1', 1000))
     """
+    from Bio.SeqIO.FastaIO import SimpleFastaParser
+    from Bio.Seq import Seq
     from Bio import SeqIO
     
     logger.info(f'Load fasta file: `{fasta}`.')
     db = OrderedDict()
     
-    fasta = SeqIO.parse(xopen(fasta), 'fasta')
-    for record in fasta:
-        if record.id not in db:
-            db[record.id] = record.seq
+    # fasta = SeqIO.parse(xopen(fasta), 'fasta')
+    # for record in fasta:
+    #     if record.id not in db:
+    #         db[record.id] = record.seq
         
+    # return db
+    
+    with xopen(fasta) as handle:
+        for title, seq in SimpleFastaParser(handle):
+            seq_id = title.split(None, 1)[0]
+            if seq_id not in db:
+                db[seq_id] = Seq(seq)
+
     return db
 
+def read_fasta_yield(fasta: str):
+    from Bio.SeqIO.FastaIO import SimpleFastaParser
+    from Bio.Seq import Seq
+    logger.info(f'Load fasta file: `{fasta}`.')
+    with xopen(fasta) as handle:
+        for title, seq in SimpleFastaParser(handle):
+            seq_id = title.split(None, 1)[0]
+            yield seq_id, Seq(seq)
 
 
 def _zero_diags(chunk, n_diags):
@@ -1144,9 +1176,10 @@ def pretty_cmd(cmd_list, n=4):
     return list(map(str, new_cmd ))
 
 
-def generate_to_hic_cmd(agp, fasta, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", output="to_hic.cmd.sh"):
+def generate_to_hic_cmd(agp, fasta, pairs, mapq=1, n=0, _3ddna_path="~/software/3d-dna", 
+                        output="to_hic.cmd.sh"):
 
-    pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "")
+    pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "").replace(".pqs", "")
     agp_prefix = str(Path(agp).name).replace(".agp", "")
     cmd = f"""#!/usr/bin/bash
 ## Please submit the following command in yourself
@@ -1156,15 +1189,76 @@ min_quality={mapq}
 
 cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
 cphasing utils agp2assembly {agp} -o {agp_prefix}.assembly
-bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true {agp_prefix}.assembly {pairs_prefix}.mnd.txt
+bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.assembly {pairs_prefix}.mnd.txt
 
 ## After curation, convert review.assembly to new agp 
 # cphasing utils assembly2agp groups.review.assembly -o groups.review -n {n}
 # cphasing utils agp2fasta groups.review.agp {fasta} -o groups.review.fasta
     """
 
-    with open(output, 'w') as out:
-        out.write(cmd)
+
+    if output is not None:
+        with open(output, 'w') as out:
+            out.write(cmd)
+    else:
+        return cmd
+
+
+def generate_curation_cmd(agp, fasta,
+                        pairs, binsize, cool_binsize,
+                        mapq=1, scaffolding_dir="4.scaffolding", 
+                        plot_dir="5.plot",
+                        n=0, _3ddna_path="~/software/3d-dna", 
+                        output="curation.cmd.sh"):
+
+    pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "").replace(".pqs", "")
+    agp_prefix = str(Path(agp).name).replace(".agp", "")
+    cmd = f"""#!/usr/bin/bash
+## Please submit the following command in yourself
+
+_3ddna_path={_3ddna_path}
+min_quality={mapq}
+
+## Step 1 [Optional]: sort chromosomes based on interaction map, which may help the curation
+cphasing sort-chromosomes -a ../{str(scaffolding_dir)}/{agp} -m ../{str(plot_dir)}/{agp_prefix}.{pairs_prefix}.q{mapq}.{to_humanized2(binsize)}.chrom.cool -o {agp_prefix}.sorted.agp
+cphasing plot -a {agp_prefix}.sorted.agp -m ../{str(plot_dir)}/{pairs_prefix}.q{mapq}.{to_humanized2(cool_binsize)}.cool -o {agp_prefix}.sorted.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.wg.png -bs {to_humanized2(binsize)} --add-hap-border --no-lines --disable-natural-sort -oc 
+
+## Step 2: visualize the interaction map and curate the assembly
+cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
+cphasing utils agp2assembly {agp_prefix}.sorted.agp -o {agp_prefix}.sorted.assembly
+
+### Step2.1: you can seperately curation each homologous group
+cphasing utils split-agp {agp_prefix}.sorted.agp -o separate_groups
+
+cd separate_groups
+for group_agp in *.agp; do
+    cphasing utils agp2assembly $group_agp -o $(basename $group_agp .agp).assembly
+    echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 $(basename $group_agp .agp).assembly ../{pairs_prefix}.mnd.txt" 
+done > to_hic_separate.cmd.sh
+cd ..
+
+### Step2.2: or directly curate the whole assembly
+
+echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.sorted.assembly {pairs_prefix}.mnd.txt" > to_hic.cmd.sh
+echo
+echo -e "\e[1mPlease submit the command 'to_hic.cmd.sh' or 'seperate_groups/to_hic_separate.cmd.sh' for manually adjust assembly in Juicbox\e[0m"
+
+
+
+## Step 3: After curation, convert review.assembly to new agp 
+# cphasing utils assembly2agp groups.sorted.review.assembly -o groups.review -n {n}
+# cphasing utils agp2fasta groups.review.agp {fasta} -o groups.review.fasta
+    """
+
+
+    if output is not None:
+        with open(output, 'w') as out:
+            out.write(cmd)
+        
+        return output
+    else:
+        return cmd
+
 
 def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp, 
                         min_quality, init_binsize,
@@ -1276,8 +1370,11 @@ def binnify(chromsizes, binsize, trim_length=0):
         chrom_list.extend([chrom] * n_bins)
         if trim_length:
             if clen > trim_length * 3:
-                binedges[0] = binedges[0] + trim_length
-                binedges[-1] = binedges[-1] - trim_length
+                # binedges[0] = binedges[0] + trim_length
+                # if (binedges[-1] - binedges[-2]) > trim_length:
+                #     binedges[-2] = binedges[-2] - trim_length
+                binedges = np.clip(binedges, trim_length, clen - trim_length)
+
         start_list.extend(binedges[:-1])
         end_list.extend(binedges[1:])
         
@@ -1288,11 +1385,13 @@ def binnify(chromsizes, binsize, trim_length=0):
         "end": end_list
     })
 
+    # if trim_length:
+    #     bintable = bintable[bintable['start'] < bintable['end']]
+
     # bintable = bintable.sort_values(["chrom", "start"]).reset_index(drop=True)
     bintable["chrom"] = pd.Categorical(
         bintable["chrom"], categories=list(chromsizes.index), ordered=True
     )
-
 
     return bintable
 
@@ -1479,15 +1578,36 @@ def parse_split_contigs(contig):
     return contig, start, end
 
 def get_fasta_from_split_contig(fasta, contigsizes, output):
-    fasta_dict = read_fasta(fasta)
+    # fasta_dict = read_fasta(fasta)
     
-    raw_contigs = contigsizes.index.tolist()
-    contigs = contigsizes.index.map(parse_split_contigs).tolist()
-    with open(output, 'w') as out:
-       for raw_contig, (contig, start, end) in zip(raw_contigs, contigs):
-           out.write(f">{raw_contig}\n{fasta_dict[contig][start: end]}\n")
-    
+    # raw_contigs = contigsizes.index.tolist()
+    # contigs = contigsizes.index.map(parse_split_contigs).tolist()
+    # with open(output, 'w') as out:
+    #    for raw_contig, (contig, start, end) in zip(raw_contigs, contigs):
+    #        if start == end:
+    #             continue
+    #        out.write(f">{raw_contig}\n{fasta_dict[contig][start: end]}\n")
 
+    from Bio.SeqIO.FastaIO import SimpleFastaParser
+    from collections import defaultdict
+
+    regions = defaultdict(list)
+
+    for raw_contig in contigsizes.index:
+        contig, start, end = parse_split_contigs(raw_contig)
+        if start != end:
+            regions[contig].append((raw_contig, start, end))
+
+    with xopen(fasta) as handle, open(output, 'w') as out:
+        for title, seq in SimpleFastaParser(handle):
+            contig = title.split(None, 1)[0]
+            
+            if contig in regions:
+                for raw_contig, start, end in regions[contig]:
+                    sub_seq = seq[start:end]
+                    out.write(f">{raw_contig}\n{sub_seq}\n")
+                
+    
     return output 
 
 

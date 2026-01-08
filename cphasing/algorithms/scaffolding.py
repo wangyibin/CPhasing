@@ -852,7 +852,7 @@ class AllhicOptimize:
                     corrected=False,
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
-                    disable_haplotype_cluster=False,
+                    enable_haplotype_cluster=False,
                     keep_temp=False,
                     log_dir="logs",
                     threads=4):
@@ -866,7 +866,7 @@ class AllhicOptimize:
         self.corrected = corrected
         self.output = output
         self.tmp_dir = tmp_dir 
-        self.disable_haplotype_cluster = disable_haplotype_cluster
+        self.enable_haplotype_cluster = enable_haplotype_cluster
         self.delete_temp = False if keep_temp else True 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -896,21 +896,10 @@ class AllhicOptimize:
 
     @staticmethod
     def extract_clm_rust(clm_file, cluster_file, log_dir):
-        if clm_file.endswith(".gz"):
-            cmd0 = decompress_cmd(clm_file, threads=10)
-            cmd = ['cphasing-rs', 'splitclm', '-', cluster_file]
-            logger.info("Splitting clm file ...")
-            flag = os.system(
-                " ".join(cmd0)
-                + f" 2>../{log_dir}/clm_decompress.log"
-                + " | "
-                + " ".join(cmd)
-                + f" 2>../{log_dir}/splitclm.log"
-            )
-        else:
-            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+    
+        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
 
-            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
 
         assert flag == 0, "Failed to execute command, please check log."
 
@@ -1001,7 +990,7 @@ class AllhicOptimize:
             else:
                 hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
                 hap_align.run()
-                if self.disable_haplotype_cluster:
+                if self.enable_haplotype_cluster:
                     hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
                     hap_cluster.run()
 
@@ -1061,7 +1050,7 @@ class HapHiCSort:
                     corrected=False,
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp',
-                    disable_haplotype_cluster=False, 
+                    enable_haplotype_cluster=False, 
                     keep_temp=False,
                     log_dir="logs",
                     threads=4):
@@ -1078,7 +1067,7 @@ class HapHiCSort:
         self.fasta = Path(fasta).absolute() if fasta else None
         self.corrected = corrected
         self.output = output
-        self.disable_haplotype_cluster = disable_haplotype_cluster
+        self.enable_haplotype_cluster = enable_haplotype_cluster
         self.delete_temp = False if keep_temp else True
         self.tmp_dir = tmp_dir 
         self.log_dir = Path(log_dir)
@@ -1112,21 +1101,9 @@ class HapHiCSort:
 
     @staticmethod
     def extract_clm_rust(clm_file, cluster_file, log_dir):
-        if clm_file.endswith(".gz"):
-            cmd0 = decompress_cmd(clm_file, threads=10)
-            cmd = ["cphasing-rs", "splitclm", "-", cluster_file]
-            logger.info("Splitting clm file ...")
-            flag = os.system(
-                " ".join(cmd0)
-                + f" 2>../{log_dir}/clm_decompress.log"
-                + " | "
-                + " ".join(cmd)
-                + f" 2>../{log_dir}/splitclm.log"
-            )
-        else:
-            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
 
-            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
         assert flag == 0, "Failed to execute command, please check log."
 
     @staticmethod
@@ -1237,7 +1214,7 @@ class HapHiCSort:
                 hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
                 hap_align.run()
 
-                if not self.disable_haplotype_cluster:
+                if self.enable_haplotype_cluster:
                     hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
                     hap_cluster.run()
 
@@ -1287,7 +1264,7 @@ class CPhasingOptimize:
                     corrected=False,
                     output="groups.agp", 
                     tmp_dir='scaffolding_tmp', 
-                    disable_haplotype_cluster=False,
+                    enable_haplotype_cluster=False,
                     keep_temp=False,
                     log_dir="logs",
                     threads=4):
@@ -1301,7 +1278,7 @@ class CPhasingOptimize:
         self.corrected = corrected
         self.output = output
         self.tmp_dir = tmp_dir 
-        self.disable_haplotype_cluster = disable_haplotype_cluster
+        self.enable_haplotype_cluster = enable_haplotype_cluster
         self.delete_temp = False if keep_temp else True 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -1322,21 +1299,9 @@ class CPhasingOptimize:
 
     @staticmethod
     def extract_clm_rust(clm_file, cluster_file, log_dir):
-        if clm_file.endswith(".gz"):
-            cmd0 = decompress_cmd(clm_file, threads=10)
-            cmd = ['cphasing-rs', 'splitclm', '-', cluster_file]
-            logger.info("Splitting clm file ...")
-            flag = os.system(
-                " ".join(cmd0)
-                + f" 2>../{log_dir}/clm_decompress.log"
-                + " | "
-                + " ".join(cmd)
-                + f" 2>../{log_dir}/splitclm.log"
-            )
-        else:
-            cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
+        cmd = ['cphasing-rs', 'splitclm', clm_file, cluster_file]
 
-            flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
+        flag = run_cmd(cmd, log=f"../{log_dir}/splitclm.log", out2err=True)
 
         assert flag == 0, "Failed to execute command, please check log."
 
@@ -1410,7 +1375,7 @@ class CPhasingOptimize:
             else:
                 hap_align = HaplotypeAlign(at, tour_res, workdir, self.threads)
                 hap_align.run()
-                if self.disable_haplotype_cluster:
+                if self.enable_haplotype_cluster:
                     hap_cluster = HaplotypeCluster(at, tour_res, workdir, self.threads)
                     hap_cluster.run()
 

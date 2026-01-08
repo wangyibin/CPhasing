@@ -720,7 +720,7 @@ class PQS:
             for chunk in chunks:
                 args.append((chunk, self.contigsizes_db, self._schema, min_mapq, is_with_mapq, tmpdir))
             Parallel(n_jobs=self.threads, backend="multiprocessing")(
-                delayed(process_chunk_clm)(*arg)
+                delayed(process_chunk_clm)
                 (*arg) for arg in args
             )
         

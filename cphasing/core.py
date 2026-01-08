@@ -1177,45 +1177,102 @@ class ClusterTable:
       
         self.filename = cluster_file
         os.chdir(outdir)
-        if split:
-            file_db = {}
-            for group in self.groups:
-                file_db[group] = open(f"{group}.contigs.fasta", 'w')
-            db = self.contig_groups
-            fasta = read_fasta(fasta)
-            contigsizes = {}
-            for contig in fasta:
-                contigsizes[contig] = len(fasta[contig])
+        # if split:
+            # file_db = {}
+            # for group in self.groups:
+            #     file_db[group] = open(f"{group}.contigs.fasta", 'w')
+            # db = self.contig_groups
+            # fasta = read_fasta(fasta)
+            # contigsizes = {}
+            # for contig in fasta:
+            #     contigsizes[contig] = len(fasta[contig])
             
             
-            threshold = trim_length * 3
+            # threshold = trim_length * 3
 
-            for contig in db:
-                group = db[contig]
-                contig, start, end = parse_split_contigs(contig)
-                contig_length = contigsizes[contig]
+            # for contig in db:
+            #     group = db[contig]
+            #     contig, start, end = parse_split_contigs(contig)
+            #     if start == end:
+            #         continue
 
-                if contig_length > threshold:
-                    if start < trim_length:
-                        start = start + trim_length 
-                        if start > end:
-                            continue 
-                    if end > contig_length - trim_length:
-                        end = contig_length - trim_length
-                        if start > end:
-                            continue
-                    seq = fasta[contig][start:end]
+            #     contig_length = contigsizes[contig]
 
-                    print(f">{contig}|{start}_{end}\n{str(seq)}", file=file_db[group])
+            #     if contig_length > threshold:
+            #         if start < trim_length:
+            #             start = start + trim_length 
+            #             if start > end:
+            #                 continue 
+            #         if end > (contig_length - trim_length):
+            #             end = contig_length - trim_length
+            #             if start >= end:
+            #                 continue
+                    
+            #         if start == end:
+            #             continue
+                    
+            #         seq = fasta[contig][start:end]
+
+            #         print(f">{contig}|{start}_{end}\n{str(seq)}", file=file_db[group])
                    
-            files = []
-            for group in file_db:
-                file_db[group].close()
-                files.append(f"{outdir}/{group}.contigs.fasta")
-            os.chdir("../")
+            # files = []
+            # for group in file_db:
+            #     file_db[group].close()
+            #     files.append(f"{outdir}/{group}.contigs.fasta")
+            # os.chdir("../")
 
-            return files
+            # return files
 
+            # from Bio.SeqIO.FastaIO import SimpleFastaParser
+            
+            # file_db = {}
+            # for group in self.groups:
+            #     file_db[group] = open(f"{group}.contigs.fasta", 'w')
+            
+            # requests = defaultdict(list)
+            # for full_name, group in self.contig_groups.items():
+            #     try:
+            #         raw_contig, start, end = parse_split_contigs(full_name)
+            #         if start != end:
+            #             requests[raw_contig].append((group, start, end))
+            #     except ValueError:
+            #         continue
+
+            # threshold = trim_length * 3
+            
+
+            # with xopen(fasta) as handle:
+            #     for title, seq in SimpleFastaParser(handle):
+            #         raw_contig = title.split(None, 1)[0]
+                    
+            #         if raw_contig in requests:
+            #             contig_length = len(seq)
+                        
+            #             for group, start, end in requests[raw_contig]:
+            #                 s, e = start, end
+
+            #                 if contig_length > threshold:
+            #                     if s < trim_length:
+            #                         s = s + trim_length
+            #                         if s > e: 
+            #                             continue
+            #                     if e > (contig_length - trim_length):
+            #                         e = contig_length - trim_length
+            #                         if s >= e: 
+            #                             continue
+                            
+            #                 if s == e:
+            #                     continue
+                            
+            #                 file_db[group].write(f">{raw_contig}|{s}_{e}\n{seq[s:e]}\n")
+                   
+            # files = []
+            # for group in file_db:
+            #     file_db[group].close()
+            #     files.append(f"{outdir}/{group}.contigs.fasta")
+            # os.chdir("../")
+
+            # return files
 
         cmd = [
                 "cphasing-rs",
@@ -1738,7 +1795,7 @@ class Tour:
         res2 = []
         start = 1
         old_end = 0
-
+        
         for i, tmp_res in enumerate(res, 1):
             tmp_res[3] = j
             start = old_end + tmp_res[1]
@@ -1747,12 +1804,12 @@ class Tour:
             tmp_res[2] = end
             res2.append(tmp_res)
             j += 1
-            if i != len(res):
+            if i != len(res) and gap_length > 0:
                 res2.append([self.group, end + 1, end + gap_length,
                         j, 'U', gap_length, 'contig', 'yes', 'map'])
                 old_end = end + gap_length
                 j += 1
-            
+                
         return corrected_contigs, pd.DataFrame(res2)
 
     def get_fasta(self, fasta):

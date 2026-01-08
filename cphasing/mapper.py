@@ -374,7 +374,12 @@ class ChromapMapper:
             
 
     def run(self):
-        self.get_contig_sizes()
+        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
+                           "existing, skipped ...")
+        
         if not self.index_path.exists():
             self.index()
         else:
@@ -548,7 +553,12 @@ class MinimapMapper:
         logger.info("Done.")         
 
     def run(self):
-        self.get_contig_sizes()
+        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
+                           "existing, skipped ...")
+        
         self.mapping()
         self.paf2pairs()
 
@@ -836,7 +846,7 @@ class PoreCMapper:
                 f" 2> {self.log_dir}/{self.prefix}.mapping.log " \
                 f"| {compress_cmd} > {str(self.outpaf)}"
 
-        with open("mapper.cmd.sh", "w") as f:
+        with open(f"{self.prefix}.mapper.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(cmd + "\n")
         logger.info('Running command:')
@@ -863,7 +873,7 @@ class PoreCMapper:
                     "-e", f"{self.max_edge}", "-p", f"{self.min_identity}",
                       "-o", f"{self.outporec}"]
 
-        with open("mapper.cmd.sh", "a") as f:
+        with open(f"{self.prefix}.mapper.cmd.sh", "a") as f:
             f.write(" ".join(cmd) + "\n")
         
         flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')
@@ -873,7 +883,7 @@ class PoreCMapper:
         cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
                str(self.contigsizes), "-q", f"{self.min_quality}",
                 "-o", f"{self.outpairs}"]
-        with open("mapper.cmd.sh", "a") as f:
+        with open(f"{self.prefix}.mapper.cmd.sh", "a") as f:
             f.write(" ".join(cmd) + "\n")
         flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
         assert flag == 0, "Failed to execute command, please check log."

@@ -16,6 +16,9 @@ The `-n 8:4` parameter of the following commands means assembling a tetraploid (
 
         - AABBCC type (2n = 6x = 48): use `-n 24:2`.
 
+!!! tip
+    For hifiasm-generated contigs, the `p_utg.fasta` is recommended for phased genome assembly. Optionally, users may concatenate the `hap*.p_ctg.fasta` outputs from hifiasm's Hi-C mode.
+
 ### Start from a **pore-c data**:
 
 ```bash
@@ -81,7 +84,7 @@ Add the `-hcr` parameter to remove the greedy contacts (several regions contact 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT
 ```
     
-## Curation by Juicebox  
+## Curation by Juicebox [Or directly run `6.curation/curation.cmd.sh`]
 
 - generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)  
 

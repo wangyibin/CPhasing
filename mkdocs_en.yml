@@ -135,6 +135,9 @@ extra_javascript:
 
 extra:
   homepage: https://wangyibin.github.io/CPhasing
+  analytics:
+    provider: google
+    property: G-CXCGTKN4NV
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/wangyibin

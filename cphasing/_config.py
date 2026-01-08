@@ -15,7 +15,7 @@ PERCENTAGE_DTYPE = "float32"
 
 ## Datatype of HyperGraph order
 HYPERGRAPH_ORDER_DTYPE = "int8"
-HYPERGRAPH_COL_DTYPE = "uint32"
+HYPERGRAPH_COL_DTYPE = "int32"
 
 
 DEFAULT_HIC_ALIGNER = "_chromap"
@@ -31,6 +31,8 @@ MAPQ1 = 1
 MAPQ2 = 2
 ## Default parameters for CLI 
 ALLELES_TRIM_LENGTH = 25_000
+ALLELES_K = 59
+ALLELES_W = 59
 
 ## HyperGraph construction
 EDGE_LENGTH = "5m"

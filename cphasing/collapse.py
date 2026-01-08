@@ -22,6 +22,7 @@ import seaborn as sns
 from matplotlib.ticker import MaxNLocator
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
+from sklearn.mixture import GaussianMixture
 
 from collections import Counter, defaultdict, OrderedDict
 from itertools import product
@@ -204,17 +205,29 @@ class CollapseFromDepth:
 
         rd_df = self.depth_df
         rd_df['CN'] = rd_df['count'] / peak_depth
-        
+
+        high_depth_threshold = peak_depth * 1.5 
+        rd_df['is_high'] = rd_df['count'] > high_depth_threshold
+        contig_stats = rd_df.groupby('chrom').agg({
+            'count': 'mean',
+            'is_high': 'mean', # 这就是高深度窗口的比例 (0.0 - 1.0)
+            'end': 'max' # 近似长度
+        }).rename(columns={'is_high': 'high_coverage_ratio', 'end': 'length'})
+        contig_stats['CN'] = contig_stats['count'] / peak_depth
+        collapsed_mask = (contig_stats['CN'] > 1.5) | (contig_stats['high_coverage_ratio'] > 0.5)
+        collapsed_df = contig_stats[collapsed_mask]
+
         contig_depth = rd_df.groupby('chrom')['count'].mean().to_frame()
         contig_depth['CN'] = contig_depth['count'] / peak_depth
 
-        collapsed_df = contig_depth[contig_depth['CN'] > 1.5]
+        # collapsed_df = contig_depth[contig_depth['CN'] > 1.5]
         
         collapsed_df['length'] = collapsed_df.index.map(self.contigsizes_db.get)
 
         collapsed_df = collapsed_df.reset_index()
         logger.info(f"Identified {collapsed_df['length'].sum():,} bp contigs with read depth >= {upper_depth:.2f}")
-        collapsed_df.drop(columns=["length"], inplace=True)
+        collapsed_df.drop(columns=["length", "high_coverage_ratio"], inplace=True)
+   
         collapsed_df.to_csv("contigs.collapsed.contig.list", sep='\t', header=False, index=False)
 
         low_df = contig_depth[contig_depth['CN'] < 0.1]
@@ -223,7 +236,57 @@ class CollapseFromDepth:
         logger.info(f"Identified {low_df['length'].sum():,} bp contigs with read depth < {lower_depth:.2f}")
         low_df.drop(columns=["length"], inplace=True)
         low_df.to_csv("contigs.low.contig.list", sep='\t', header=False, index=False)
+    
+
+    def run_gmm(self):
+        peak_depth, lower_depth, upper_depth = self.plot_distribution()
         
+        rd_df = self.depth_df
+        
+        contig_depth = rd_df.groupby('chrom')['count'].mean().to_frame()
+        
+  
+        contig_depth['length'] = contig_depth.index.map(self.contigsizes_db.get)
+        valid_contigs = contig_depth[contig_depth['length'] >= 10000].copy() # 仅使用 >10kb 的 contig 进行训练
+
+        X = valid_contigs['count'].values.reshape(-1, 1)
+        
+  
+        gmm = GaussianMixture(n_components=2, covariance_type='full', random_state=42)
+        gmm.fit(X)
+        
+        means = gmm.means_.flatten()
+        labels = gmm.predict(X)
+        
+        collapsed_label = np.argmax(means)
+        haploid_label = np.argmin(means)
+
+        probs = gmm.predict_proba(X)
+        
+        valid_contigs['cluster'] = labels
+        valid_contigs['prob_collapsed'] = probs[:, collapsed_label]
+        
+
+        valid_contigs['CN'] = valid_contigs['count'] / peak_depth
+        
+
+        is_collapsed = (valid_contigs['cluster'] == collapsed_label) & \
+                        (valid_contigs['prob_collapsed'] > 0.8) & \
+                        (valid_contigs['CN'] > 1.35) 
+
+        collapsed_df = valid_contigs[is_collapsed].copy()
+        
+        collapsed_df = collapsed_df.reset_index()
+        logger.info(f"Identified {collapsed_df['length'].sum():,} bp contigs as collapsed (GMM method)")
+
+        output_df = collapsed_df[['chrom', 'count']].copy()
+        output_df.to_csv("contigs.collapsed.contig.list", sep='\t', header=False, index=False)
+
+        low_df = contig_depth[contig_depth['count'] / peak_depth < 0.1].copy()
+        low_df = low_df.reset_index()
+        logger.info(f"Identified {low_df['length'].sum():,} bp contigs with read depth < {lower_depth:.2f}")
+        low_df[['chrom', 'count']].to_csv("contigs.low.contig.list", sep='\t', header=False, index=False)
+  
 
 class CollapseFromGfa:
     """

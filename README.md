@@ -1,15 +1,13 @@
-![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing
-) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing)![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing
-) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue)![](https://img.shields.io/github/downloads/wangyibin/CPhasing/total?style=flat)
+![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing) ![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) ![](https://img.shields.io/github/downloads/wangyibin/CPhasing/total?style=flat)
 
 <img src="pictures/logo/C-Phasing_logo3.jpg" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>/<b>C</b>iFi, Ultra-long, or Hi-<b>C</b> data</p>.
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>/<b>C</b>iFi, Ultra-long, or Hi-<b>C</b> data</p>
 
 ***  
 
 
-[<font size=6>Documentation</font>](https://wangyibin.github.io/CPhasing/latest) | [<font size=6>中文文档</font>](https://wangyibin.github.io/CPhasing/latest/zh)
+[<font size=6>Documentation</font>](https://wangyibin.github.io/CPhasing) | [<font size=6>中文文档</font>](https://wangyibin.github.io/CPhasing/zh)
 
 ## Introduction
 One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**(**CiFi**), provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** data and **diploid** genome assembly.  
@@ -42,7 +40,10 @@ exit
 ### Via Anaconda
 ```bash
 ## Download C-Phasing and install all dependencies
-git clone https://github.com/wangyibin/CPhasing.git
+## download from github releases
+LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-x86.tar.gz" | cut -d '"' -f 4)
+wget $LATEST_URL
+
 cd CPhasing
 conda env create -f environment.yml
 conda activate cphasing
@@ -155,7 +156,7 @@ C-Phasing enable to use ultra-long to correct chimeric and identify the high con
 
 ## More
 More details please check the documentation:  
-[Documentation](https://wangyibin.github.io/CPhasing/latest) | [中文文档](https://wangyibin.github.io/CPhasing/latest/zh)
+[Documentation](https://wangyibin.github.io/CPhasing/) | [中文文档](https://wangyibin.github.io/CPhasing/zh)
 
 
 ## Citation

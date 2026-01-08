@@ -104,11 +104,11 @@ class PartigRecords:
         convert ID to contig name.
 
         """
-        if fasta[-3:] == ".gz":
-            handle = xopen(fasta)
-            fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
-        else:
-            fasta = Fasta(fasta)
+        # if fasta[-3:] == ".gz":
+        handle = xopen(fasta)
+        fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+        # else:
+        #     fasta = Fasta(fasta)
 
         fastadb = dict(zip(self.seqNames, fasta.keys()))
     
@@ -369,7 +369,8 @@ class PartigAllele:
         logger.info(f'Successful output allele table in `{self.output}`.')
 
     def run(self):
-        self.is_split = self.split_contig()
+        # self.is_split = self.split_contig()
+        self.is_split = False
         self.partig()
         self.get_pr()
         self.to_alleletable()

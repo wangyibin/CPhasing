@@ -6,11 +6,13 @@ tags:
 
 
 === "recommended" 
-    从GitHub官网下载`C-Phasing`软件，并加载`activate_cphasing`激活环境。
+    从GitHub release下载`C-Phasing`软件，并加载`activate_cphasing`激活环境。
     ```shell
-    git clone https://github.com/wangyibin/CPhasing.git
+    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-x86.tar.gz" | cut -d '"' -f 4)
+    wget $LATEST_URL
+    tar xzvf CPhasing*.tar.gz
     
-    source ./CPhasing/bin/activate_cphasing
+    source ./CPhasing*/bin/activate_cphasing
     ```
     !!! note
         第一次配置需要在有网络的情况下运行`./CPhasing/bin/activate_cphasing`.
@@ -51,7 +53,7 @@ tags:
         3. ++ctrl+x+y++ : 按`ctrl + X`，然后再按`Y`, 保存退出
         
     !!! note
-        如果你想运行在arm(**aarch64**)平台上，请从github release页面下载，git仓库里默认存放x86-64版本
+        如果你想运行在arm(**aarch64**)平台上，请从[github release](https://github.com/wangyibin/CPhasing/releases/tag/v0.2.8)页面下载，git仓库里默认存放x86-64版本
         
 
 === "conda"

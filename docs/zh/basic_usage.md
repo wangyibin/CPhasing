@@ -10,7 +10,7 @@
     如果为异源六倍体(AAABBB, 2n=6x=48), 可以设置`-n 16:3`，另一种类型的异源六倍体（AABBCC，2n=6x=48），则设置`-n 24:2`。
 
 !!! tip
-    如果是hifiasm组装的contig，组装分型的基因组选择输入`p_utg.fasta`, 或者用户可以尝试合并hifiasm (hic)输出的多个hap*.p_utg.fasta。
+    如果是hifiasm组装的contig，组装分型的基因组选择输入`p_utg.fasta`, 或者用户可以尝试合并hifiasm (hic)输出的多个hap*.p_ctg.fasta。
 
 
 ### 输入 **Pore-C 测序reads**:
@@ -81,7 +81,7 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT 
 ```  
 
-## 通过Juicebox 人工调整基因组组装
+## 通过Juicebox 人工调整基因组组装 [可以直接运行`6.curation/curation.cmd.sh`]
 - 首先需要生成两个文件：`.assembly` 和 `.hic`, 以下步骤依赖于[3d-dna](https://github.com/aidenlab/3d-dna) 软件，用户需自行安装。
 
 ```shell

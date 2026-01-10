@@ -4348,7 +4348,7 @@ def hyperpartition(hypergraph,
                                 min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length, 
                                 split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                                 hcr_invert=hcr_invert, threads=threads)
-            # he.save(hypergraph_path)
+            he.save(hypergraph_path)
             hypergraph = he.edges
         else:
             if hcr_bed:
@@ -4365,7 +4365,7 @@ def hyperpartition(hypergraph,
                            min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length,
                            split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                            hcr_invert=hcr_invert, threads=threads)
-            # he.save(hypergraph_path)
+            he.save(hypergraph_path)
             hypergraph = he.edges
         else:
             logger.warning(f"Load raw hypergraph from exists file of `{hypergraph_path}`, if the input pairs changed, you should remove this existing hg.")

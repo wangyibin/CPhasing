@@ -16,7 +16,7 @@ from pytools import natsorted
 
 from .agp import agp2fasta
 from .core import Tour
-from .utilities import xopen, list_flatten
+from .utilities import xopen, list_flatten, read_fasta
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +25,7 @@ logger = logging.getLogger(__name__)
 def Build(fasta_file, gap_size=100, output='groups.asm.fasta', corrected=False,
             output_agp='groups.agp', only_agp=False):
     
-    if fasta_file[-3:] == ".gz":
-        handle = xopen(fasta_file)
-        fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
-
-    else:
-        fasta = Fasta(fasta_file)
+    fasta = read_fasta(fasta_file)
 
     p = Path('./')
 
@@ -66,7 +61,7 @@ def Build(fasta_file, gap_size=100, output='groups.asm.fasta', corrected=False,
                     continue
                 except AttributeError:
                     try:
-                        length = len(fasta[contig])
+                        contig_length = len(fasta[contig])
                     except KeyError:
                         continue 
                 
@@ -123,9 +118,9 @@ def Build(fasta_file, gap_size=100, output='groups.asm.fasta', corrected=False,
     if not only_agp:
         with xopen(output, 'w') as out:
             try:
-                agp2fasta(agp, fasta.filename, out)
+                agp2fasta(agp, fasta, out)
             except AttributeError:
-                agp2fasta(agp, fasta_file, out)
+                agp2fasta(agp, fasta, out)
     
     if corrected and corrected_contigs:
         tmp_agp_df = agp_df

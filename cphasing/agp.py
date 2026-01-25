@@ -152,8 +152,8 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
     --------
     agp: str
         Path to agp file.
-    fasta: str
-        Path to fasta file.
+    fasta: OrderedDict
+        Fasta sequence database.
     output: _io.TextIOWrapper
         Output handle
     threads: int
@@ -165,29 +165,11 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
 
     Examples:
     --------
-    >>> agp2fasta('groups.agp', 'contigs.fasta')
+    >>> fasta_db = read_fasta('contigs.fasta')
+    >>> agp2fasta('groups.agp', fasta_db)
     """
-    # from pyfaidx import Fasta
-    # def get_seqs(chrom, cluster):
-    #     seqs = []
-    #     id_orient = cluster.loc[:, ['id', 'orientation']].values.tolist()
-    #     for contig, orient in id_orient:
-    #         if orient == '+':
-    #             seqs.append(str(fasta[contig]))
-    #         else:
-    #             seqs.append(fasta[contig][::-1].complement.seq)
-        
-    #     out_seq = GAP.join(seqs)
-
-    #     return chrom, out_seq
-    
-    # if isinstance(fasta, str):
-    #     fasta = Fasta(fasta)
-    # elif isinstance(fasta, Fasta):
-    #     pass
-    from .utilities import read_fasta
-    seq_db = read_fasta(fasta)
     agp_df, gap_df = import_agp(agp)
+    seq_db = fasta
    
     try:
         GAP = 'N' * gap_df.length[0]
@@ -691,7 +673,7 @@ def agp_dup(agp, output):
     agp_df.to_csv(output, sep='\t', header=None, index=None)
 
 
-def split_agp(agp, hap_pattern=r"(Chr\d+)g(\d+)",
+def split_agp(agp, hap_pattern=r"(Chr\d+)(?:g\d+)?",
               output="agp_split"):
     """
     Split agp file into different chro
@@ -726,15 +708,13 @@ def split_agp(agp, hap_pattern=r"(Chr\d+)g(\d+)",
     agp_df.drop(0, axis=1, inplace=True)
     hap_df = agp_df.groupby('hap')
     
-
+ 
     outdir = Path(output)
     outdir.mkdir(parents=True, exist_ok=True)
     for hap, df in hap_df:
         out_agp = outdir / f"{hap}.agp"
-        df.drop('hap', axis=1, inplace=True)
-    
+        df.rename(columns={'hap': 0}, inplace=True)
+        df = df[[0,1,2,3,4,5,6,7,8]]
+
         df.to_csv(out_agp, sep='\t', header=None, index=False)
         logger.info(f"Output split agp file: `{out_agp}`")
-
-    
-

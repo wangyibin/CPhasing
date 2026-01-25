@@ -43,9 +43,18 @@ Collapsed contigs are commonly observed in polyploid hybrids due to the presence
     ```
 
 ## Collapsed contigs rescuing
-```shell
-    cphasing collapse rescue 3.hyperpartition/porec.align.porec.q1.e5m.hg draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
-```
+=== "Pore-C/CiFi"
+
+    ```shell
+        cphasing collapse rescue sample.porec.gz draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
+    ```
+
+=== "Hi-C"
+
+    ```shell
+        cphasing collapse rescue sample.hic.pairs.pqs draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
+    ```
+
 !!! note
     Currently, we output the rescue result into a `collapsed.rescue.clusters.txt` file, which the user executes the next step of `4.scaffolding` manually. And the input file can directly use the previous.
 

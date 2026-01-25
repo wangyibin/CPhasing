@@ -1171,8 +1171,6 @@ class ClusterTable:
         """
         extract fasta by cluster table 
         """
-        from Bio import SeqIO 
-        
         cluster_file = Path(self.filename).absolute()
       
         self.filename = cluster_file

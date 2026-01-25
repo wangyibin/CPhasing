@@ -22,7 +22,10 @@ from pathlib import Path
 from pyfaidx import Fasta
 
 from .core import AlleleTable
-from .utilities import xopen, list_flatten, read_fasta
+from .utilities import (
+    xopen, list_flatten, 
+    read_fasta, read_fasta_yield
+    )
 
 
 from .utilities import (
@@ -58,7 +61,7 @@ class PartigLine:
 class PartigRecords:
     def __init__(self, infile, symmetric=True):
         self._file = infile
-        logger.info(f'Load file `{self._file}`.')
+        # logger.info(f'Load file `{self._file}`.')
         self.symmetric = symmetric
         self.parse()
 
@@ -99,18 +102,13 @@ class PartigRecords:
             return {(i.seqName1, i.seqName2): i.strand for i in self.S 
                                             if i.seqName1 < i.seqName2}
 
-    def convert(self, fasta):
+    def convert(self, fasta: OrderedDict):
         """
         convert ID to contig name.
 
         """
-        # if fasta[-3:] == ".gz":
-        handle = xopen(fasta)
-        fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
-        # else:
-        #     fasta = Fasta(fasta)
 
-        fastadb = dict(zip(self.seqNames, fasta.keys()))
+        fastadb = dict(zip(self.seqNames, fasta))
     
         for i in range(len(self.C)):
             self.C[i].seqName = fastadb[self.C[i].seqName]
@@ -142,7 +140,7 @@ class PartigRecords:
 
         Examples:
         --------
-        >>> pr.convert('sample.fasta')
+        >>> pr.convert(fasta_db)
         >>> pr.get_minimizerConsidered_dict()
         Ordereddict(('utg0000001l', 33333))
         
@@ -153,7 +151,7 @@ class PartigRecords:
         
         return db
 
-    def to_alleletable(self, fasta, output, fmt="allele2", k=0, 
+    def to_alleletable(self, fasta_db, output, fmt="allele2", k=0, 
                        is_filter=True,
                        filter_value=5000):
         """
@@ -173,7 +171,7 @@ class PartigRecords:
         >>> out = open('output.allele.table', 'w')
         >>> pr.to_alleletable('sample.fasta', out)
         """
-        self.convert(fasta)
+        self.convert(fasta_db)
         i = 0
 
         if fmt == "allele2":
@@ -232,6 +230,7 @@ class PartigAllele:
                     threads=4,
                     log_dir='logs'):
         self.fasta = fasta
+        self.fasta_db = list(x[0] for x in read_fasta_yield(fasta))
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
@@ -312,13 +311,13 @@ class PartigAllele:
 
     def get_pr(self):
         self.pr = PartigRecords(self.partig_res)
-        self.pr.convert(self.fasta)
+        self.pr.convert(self.fasta_db)
 
     def to_alleletable(self, fmt="allele2"):
         
         if self.is_split:
             with open(f"tmp.{self.prefix}.allele.table", 'w') as output:
-                self.pr.to_alleletable(self.fasta, output, fmt, self.k, 
+                self.pr.to_alleletable(self.fasta_db, output, fmt, self.k, 
                                        is_filter=True)
             
             header_lines = []
@@ -364,7 +363,7 @@ class PartigAllele:
                     os.remove(f"tmp.{self.prefix}.allele.table")
         else:
             with open(self.output, 'w') as output:
-                self.pr.to_alleletable(self.fasta, output, fmt, self.k, 
+                self.pr.to_alleletable(self.fasta_db, output, fmt, self.k, 
                                        is_filter=True, filter_value=self.filter_value)
         logger.info(f'Successful output allele table in `{self.output}`.')
 

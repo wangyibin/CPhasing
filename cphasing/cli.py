@@ -179,14 +179,14 @@ PIPE_OPTION_GROUPS = [
                            "--min-scaffold-length", "--allelic-factor",
                           "--allelic-similarity", "--min-allelic-overlap",
                           "--disable-merge-in-first", "--disable-merge-use-allele",
-                          "--exclude-group-from-first",
+                          "--allelic-positive-factor", "--exclude-group-from-first",
                           "--exclude-group-to-second", "--enable-misassembly-remove",
-                          "--refine",
+                          "--refine", "--output-hg"
                           ]
         },
         {
             "name": "Options of Scaffolding",
-            "options": ["--scaffolding-method", "--disable-haplotype-cluster"]
+            "options": ["--scaffolding-method", "--enable-haplotype-cluster"]
         },
         {
             "name": "Options of Plot",
@@ -407,6 +407,8 @@ def cli(verbose, quiet):
 )
 @click.option(
     "--mm2-params",
+    "--mm2-opts",
+    "mm2_params",
     metavar="STR",
     help="additional parameters for minimap2",
     default="-x lr:hq",
@@ -740,6 +742,15 @@ def cli(verbose, quiet):
     help='disable using allele table to merge clusters in first round cluster.',
 )
 @click.option(
+    '-apf',
+    '--allelic-positive-factor',
+    'allelic_positive_factor',
+    help="factor of inter-allelic for reweight edges to merge homolog clusters in first round cluster.",
+    type=str, 
+    default=3.0,
+    show_default=True,
+)
+@click.option(
     '--exclude-from-first',
     '--exclude-group-from-first',
     'exclude_group_from_first',
@@ -1013,6 +1024,13 @@ def cli(verbose, quiet):
     default=False,
 )
 @click.option(
+    "--output-hg",
+    "output_hg",
+    is_flag=True,
+    default=False,
+    help="Output the hypergraph file.",
+)
+@click.option(
     '-o',
     '--output',
     '--outdir',
@@ -1078,6 +1096,7 @@ def pipeline(fasta,
             first_cluster,
             disable_merge_in_first,
             disable_merge_use_allele,
+            allelic_positive_factor,
             exclude_group_from_first,
             exclude_group_to_second,
             normalize,
@@ -1105,6 +1124,7 @@ def pipeline(fasta,
             balance,
             preset,
             low_memory,
+            output_hg,
             outdir,
             threads):
     """
@@ -1156,6 +1176,10 @@ def pipeline(fasta,
     """
     from .pipeline.pipeline import run 
 
+    try:
+        allelic_positive_factor = float(allelic_positive_factor)
+    except ValueError:
+        allelic_positive_factor = allelic_positive_factor
     
     assert any([(porec_data is not None), (porectable is not None), 
                 (pairs is not None), ((hic1 is not None) and (hic2 is not None))]), \
@@ -1269,6 +1293,7 @@ def pipeline(fasta,
             allelic_factor=allelic_factor,
             disable_merge_in_first=disable_merge_in_first,
             disable_merge_use_allele=disable_merge_use_allele,
+            allelic_positive_factor=allelic_positive_factor,
             exclude_group_to_second=exclude_group_to_second,
             exclude_group_from_first=exclude_group_from_first,
             whitelist=whitelist,
@@ -1290,6 +1315,7 @@ def pipeline(fasta,
             colormap=cmap,
             whitered=whitered,
             balance=balance,
+            output_hg=output_hg,
             outdir=outdir,
             threads=threads,
             low_memory=low_memory)
@@ -1350,6 +1376,8 @@ from .methalign.cli import methalign
 )
 @click.option(
     "--mm2-params",
+    "--mm2-opts",
+    "mm2_params",
     metavar="STR",
     help="additional parameters for minimap2, such as '-x map-ont', '-x map-ont -k 27 -w 14' or '-x map-hifi'",
     default="-x lr:hq",
@@ -2732,10 +2760,12 @@ def alleles(fasta, output,
     
     from .alleles import PartigAllele
     from .core import AlleleTable, ClusterTable
-    from .utilities import is_file_changed, parse_split_contigs
+    from .utilities import is_file_changed, parse_split_contigs, xopen, read_fasta_yield
     from joblib import Parallel, delayed, parallel_backend
     from Bio import SeqIO
     from multiprocessing import Pool
+    
+    logger.info("Starting allelic contig pairs detection ...")
 
     if not output:
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
@@ -2750,24 +2780,29 @@ def alleles(fasta, output,
     if not first_cluster and not split:
         if trim_length > 0:
             with open(f"{fasta}.trim.fasta", 'w') as out:
-                with open(fasta) as fp:
-                    fa = SeqIO.parse(fp, 'fasta')
-                    for record in fa:
-                        if len(record.seq) > trim_length * 3:
-                            record.seq = record.seq[trim_length:-trim_length]
-                            print(record.format("fasta"), file=out)
-                        else:
-                            print(record.format("fasta"), file=out)
-                            
-            fasta = f"{fasta}.trim.fasta"
+                fa = read_fasta_yield(fasta)
+                for _id, seq in fa:
+                    if len(seq) > trim_length * 3:
+                        trimmed_seq = seq[trim_length: -trim_length]
+                    else:
+                        trimmed_seq = seq
+                    print(f">{_id}\n{trimmed_seq}", file=out)
+                        
+            trim_fasta = f"{fasta}.trim.fasta"
         
-        pa = PartigAllele(fasta, kmer_size, window_size, max_occurance, 
-                            min_cnt, minimum_similarity, diff_thres,
-                            filter_value=min_length, output=output, threads=threads)
-        pa.run()
+            pa = PartigAllele(trim_fasta, kmer_size, window_size, max_occurance, 
+                                min_cnt, minimum_similarity, diff_thres,
+                                filter_value=min_length, output=output, threads=threads)
+            pa.run()
 
-        if Path(f"{fasta}.trim.fasta").exists():
-            os.remove(f"{fasta}.trim.fasta")
+            if Path(trim_fasta).exists():
+                os.remove(trim_fasta)
+        else:
+            pa = PartigAllele(fasta, kmer_size, window_size, max_occurance,
+                                 min_cnt, minimum_similarity, diff_thres,
+                                    filter_value=min_length, output=output, threads=threads)
+            pa.run()
+
     elif split and not first_cluster:
         output_split = output.replace(".allele.table", ".split.allele.table")
         pa = PartigAllele(fasta, kmer_size, window_size, max_occurance,
@@ -2777,6 +2812,9 @@ def alleles(fasta, output,
 
         ## parse split and merge
         allele_df = AlleleTable(output_split, sort=False, fmt="allele2").data
+        if allele_df.empty:
+            logger.error(f"Couldn't load any allelic informatics, please check the `logs/{fasta_prefix}.alleles.core.log`")
+            return 
         tmp_db = {}
         
         with open(output_split, 'r') as fp:
@@ -2796,19 +2834,19 @@ def alleles(fasta, output,
 
         
         logger.info("Merging allele table from split contigs ...")
-        with open(output, 'w') as out:
-            for contig in tmp_db:
-                tmp_line = " ".join(map(str, tmp_db[contig]))
-                print(f"#{contig} {tmp_line}", file=out)
+        # with open(output, 'w') as out:
+        #     for contig in tmp_db:
+        #         tmp_line = " ".join(map(str, tmp_db[contig]))
+        #         print(f"#{contig} {tmp_line}", file=out)
             
-            allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
-            allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
+        #     allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
+        #     allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
 
-            max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum',
-                                                                            'mzShared': 'sum', 'similarity': 'max',
-                                                                            })
-            max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
-            max_idx = max_idx.set_index([1, 2])['strand']
+        #     max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum',
+        #                                                                     'mzShared': 'sum', 'similarity': 'max',
+        #                                                                     })
+        #     max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
+        #     max_idx = max_idx.set_index([1, 2])['strand']
 
         
         with open(output, 'w') as out:
@@ -2955,12 +2993,6 @@ def alleles(fasta, output,
 
         logger.setLevel(logging.INFO)
         logger.info(f"Successful output allele table in `{output}`")
-        # for at in allele_tables:
-        #     if Path(at).exists():
-        #         os.remove(at)
-        #     if Path(f"{at.replace('.allele.table', '')}.similarity.res").exists():
-        #         os.remove(f"{at.replace('.allele.table', '')}.similarity.res")
-
 
 @cli.command(cls=RichCommand, short_help="Build allele table by self mapping, lower memory usage, but higher errors.")
 @click.option(
@@ -3857,6 +3889,15 @@ def hypergraph(contacts,
     help='disable using allele table to merge clusters in first round cluster.',
 )
 @click.option(
+    '-apf',
+    '--allelic-positive-factor',
+    'allelic_positive_factor',
+    help="factor of inter-allelic for reweight edges to merge homolog clusters in first round cluster.",
+    type=str, 
+    default=3.0,
+    show_default=True,
+)
+@click.option(
     '--exclude-group-to-second',
     '--exclude-to-second',
     'exclude_group_to_second',
@@ -4058,6 +4099,13 @@ def hypergraph(contacts,
     show_default=True,
 )
 @click.option(
+    "--output-hg",
+    "output_hg",
+    is_flag=True,
+    default=False,
+    help="Output the hypergraph file.",
+)
+@click.option(
     "--threshold",
     metavar="FLOAT",
     help="Threshold of reweight.",
@@ -4126,6 +4174,7 @@ def hyperpartition(hypergraph,
                     first_cluster,
                     disable_merge_in_first,
                     disable_merge_use_allele,
+                    allelic_positive_factor,
                     exclude_group_to_second,
                     exclude_group_from_first,
                     whitelist,
@@ -4147,6 +4196,7 @@ def hyperpartition(hypergraph,
                     enable_misassembly_remove,
                     is_recluster_contigs,
                     refine,
+                    output_hg,
                     threshold, 
                     max_round, 
                     threads,
@@ -4170,6 +4220,11 @@ def hyperpartition(hypergraph,
     from .utilities import read_chrom_sizes, is_file_changed, binnify, determine_split_length
     
     assert not all([porec, pairs]), "confilct parameters, only support one type data"
+
+    try:
+        allelic_positive_factor = float(allelic_positive_factor)
+    except ValueError:
+        allelic_positive_factor = allelic_positive_factor
 
     if edge_length != "None" and edge_length is not None and edge_length != "none" and edge_length != "0":
         if isinstance(edge_length, str):
@@ -4348,7 +4403,8 @@ def hyperpartition(hypergraph,
                                 min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length, 
                                 split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                                 hcr_invert=hcr_invert, threads=threads)
-            # he.save(hypergraph_path)
+            if output_hg:
+                he.save(hypergraph_path)
             hypergraph = he.edges
         else:
             if hcr_bed:
@@ -4365,7 +4421,8 @@ def hyperpartition(hypergraph,
                            min_quality=min_quality1, hcr_bed=hcr_bed, edge_length=edge_length,
                            split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                            hcr_invert=hcr_invert, threads=threads)
-            # he.save(hypergraph_path)
+            if output_hg:
+                he.save(hypergraph_path)
             hypergraph = he.edges
         else:
             logger.warning(f"Load raw hypergraph from exists file of `{hypergraph_path}`, if the input pairs changed, you should remove this existing hg.")
@@ -4471,6 +4528,7 @@ def hyperpartition(hypergraph,
                             ultra_complex,
                             disable_merge_in_first,
                             False if disable_merge_use_allele else True,
+                            allelic_positive_factor,
                             exclude_group_to_second,
                             exclude_group_from_first,
                             whitelist,
@@ -4522,7 +4580,11 @@ def hyperpartition(hypergraph,
             else:
                 hp.to_cluster(output)
         else:
-            hp.single_partition(int(n[0]))
+            if mode == "basal_withprune":
+                is_kprune = True
+            else:
+                is_kprune = False
+            hp.single_partition(int(n[0]), is_kprune=is_kprune)
             hp.to_cluster(output)
     
 
@@ -4590,12 +4652,44 @@ def from_depth(depth):
     type=click.Path(exists=True),
 )
 @click.option(
+    '-prs',
+    '--pairs',
+    '--hic',
+    help="""
+    construct common graph from 4DN pairs file. 
+    Phasing by Hi-C data, should add this parameter.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
+    '-pct',
+    '--porec',
+    help="""
+    construct hypergraph from porec table. 
+    Input porec table, should add this parameter.
+    """,
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
     "-n",
     "--ploidy",
     help="ploidy level of genome.",
     metavar="INT",
     default=2,
     type=int
+)
+@click.option(
+    "-q1",
+    "--min-quality",
+    "min_quality",
+    help="Minimum quality of hyperedge.",
+    type=click.IntRange(0, 60),
+    default=MAPQ2,
+    show_default=True, 
 )
 @click.option(
     "-at",
@@ -4647,26 +4741,77 @@ def from_depth(depth):
     default=MIN_CIS_WEIGHT,
     show_default=True
 )
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=1,
+    metavar='INT',
+    show_default=True,
+)
 def rescue(hypergraph, contigsizes, clustertable, 
-                    collapsed_contigs, ploidy,
-                    alleletable, allelic_similarity,
-                    min_contacts, min_weight, min_cis_weight):
+                    collapsed_contigs, pairs, porec, ploidy,
+                    min_quality, alleletable, allelic_similarity,
+                    min_contacts, min_weight, min_cis_weight, threads):
     """
 
     """
     import msgspec
     from .collapse import CollapsedRescue
     from .core import AlleleTable, ClusterTable 
-    from .algorithms.hypergraph import HyperEdges, HyperGraph
-    from .utilities import read_chrom_sizes
-    
-    hyperedge = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
-    hyperedge.to_numpy()
-    hypergraph = HyperGraph(hyperedge, min_quality=2)
-    
-    at = AlleleTable(alleletable, sort=False, fmt="allele2")
-    ct = ClusterTable(clustertable)
+    from .algorithms.hypergraph import HyperEdges, HyperGraph, numpy_dec_hook
+    from .hypergraph import HyperExtractor, Extractor
+    from .utilities import read_chrom_sizes, is_file_changed
     contigsizes = read_chrom_sizes(contigsizes)
+    if contigsizes.empty:
+        logger.error("The contigsizes file is empty. please input correct file")
+    
+    contigs = contigsizes.index.values.tolist()
+    contigs = list(map(str, contigs))
+
+    contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+
+    hypergraph_path = f"{Path(hypergraph).stem}.q{min_quality}.hg"
+    if porec:
+        if is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
+            logger.info(f"Load raw hypergraph from porec table `{hypergraph}`")
+            
+            he = HyperExtractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
+                                min_quality=min_quality,threads=threads)
+            hypergraph = he.edges
+        else:
+            hypergraph = msgspec.msgpack.decode(open(hypergraph_path, 'rb').read(), 
+                                                type=HyperEdges, dec_hook=numpy_dec_hook)
+
+    elif pairs:
+        if is_file_changed(hypergraph) or not Path(hypergraph_path).exists():
+            logger.info(f"Load raw hypergraph from pairs file `{hypergraph}`")
+            he = Extractor(hypergraph, contig_idx, contigsizes.to_dict()['length'], 
+                           min_quality=min_quality, threads=threads)
+            hypergraph = he.edges
+        else:
+            logger.warning(f"Load raw hypergraph from exists file of `{hypergraph_path}`, if the input pairs changed, you should remove this existing hg.")
+            hypergraph = msgspec.msgpack.decode(open(hypergraph_path, 'rb').read(), 
+                                                type=HyperEdges, dec_hook=numpy_dec_hook)
+        
+        
+    else:
+        logger.info(f"Load raw hypergraph from `{hypergraph}")
+        try:
+            hypergraph = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), 
+                                                type=HyperEdges, dec_hook=numpy_dec_hook)
+        except msgspec.ValidationError:
+            raise msgspec.ValidationError(f"`{hypergraph}` is not the hypergraph. Please input correct hypergraph format")
+    
+    hypergraph.to_numpy()
+    hypergraph = HyperGraph(hypergraph, min_quality=min_quality)
+    if alleletable is None:
+        at = None 
+    else:
+        at = AlleleTable(alleletable, sort=False, fmt="allele2")
+    ct = ClusterTable(clustertable)
+    
 
     collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
                                         names=["contig", "depth", "CN"])
@@ -7730,6 +7875,8 @@ def agp2fasta(agpfile, fasta, output, contig, threads):
         FASTA: Path of draft assembly
     """
     from .agp import agp2fasta
+    from .utilities import read_fasta
+    fasta = read_fasta(fasta)
     agp2fasta(agpfile, fasta, output, contig)
 
 
@@ -7797,7 +7944,7 @@ def agp_dup(agp, output):
     '--hap-pattern',
     metavar="STR",
     help="The pattern of haplotype in chromosome name, e.g., '(Chr\d+)g(\d+)' for 'Chr01g1', 'Chr02g2'.",
-    default=r"(Chr\d+)g(\d+)",
+    default=r"(Chr\d+)(?:g\d+)?",
     show_default=True
 )
 @click.option(
@@ -8528,4 +8675,7 @@ ALIASES = {
     "p2c": pairs2cool,
     "agp2fa": agp2fasta,
     "eval": evaluator,
+    "sort-chromosome": sort_chromosomes,
+    "sort-chrom": sort_chromosomes,
+    "sort-chroms": sort_chromosomes,
 }

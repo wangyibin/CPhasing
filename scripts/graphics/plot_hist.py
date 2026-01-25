@@ -12,6 +12,7 @@ import os.path as op
 import sys
 import gc
 import pandas as pd 
+import polars as pl
 
 import matplotlib as mpl
 
@@ -27,7 +28,7 @@ bluered_12 = list(map(lambda x: mpl.colors.rgb2hex(x.colors),  list(cmaps.bluere
 
 
 def read_csv(data):
-    df = pd.read_csv(data, sep='\t', header=0, index_col=None, )
+    df = pl.read_csv(data, separator='\t').to_pandas()
     return df
 
 
@@ -78,20 +79,23 @@ def main(args):
     # fig, ax = plt.subplots(figsize=(3, 5))
 
     df = read_csv(args.data[0])
-    res = []
-    if args.x_min is not None and args.x_max is not None:
-        for group in df.columns:
-            tmp_df = df[(df[group] <= args.x_max)]
-            res.append(tmp_df)
-
-        df = pd.concat(res, axis=0)
-        del res, tmp_df
-        gc.collect()
+    if args.x_min is not None or args.x_max is not None:
+        if args.x_min is not None:
+            df = df[df >= args.x_min]
+        if args.x_max is not None:
+            df = df[df <= args.x_max]
+        df = df.dropna()
 
     plt.rcParams['font.family'] = 'Arial'
-    
-    for i in range(len(df.columns)):
-        data = df.iloc[:, i]
+    plt.rcParams['pdf.fonttype'] = 42
+    MAX_POINTS = 100_000 
+
+    for i, col in enumerate(df.columns):
+        data = df[col].dropna()
+        
+     
+        if len(data) > MAX_POINTS:
+            data = data.sample(MAX_POINTS, random_state=42)
 
         ax = sns.histplot(data, kde=args.kde, color=bluered_12[i], alpha=0.3, stat=args.stat, #linewidth=0,
                       bins=args.bins)
@@ -108,6 +112,7 @@ def main(args):
     
     if args.x_label:
         ax.set_xlabel(args.x_label.capitalize(), fontsize=20)
+    
     ax.set_ylabel(args.stat.capitalize(), fontsize=20)
     if args.x_min is not None and args.x_max is not None:
         plt.xlim(args.x_min, args.x_max)

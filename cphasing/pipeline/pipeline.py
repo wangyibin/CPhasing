@@ -104,6 +104,7 @@ def run(fasta,
         allelic_factor=-1,
         disable_merge_in_first=False,
         disable_merge_use_allele=True,
+        allelic_positive_factor=3.0,
         exclude_group_to_second=None,
         exclude_group_from_first=None,
         allelic_similarity=0.85,
@@ -126,6 +127,7 @@ def run(fasta,
         whitered=False,
         balance=False,
         low_memory=False,
+        output_hg=False,
         outdir="cphasing_output",
         threads=4):
     
@@ -1055,6 +1057,9 @@ def run(fasta,
         
         if disable_merge_use_allele:
             hyperpartition_args.append("--disable-merge-use-allele")
+        
+        if allelic_positive_factor:
+            hyperpartition_args.extend(["-apf", str(allelic_positive_factor)])
             
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
@@ -1085,6 +1090,9 @@ def run(fasta,
         
         if cluster_method != CLUSTER_METHOD:
             hyperpartition_args.extend(["-cm", cluster_method])
+
+        if output_hg:
+            hyperpartition_args.extend(["--output-hg", output_hg])
             
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
             _out_sh.write('cphasing hyperpartition \\\n    ')
@@ -1139,7 +1147,7 @@ def run(fasta,
             args = [
                 f"../{hyperpartition_dir}/{output_cluster}",
                 f"../{count_re}",
-                f"--clm",
+                "--clm",
                 f"../{clm}",
                 " ",
                 "-sc",

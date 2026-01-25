@@ -674,7 +674,7 @@ class PQS:
             args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length,
                          self.schema, split_length, split_contig_boundarys))
       
-        results = Parallel(n_jobs=self.threads)(
+        results = Parallel(n_jobs=self.threads, return_as='generator')(
                     delayed(process_chunk_hg)(*arg) for arg in args
                 )
         

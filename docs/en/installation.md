@@ -12,8 +12,6 @@ tags:
     
     tar xzvf CPhasing*.tar.gz
     
-    source ./CPhasing*/bin/activate_cphasing
-    
     ### activate environment
     source ./CPhasing*/bin/activate_cphasing
 
@@ -37,7 +35,7 @@ tags:
     !!! note
         If you do not have direct access to the anaconda repository, you can set the mirror for pixi.
     !!! note
-        For the platform of **`linux-aarch64`**, please download from [github release](https://github.com/wangyibin/CPhasing/releases/tag/v0.2.8).
+        For the platform of **`linux-aarch64`**, please download from [github release](https://github.com/wangyibin/CPhasing/releases).
     
 === "conda"
     Download the CPhasing and install environment by conda

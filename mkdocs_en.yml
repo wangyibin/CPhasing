@@ -129,9 +129,11 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/style.css
+  # - https://unpkg.com/@algolia/sitesearch@latest/dist/search.min.css
 
 extra_javascript:
   - javascript/extra.js
+  # - https://unpkg.com/@algolia/sitesearch@latest/dist/search.min.js
 
 extra:
   homepage: https://wangyibin.github.io/CPhasing
@@ -154,6 +156,11 @@ extra:
 
 plugins:
   - search
+    # provider: algolia
+    # algolia:
+    #   app_id: 7I79MLDJV5
+    #   api_key: bcdf8edc298cf3794b14bc7d5d788fe5
+    #   index_name: wangyibin_github_io_7i79mldjv5_pages
   # - ultralytics:
   #     add_desc: False
   #     add_image: True

@@ -9,6 +9,7 @@ import logging
 import os
 import os.path as op
 import sys
+import uuid
 import subprocess
 import pandas as pd 
 
@@ -279,11 +280,28 @@ class ChromapMapper:
         self.output_pairs = Path(f'{self.prefix}.pairs')
 
     def get_contig_sizes(self):
-        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
-                "-o", str(self.contigsizes)]
-        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
-        assert flag == 0, "Failed to execute command, please check log."
+        if self.contigsizes.exists():
+            return
 
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
+                "-o", str(tmp_contigsizes)]
+        
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        
+        if flag == 0:
+            try:
+                logger.info(f"Moving temporary contigsizes file {tmp_contigsizes} to {self.contigsizes}")
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+            
     def get_genome_size(self):
         from .utilities import get_genome_size
 
@@ -374,7 +392,7 @@ class ChromapMapper:
             
 
     def run(self):
-        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
+        if not Path(f"{self.prefix}.contigsizes").exists():
             self.get_contig_sizes()
         else:
             logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
@@ -447,11 +465,12 @@ class MinimapMapper:
 
         self._path = path
 
-        if self.get_genome_size() > 4e9:
+        self.get_contig_sizes()
+        if self.get_genome_size_from_contig_sizes() > 16e9:
             self.batchsize = to_humanized(self.get_genome_size())
             self.batchsize = str(int(self.batchsize[:-1]) + 1) + self.batchsize[-1]
         else:
-            self.batchsize = "4g"
+            self.batchsize = "16g"
 
 
         if which('crabz') is None and which('pigz') is None:
@@ -476,10 +495,33 @@ class MinimapMapper:
         self.output_pairs = Path(f'{self.prefix}.{self.output_format}')
 
     def get_contig_sizes(self):
+        if self.contigsizes.exists():
+            return
+
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
-                "-o", str(self.contigsizes)]
+                "-o", str(tmp_contigsizes)]
+        
         flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
-        assert flag == 0, "Failed to execute command, please check log."
+        
+        if flag == 0:
+            try:
+                logger.info(f"Moving temporary contigsizes file {tmp_contigsizes} to {self.contigsizes}")
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+
+    def get_genome_size_from_contig_sizes(self):
+        from .utilities import read_chrom_sizes
+        df = read_chrom_sizes(self.contigsizes)
+        return df['length'].sum()
+
 
     def get_genome_size(self):
         from .utilities import get_genome_size
@@ -488,7 +530,7 @@ class MinimapMapper:
 
    
     def mapping(self):
-        if self.compressor == 'crabz':
+        if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
             decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
             compress_cmd = f'crabz -p 8 --format mgzip 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
         else:
@@ -553,12 +595,6 @@ class MinimapMapper:
         logger.info("Done.")         
 
     def run(self):
-        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
-            self.get_contig_sizes()
-        else:
-            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
-                           "existing, skipped ...")
-        
         self.mapping()
         self.paf2pairs()
 
@@ -631,10 +667,32 @@ class BwaMapper:
         self.output_pairs = Path(f'{self.prefix}.{self.output_format}')
 
     def get_contig_sizes(self):
+        if self.contigsizes.exists():
+            return
+
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
-                "-o", str(self.contigsizes)]
+                "-o", str(tmp_contigsizes)]
+        
         flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
-        assert flag == 0, "Failed to execute command, please check log."
+        
+        if flag == 0:
+            try:
+                logger.info(f"Moving temporary contigsizes file {tmp_contigsizes} to {self.contigsizes}")
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+
+    def get_genome_size_from_contig_sizes(self):
+        from .utilities import read_chrom_sizes
+        df = read_chrom_sizes(self.contigsizes)
+        return df['length'].sum()
 
     def index(self):
         """
@@ -654,7 +712,7 @@ class BwaMapper:
         assert flag == 0, "Failed to execute command, please check log."
 
     def mapping(self):
-        if self.compressor == 'crabz':
+        if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
             decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
         else:
             decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
@@ -757,19 +815,6 @@ class PoreCMapper:
             raise ValueError(f"cphasing-rs: command not found")
 
 
-        self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa'}:
-            self.prefix = self.prefix.with_suffix('')
-       
-        self.prefix = Path(str(self.prefix)) if not outprefix else outprefix
-
-
-        if self.get_genome_size() > 4e9:
-            self.batchsize = to_humanized(self.get_genome_size())
-            self.batchsize = str(int(self.batchsize[:-1]) + 1) + self.batchsize[-1]
-        else:
-            self.batchsize = "4g"
-
         self.threads = threads
         self.min_quality = min_quality
         self.min_identity = min_identity
@@ -778,6 +823,23 @@ class PoreCMapper:
         self.k = k 
         self.w = w
         self.force = force
+
+
+        self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa'}:
+            self.prefix = self.prefix.with_suffix('')
+       
+        self.prefix = Path(str(self.prefix)) if not outprefix else outprefix
+
+
+        self.get_contig_sizes()
+
+        if self.get_genome_size_from_contig_sizes() > 16e9:
+            self.batchsize = to_humanized(self.get_genome_size())
+            self.batchsize = str(int(self.batchsize[:-1]) + 1) + self.batchsize[-1]
+        else:
+            self.batchsize = "16g"
+
   
         self.outpaf = f'{self.prefix}.paf.gz'
         self.realign_outpaf = f'{self.prefix}.realign.paf.gz'
@@ -795,10 +857,32 @@ class PoreCMapper:
         return get_genome_size(self.reference)
 
     def get_contig_sizes(self):
+        if self.contigsizes.exists() and not self.force:
+            return
+
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        
         cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
-                "-o", str(self.contigsizes)]
+                "-o", str(tmp_contigsizes)]
+        
         flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
-        assert flag == 0, "Failed to execute command, please check log."
+        
+        if flag == 0:
+            try:
+                logger.info(f"Moving temporary contigsizes file {tmp_contigsizes} to {self.contigsizes}")
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+
+    def get_genome_size_from_contig_sizes(self):
+        from .utilities import read_chrom_sizes
+        df = read_chrom_sizes(self.contigsizes)
+        return df['length'].sum()
 
     def get_digest_bed(self):
         cmd = ["cphasing-rs", "digest", str(self.reference), "-p", str(self.pattern), 
@@ -828,8 +912,9 @@ class PoreCMapper:
         secondary = "--secondary=yes" if secondary else "--secondary=no"
         if "secondary" in self.additional_arguments:
             secondary = ""
-            
-        if self.compressor == 'crabz':
+
+        
+        if self.compressor == 'crabz' and len(self.reads) == 1:
             decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
             compress_cmd = f'crabz -p 8 --format mgzip 2>{self.log_dir}/{self.prefix}.mapping.compress.log'
         else:
@@ -889,13 +974,6 @@ class PoreCMapper:
         assert flag == 0, "Failed to execute command, please check log."
     
     def run(self):
-        
-        if not Path(f"{self.prefix}.contigsizes").exists() or self.force:
-            self.get_contig_sizes()
-        else:
-            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes "
-                           "existing, skipped ...")
-        
         # if not self.index_path.exists() or self.force:
         #     self.index()
         # else:

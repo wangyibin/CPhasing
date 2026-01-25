@@ -129,9 +129,11 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/style.css
+  # - https://unpkg.com/@algolia/sitesearch@latest/dist/search.min.css
 
 extra_javascript:
   - javascript/extra.js
+  # - https://unpkg.com/@algolia/sitesearch@latest/dist/search.min.js
 
 extra:
   homepage: https://wangyibin.github.io/CPhasing

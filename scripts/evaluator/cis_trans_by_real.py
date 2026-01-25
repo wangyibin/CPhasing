@@ -76,7 +76,7 @@ def main(args):
         assert len(args.cool) == len(args.labels), "number of labels must equal to cool files"
 
     results = []
-    pair_num = 0
+
     for i, cool_file in enumerate(args.cool):
         cool = cooler.Cooler(cool_file)
         matrix = cool.matrix(balance=False, sparse=True)
@@ -86,6 +86,7 @@ def main(args):
         total_cis = 0 
         total_trans = 0
         res = []
+        pair_num = 0
         for homo in homo_chroms:
             homo = sorted(homo)
             for pair in combinations(homo, 2):

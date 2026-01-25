@@ -2,6 +2,9 @@
 <h1 align="center"><b>C</b>-Phasing</h1>
 <p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>(<b>C</b>iFi), Ultra-long, or Hi-<b>C</b> data</p>.
 
+![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing) ![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) [![](https://img.shields.io/github/downloads/wangyibin/CPhasing/total?style=flat)](https://github.com/wangyibin/CPhasing/releases)
+
+
 ## Introduction
 One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**, provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data.  It also works on **Hi-C** (or other 3C technologies, e.g. Omni-C and Micro-C) data and **diploid** genome assembly.  
   

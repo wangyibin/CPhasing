@@ -210,8 +210,8 @@ class CollapseFromDepth:
         rd_df['is_high'] = rd_df['count'] > high_depth_threshold
         contig_stats = rd_df.groupby('chrom').agg({
             'count': 'mean',
-            'is_high': 'mean', # 这就是高深度窗口的比例 (0.0 - 1.0)
-            'end': 'max' # 近似长度
+            'is_high': 'mean',
+            'end': 'max'
         }).rename(columns={'is_high': 'high_coverage_ratio', 'end': 'length'})
         contig_stats['CN'] = contig_stats['count'] / peak_depth
         collapsed_mask = (contig_stats['CN'] > 1.5) | (contig_stats['high_coverage_ratio'] > 0.5)
@@ -446,9 +446,11 @@ class CollapsedRescue:
         
         self.HG = HG 
         self.clustertable = clustertable
+
         self.alleletable = alleletable 
-        self.alleletable.data = self.alleletable.data[
-            self.alleletable.data['similarity'] >= allelic_similarity]
+        if self.alleletable is not None:
+            self.alleletable.data = self.alleletable.data[
+                self.alleletable.data['similarity'] >= allelic_similarity]
 
         self.contigsizes = contigsizes
         self.collapsed_contigs = collapsed_contigs
@@ -503,16 +505,20 @@ class CollapsedRescue:
             contigs_idx = list(filter(lambda x: x is not None, map(vertices_idx.get, contigs)))
             
             sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
-            sub_alleletable = self.alleletable.data[
-                self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
-            sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
-            sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
-            sub_alleletable.dropna(axis=0, inplace=True)
-            sub_alleletable[1] = sub_alleletable[1].astype(int)
-            sub_alleletable[2] = sub_alleletable[2].astype(int)
-            P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
-            sub_alleletable.set_index([1], inplace=True)
-            
+            if self.alleletable is None:
+                sub_alleletable = None 
+                P_allelic_idx = None
+            else:
+                sub_alleletable = self.alleletable.data[
+                    self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
+                sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
+                sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+                sub_alleletable.dropna(axis=0, inplace=True)
+                sub_alleletable[1] = sub_alleletable[1].astype(int)
+                sub_alleletable[2] = sub_alleletable[2].astype(int)
+                P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
+                sub_alleletable.set_index([1], inplace=True)
+
             sub_H, _, _ = extract_incidence_matrix2(self.H, contigs_idx)
             sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
            
@@ -531,22 +537,88 @@ class CollapsedRescue:
             sub_collapsed_contigs_new.index = sub_collapsed_contigs_new.index.map(sub_old2new_idx.get)
             sub_collapsed_contigs_idx = sub_collapsed_contigs.index.tolist()
             sub_collapsed_contigs_idx_new = sub_collapsed_contigs_new.index.tolist()
+            sub_collapsed_contigs_idx_new = [int(idx) for idx in sub_collapsed_contigs_idx_new if pd.notnull(idx)]
             sub_collapsed_contigs_cn_dict = sub_collapsed_contigs_new['CN'].to_dict()
             
             res = []
            
-            for j in sub_collapsed_contigs_idx_new:
-                if j is None:
-                    continue
-                try:
-                    tmp_allelic_table = sub_alleletable.loc[j]
-                    try:
-                        tmp_allelic_table.set_index([2], inplace=True)
-                    except:
-                        tmp_allelic_table.to_frame().set_index([2], inplace=True)
+            # for j in sub_collapsed_contigs_idx_new:
+            #     if j is None:
+            #         continue
+            #     if sub_alleletable is None:
+            #         tmp_allelic_table = []
+            #     else:
+            #         try:
+            #             tmp_allelic_table = sub_alleletable.loc[j]
+            #             try:
+            #                 tmp_allelic_table.set_index([2], inplace=True)
+            #             except:
+            #                 tmp_allelic_table.to_frame().set_index([2], inplace=True)
 
-                except KeyError:
+            #         except KeyError or AttributeError:
+            #             tmp_allelic_table = []
+            #     shared_similarity = np.zeros(len(groups))
+            #     tmp_res = []
+            #     for i in range(len(groups)):
+            #         if i == groups_new_idx_db[j]:
+            #             tmp_res.append(0)
+            #         else:
+            #             if len(tmp_allelic_table) > 1:
+            #                 tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
+            #                 if len(tmp) > 1:
+            #                     shared_similarity[i] = tmp['mzShared'].sum()
+
+            #             tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
+                
+            #     cn = int(sub_collapsed_contigs_cn_dict[j])
+                
+            #     # tmp_res_db = dict(zip(range(len(tmp_res)), tmp_res))
+                
+            #     # tmp_res_idx = sorted(tmp_res_db, key=lambda x: tmp_res_db[x], reverse=True)
+            #     # for max_idx in tmp_res_idx[:(cn-1)]:
+            #     #     if tmp_res_db[max_idx] > self.min_weight:
+            #     #         groups_new_idx[max_idx].append(j)
+            #     #         logger.debug(f"Rescued contig {idx_to_vertices[max_idx]} into group {max_idx}")
+
+            #     # res.append(tmp_res)
+            #     tmp_res_db = dict(zip(range(len(tmp_res)), tmp_res))
+                
+            #     tmp_res_idx = sorted(tmp_res_db, key=lambda x: tmp_res_db[x], reverse=True)
+                
+            #     added_count = 0
+            #     original_group_idx = groups_new_idx_db.get(j) # Get original group index
+
+            #     for max_idx in tmp_res_idx:
+            #         if added_count >= (cn - 1):
+            #             break
+                    
+            #         if tmp_res_db[max_idx] <= self.min_weight:
+            #             continue
+                        
+            #         if max_idx == original_group_idx:
+            #             continue
+    
+            #         groups_new_idx[max_idx].append(j)
+            #         logger.debug(f"Rescued contig {idx_to_vertices[max_idx]} into group {max_idx}")
+            #         added_count += 1
+
+            #     res.append(tmp_res)
+            for j in sub_collapsed_contigs_idx_new:
+                if j is None: 
+                    continue
+                
+                if sub_alleletable is None:
                     tmp_allelic_table = []
+                else:
+                    try:
+                        tmp_allelic_table = sub_alleletable.loc[j]
+                        try:
+                            tmp_allelic_table.set_index([2], inplace=True)
+                        except:
+                            tmp_allelic_table.to_frame().set_index([2], inplace=True)
+
+                    except KeyError or AttributeError:
+                        tmp_allelic_table = []
                 shared_similarity = np.zeros(len(groups))
                 tmp_res = []
                 for i in range(len(groups)):
@@ -561,16 +633,38 @@ class CollapsedRescue:
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
                 
                 cn = int(sub_collapsed_contigs_cn_dict[j])
-                
-                tmp_res_db = dict(zip(range(len(tmp_res)), tmp_res))
-                
-                tmp_res_idx = sorted(tmp_res_db, key=lambda x: tmp_res_db[x], reverse=True)
-                for max_idx in tmp_res_idx[:(cn-1)]:
-                    if tmp_res_db[max_idx] > self.min_weight:
-                        groups_new_idx[max_idx].append(j)
-                        logger.debug(f"Rescued contig {idx_to_vertices[max_idx]} into group {max_idx}")
 
-                res.append(tmp_res)
+                group_scores = np.array(tmp_res)
+                
+                original_g_idx = groups_new_idx_db.get(j)
+
+                valid_indices = [idx for idx, s in enumerate(group_scores) 
+                                 if idx != original_g_idx and s > self.min_weight]
+                
+                if not valid_indices:
+                    continue
+
+                valid_indices.sort(key=lambda idx: group_scores[idx], reverse=True)
+                
+                targets = []
+                primary_score = group_scores[valid_indices[0]]
+                
+                for candidate_idx in valid_indices:
+                    if len(targets) >= (cn - 1):
+                        break
+                    
+                    score = group_scores[candidate_idx]
+                    
+                    if score < primary_score * 0.25: 
+                        continue
+                    
+                    targets.append(candidate_idx)
+                
+                for t_idx in targets:
+                    groups_new_idx[t_idx].append(j)
+                    logger.debug(f"Rescued contig {idx_to_vertices[t_idx]} into group {t_idx} (Score: {group_scores[t_idx]} vs Best: {primary_score})")
+
+                res.append(tmp_res)            
 
             new_groups = []
             for group_idx in groups_new_idx:
@@ -581,9 +675,7 @@ class CollapsedRescue:
             for k, group in enumerate(new_groups):
                 new_cluster_data[f'{hap_group}g{k+1}'] = group 
         
-    
         self.clustertable.data = new_cluster_data
-        ## duplicated
        
         new_contigs = self.clustertable.contigs
         count = Counter(new_contigs)

@@ -24,7 +24,7 @@ import polars as pl
 import pyranges as pr
 import scipy.sparse as sp
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from math import ceil
 from itertools import product
 from intervaltree import Interval, IntervalTree
@@ -852,57 +852,121 @@ def adjust_matrix_slow(matrix, agp, outprefix=None, chromSize=None, threads=4):
     
     return f'{outprefix}.chrom.cool'
 
+# def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
+#     target_bin_size = bin_size * coarsen_factor
+    
+#     contig_bins = cool.bins()[['chrom', 'start', 'end']][:]
+#     n_old_bins = len(contig_bins)
+#     dtype_id = np.int32 if n_old_bins < 2**31 - 1 else np.int64
+
+#     agp_df = agp_df.copy()
+
+#     chrom_lengths = agp_df.groupby(agp_df.index)['end'].max().to_dict()
+
+#     new_bins_list = []
+#     chrom_offset = {}
+#     current_max_bin = 0
+
+#     sorted_chroms = list(dict.fromkeys(agp_df.index))
+    
+#     for chrom in sorted_chroms:
+#         length = chrom_lengths[chrom]
+
+#         n_bins = int(np.ceil(length / target_bin_size))
+#         chrom_offset[chrom] = current_max_bin
+
+#         starts = np.arange(0, length, target_bin_size, dtype=np.int64) 
+#         ends = np.clip(starts + target_bin_size, 0, length).astype(np.int64)
+        
+#         chrom_df = pd.DataFrame({
+#             'chrom': chrom,
+#             'start': starts,
+#             'end': ends
+#         })
+#         new_bins_list.append(chrom_df)
+#         current_max_bin += n_bins
+        
+#     new_bins_df = pd.concat(new_bins_list, ignore_index=True)
+    
+#     map_array = np.full(n_old_bins, -1, dtype=dtype_id)
+
+#     if contig_bins['chrom'].dtype == 'object':
+#         contig_bins['chrom'] = contig_bins['chrom'].astype('category')
+
+#     contig_groups = contig_bins.reset_index().groupby('chrom')['index'].agg(['min', 'max'])
+#     contig_id_map = contig_groups.to_dict('index')
+    
+#     contig_starts = contig_bins['start'].values
+#     contig_ends = contig_bins['end'].values
+    
+#     for chrom_name, row in agp_df.iterrows():
+#         contig_name = row.id
+#         orientation = row.orientation
+#         agp_start = row.start - 1 # 0-based
+        
+#         if contig_name not in contig_id_map:
+#             continue
+            
+#         c_info = contig_id_map[contig_name]
+#         old_start_id, old_end_id = c_info['min'], c_info['max']
+
+#         tig_starts = contig_starts[old_start_id : old_end_id+1]
+        
+#         if orientation == '+':
+#             chrom_coords = agp_start + tig_starts
+#         else:
+#             tig_len = row.tig_end
+#             tig_ends = contig_ends[old_start_id : old_end_id+1]
+#             chrom_coords = agp_start + (tig_len - tig_ends)
+  
+#         rel_bin_indices = (chrom_coords // target_bin_size).astype(dtype_id)
+#         base_offset = chrom_offset[chrom_name]
+#         new_bin_ids = base_offset + rel_bin_indices
+        
+#         map_array[old_start_id : old_end_id+1] = new_bin_ids
+    
+#     return map_array, new_bins_df
+
 def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
     target_bin_size = bin_size * coarsen_factor
     
     contig_bins = cool.bins()[['chrom', 'start', 'end']][:]
     n_old_bins = len(contig_bins)
-    dtype_id = np.int32 if n_old_bins < 2**31 - 1 else np.int64
-
+    
     agp_df = agp_df.copy()
-
     chrom_lengths = agp_df.groupby(agp_df.index)['end'].max().to_dict()
 
     new_bins_list = []
     chrom_offset = {}
     current_max_bin = 0
-
     sorted_chroms = list(dict.fromkeys(agp_df.index))
     
     for chrom in sorted_chroms:
         length = chrom_lengths[chrom]
-
         n_bins = int(np.ceil(length / target_bin_size))
         chrom_offset[chrom] = current_max_bin
-
         starts = np.arange(0, length, target_bin_size, dtype=np.int64) 
         ends = np.clip(starts + target_bin_size, 0, length).astype(np.int64)
-        
-        chrom_df = pd.DataFrame({
-            'chrom': chrom,
-            'start': starts,
-            'end': ends
-        })
+        chrom_df = pd.DataFrame({'chrom': chrom, 'start': starts, 'end': ends})
         new_bins_list.append(chrom_df)
         current_max_bin += n_bins
         
     new_bins_df = pd.concat(new_bins_list, ignore_index=True)
     
-    map_array = np.full(n_old_bins, -1, dtype=dtype_id)
-
     if contig_bins['chrom'].dtype == 'object':
         contig_bins['chrom'] = contig_bins['chrom'].astype('category')
 
     contig_groups = contig_bins.reset_index().groupby('chrom')['index'].agg(['min', 'max'])
     contig_id_map = contig_groups.to_dict('index')
-    
     contig_starts = contig_bins['start'].values
     contig_ends = contig_bins['end'].values
     
+    mapping_dict = defaultdict(list)
+
     for chrom_name, row in agp_df.iterrows():
         contig_name = row.id
         orientation = row.orientation
-        agp_start = row.start - 1 # 0-based
+        agp_start = row.start - 1 
         
         if contig_name not in contig_id_map:
             continue
@@ -910,6 +974,9 @@ def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
         c_info = contig_id_map[contig_name]
         old_start_id, old_end_id = c_info['min'], c_info['max']
 
+        num_bins = old_end_id - old_start_id + 1
+        old_bin_ids = np.arange(old_start_id, old_end_id + 1)
+        
         tig_starts = contig_starts[old_start_id : old_end_id+1]
         
         if orientation == '+':
@@ -919,49 +986,103 @@ def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
             tig_ends = contig_ends[old_start_id : old_end_id+1]
             chrom_coords = agp_start + (tig_len - tig_ends)
   
-        rel_bin_indices = (chrom_coords // target_bin_size).astype(dtype_id)
+        rel_bin_indices = (chrom_coords // target_bin_size).astype(np.int64)
         base_offset = chrom_offset[chrom_name]
         new_bin_ids = base_offset + rel_bin_indices
-        
-        map_array[old_start_id : old_end_id+1] = new_bin_ids
+
+        for ob, nb in zip(old_bin_ids, new_bin_ids):
+            mapping_dict[ob].append(nb)
+
+    map_data = []
+    for ob, nbs in mapping_dict.items():
+        for nb in nbs:
+            map_data.append((ob, nb))
+
+    map_pl = pl.DataFrame(map_data, schema={'old': pl.Int32, 'new': pl.Int32})
     
-    return map_array, new_bins_df
+    return map_pl, new_bins_df
 
 
-def process_chunk(chunk_df, map_array, temp_path, chunk_idx, bin_dtype, count_dtype):
-    chunk_df = chunk_df[(chunk_df['bin1_id'] > 0) & (chunk_df['bin2_id'] > 0)]
-    old_b1 = chunk_df['bin1_id'].values
-    old_b2 = chunk_df['bin2_id'].values
-    counts = chunk_df['count'].values
+# def process_chunk(chunk_df, map_array, temp_path, chunk_idx, bin_dtype, count_dtype):
+#     chunk_df = chunk_df[(chunk_df['bin1_id'] > 0) & (chunk_df['bin2_id'] > 0)]
+#     old_b1 = chunk_df['bin1_id'].values
+#     old_b2 = chunk_df['bin2_id'].values
+#     counts = chunk_df['count'].values
     
     
-    new_b1 = map_array[old_b1]
-    new_b2 = map_array[old_b2]
+#     new_b1 = map_array[old_b1]
+#     new_b2 = map_array[old_b2]
     
-    valid_mask = (new_b1 != -1) & (new_b2 != -1)
-    if not np.all(valid_mask):
-        new_b1 = new_b1[valid_mask]
-        new_b2 = new_b2[valid_mask]
-        counts = counts[valid_mask]
+#     valid_mask = (new_b1 != -1) & (new_b2 != -1)
+#     if not np.all(valid_mask):
+#         new_b1 = new_b1[valid_mask]
+#         new_b2 = new_b2[valid_mask]
+#         counts = counts[valid_mask]
     
-    if len(new_b1) == 0:
+#     if len(new_b1) == 0:
+#         return False
+
+#     swap_mask = new_b1 > new_b2
+#     final_b1 = np.where(swap_mask, new_b2, new_b1)
+#     final_b2 = np.where(swap_mask, new_b1, new_b2)
+
+#     chunk_pl = pl.DataFrame({
+#         'bin1_id': final_b1,
+#         'bin2_id': final_b2,
+#         'count': counts
+#     }).select([
+#         pl.col('bin1_id').cast(bin_dtype),
+#         pl.col('bin2_id').cast(bin_dtype),
+#         pl.col('count').cast(count_dtype)
+#     ])
+    
+#     chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
+
+#     return True
+
+def process_chunk(chunk_df, map_pl, temp_path, chunk_idx, bin_dtype, count_dtype):
+    chunk_pl = pl.from_pandas(chunk_df)
+
+    chunk_pl = chunk_pl.filter((pl.col('bin1_id') >= 0) & (pl.col('bin2_id') >= 0))
+    if chunk_pl.height == 0:
         return False
 
-    swap_mask = new_b1 > new_b2
-    final_b1 = np.where(swap_mask, new_b2, new_b1)
-    final_b2 = np.where(swap_mask, new_b1, new_b2)
+    chunk_pl = chunk_pl.with_columns([
+        pl.col('bin1_id').cast(pl.Int32),
+        pl.col('bin2_id').cast(pl.Int32)
+    ])
 
-    chunk_pl = pl.DataFrame({
-        'bin1_id': final_b1,
-        'bin2_id': final_b2,
-        'count': counts
-    }).select([
-        pl.col('bin1_id').cast(bin_dtype),
-        pl.col('bin2_id').cast(bin_dtype),
+    chunk_mapped = chunk_pl.join(
+        map_pl, left_on='bin1_id', right_on='old', how='inner'
+    ).rename({'new': 'new_bin1_id'})
+
+    if chunk_mapped.height == 0:
+        return False
+
+    chunk_mapped = chunk_mapped.join(
+        map_pl, left_on='bin2_id', right_on='old', how='inner'
+    ).rename({'new': 'new_bin2_id'})
+
+    if chunk_mapped.height == 0:
+        return False
+    
+    final_pl = chunk_mapped.select([
+        pl.when(pl.col('new_bin1_id') > pl.col('new_bin2_id'))
+          .then(pl.col('new_bin2_id'))
+          .otherwise(pl.col('new_bin1_id'))
+          .cast(bin_dtype)
+          .alias('bin1_id'),
+          
+        pl.when(pl.col('new_bin1_id') > pl.col('new_bin2_id'))
+          .then(pl.col('new_bin1_id'))
+          .otherwise(pl.col('new_bin2_id'))
+          .cast(bin_dtype)
+          .alias('bin2_id'),
+          
         pl.col('count').cast(count_dtype)
     ])
     
-    chunk_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
+    final_pl.write_parquet(temp_path / f"chunk_{chunk_idx}.parquet")
 
     return True
 
@@ -1877,7 +1998,12 @@ def plot_heatmap(matrix, output,
                             avoid_overlap_yticks=avoid_overlap_yticks)
     
     else: 
-        ax = plot_per_chromosome_heatmap(cool, chromosomes, fontsize=fontsize,
+        if fontsize is None:
+            tick_fontsize = 12
+        else:
+            tick_fontsize = fontsize
+
+        ax = plot_per_chromosome_heatmap(cool, chromosomes, fontsize=tick_fontsize,
                                          chrom_per_row=chrom_per_row, triangle=triangle,
                                         cmap=cmap, balanced=balanced,
                                         vmin=vmin, vmax=vmax, group_by_homologs=group_by_homologs,
@@ -1885,8 +2011,11 @@ def plot_heatmap(matrix, output,
 
     logger.info(f"  Set dpi to `{dpi}`.")
     plt.savefig(output, dpi=dpi, bbox_inches='tight')
-
+    
     logger.info(f'Successful, plotted the heatmap into `{output}`')
+    if output.endswith('.png'):
+        plt.savefig(output.replace('.png', '.pdf'), dpi=dpi, bbox_inches='tight')
+        logger.info(f"Successful, also saved the heatmap into `{output.replace('.png', '.pdf')}`")
 
     return ax
 
@@ -2454,8 +2583,11 @@ def plot_heatmap_core(matrix,
             cbar = fig.colorbar(cax, ax=ax, orientation='horizontal', shrink=.3, pad=0.06, location='bottom')
         else:
             cbar = fig.colorbar(cax, ax=ax, shrink=.4, pad=0.03)
-        
-        cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
+        if tick_fontsize is not None:
+            cbar.ax.tick_params(labelsize=tick_fontsize*0.8)
+        else:
+            cbar.ax.tick_params(labelsize=12)
+
         cbar.locator = plt.MaxNLocator(3)
         fmt = ScalarFormatter(useMathText=True)
         fmt.set_scientific(True)
@@ -3357,7 +3489,8 @@ def sort_chromosomes_grouped(cool,
                              intra_method='greedy',
                              inter_method='greedy',
                              contig_method='size',
-                             compute_chunksize=5_000_000):
+                             compute_chunksize=5_000_000,
+                             min_inter_contacts=25):
     import re
     import numpy as np
     from collections import OrderedDict
@@ -3391,6 +3524,23 @@ def sort_chromosomes_grouped(cool,
         c, chrom_offset, collapse_map=None, chunksize=compute_chunksize)
     if not issparse(S):
         S = csr_matrix(S)
+    
+
+    inter_sum = np.asarray(S.sum(axis=1)).ravel()
+    keep_mask = inter_sum >= min_inter_contacts
+    removed_names = []
+    removed_indices = []
+    if not np.all(keep_mask):
+        removed_indices = np.where(~keep_mask)[0]
+        removed_names = [chromnames[i] for i in removed_indices]
+        valid_indices = np.where(keep_mask)[0]
+        S = S[valid_indices, :][:, valid_indices]
+        chromnames = [chromnames[i] for i in valid_indices]
+        counts = counts[valid_indices]
+        chrom_offset = np.r_[0, np.cumsum(counts)].astype(np.int64)
+        n_chr = len(chromnames)
+        logger.info(f"Filtered out {len(keep_mask) - n_chr} contigs with < {min_inter_contacts} inter contacts.")
+
     S = S.tocsr()  # ensure csr
 
  
@@ -3410,25 +3560,45 @@ def sort_chromosomes_grouped(cool,
                 return []
             
             # Vectorized greedy sort
-            totals = sub_arr.sum(axis=1)
-            current = np.argmax(totals)
+            # totals = sub_arr.sum(axis=1)
+            # current = np.argmax(totals)
             
-            path = np.zeros(n, dtype=int)
-            path[0] = current
+            # path = np.zeros(n, dtype=int)
+            # path[0] = current
             
-            mask = np.ones(n, dtype=bool)
-            mask[current] = False
+            # mask = np.ones(n, dtype=bool)
+            # mask[current] = False
             
-            for i in range(1, n):
-                # Get interactions of current node
-                scores = sub_arr[current].copy()
-                # Mask visited nodes with -1.0 (assuming interactions >= 0)
-                scores[~mask] = -1.0
+            # for i in range(1, n):
+            #     # Get interactions of current node
+            #     scores = sub_arr[current].copy()
+            #     # Mask visited nodes with -1.0 (assuming interactions >= 0)
+            #     scores[~mask] = -1.0
                 
-                nxt = np.argmax(scores)
-                path[i] = nxt
-                mask[nxt] = False
-                current = nxt
+            #     nxt = np.argmax(scores)
+            #     path[i] = nxt
+            #     mask[nxt] = False
+            #     current = nxt
+                
+            # return [members[i] for i in path]
+            path = []
+            mask = np.ones(n, dtype=bool)
+            
+            while len(path) < n:
+                remaining_indices = np.where(mask)[0]
+                if len(path) == 0:
+                    current = remaining_indices[np.argmax(sub_arr[remaining_indices].sum(axis=1))]
+                else:
+                    scores = sub[path[-1]].toarray().flatten()
+                    scores[~mask] = -1.0
+                    if np.max(scores) <= 0: 
+                        current = remaining_indices[np.argmax(np.asarray(sub[remaining_indices].sum(axis=1)).ravel())]
+
+                    else:
+                        current = np.argmax(scores)
+                
+                path.append(current)
+                mask[current] = False
                 
             return [members[i] for i in path]
         elif method == 'mst':
@@ -3482,6 +3652,11 @@ def sort_chromosomes_grouped(cool,
     group_keys = list(group_order)
     Gk = len(group_keys)
     
+    group_lengths = []
+    for key in group_keys:
+        mems = group_members[key]
+        group_lengths.append(sum(counts[m] for m in mems))
+    group_lengths = np.array(group_lengths, dtype=float)
 
     row_ind = []
     col_ind = []
@@ -3496,17 +3671,40 @@ def sort_chromosomes_grouped(cool,
     # G = P.T @ S @ P
     G_mat = P.T @ S @ P
     
+    use_dense_G = (Gk <= 5000)
+    
     if issparse(G_mat):
-        G = G_mat.toarray()
+        G_coo = G_mat.tocoo()
+       
+        norm_data = G_coo.data / (group_lengths[G_coo.row] * group_lengths[G_coo.col])
+        G_coo.data = np.log1p(norm_data * 1e6)
+        G = G_coo.tocsr()
     else:
         G = np.asarray(G_mat)
+        L = np.outer(group_lengths, group_lengths)
+        L[L == 0] = 1.0
+        G = np.log1p((G / L) * 1e6)
+    
+    if use_dense_G and issparse(G):
+        G = G.toarray()
         
-    np.fill_diagonal(G, 0.0)
+    if not issparse(G):
+        np.fill_diagonal(G, 0.0)
+
+
+    L = np.outer(group_lengths, group_lengths)
+    L[L == 0] = 1.0 
+
+    G = G / L
+    G = np.log1p(G * 1e6)
 
     def sort_groups(group_idx_list, method='sum'):
         m = len(group_idx_list)
         if m <= 1:
             return group_idx_list[:]
+        nonlocal G
+        if issparse(G) and not hasattr(G, "__getitem__"):
+            G = G.tocsr()
         if method == 'sum':
             scores = G.sum(axis=1)
             order = np.argsort(-scores)
@@ -3516,22 +3714,34 @@ def sort_chromosomes_grouped(cool,
             if n == 0:
                 return []
             
-            totals = G.sum(axis=1)
-            current = np.argmax(totals)
-            
-            path = np.zeros(n, dtype=int)
-            path[0] = current
-            
+            path = []
             mask = np.ones(n, dtype=bool)
-            mask[current] = False
-            
-            for i in range(1, n):
-                scores = G[current].copy()
-                scores[~mask] = -1.0
-                nxt = np.argmax(scores)
-                path[i] = nxt
-                mask[nxt] = False
-                current = nxt
+            if issparse(G):
+                threshold = np.percentile(G.data, 50) if G.nnz > 0 else 0
+            else:
+                threshold = np.percentile(G, 50)
+
+            while len(path) < n:
+                remaining_indices = np.where(mask)[0]
+                if len(path) == 0:
+                    sums = np.asarray(G[remaining_indices].sum(axis=1)).ravel()
+                    current = remaining_indices[np.argmax(sums)]
+                else:
+                  
+                    if issparse(G):
+                        scores = G[path[-1]].toarray().flatten()
+                    else:
+                        scores = G[path[-1]].copy()
+                        
+                    scores[~mask] = -1.0
+                    if np.max(scores) <= threshold: 
+                        sums = np.asarray(G[remaining_indices].sum(axis=1)).ravel()
+                        current = remaining_indices[np.argmax(sums)]
+                    else:
+                        current = np.argmax(scores)
+                
+                path.append(current)
+                mask[current] = False
                 
             return [group_idx_list[i] for i in path]
         elif method == 'mst':
@@ -3572,5 +3782,12 @@ def sort_chromosomes_grouped(cool,
         members = ordered_group_members[key]
         final_order.extend(members)
         final_labels.extend([chromnames[i] for i in members])
+
+    if removed_names:
+        start_idx = len(chromnames)
+        for i, name in enumerate(removed_names):
+            final_labels.append(name)
+
+    final_order = np.concatenate([final_order, removed_indices])
 
     return np.asarray(final_order, dtype=int), final_labels

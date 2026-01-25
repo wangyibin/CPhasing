@@ -2,6 +2,10 @@
 <h1 align="center"><b>C</b>-Phasing</h1>
 <p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>, Ultra-long, or Hi-<b>C</b> data</p>.
 
+![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing) ![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) [![](https://img.shields.io/github/downloads/wangyibin/CPhasing/total?style=flat)](https://github.com/wangyibin/CPhasing/releases)
+
+
+
 ## 介绍
 使用Hi-C数据实现多倍体基因组分型挂载，存在主要问题之一是大量不明确的短读长比对，这容易导致高水平的交换或嵌合组装错误。现在，基于长读长的染色体构象捕获技术，如**Pore-C**、**HiFi-C**，为克服这一问题提供了有效途径。在这里，我们开发了一个新的流程，即“C-Phasing”，它是专门为多倍体分型组装量身定制的，旨在充分利用Pore-C或HiFi-C数据的优势。此外，它也可用于**Hi-C**或**Micro-C**等基于二代的染色质构象捕获技术产生的数据和二倍体基因组组装。
 

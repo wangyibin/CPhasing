@@ -20,11 +20,6 @@ HYPERGRAPH_COL_DTYPE = "int32"
 
 DEFAULT_HIC_ALIGNER = "_chromap"
 
-## if platform is aarch64, use minimap2 as default Hi-C aligner
-if platform.machine() == "aarch64":
-    DEFAULT_HIC_ALIGNER = "minimap2"
-
-
 DEFAULT_PATTERN = "GATC"
 
 MAPQ1 = 1

@@ -306,7 +306,12 @@ def xopen(infile, mode='r'):
         infile = Path(infile)
 
     if infile.suffix == ".gz":
+        # try:
+        #     import mgzip 
+        # except ImportError:
         handle = gzip.open(infile, mode + 't')
+        # finally:
+            # handle = mgzip.open(str(infile), mode + 't', thread=8)
     else:
         handle = open(infile, mode)
     return handle
@@ -554,31 +559,24 @@ def get_genome_size(fasta):
     >>> get_genome_size("sample.fasta")
     100000
     """
-    from pyfaidx import Fasta
 
-    if str(fasta)[-3:] == ".gz":
+    try:
+        from needletail import parse_fastx_file, NeedletailError
+    except ImportError:
         handle = xopen(fasta)
         fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
-        sizes = [len(record) for record in fasta]
+        sizes = [len(fasta[record]) for record in fasta]
     else:
-        fai_file = str(fasta) + ".fai"
-        if os.path.exists(fai_file):
+        try:
             sizes = []
-            with open(fai_file) as f:
-                for line in f:
-                    sizes.append(int(line.split("\t")[1]))
-        else:
-            try:
-                sizes = []
-                for record in SeqIO.parse(fasta, "fasta"):
-                    sizes.append(len(record))
-            
-            except Exception:
-                sizes = []
-                for record in SeqIO.parse(fasta, "fasta"):
-                    sizes.append(len(record))
-
+            for record in parse_fastx_file(fasta):
+                sizes.append(len(record.seq))
+        except NeedletailError:
+            handle = xopen(fasta)
+            fasta = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+            sizes = [len(fasta[record]) for record in fasta]
     return sum(sizes)
+
 
 def get_contigs(fasta):
     """
@@ -765,7 +763,7 @@ def check_allhic_version():
     assert version_check(version), "the version of `allhic` must be >= 0.9.14."
 
 
-def read_fasta(fasta: str) ->OrderedDict:
+def read_fasta(fasta: str) -> OrderedDict:
     """
     Create a directory of fasta record.
 
@@ -786,34 +784,49 @@ def read_fasta(fasta: str) ->OrderedDict:
     """
     from Bio.SeqIO.FastaIO import SimpleFastaParser
     from Bio.Seq import Seq
-    from Bio import SeqIO
-    
+
     logger.info(f'Load fasta file: `{fasta}`.')
     db = OrderedDict()
     
-    # fasta = SeqIO.parse(xopen(fasta), 'fasta')
-    # for record in fasta:
-    #     if record.id not in db:
-    #         db[record.id] = record.seq
-        
-    # return db
-    
-    with xopen(fasta) as handle:
-        for title, seq in SimpleFastaParser(handle):
-            seq_id = title.split(None, 1)[0]
-            if seq_id not in db:
-                db[seq_id] = Seq(seq)
-
+    try:
+        from needletail import parse_fastx_file, NeedletailError
+    except ImportError:
+        with xopen(fasta) as handle:
+            for title, seq in SimpleFastaParser(handle):
+                seq_id = title.split(None, 1)[0]
+                if seq_id not in db:
+                    db[seq_id] = Seq(seq)
+    else:
+        try:
+            for record in parse_fastx_file(fasta):
+                seq_id = record.name
+                if seq_id not in db:
+                    db[seq_id] = Seq(record.seq)
+        except NeedletailError:
+            logger.error(f"NeedletailError: File `{fasta}` may be corrupted.")
+            sys.exit(-1)
+ 
     return db
 
 def read_fasta_yield(fasta: str):
     from Bio.SeqIO.FastaIO import SimpleFastaParser
     from Bio.Seq import Seq
     logger.info(f'Load fasta file: `{fasta}`.')
-    with xopen(fasta) as handle:
-        for title, seq in SimpleFastaParser(handle):
-            seq_id = title.split(None, 1)[0]
-            yield seq_id, Seq(seq)
+    try:
+        from needletail import parse_fastx_file, NeedletailError
+    except ImportError:
+        with xopen(fasta) as handle:
+            for title, seq in SimpleFastaParser(handle):
+                seq_id = title.split(None, 1)[0]
+                yield seq_id, Seq(seq)
+    else:
+        try:
+            for record in parse_fastx_file(fasta):
+                seq_id = record.name
+                yield seq_id, Seq(record.seq)
+        except NeedletailError:
+            logger.error(f"NeedletailError: File `{fasta}` may be corrupted.")
+            sys.exit(-1)
 
 
 def _zero_diags(chunk, n_diags):

@@ -8,6 +8,7 @@ distributed
 hicmatrix
 igraph >= 0.11.3
 intervaltree
+needletail == 0.7.1
 joblib
 natsort
 ncls

@@ -1,5 +1,23 @@
+## [v0.2.10] - 2026-01-15
+#### Enhancements
+- `hic mapper`, supported `_chromap` for linux-aarch64 platform
 
-## [v0.2.9] - 2026-01-08
+#### Bug fixes
+- `alleles`  
+    - fixed bug that alleles load two times fasta
+- `mapper`
+    - fixed bug that conflicts with the loading of .fai when submitting multiple jobs.
+    - fixed bug that can not load multiple fastq files
+- `plot`  
+    - fixed bug that can not plot duplicated contigs (without rename)
+    - fixed bug that of "TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'" error when plot each chromosome
+
+- `sort-chromosomes`, normalized by length
+- `hyperpartition`
+    - fixed bug that reported in issue #44, which can not generate .hg file (to specified `--output-hg`)
+
+
+## [v0.2.9] - 2026-01-10
 #### Enhancement
 - `hyperpartition`
     - reduced the time consumption of the large hypergraph processing

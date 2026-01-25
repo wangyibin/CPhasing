@@ -30,9 +30,7 @@ tags:
 
         之后再次运行`activate_cphasing`安装`CPhasing`依赖的包
 
-        
-        
-
+    
     !!! note
         如果你的服务器不能访问anaconda的仓库，可以配置镜像源，如配置浙江大学的镜像源：  
         1. 打开配置文件
@@ -53,7 +51,7 @@ tags:
         3. ++ctrl+x+y++ : 按`ctrl + X`，然后再按`Y`, 保存退出
         
     !!! note
-        如果你想运行在arm(**aarch64**)平台上，请从[github release](https://github.com/wangyibin/CPhasing/releases/tag/v0.2.8)页面下载，git仓库里默认存放x86-64版本
+        如果你想运行在arm(**aarch64**)平台上，请从[github release](https://github.com/wangyibin/CPhasing/releases)页面下载，git仓库里默认存放x86-64版本
         
 
 === "conda"

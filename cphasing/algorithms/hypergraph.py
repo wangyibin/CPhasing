@@ -260,12 +260,6 @@ class HyperGraph:
             non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
             matrix = matrix[non_zero_contig_idx]
             # self.remove_contigs = self.nodes[~non_zero_contig_idx]
-            remove_contigs = self.nodes[~non_zero_contig_idx]
-            if len(self.remove_contigs) > 0:
-                self.remove_contigs = np.concatenate((self.remove_contigs, remove_contigs))
-            else:
-                self.remove_contigs = remove_contigs
-
             self.remove_contig_idx = np.where(~non_zero_contig_idx)[0]
             self.nodes = self.nodes[non_zero_contig_idx]
            
@@ -454,11 +448,44 @@ class HyperGraph:
                 else:
                     vals = A[rows, cols]
                     
+                    mean_val = A.data.mean() if A.nnz > 0 else 1.0
+                    
+                    if allelic_factor == 'power':
+                        if hasattr(vals, "toarray"):
+                            d = vals.toarray()
+                            d = vals * 2.0 + mean_val * 0.5
+                            A[rows, cols] = d
+                        else:
+                            A[rows, cols] = vals * 2.0 + mean_val * 0.5
+                    elif allelic_factor == 'maximum':
+                        target_value = mean_val * 2
+                        if hasattr(vals, "toarray"):
 
-                    if hasattr(vals, "multiply"):
-                        A[rows, cols] = vals.multiply(allelic_factor )
+                            d = vals.toarray()
+                            d = np.maximum(d * 10, target_value)
+                            A[rows, cols] = d
+                        else:
+                            A[rows, cols] = np.maximum(vals * 10, target_value)
+                    elif allelic_factor == 'dynamic':
+                        if hasattr(vals, "toarray"):
+                            d = vals.toarray()
+                            d = np.power(d, 1.5) * 1.5 
+                            A[rows, cols] = d
+                        else:
+                            A[rows, cols] = np.power(vals, 1.2) * 2.0
+                    elif  isinstance(allelic_factor, (int, float)) and allelic_factor > 0:
+                        if A.nnz > 0:
+                            ref_signal = np.percentile(A.data, 90) 
+                        else:
+                            ref_signal = 1.0
+                        if allelic_factor > 0:
+                            baseline = ref_signal * 0.5
+                            A[rows, cols] = (vals + baseline) * allelic_factor
                     else:
-                        A[rows, cols] = vals * allelic_factor 
+                        if hasattr(vals, "multiply"):
+                            A[rows, cols] = vals.multiply(allelic_factor)
+                        else:
+                            A[rows, cols] = vals * allelic_factor 
 
             if P_weak_idx:
                 rows, cols = P_weak_idx

@@ -931,6 +931,30 @@ class AllhicOptimize:
     @staticmethod
     def _run(allhic_path, count_re, clm, workdir):
         os.chdir(workdir)
+
+        try:
+            contigs = []
+            with open(count_re, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split("\t")
+                    if len(parts) >= 1 and parts[0]:
+                        contigs.append(parts[0])
+            contigs = [c for c in contigs if c]
+        except Exception as e:
+            contigs = []
+            logger.warning(f"Failed to parse count_re file {count_re}: {e}")
+
+        out_tour = count_re.replace(".txt", ".tour")
+        if len(contigs) == 1:
+            ctg = contigs[0]
+            with open(out_tour, "w") as out:
+                out.write(f"{ctg}+\n")
+            logger.info(f"Skip ALLHiC optimize for singleton group ({ctg}); wrote {out_tour}")
+            return out_tour
+        
         tmp_res = AllhicOptimize.run_allhic_optimize(allhic_path, count_re, clm)
 
         return tmp_res
@@ -1228,6 +1252,8 @@ class HapHiCSort:
                 if self.corrected:
                     build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output, "--corrected"], 
                                 prog_name='build')
+                    # build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output.replace("corrected.agp", "agp")], 
+                    #             prog_name='build')
                 else:
                     build.main(args=[str(self.fasta), "--only-agp", "-oa", self.output], 
                                 prog_name='build')

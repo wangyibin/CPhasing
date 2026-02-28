@@ -41,7 +41,7 @@ exit
 ```bash
 ## Download C-Phasing and install all dependencies
 ## download from github releases
-LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-x86.tar.gz" | cut -d '"' -f 4)
+LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
 wget $LATEST_URL
 
 cd CPhasing

@@ -1,6 +1,7 @@
 site_name: "C-Phasing"
 site_url: https://wangyibin.github.io/CPhasing/zh
 repo_url: https://github.com/wangyibin/CPhasing
+edit_uri: edit/main/docs/zh/
 docs_dir: "docs/zh/"
 site_dir: "site/zh"
 copyright: Copyright © 2022-2026 Tanger-lab 保留所有权利。

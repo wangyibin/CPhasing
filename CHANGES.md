@@ -1,4 +1,37 @@
-## [v0.2.10] - 2026-01-15
+## [v0.3.0] - 2026-02-01
+#### Enhancement
+- **Improved anchor rate when using Pore-C data**
+    - `mapper`  
+        - Reducing the incidence of h-*trans* artifacts in Pore-C alignments with a MAPQ score of 1.
+    - `pipeline`  
+        - Refactor the steps to add collapsed rescue step
+        - integrated collapsed rescue module by input a collapsed contig list ('--collapsed-contigs') (experiment)
+    
+        - Change `-q2` to 1 for using more hyperedges to phase haplotypes
+       
+    - `collapse rescue`
+        - Refactor the code to improve the results
+        
+
+#### Bug fixes
+- `alleles`  
+    - Fixed: Contig length support increased from 134 Mb to 34 Gb (max 1M contigs).
+- `hyperpartition`  
+    - Fixed the bug that makes kprune run slowly
+    - Fixed bug that reported in issue #45
+- `pipeline`   
+    - fixed bug that when `pairs.pqs` existed the second round still run again
+- `scaffolding`  
+    - fixed bug that scaffolding can not process duplicated contigs.
+- `curation`  
+    - fixed bug that only one chromosome in assembly when separate haplotypes
+- `hic mapper`  
+    - fixed bug that minimap2 report `self.prefix` unassigned
+    - fixed bug that convert pairs to pairs.pqs repeatedly
+- `cphasing-rs bam2paf`  
+    - fixed bug that generated error read positions of alignments
+
+## [v0.2.10] - 2026-01-25
 #### Enhancements
 - `hic mapper`, supported `_chromap` for linux-aarch64 platform
 

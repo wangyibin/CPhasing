@@ -28,6 +28,9 @@ from networkx import Graph, connected_components, shortest_path
 from networkx import tree as nxtree
 from scipy.sparse import coo_matrix
 
+import scipy.sparse as sp
+from scipy.sparse.csgraph import minimum_spanning_tree
+
 from cphasing.core import CountRE
 from cphasing.utilities import xopen
 
@@ -161,32 +164,17 @@ def get_density_graph(sub_HT_matrix, shape, index_HT_dict, fa_dict, flank_HT_dic
         else:
             return get_len(HT, fa_dict)
 
-    # construct a length matrix for the calculation of link density
-    HT_len_sum_dict = dict()
-    indexes = index_HT_dict.keys()
-    HT_len_dict = {HT: get_HT_len(HT) for HT in index_HT_dict.values()}
-    for i_1, i_2 in combinations(indexes, 2):
+    HT_len_array = np.array([get_HT_len(index_HT_dict[i]) for i in range(shape)], dtype=float32)
+    
+    if density_cal_method == 'sum':
+        HT_len_sum_matrix = np.add.outer(HT_len_array, HT_len_array)
+    elif density_cal_method == 'multiplication':
+        HT_len_sum_matrix = np.multiply.outer(HT_len_array, HT_len_array)
+    elif density_cal_method == 'geometric_mean':
+        HT_len_sum_matrix = np.sqrt(np.multiply.outer(HT_len_array, HT_len_array))
 
-        HT_1 = index_HT_dict[i_1]
-        HT_2 = index_HT_dict[i_2]
-        # HT_1_len = get_HT_len(HT_1)
-        # HT_2_len = get_HT_len(HT_2)
-        HT_1_len = HT_len_dict[HT_1]
-        HT_2_len = HT_len_dict[HT_2]
+    np.fill_diagonal(HT_len_sum_matrix, 1.0)
 
-        if density_cal_method == 'sum':
-            len_sum = HT_1_len + HT_2_len
-        elif density_cal_method == 'multiplication':
-            len_sum = (HT_1_len * HT_2_len)
-        elif density_cal_method == 'geometric_mean':
-            len_sum = (HT_1_len * HT_2_len)**0.5
-
-        HT_len_sum_dict[(i_1, i_2)] = len_sum
-
-    # add self loops to prevent division by zero error
-    HT_len_sum_matrix = dict_to_matrix(HT_len_sum_dict, shape, add_self_loops=True)
-
-    # get density graph
     density_graph = sub_HT_matrix / HT_len_sum_matrix
 
     return density_graph
@@ -194,53 +182,35 @@ def get_density_graph(sub_HT_matrix, shape, index_HT_dict, fa_dict, flank_HT_dic
 
 def get_unfiltered_confidence_graph(shape, index_pairs, sub_HT_dict, density_graph):
 
-    # generate a empty matrix
-    confidence_graph = zeros((shape, shape))
+    confidence_graph = zeros((shape, shape), dtype=float32)
 
-    # calculate confidence
+    partitioned_indices = np.argpartition(density_graph, -2, axis=1)
+    max1_idx = partitioned_indices[:, -1]
+    max2_idx = partitioned_indices[:, -2]
+    
+    rows = np.arange(shape)
+    max1_val = density_graph[rows, max1_idx]
+    max2_val = density_graph[rows, max2_idx]
 
-    # Confidence is the ratio of the link density of non-sister edge pair A-B,
-    # and the link density of the second-largest non-sister edge incident on either A or B.
-    # Only if density is not zero, confidence needs to be calculated.
-    density_dict = {i: (density_graph[i, :], density_graph[:, i]) for i in range(shape)}
-    for i_1, i_2 in sub_HT_dict:
+    if sub_HT_dict:
+        edges = np.array(list(sub_HT_dict.keys()))
+        i1, i2 = edges[:, 0], edges[:, 1]
+    
+        densities = density_graph[i1, i2]
 
-        density = density_graph[i_1, i_2]
+        v1 = np.where(max1_idx[i1] == i2, max2_val[i1], max1_val[i1])
+        v2 = np.where(max1_idx[i2] == i1, max2_val[i2], max1_val[i2])
+        
+        second_largest = np.maximum(v1, v2)
+        
+        confidences = np.where(second_largest == 0, 2.0, densities / second_largest)
+        
+        confidence_graph[i1, i2] = confidences
+        confidence_graph[i2, i1] = confidences
 
-        # calculate confidence
-        # all densities of non-sister edge incident on either A or B, but density of A-B is only counted once
-        # all_densities = hstack((density_graph[i_1,:i_2], density_graph[i_1,i_2+1:], density_graph[:,i_2]))
-        all_densities = hstack((density_dict[i_1][0][:i_2], density_dict[i_1][0][i_2+1:], density_dict[i_2][1]))
-        # # get the index of maximum value
-        # argmax = all_densities.argmax()
-        # # remove the maximum value (based on the index)
-        # all_densities = hstack((all_densities[:argmax], all_densities[argmax+1:]))
-        # # the maximum value in the rest is the second largest density
-        # second_largest_density = all_densities.max()
-        second_largest_density = np.partition(all_densities.flatten(), -2)[-2]
-        # get the confidence
-        if density == 0:
-            confidence = 0
-        elif second_largest_density == 0:
-            confidence = 2
-        else:
-            confidence = density / second_largest_density
-
-        # diagonal symmetry
-        confidence_graph[i_1, i_2] = confidence
-        confidence_graph[i_2, i_1] = confidence
-
-    # assign sister edges a weight of 2*MAXS, where MAXS is the maximum density of
-    # all the non-sister edges in the unfiltered confidence graph
-
-    # The confidence graph here does not includes the weight between sister edges,
-    # so the max value of the graph is the MAXS.
     maxs = confidence_graph.max()
-
-    # assign weights for sister edges
+    sister_weight = 2 * maxs if maxs > 1 else 2.0
     for index_H, index_T in index_pairs:
-        # diagonal symmetry
-        sister_weight = 2 * maxs if maxs > 1 else 2
         confidence_graph[index_H, index_T] = sister_weight
         confidence_graph[index_T, index_H] = sister_weight
 
@@ -408,40 +378,109 @@ def update(path_list, old_sub_HT_matrix, index_HT_dict, HT_index_dict, flank_HT_
             if flank:
                 get_flank_HT(split_path_left, -1)
                 get_flank_HT(split_path_right, 1)
-
-    # update sub_HT_dict
+    
+    new_idx_to_old_indices = {}
+    for i, HT in new_index_HT_dict.items():
+        if HT in flank_HT_dict:
+            target_hts = format_HTs(flank_HT_dict[HT][0])
+        else:
+            target_hts = format_HTs(HT)
+        new_idx_to_old_indices[i] = np.array([HT_index_dict[ht] for ht in target_hts], dtype=int)
+    
     sub_HT_dict = defaultdict(int)
+    num_new = len(new_index_HT_dict)
 
-    for i_1 in new_index_HT_dict:
-        for i_2 in new_index_HT_dict:
-
-            if i_1 <= i_2 or (i_1, i_2) in index_pairs:
-                continue
-
-            HT_1 = new_index_HT_dict[i_1]
-            HT_2 = new_index_HT_dict[i_2]
-
-            if HT_1 in flank_HT_dict:
-                HT_1 = format_HTs(flank_HT_dict[HT_1][0])
-            else:
-                HT_1 = format_HTs(HT_1)
-            if HT_2 in flank_HT_dict:
-                HT_2 = format_HTs(flank_HT_dict[HT_2][0])
-            else:
-                HT_2 = format_HTs(HT_2)
-
-            for ht_1, ht_2 in product(HT_1, HT_2):
-
-                old_i_1 = HT_index_dict[ht_1]
-                old_i_2 = HT_index_dict[ht_2]
-
-                links = old_sub_HT_matrix[old_i_1, old_i_2]
-
-                if links:
-                    sub_HT_dict[(i_1, i_2)] += links
+    for i1, i2 in combinations(range(num_new), 2):
+        if (i1, i2) in index_pairs or (i2, i1) in index_pairs:
+            continue
+            
+        idx1 = new_idx_to_old_indices[i1]
+        idx2 = new_idx_to_old_indices[i2]
+        links = old_sub_HT_matrix[idx1][:, idx2].sum()
+        
+        if links > 0:
+            sub_HT_dict[(i1, i2)] = links
 
     return new_index_HT_dict, sub_HT_dict, index_pairs, output_path_list
 
+def update_vectorized(path_list, old_sub_HT_matrix, index_HT_dict, HT_index_dict, flank_HT_dict, fa_dict, known_adjacency, flank):
+
+    def write_output_path_list(HT):
+        if isinstance(HT, tuple):
+            output_path_list[-1].extend(HT)
+        else:
+            assert isinstance(HT, str)
+            output_path_list[-1].append(HT)
+
+    def get_flank_HT(split_path, order):
+
+        rest_len = get_len(split_path, fa_dict)
+        if rest_len > flank:
+            for m, HT in enumerate(split_path[::order]):
+                HT_len = get_len(HT, fa_dict)
+                if rest_len - HT_len > flank:
+                    rest_len -= HT_len
+                else:
+                    break
+            if m == 0:
+                rest_path = split_path
+            elif order == 1:
+                rest_path = split_path[:-m]
+            else:
+                rest_path = split_path[m:]
+            flank_HT_dict[split_path] = (rest_path, get_len(rest_path, fa_dict))
+
+
+    index_pairs = list()
+    new_index_HT_dict = dict()
+    output_path_list = list()
+
+    num_paths = len(path_list)
+    num_old_HTs = old_sub_HT_matrix.shape[0]
+    
+
+    M_data, M_row, M_col = [], [], []
+
+    for n, path in enumerate(path_list):
+        i_1, i_2 = 2 * n, 2 * n + 1
+        index_pairs.append((i_2, i_1))
+        output_path_list.append([])
+
+        if len(path) == 2:
+            HT_left, HT_right = index_HT_dict[path[0]], index_HT_dict[path[1]]
+            new_index_HT_dict[i_1], new_index_HT_dict[i_2] = HT_left, HT_right
+            output_path_list[-1].extend([HT_left, HT_right])
+            
+            # 记录左端和右端包含的原始 Contig 索引
+            for idx in [HT_index_dict[ht] for ht in format_HTs(HT_left)]:
+                M_row.append(idx); M_col.append(i_1); M_data.append(1)
+            for idx in [HT_index_dict[ht] for ht in format_HTs(HT_right)]:
+                M_row.append(idx); M_col.append(i_2); M_data.append(1)
+        else:
+            # each newly linked scaffold is split into two halves approximately
+            split_path_left, split_path_right = split_new_scaffold(path, fa_dict, index_HT_dict, known_adjacency)
+
+            new_index_HT_dict[i_1] = split_path_left
+            new_index_HT_dict[i_2] = split_path_right
+
+            output_path_list[-1].extend(split_path_left)
+            output_path_list[-1].extend(split_path_right)
+
+            if flank:
+                get_flank_HT(split_path_left, -1)
+                get_flank_HT(split_path_right, 1)
+    
+    M = sp.csr_matrix((M_data, (M_row, M_col)), shape=(num_old_HTs, 2 * num_paths))
+    new_matrix = (M.T @ old_sub_HT_matrix @ M).toarray()
+    rows, cols = np.where(np.triu(new_matrix, k=1) > 0)
+
+    sub_HT_dict = {}
+    for r, c in zip(rows, cols):
+        if (r, c) not in index_pairs and (c, r) not in index_pairs:
+            sub_HT_dict[(r, c)] = new_matrix[r, c]
+
+
+    return new_index_HT_dict, sub_HT_dict, index_pairs, output_path_list
 
 def output_tour_file(output_path_list, prefix):
 
@@ -507,12 +546,6 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
     index_HT_dict = {index: HT for HT, index in HT_index_dict.items()}
 
     # get index pairs of sister edges
-    # initialize output_path_list and set known_adjacency
-    # for ctg in ctgs:
-    #     ctg_H, ctg_T = ctg+'_0', ctg+'_1'
-    #     output_path_list.append([ctg_H, ctg_T])
-    #     index_pairs.append((HT_index_dict[ctg_H], HT_index_dict[ctg_T]))
-    #     known_adjacency.add(tuple(sorted([ctg_H, ctg_T])))
     output_path_list = [[ctg+'_0', ctg+'_1'] for ctg in ctgs]
     index_pairs = [(HT_index_dict[ctg+'_0'], HT_index_dict[ctg+'_1']) for ctg in ctgs]
     known_adjacency = set(tuple(sorted([ctg+'_0', ctg+'_1'])) for ctg in ctgs)
@@ -531,6 +564,12 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
 
     logger.info('[{}] Starting fast sorting iterations...'.format(prefix))
 
+    def get_HT_len(HT):
+        if HT in flank_HT_dict:
+            return flank_HT_dict[HT][1]
+        else:
+            return get_len(HT, fa_dict)
+    base_HT_lengths = np.array([get_HT_len(index_HT_dict[i]) for i in range(shape)], dtype=np.float32)
     while len(path_list) != 1:
 
         r += 1
@@ -804,10 +843,8 @@ def run(args, log_file=None):
     # load HT_link_dict from contacts file
     # HT_link_df = pd.read_csv(args.HT_links, sep='\t', header=None, index_col=None)
     HT_link_df = pl.read_csv(args.HT_links, separator='\t', has_header=False,
-                            dtypes={"column_1": pl.Categorical, 
-                                    "column_2": pl.Categorical,
-                                    "column_3": pl.UInt32}).to_pandas()
-    HT_link_df.columns = [0, 1, 2]
+                            new_columns=["c1", "c2", "links"])
+    
     # cis_contact = HT_link_df.loc[HT_link_df[0] == HT_link_df[1]]
 
     # cis_contact = cis_contact[[0, 2]].set_index([0])
@@ -834,7 +871,8 @@ def run(args, log_file=None):
     # HT_link_df = pd.concat([HT_link_df, HT_link_df_2], axis=0)
     # HT_link_df.drop_duplicates(subset=[0, 1], inplace=True)
 
-    HT_link_dict = HT_link_df.set_index([0, 1]).to_dict()[2]
+    # HT_link_dict = HT_link_df.set_index([0, 1]).to_dict()[2]
+    HT_link_dict = HT_link_df.to_pandas().set_index(["c1", "c2"])["links"].to_dict()
     
     # for pair, value in HT_link_dict.items():
     #     if pair[0] > pair[1]:

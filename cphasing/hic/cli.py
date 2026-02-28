@@ -57,7 +57,7 @@ def hic(ctx):
     """
     pass
 
-@hic.command(cls=RichCommand, epilog=__epilog__)
+@hic.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.option(
     '-f',
     '--fasta',
@@ -71,7 +71,10 @@ def hic(ctx):
 )
 @click.option(
     '-1',
+    '-hic1',
     '--read1',
+    '--hic1',
+    'read1',
     help='Path of read 1, can be set multiple times, but must pair with read2.',
     metavar='FILE',
     type=click.Path(exists=True),
@@ -80,7 +83,10 @@ def hic(ctx):
 )
 @click.option(
     '-2',
+    '-hic2',
     '--read2',
+    '--hic2',
+    'read2',
     help='Path of read 2, can be set multiple times, but must pair with read1.',
     metavar='FILE',
     type=click.Path(exists=True),

@@ -23,7 +23,7 @@ DEFAULT_HIC_ALIGNER = "_chromap"
 DEFAULT_PATTERN = "GATC"
 
 MAPQ1 = 1
-MAPQ2 = 2
+MAPQ2 = 1
 ## Default parameters for CLI 
 ALLELES_TRIM_LENGTH = 25_000
 ALLELES_K = 59

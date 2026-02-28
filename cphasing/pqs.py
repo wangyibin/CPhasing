@@ -130,6 +130,29 @@ q1 mean the mapping quality of data >= 1.
 """
 
 
+def _read_metadata_counts(pqs_path: str):
+    path = Path(pqs_path) / "_metadata_counts"
+    if not path.exists():
+        return None
+    q0 = q1 = None
+    with open(path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            k, *rest = line.split()
+            if not rest:
+                continue
+            v = rest[0]
+            if k == "q0_records":
+                q0 = int(v)
+            elif k == "q1_records":
+                q1 = int(v)
+    if q0 is None or q1 is None:
+        return None
+    
+    return {"q0_records": q0, "q1_records": q1}
+
 class PQS:
     """
     A class to represent a .pqs file.
@@ -565,6 +588,10 @@ class PQS:
         is_with_mapq = self._metadata["is_with_mapq"]
 
         bins = binnify(self.contigsizes['length'], binsize=binsize)
+        bin_counts = bins.groupby('chrom', sort=False).size()
+        bin_offset = bin_counts.cumsum().shift(1, fill_value=0).astype(int)
+        bin_offset_db = bin_offset.to_dict()
+
         if len(bins) > 2**32:
             self.bin_id_dtype = pl.UInt64
         elif len(bins) > 2**16:
@@ -574,19 +601,24 @@ class PQS:
         else:
             self.bin_id_dtype = pl.UInt8
 
-        bin_offset = bins.groupby('chrom').size().cumsum()
-        bin_offset = bin_offset.shift(1).fillna(0).astype(int)
-        bin_offset_db = bin_offset.to_dict()
+        n_bins = len(bins)
+        if n_bins < 2**31 - 1:
+            bin_id_dtype = np.int32
+        else:
+            bin_id_dtype = np.int64
+
 
         def process_chunk(chunk):
-            bin1_id = (chunk["pos1"] // binsize) + chunk["chrom1"].map_elements(
-                bin_offset_db.get
-            )
-            bin2_id = (chunk["pos2"] // binsize) + chunk["chrom2"].map_elements(
-                bin_offset_db.get
-            )
+            bin1_id = (chunk["pos1"] // binsize).astype(bin_id_dtype) + \
+                      chunk["chrom1"].map(bin_offset_db).astype(bin_id_dtype)
+            bin2_id = (chunk["pos2"] // binsize).astype(bin_id_dtype) + \
+                      chunk["chrom2"].map(bin_offset_db).astype(bin_id_dtype)
+            chunk = chunk.with_columns([
+                bin1_id.alias("bin1_id"), 
+                bin2_id.alias("bin2_id")
+            ])
             chunk = (
-                chunk.with_columns([bin1_id.alias("bin1_id"), bin2_id.alias("bin2_id")])
+                chunk
                 .drop(["chrom1", "chrom2", "pos1", "pos2"])
                 .filter(pl.col("bin1_id") <= pl.col("bin2_id"))
             )
@@ -605,7 +637,6 @@ class PQS:
         
         if low_memory:
             iterator = process_chunk_to_cool(chunks)
-
             create_cooler(output, bins, iterator, 
                       triucheck=False, dupcheck=False, boundscheck=False,)
         
@@ -626,7 +657,7 @@ class PQS:
             )
             pixels = pixels.sort(["bin1_id", "bin2_id"])  
             create(output, bins, pixels.to_pandas(), dtypes={'count': np.int32},
-                    triucheck=False, dupcheck=False, boundscheck=False)
+                    triucheck=False, dupcheck=False, boundscheck=False, ordered=True)
 
         logger.info(f"Successful output cooler file into `{output}`.")
     
@@ -639,10 +670,76 @@ class PQS:
     def to_hg_df(self, chunks, contig_idx, 
                  min_mapq=1, edge_length=0,
                  split_length=None, split_contig_boundarys=None,
-                 bed=None, hcr_binsize=10000):
+                 bed=None, hcr_binsize=10000, max_q0_ratio=2.0):
         from intervaltree import IntervalTree
         pl.enable_string_cache()
         contigsizes = self.contigsizes_db
+
+        is_with_mapq = self._metadata.get("is_with_mapq", True)
+        base = Path(self.path) if self.path else None
+
+
+        def _map_chunk_path(chunk_path: str) -> Path:
+            p = Path(chunk_path)
+            if base is None:
+                return p
+
+            try:
+                rel = p.resolve().relative_to(base.resolve())
+            except Exception:
+                return p
+
+            if len(rel.parts) >= 2 and rel.parts[0] in ("q0", "q1"):
+                fname = rel.parts[-1]
+                if is_with_mapq and min_mapq >= 1:
+                    return base / "q1" / fname
+                else:
+                    return base / "q0" / fname
+            return p
+        
+        if is_with_mapq and base is not None:
+            chunks = [str(_map_chunk_path(c)) for c in chunks]       
+
+            
+        q0_sample_prob = 1.0
+        if is_with_mapq and min_mapq == 0 and base is not None and max_q0_ratio is not None:
+            mc = _read_metadata_counts(str(base))
+            if mc is not None:
+                q0_total = mc["q0_records"]
+                q1_total = mc["q1_records"]
+                q0_only = max(q0_total - q1_total, 0)
+                if q0_only > 0 and q1_total >= 0:
+                    target = min(q0_only, int(max_q0_ratio * q1_total))
+                    q0_sample_prob = min(1.0, target / q0_only) if q0_only > 0 else 1.0
+                    logger.info(
+                        f"q0 sampling enabled: q1={q1_total}, q0_only={q0_only}, "
+                        f"max_q0_ratio={max_q0_ratio} => q0_sample_prob={q0_sample_prob:.4f}"
+                    )
+            else:
+                logger.info("No _metadata_counts found; q0 sampling falls back to full q0_only (prob=1.0).")
+
+        def _to_paths(chunks, subdir: str):
+            out = []
+            for c in chunks:
+                p = Path(c)
+                if base is None:
+                    out.append(p)
+                    continue
+                try:
+                    rel = p.resolve().relative_to(base.resolve())
+                except Exception:
+                    if p.name.endswith(".parquet"):
+                        out.append(base / subdir / p.name)
+                    else:
+                        out.append(p)
+                    continue
+                if len(rel.parts) >= 2 and rel.parts[0] in ("q0", "q1"):
+                    out.append(base / subdir / rel.parts[-1])
+                else:
+                    out.append(p)
+            return out
+
+        
 
         if bed is None:
             bed_dict = None
@@ -670,14 +767,33 @@ class PQS:
         logger.info("Parsing pqs ...")
 
         args = []
-        for chunk in chunks:
-            args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length,
-                         self.schema, split_length, split_contig_boundarys))
-      
-        results = Parallel(n_jobs=self.threads, return_as='generator')(
-                    delayed(process_chunk_hg)(*arg) for arg in args
-                )
-        
+
+        if is_with_mapq and min_mapq == 0 and base is not None:
+            q1_chunks = _to_paths(chunks, "q1")
+            q0_chunks = _to_paths(chunks, "q0")
+
+            for chunk in q1_chunks:
+                args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, 1, edge_length,
+                             self.schema, split_length, split_contig_boundarys, True, 1.0))
+            for chunk in q0_chunks:
+                args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, 0, edge_length,
+                             self.schema, split_length, split_contig_boundarys, True, q0_sample_prob))
+        else:
+            for chunk in chunks:
+                args.append((Path(chunk).absolute(), bed_dict, contigsizes, contig_idx, min_mapq, edge_length,
+                             self.schema, split_length, split_contig_boundarys, is_with_mapq, 1.0))
+
+
+        try:
+            results = Parallel(n_jobs=self.threads, return_as='generator')(
+                delayed(process_chunk_hg)(*arg) for arg in args
+            )
+        except TypeError:
+            results = Parallel(n_jobs=self.threads)(
+                delayed(process_chunk_hg)(*arg) for arg in args
+            )
+
+
         results = list(filter(lambda x: x is not None, results))
         results = list(filter(lambda x: len(x) > 0, results))
         if len(results) == 0:
@@ -990,16 +1106,20 @@ def process_chunk_to_cool_global(chunk, binsize,
         if is_with_mapq:
             chunk = chunk.filter(pl.col("mapq") >= min_mapq).drop("mapq")
     
-    bin1_id = (chunk["pos1"] // binsize) + chunk["chrom1"].map_elements(
-            bin_offset_db.get, skip_nulls=False
-    ).cast(schema["pos1"])
-    bin2_id = (chunk["pos2"] // binsize) + chunk["chrom2"].map_elements(
-        bin_offset_db.get, skip_nulls=False
-    ).cast(schema["pos2"])
+    bin_id_type = pl.Int64 if schema["pos1"] == pl.UInt64 else pl.Int32
+
+    
+    bin1_offset = chunk["chrom1"].cast(pl.Utf8).replace(bin_offset_db, default=None).cast(bin_id_type)
+    bin2_offset = chunk["chrom2"].cast(pl.Utf8).replace(bin_offset_db, default=None).cast(bin_id_type)
+
+    bin1_id = (chunk["pos1"] // binsize).cast(bin_id_type) + bin1_offset
+    bin2_id = (chunk["pos2"] // binsize).cast(bin_id_type) + bin2_offset
+    
     chunk = (
         chunk.with_columns([bin1_id.alias("bin1_id"), bin2_id.alias("bin2_id")])
         .drop(["chrom1", "chrom2", "pos1", "pos2"])
     )
+    chunk = chunk.drop_nulls(subset=["bin1_id", "bin2_id"])
     chunk = chunk.with_columns([
                 pl.when(chunk['bin1_id'] > chunk['bin2_id'])
                 .then(chunk['bin2_id'])
@@ -1048,22 +1168,33 @@ def is_in_regions(chrom, pos, bed_dict):
 
 def process_chunk_hg(chunk_name, bed_dict, contigsizes,
                      contig_idx, min_mapq, edge_length, schema,
-                     split_length=None, split_contig_boundarys=None):
+                     split_length=None, split_contig_boundarys=None,
+                     is_with_mapq=True,
+                     q0_only_sample_prob=1.0):
     pl.enable_string_cache()
     os.environ["POLARS_MAX_THREADS"] = "1"
     if not Path(chunk_name).exists():
         return None
-
+    
+    
     columns = ["chrom1", "pos1", "chrom2", "pos2", "mapq"]
     chunk = pl.scan_parquet(chunk_name).select(columns)
     chunk_name = Path(chunk_name).stem
 
-    
-    if min_mapq > 1:
-        chunk = chunk.filter(pl.col("mapq") >= min_mapq)
 
-    # chunk = chunk.filter(pl.col("chrom1") != pl.col("chrom2"))
+    if is_with_mapq:
+        if min_mapq > 1:
+            chunk = chunk.filter(pl.col("mapq") >= min_mapq)
+        elif min_mapq == 0:
+            chunk = chunk.filter(pl.col("mapq") == 0)
+  
     chunk = chunk.collect()
+
+    if is_with_mapq and min_mapq == 0 and q0_only_sample_prob < 1.0 and chunk.height > 0:
+        frac = max(0.0, min(1.0, float(q0_only_sample_prob)))
+        chunk = chunk.sample(fraction=frac, with_replacement=False, seed=0)
+
+
     if split_length and split_contig_boundarys:
         edge_length = 0
 

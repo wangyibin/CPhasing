@@ -144,7 +144,10 @@ def agp2cluster(agp, store=None):
 
     return cluster_df
 
-def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
+def agp2fasta(agp, fasta, output=sys.stdout, 
+              output_contig=False, 
+              skip_gap=False,
+              threads=1):
     """
     Convert agp to chromosome-level fasta file.
 
@@ -171,10 +174,13 @@ def agp2fasta(agp, fasta, output=sys.stdout, output_contig=False, threads=1):
     agp_df, gap_df = import_agp(agp)
     seq_db = fasta
    
-    try:
-        GAP = 'N' * gap_df.length[0]
-    except IndexError:
-        GAP = 'N' * 100
+    if skip_gap:
+        GAP = ''
+    else:
+        try:
+            GAP = 'N' * gap_df.length[0]
+        except IndexError:
+            GAP = 'N' * 100
 
     if not output_contig:
         cluster_df = agp_df.groupby('chrom')
@@ -381,7 +387,7 @@ def statagp(agp, output):
         sep='\n', file=output)
     
     
-def pseudo_agp(real_list, contigsizes, output):
+def pseudo_agp(real_list, contigsizes, gap_size, output):
     """
     Create a pseudo agp file from a list and contigsizes.
     """
@@ -399,10 +405,11 @@ def pseudo_agp(real_list, contigsizes, output):
             contig_length = int(contig_sizes[contig])
             end = start + contig_length - 1
             print("\t".join(map(str, [chrom, start, end, idx, "W", contig, 1, contig_length, "+"])), file=output)
-            if j < len(contig_df) - 1:
-                start = end
-                end = start + 100
-                print("\t".join(map(str, [chrom, start, end, idx, "U", 100, "contig", "yes", "map",])), file=output)
+            if gap_size > 0:
+                if j < len(contig_df) - 1:
+                    start = end
+                    end = start + gap_size
+                    print("\t".join(map(str, [chrom, start, end, idx, "U", 100, "contig", "yes", "map",])), file=output)
 
         
 def assembly2agp(assembly, 
@@ -705,7 +712,7 @@ def split_agp(agp, hap_pattern=r"(Chr\d+)(?:g\d+)?",
         lambda x: re.match(hap_pattern, x).group(1) if re.match(hap_pattern, x) else "unhap"
     )
     agp_df = agp_df[agp_df['hap'] != "unhap"]
-    agp_df.drop(0, axis=1, inplace=True)
+    # agp_df.drop(0, axis=1, inplace=True)
     hap_df = agp_df.groupby('hap')
     
  
@@ -713,8 +720,10 @@ def split_agp(agp, hap_pattern=r"(Chr\d+)(?:g\d+)?",
     outdir.mkdir(parents=True, exist_ok=True)
     for hap, df in hap_df:
         out_agp = outdir / f"{hap}.agp"
-        df.rename(columns={'hap': 0}, inplace=True)
+        # df.rename(columns={'hap': 0}, inplace=True)
         df = df[[0,1,2,3,4,5,6,7,8]]
 
         df.to_csv(out_agp, sep='\t', header=None, index=False)
         logger.info(f"Output split agp file: `{out_agp}`")
+
+    

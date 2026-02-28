@@ -57,6 +57,11 @@ else
     env_name=$1
 fi
 
+force_hook=0
+if [[ "$*" == *"--hook"* ]] || [ "$CPHASING_USE_HOOK" == "1" ]; then
+    force_hook=1
+    [ "$1" == "--hook" ] && env_name="default"
+fi
 
 if [ ! -d $software_dir/.pixi/envs/${env_name}/bin/ ]; then
     echo "Installing cphasing environment..."
@@ -70,10 +75,18 @@ unset PERL5LIB
 
 is_tty=$(tty)   
 
-if [ "$is_tty" == "not a tty" ]; then
-    export PS1="(CPhasing) $PS1"
-    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install -e $env_name > $software_dir/.pixi/envs/default/.env
-    . $software_dir/.pixi/envs/default/.env
+is_interactive=0
+case "$-" in
+  *i*) is_interactive=1 ;;
+esac
+
+env_dir="$software_dir/.pixi/envs/${env_name}"
+env_file="$env_dir/.env"
+
+if [ "$is_tty" == "not a tty" ] || [ "$force_hook" -eq 1 ]; then
+# if [ "$is_interactive" -eq 0 ] || [ "$force_hook" -eq 1 ]; then
+    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install -e $env_name > $env_file
+    . $env_file
 else 
     # export PS1="(CPhasing) $PS1"
     # pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env

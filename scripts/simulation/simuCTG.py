@@ -27,7 +27,7 @@ def ReadFasta(inFasta):
             if line[0] == '>':
                 if seq != '':
                     fastaDB[id] = seq
-                id = line.strip().split(" ")[0][1:]
+                id = line.strip().split(" ")[0][1:].split("\t")[0]
                 seq = ''
             else:
                 seq += line.strip()

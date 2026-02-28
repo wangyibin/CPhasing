@@ -224,6 +224,12 @@ def run_cmd(command, log=sys.stderr, out2err=False):
     return 0
 
 def is_empty(_file):
+    if _file is None:
+        return True
+
+    if not Path(_file).exists():
+        return True
+    
     if os.path.getsize(_file) == 0:
         return True 
     else:
@@ -1202,7 +1208,7 @@ min_quality={mapq}
 
 cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
 cphasing utils agp2assembly {agp} -o {agp_prefix}.assembly
-bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.assembly {pairs_prefix}.mnd.txt
+bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.assembly {pairs_prefix}.mnd.txt
 
 ## After curation, convert review.assembly to new agp 
 # cphasing utils assembly2agp groups.review.assembly -o groups.review -n {n}
@@ -1213,6 +1219,7 @@ bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,100
     if output is not None:
         with open(output, 'w') as out:
             out.write(cmd)
+        os.chmod(output, 0o755)
     else:
         return cmd
 
@@ -1233,8 +1240,8 @@ _3ddna_path={_3ddna_path}
 min_quality={mapq}
 
 ## Step 1 [Optional]: sort chromosomes based on interaction map, which may help the curation
-cphasing sort-chromosomes -a ../{str(scaffolding_dir)}/{agp} -m ../{str(plot_dir)}/{agp_prefix}.{pairs_prefix}.q{mapq}.{to_humanized2(binsize)}.chrom.cool -o {agp_prefix}.sorted.agp
-cphasing plot -a {agp_prefix}.sorted.agp -m ../{str(plot_dir)}/{pairs_prefix}.q{mapq}.{to_humanized2(cool_binsize)}.cool -o {agp_prefix}.sorted.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.wg.png -bs {to_humanized2(binsize)} --add-hap-border --no-lines --disable-natural-sort -oc 
+cphasing sort-chromosomes -a ../{str(scaffolding_dir)}/{agp} -m ../{str(plot_dir)}/{agp_prefix}.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.chrom.cool -o {agp_prefix}.sorted.agp --rename
+cphasing plot -a {agp_prefix}.sorted.agp -m ../{str(plot_dir)}/{pairs_prefix}.q${{min_quality}}.{to_humanized2(cool_binsize)}.cool -o {agp_prefix}.sorted.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.wg.png -bs {to_humanized2(binsize)} --add-hap-border --no-lines --disable-natural-sort -oc 
 
 ## Step 2: visualize the interaction map and curate the assembly
 cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
@@ -1244,15 +1251,15 @@ cphasing utils agp2assembly {agp_prefix}.sorted.agp -o {agp_prefix}.sorted.assem
 cphasing utils split-agp {agp_prefix}.sorted.agp -o separate_groups
 
 cd separate_groups
-for group_agp in *.agp; do
+for group_agp in `ls *.agp | sort -v`; do
     cphasing utils agp2assembly $group_agp -o $(basename $group_agp .agp).assembly
-    echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 $(basename $group_agp .agp).assembly ../{pairs_prefix}.mnd.txt" 
+    echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 $(basename $group_agp .agp).assembly ../{pairs_prefix}.mnd.txt" 
 done > to_hic_separate.cmd.sh
 cd ..
 
 ### Step2.2: or directly curate the whole assembly
 
-echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.sorted.assembly {pairs_prefix}.mnd.txt" > to_hic.cmd.sh
+echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.sorted.assembly {pairs_prefix}.mnd.txt" > to_hic.cmd.sh
 echo
 echo -e "\e[1mPlease submit the command 'to_hic.cmd.sh' or 'seperate_groups/to_hic_separate.cmd.sh' for manually adjust assembly in Juicbox\e[0m"
 
@@ -1267,7 +1274,7 @@ echo -e "\e[1mPlease submit the command 'to_hic.cmd.sh' or 'seperate_groups/to_h
     if output is not None:
         with open(output, 'w') as out:
             out.write(cmd)
-        
+        os.chmod(output, 0o755)
         return output
     else:
         return cmd
@@ -1301,11 +1308,14 @@ if [ ! -f {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool ]; then
 fi
 cphasing plot -a {agp} \\
     -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool \\
-        -o {out_heatmap} -bs ${{heatmap_binsize}} -oc {plot_another_args}
+        -o {out_heatmap} -bs ${{heatmap_binsize}} -oc \\
+            {plot_another_args}
     """
 
     with open(output, 'w') as out:
         out.write(cmd)
+    
+    os.chmod(output, 0o755)
 
 def recommend_binsize_by_genomesize(genomesize):
     """
@@ -1611,14 +1621,23 @@ def get_fasta_from_split_contig(fasta, contigsizes, output):
         if start != end:
             regions[contig].append((raw_contig, start, end))
 
-    with xopen(fasta) as handle, open(output, 'w') as out:
-        for title, seq in SimpleFastaParser(handle):
-            contig = title.split(None, 1)[0]
-            
+    with open(output, 'w') as out:
+        for contig, seq in read_fasta_yield(fasta):
+        
             if contig in regions:
                 for raw_contig, start, end in regions[contig]:
                     sub_seq = seq[start:end]
                     out.write(f">{raw_contig}\n{sub_seq}\n")
+
+
+    # with xopen(fasta) as handle, open(output, 'w') as out:
+    #     for title, seq in SimpleFastaParser(handle):
+    #         contig = title.split(None, 1)[0]
+            
+    #         if contig in regions:
+    #             for raw_contig, start, end in regions[contig]:
+    #                 sub_seq = seq[start:end]
+    #                 out.write(f">{raw_contig}\n{sub_seq}\n")
                 
     
     return output 

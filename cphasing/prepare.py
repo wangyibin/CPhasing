@@ -73,7 +73,7 @@ def split_contacts_to_contacts(split_contacts, output):
     df.group_by(['contig1', 'contig2']).sum().write_csv(output, separator='\t', include_header=False)
 
 def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3, 
-            threads=4, low_memory=False,
+            threads=4, low_memory=False, binsize=10000,
             outprefix=None, skip_pairs2clm=False,
             skip_pairs2contacts=False, log_dir="logs"):
 
@@ -101,29 +101,20 @@ def pipe(fasta, pairs, pattern="AAGCTT", min_mapq=0, min_contacts=3,
         if str(pairs).endswith('.gz'):
             cmd0 = decompress_cmd(str(pairs), str(threads))
             logger.info(f"Generating clm/depth/splitcontacts file from pairs file `{pairs}`")
-            cmd = ["cphasing-rs", "pairs2clm", "-", "-c", str(min_contacts), "-d",
+            cmd = ["cphasing-rs", "pairs2clm", "-", "-c", str(min_contacts), "-d", "-b", str(binsize),
                     "-t", str(threads), "-o", f"{outprefix}.clm.gz", "-q", str(min_mapq)]
 
-            # print(" ".join(cmd0) + f" 2>{log_dir}/prepare.decompress.log" + " | " + " ".join(cmd) + f" 2>{log_dir}/prepare.pairs2clm.log")
             flag = os.system(" ".join(cmd0) + f" 2>{log_dir}/prepare.decompress.log" + " | " + " ".join(cmd) + f" 2>{log_dir}/prepare.pairs2clm.log")
         else:
-            cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts), "-d",
+            cmd = ["cphasing-rs", "pairs2clm", str(pairs), "-c", str(min_contacts), "-d", "-b", str(binsize),
                     "-t", str(threads), "-o", f"{outprefix}.clm.gz", "-q", str(min_mapq)]
             
             flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2clm.log')
 
         assert flag == 0, "Failed to execute command, please check log."
 
-    # ## pairs2split_contacts
-    # cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts), 
-    #         "-n", "2", "-o", f"{outprefix}.split.contacts"]
-    # run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
 
     if not skip_pairs2contacts:
-        # cmd = ["cphasing-rs", "pairs2contacts", str(pairs), "-c", str(min_contacts),
-        #         "-o", f"{outprefix}.contacts" ]
-        # flag = run_cmd(cmd, log=f'{log_dir}/prepare.pairs2contacts.log')
-        # assert flag == 0, "Failed to execute command, please check log."
         split_contacts_to_contacts(f"{outprefix}.split.contacts", f"{outprefix}.contacts"  )
         logger.info(f"Output contacts `{outprefix}.contacts`")
     

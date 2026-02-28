@@ -1,10 +1,15 @@
 [workspace]
 authors = ["wangyibin <yibinwang96@outlook.com>"]
 channels = ["conda-forge", "bioconda", "anaconda", "hcc"]
-description = "Add a short description here"
-name = "CPhasing"
+description = "C-Phasing/CPhasing: Phasing and scaffolding polyploid genomes based on Pore-C, HiFi-C/CiFi or Hi-C."
 platforms = ["linux-64", "linux-aarch64"]
-version = "0.2.10"
+preview = ["pixi-build"]
+[package]
+name = "CPhasing"
+version = "0.3.0"
+
+[package.build]
+backend = {name = "python-build", version = "*"}
 
 [system-requirements]
 linux = "3.10.0"
@@ -16,7 +21,7 @@ activate = "LD_LIBRARY_PATH=$PWD/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
 
 [dependencies]
 python = "3.12.0.*"
-rich-click = "1.7.4.*"
+rich-click = "1.9.7.*"
 click = ">=8.1.8,<8.2"
 biopython = ">=1.84,<2"
 click-didyoumean = ">=0.3.1,<0.4"
@@ -62,6 +67,8 @@ bwa-mem2 = ">=2.3,<3"
 samblaster = ">=0.1.26,<0.2"
 needletail = ">=0.7.1,<0.8"
 
+[target.linux-64.dependencies]
+sparse_dot_mkl = ">=0.9.10,<0.10"
 
 
 [feature.methalign.system-requirements]
@@ -120,11 +127,35 @@ docs = "mkdocs serve"
 mike-serve = "mike serve"
 
 
+[feature.eval.system-requirements]
+linux = "3.10.0"
+libc = "2.17"
+
+[feature.eval.target.linux-64.dependencies]
+python = "3.8.*"
+syri = ">=1.6.3,<2"
+seqkit = ">=2.12.0,<3"
+plotsr = ">=1.1.1,<2"
+
+
+[feature.eval2.system-requirements]
+linux = "3.10.0"
+libc = "2.17"
+
+[feature.eval2.target.linux-64.dependencies]
+
+[feature.eval2.target.linux-64.pypi-dependencies]
+nucflag = "==1.0.0a2"
+
+[feature.eval2]
+
 
 [environments]
     docs = { features = [
     "docs",
     ], no-default-feature = true, solve-group = "default" }
     methalign = ["methalign"]
+    eval = { features = ["eval"], no-default-feature = true}
+    eval2 = { features = ["eval2"]}
 #    jupyterlab = ["jupyterlab"]
 

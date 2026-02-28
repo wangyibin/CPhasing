@@ -175,6 +175,34 @@ def compute_grouping_errors(truth_paths, test_paths, alias=None, normalize=True)
     rate = errors / len(common) if common else 0.0
     return errors, rate
 
+def compute_grouping_errors_weighted(truth_paths, test_paths, lens, alias=None, normalize=True):
+    """
+    Length-weighted grouping error rate.
+    Returns: (weighted_error_len, weighted_error_rate)
+      - weighted_error_len: sum(length of misplaced contigs)
+      - weighted_error_rate: weighted_error_len / sum(length of common contigs)
+    """
+    tmap = _build_contig_group_map(truth_paths, normalize=normalize)
+    pmap = _build_contig_group_map(test_paths, normalize=normalize)
+
+    if alias is None:
+        alias = infer_group_alias_by_overlap(truth_paths, test_paths, normalize=normalize)
+
+    mapped_tmap = {cid: alias.get(g, g) for cid, g in tmap.items()}
+    common = set(mapped_tmap.keys()) & set(pmap.keys())
+    if not common:
+        return 0, 0.0
+
+    total_len = 0
+    err_len = 0
+    for cid in common:
+        L = lens.get(cid, 0)
+        total_len += L
+        if mapped_tmap[cid] != pmap[cid]:
+            err_len += L
+
+    rate = (err_len / total_len) if total_len > 0 else 0.0
+    return err_len, rate
 
 def _build_contig_lengths(*dfs):
     lens = {}
@@ -273,13 +301,33 @@ def compute_lcs(X, Y):
                 L[i][j] = max(L[i - 1][j], L[i][j - 1])
     return L[m][n]
 
-def compute_signed_edit_distance(truth_paths, test_paths, alias):
+def compute_weighted_lcs(X, Y, lens):
+    m = len(X)
+    n = len(Y)
+
+    L = [[0.0] * (n + 1) for i in range(m + 1)]
+
+    for i in range(1, m + 1):
+        cid = X[i - 1][:-1]
+        w = lens.get(cid, 0)
+        for j in range(1, n + 1):
+            if X[i - 1] == Y[j - 1]:
+                L[i][j] = L[i - 1][j - 1] + w
+            else:
+                L[i][j] = max(L[i - 1][j], L[i][j - 1])
+    return L[m][n]
+
+
+def compute_signed_edit_distance(truth_paths, test_paths, alias, lens):
     total_edit_distance = 0
     evaluated_groups = 0
+    total_weighted_edit_distance = 0
+    norm_truth_paths = {(_normalize_group_name(k)): v for k, v in truth_paths.items()}
+    norm_test_paths = {(_normalize_group_name(k)): v for k, v in test_paths.items()}
     for truth_group, test_group in alias.items():
       
-        T_path = truth_paths.get(f"Chr{truth_group}", [])
-        P_path = test_paths.get(f"Chr0{test_group}", [])
+        T_path = norm_truth_paths.get(truth_group, [])
+        P_path = norm_test_paths.get(test_group, [])
         
         T_ids = set(x[:-1] for x in T_path)
         P_ids = set(x[:-1] for x in P_path)
@@ -299,6 +347,7 @@ def compute_signed_edit_distance(truth_paths, test_paths, alias):
         evaluated_groups += 1
 
         lcs_fwd = compute_lcs(T_filtered, P_filtered)
+        wlcs_fwd = compute_weighted_lcs(T_filtered, P_filtered, lens)
 
         P_rc = []
         for item in reversed(P_filtered):
@@ -307,26 +356,33 @@ def compute_signed_edit_distance(truth_paths, test_paths, alias):
             P_rc.append(f"{cid}{new_strand}")
         
         lcs_rc = compute_lcs(T_filtered, P_rc)
+        wlcs_rc = compute_weighted_lcs(T_filtered, P_rc, lens)
         
         best_lcs = max(lcs_fwd, lcs_rc)
+        best_wlcs = max(wlcs_fwd, wlcs_rc)
 
         dist = len(T_filtered) - best_lcs
         total_edit_distance += dist
+
+        group_total_len = sum(lens.get(x[:-1], 0) for x in T_filtered)
+        total_weighted_edit_distance += (group_total_len - best_wlcs)
             
-    return total_edit_distance
+            
+    return total_edit_distance, total_weighted_edit_distance
 
 def compute_misplaced_contigs_lcs(truth_paths, test_paths, alias):
 
     tmap = _build_contig_group_map(truth_paths)
     pmap = _build_contig_group_map(test_paths)
+    norm_truth_paths = {(_normalize_group_name(k)): v for k, v in truth_paths.items()}
+    norm_test_paths = {(_normalize_group_name(k)): v for k, v in test_paths.items()}
     
     total_misplaced_contigs = 0
 
     for truth_group, test_group in alias.items():
         
-        
-        T_full = [c[:-1] for c in truth_paths.get(f"Chr{truth_group}", [])]
-        P_full = [c[:-1] for c in test_paths.get(f"Chr0{test_group}", [])]
+        T_full = [c[:-1] for c in norm_truth_paths.get(truth_group, [])]
+        P_full = [c[:-1] for c in norm_test_paths.get(test_group, [])]
         
         
         common_ids = set(T_full) & set(P_full)
@@ -388,8 +444,9 @@ def scaf_eval(truth_agp, test_agp):
     
     truth_agp_df.reset_index(inplace=True)
     test_agp_df.reset_index(inplace=True)
+    test_agp_df_copy = test_agp_df.copy()
+    unanchored_df = test_agp_df[test_agp_df['chrom'] == test_agp_df['id']]
     test_agp_df = test_agp_df[test_agp_df['chrom'] != test_agp_df['id']]
-
     truth_paths = defaultdict(list)
     test_paths = defaultdict(list)
   
@@ -408,15 +465,17 @@ def scaf_eval(truth_agp, test_agp):
             truth_paths[row["chrom"]].append(contig_str)
     
     alias = infer_group_alias_by_overlap(truth_paths, test_paths)
- 
+
+    lens = _build_contig_lengths(truth_agp_df, test_agp_df)
     order_misplaced_lcs = compute_misplaced_contigs_lcs(truth_paths, test_paths, alias)
-    signed_edit_dist = compute_signed_edit_distance(truth_paths, test_paths, alias)
+    signed_edit_dist, weighted_edit_dist = compute_signed_edit_distance(truth_paths, test_paths, alias, lens)
+
     truth_adjacencies = get_adjacencies(truth_paths)
     test_adjacencies = get_adjacencies(test_paths)
     results = evaluate_adjacencies(test_adjacencies, truth_adjacencies)
     group_err_cnt, group_err_rate = compute_grouping_errors(truth_paths, test_paths)
+    group_err_len, group_err_wrate = compute_grouping_errors_weighted(truth_paths, test_paths, lens)
 
-    lens = _build_contig_lengths(truth_agp_df, test_agp_df)
     res_w = evaluate_adjacencies_weighted(
         get_weighted_adjacencies(test_paths, lens),
         get_weighted_adjacencies(truth_paths, lens),
@@ -435,18 +494,22 @@ def scaf_eval(truth_agp, test_agp):
     
     single_orient_err_ids = evaluate_single_contig_orientation(truth_paths, test_paths, alias)
     common_contigs = set(test_agp_df[test_agp_df['type'] == 'W']['id']) & set(truth_agp_df[truth_agp_df['type'] == 'W']['id'])
-    total_len = sum(lens.get(cid, 0) for cid in common_contigs)
+    total_len = truth_agp_df['tig_end'].sum() if not truth_agp_df.empty else 0
     err_len = sum(lens.get(cid, 0) for cid in single_orient_err_ids)
     w_ori_err_rate = err_len / total_len if total_len > 0 else 0.0
 
+    signed_edit_dist = signed_edit_dist + len(unanchored_df)
+    weighted_edit_dist = weighted_edit_dist + unanchored_df['tig_end'].sum()
+    w_edit_dist_rate = (weighted_edit_dist / total_len) * 100 if total_len > 0 else 0.0
 
 
 
     # print(
     #     "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\twPrecision\twRecall\twF1"
     # )
+    
     print(
-        "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\twPrecision\twRecall\twF1\twOriErrRate" # 添加新的指标
+        "TP\tFP\tFN\tPrecision\tRecall\tF1\tMisjoinsCount\tGroupErrors\tGroupErrRate\tGroupErrRate(%)_Len\twPrecision\twRecall\twF1\twOriErrRate"
     )
 
     print(
@@ -461,17 +524,17 @@ def scaf_eval(truth_agp, test_agp):
                 str(len(results.get("misjoins_list", []))),
                 str(group_err_cnt),
                 f"{group_err_rate:.4f}",
+                f"{(group_err_wrate * 100.0):.4f}",
                 f"{res_w.get('w_precision', 0.0):.4f}",
                 f"{res_w.get('w_recall', 0.0):.4f}",
                 f"{res_w.get('w_f1', 0.0):.4f}",
-                f"{res_w.get('w_f1', 0.0):.4f}",
-                f"{w_ori_err_rate:.4f}"
+                f"{w_ori_err_rate:.4f}",
             ]
         )
     )
 
-    print("OrderFP\tOrderFN\tOrientErrContigs\tEditDistance(SignedLCS)") 
-    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(single_orient_err_ids)}\t{signed_edit_dist}")
+    print("OrderFP\tOrderFN\tOrientErrContigs\tEditDistance(SignedLCS)\tEditDistance(%)") 
+    print(f"{len(order_fp)}\t{len(order_fn)}\t{len(single_orient_err_ids)}\t{signed_edit_dist}\t{w_edit_dist_rate:.4f}")
     # output order and orientation errors
     # output order and orientation errors
     # if results.get("misjoins_list", []):

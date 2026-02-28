@@ -184,7 +184,10 @@ class HyperGraph:
         remove rows by contig list
         """     
         contigs = [x for x in contigs if x not in self.edges.idx.values()]
-        contig_idx = np.array([self.edges.idx[i] for i in contigs], dtype=int)
+        contig_idx_list = [self.edges.idx.get(c) for c in contigs]
+        contig_idx_list = [i for i in contig_idx_list if i is not None]
+        contig_idx = np.asarray(contig_idx_list, dtype=int)
+
 
         remove_idx = np.isin(self.row, contig_idx)
 
@@ -382,7 +385,12 @@ class HyperGraph:
         if W is not None:
             A = H @ W @ D_e_inv @ H.T
         else:
-            A = H.dot(D_e_inv).dot(H.T)
+            try:
+                from sparse_dot_mkl import dot_product_mkl
+                A = dot_product_mkl(H.tocsr().astype(np.float32), D_e_inv.tocsr())
+                A = dot_product_mkl(A, H.T.astype(np.float32))
+            except ImportError:
+                A = H.dot(D_e_inv).dot(H.T)
         logger.debug("Calculated clique expansion/reduction adjacency matrix.")
      
 
@@ -421,6 +429,109 @@ class HyperGraph:
         return A
 
     @staticmethod
+    def _to_series_contigsizes(contigsizes, nodes):
+        """
+        Normalize contigsizes input to a pandas Series indexed by contig name.
+        Accept:
+          - dict {contig: size}
+          - pd.Series (index=contig)
+          - pd.DataFrame with columns like [chrom,length] or [contig,size]
+        """
+        if contigsizes is None:
+            raise ValueError("contigsizes is required")
+
+        if isinstance(contigsizes, dict):
+            return pd.Series(contigsizes, name="size")
+
+        if isinstance(contigsizes, pd.Series):
+            if contigsizes.name is None:
+                contigsizes = contigsizes.rename("size")
+            return contigsizes
+
+        if isinstance(contigsizes, pd.DataFrame):
+            df = contigsizes.copy()
+            # common: ["chrom","length"]
+            cols = {c.lower(): c for c in df.columns}
+            if "chrom" in cols and "length" in cols:
+                df = df.rename(columns={cols["chrom"]: "contig", cols["length"]: "size"})
+            elif "contig" in df.columns and "size" in df.columns:
+                pass
+            else:
+                # fallback: first two columns
+                df = df.iloc[:, :2].copy()
+                df.columns = ["contig", "size"]
+
+            s = pd.Series(df["size"].values, index=df["contig"].astype(str).values, name="size")
+            return s
+
+        raise TypeError(f"Unsupported contigsizes type: {type(contigsizes)}")
+
+    
+    @staticmethod
+    def filter_adjacency_matrix(A, nodes, contigsizes, invert=False,
+                                method="max",
+                                high_q=0.999,
+                                low_q=None,
+                                mad_z=3.0):
+        """
+        Filter contigs by abnormal normalized degree (contacts per length).
+
+        Returns
+        -------
+        retain_idx : np.ndarray[int]
+            indices to retain (0..n-1)
+        """
+        n = A.shape[0]
+        if A is None or n == 0 or A.nnz == 0:
+            return np.arange(n, dtype=np.int64)
+
+        A = A.tocsr()
+        deg = np.asarray(np.abs(A).sum(axis=1)).ravel().astype(np.float64)
+
+        cs = HyperGraph._to_series_contigsizes(contigsizes, nodes)
+        sizes = pd.Index(nodes.astype(str)).map(cs).to_numpy(dtype=np.float64)
+        sizes[~np.isfinite(sizes)] = np.nan
+        sizes[sizes <= 0] = np.nan
+
+        norm = deg / sizes * 10000.0
+        x = norm[np.isfinite(norm)]
+        if x.size == 0:
+            return np.arange(n, dtype=np.int64)
+
+        keep = np.ones(n, dtype=bool)
+
+        if method == "quantile":
+            if high_q is not None:
+                hi = float(np.nanquantile(x, float(high_q)))
+                keep &= ~(np.isfinite(norm) & (norm > hi))
+            if low_q is not None:
+                lo = float(np.nanquantile(x, float(low_q)))
+                keep &= ~(np.isfinite(norm) & (norm < lo))
+
+        elif method == "mad":
+            med = float(np.nanmedian(x))
+            mad = float(np.nanmedian(np.abs(x - med)))
+            if mad <= 0:
+                hi = float(np.nanquantile(x, 0.999))
+                keep &= ~(np.isfinite(norm) & (norm > hi))
+            else:
+                robust_z = 0.6745 * (norm - med) / mad
+                keep &= ~(np.isfinite(robust_z) & (robust_z > float(mad_z)))
+
+        else:
+            raise ValueError("method must be 'quantile' or 'mad'")
+
+        return np.where(keep)[0].astype(np.int64)
+
+    @staticmethod
+    def filter_by_weight(A, min_weight=0.1):
+        if min_weight > 0:
+            A.data[A.data < min_weight] = 0
+            A.eliminate_zeros()
+
+        return A
+
+    @staticmethod
     def normalize_adjacency_matrix(A, NW=None):
         if NW is not None:
             logger.info("Normalizing the weight of edges.")
@@ -433,6 +544,34 @@ class HyperGraph:
             A = csr_matrix((data, (row, col)), shape=A.shape)
 
         return A
+
+    @staticmethod
+    def _normalize_pair_index(P):
+        """
+        Normalize pair indices into (rows, cols) 1D int arrays.
+
+        Accepts:
+          - (rows, cols)
+          - list/array of shape (n, 2)
+        """
+        if P is None:
+            return None, None
+
+        if isinstance(P, (tuple, list)) and len(P) == 2 and not (
+            isinstance(P[0], (tuple, list, np.ndarray)) and len(np.asarray(P[0]).shape) == 2
+        ):
+            rows = np.asarray(P[0], dtype=np.int64).ravel()
+            cols = np.asarray(P[1], dtype=np.int64).ravel()
+            return rows, cols
+
+
+        arr = np.asarray(P)
+        if arr.ndim != 2 or arr.shape[1] != 2:
+            raise ValueError(f"Invalid pair index format for P_allelic_idx: shape={arr.shape}")
+        rows = arr[:, 0].astype(np.int64, copy=False)
+        cols = arr[:, 1].astype(np.int64, copy=False)
+        return rows, cols
+
     
     @staticmethod
     def reweight_adjacency_matrix(A, P_allelic_idx=None, P_weak_idx=None,
@@ -442,7 +581,7 @@ class HyperGraph:
                 A = A.tocsr()
 
             if P_allelic_idx:
-                rows, cols = P_allelic_idx
+                rows, cols = HyperGraph._normalize_pair_index(P_allelic_idx)
                 if allelic_factor == 0:
                     A[rows, cols] = 0
                 else:
@@ -481,6 +620,22 @@ class HyperGraph:
                         if allelic_factor > 0:
                             baseline = ref_signal * 0.5
                             A[rows, cols] = (vals + baseline) * allelic_factor
+                    elif allelic_factor == "auto":
+                        deg = np.asarray(A.sum(axis=1)).ravel().astype(np.float64)
+             
+                        deg[deg <= 0] = 1.0
+
+                        vals = A[rows, cols]
+                        if hasattr(vals, "toarray"):
+                            vals = vals.toarray().ravel()
+                        else:
+                            vals = np.asarray(vals).ravel()
+
+                        # FIX: rows/cols are guaranteed 1D now
+                        ## get row1 * col1 row2 * col2 ...
+                        norm = np.sqrt(deg[rows] * deg[cols]) * 0.05
+
+                        A[rows, cols] = norm
                     else:
                         if hasattr(vals, "multiply"):
                             A[rows, cols] = vals.multiply(allelic_factor)
@@ -499,22 +654,47 @@ class HyperGraph:
     
 
     @staticmethod
-    def to_contacts(A, nodes, 
+    def to_contacts(A, nodes=None, 
                     NW=None,
                     min_weight=1.0, 
+                    contigsizes=None,
                     output="hypergraph.expansion.contacts"):
-        # A = HyperGraph.clique_expansion_init(H, NW=NW, min_weight=min_weight).tocoo()
         A = A.tocoo()
-        V = nodes
+
+        mask = (A.row <= A.col) & (np.abs(A.data) >= min_weight) & (np.isfinite(A.data))
+        if nodes is not None:
+            df = pl.DataFrame({
+                "0": nodes[A.row[mask]],
+                "1": nodes[A.col[mask]],
+                "2": A.data[mask]
+            })
+            if contigsizes is not None:
+                contigsizes_series = pl.from_pandas(contigsizes.reset_index().rename(columns={"index": "contigsizes.0", "size": "contigsizes.1"}))
+
+                contigsizes_dict = {row["chrom"]: row["length"] for row in contigsizes_series.iter_rows(named=True)}
+
+                df = df.with_columns([
+                    pl.col("0").map_elements(contigsizes_dict.get).alias("contigsizes.0"),
+                    pl.col("1").map_elements(contigsizes_dict.get).alias("contigsizes.1")
+                ])
+                df = df.with_columns([
+                    (pl.col("2") / (pl.col("contigsizes.0") * pl.col("contigsizes.1")).sqrt()).alias("2")
+                ])
+                df = df.select(["0", "1", "2"])
+        else:
+            df = pl.DataFrame({
+                    "0": A.row[mask],
+                    "1": A.col[mask],
+                    "2": A.data[mask]
+            })
+
        
-        df = pd.DataFrame({0: V[A.row], 1: V[A.col], 2: A.data})
-        df = df[df[0] <= df[1]]
-        df = df[(df[2] >= min_weight) | (df[2] <= -min_weight)]
-        df = df[abs(df[2]) != np.inf]
-        # df = df.query(f"0 <= 1 & 2 >= {min_weight} & abs(2) != inf")
-        df.to_csv(output, sep='\t', header=False, index=False)
-                
-        logger.info(f"Export hypergraph into `{output}`")
+        if output:
+            df.write_csv(output, separator='\t', include_header=False)    
+            logger.info(f"Export hypergraph into `{output}`")
+            return 
+        else:
+            return df
 
 
 def calc_new_weight(k, c, e_c, m):
@@ -623,6 +803,8 @@ def extract_incidence_matrix(mat, idx):
 #     return A, remove_edges_idx, non_zero_edges_idx
 
 def extract_incidence_matrix2(mat, idx):
+    if mat is None:
+        raise ValueError("The incidence matrix (H) is None. Please ensure H isprovided or use the adjacency matrix (A) directly.")
     A = mat[idx]
     if A.nnz > 0: 
         A_sum = np.bincount(A.indices, weights=A.data, minlength=A.shape[1])

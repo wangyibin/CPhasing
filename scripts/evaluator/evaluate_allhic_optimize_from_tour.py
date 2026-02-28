@@ -42,7 +42,6 @@ def main(args):
                       help='count RE table of a group')
     pReq.add_argument('clm',
                         help='clm file from allhic optimize')
-    pReq.add_argument('pairtable', help="pairtable from allhic extract")
     pOpt.add_argument('-r', '--real', default=None,
                       help='one columns of real contig order')
     pOpt.add_argument('-n', '--number', default=10, type=int, 
@@ -71,8 +70,7 @@ def main(args):
     length_db = cr.length_db 
 
     prefix = Path(args.count_re).stem.replace(".txt", "")
-    pt = PairTable(args.pairtable)
-    count_db = defaultdict( int, pt.data['ObservedLinks'].to_dict(),)
+    
     clm = Clm(args.clm)
     count_db = clm.count_db()
     

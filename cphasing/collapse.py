@@ -132,10 +132,10 @@ class CollapseFromDepth:
     """
     get collapsed contigs from read depth
     """
-    def __init__(self, depth):
+    def __init__(self, depth, cn_offset=0):
         self.depth = depth
         self.depth_df = self.read_depth()
-
+        self.cn_offset = cn_offset
         self.contigsizes = self.depth_df.groupby('chrom').agg({'end': 'max'})
         self.contigsizes.columns = ['length']
         self.contigsizes_db = self.contigsizes.to_dict()['length']
@@ -209,26 +209,37 @@ class CollapseFromDepth:
         high_depth_threshold = peak_depth * 1.5 
         rd_df['is_high'] = rd_df['count'] > high_depth_threshold
         contig_stats = rd_df.groupby('chrom').agg({
-            'count': 'mean',
+            'count': 'median',
             'is_high': 'mean',
             'end': 'max'
         }).rename(columns={'is_high': 'high_coverage_ratio', 'end': 'length'})
         contig_stats['CN'] = contig_stats['count'] / peak_depth
-        collapsed_mask = (contig_stats['CN'] > 1.5) | (contig_stats['high_coverage_ratio'] > 0.5)
-        collapsed_df = contig_stats[collapsed_mask]
+        _contig_stats = contig_stats.copy()
+        _contig_stats['CN'] = _contig_stats['CN'] - self.cn_offset
+        collapsed_mask = (_contig_stats['CN'] > 1.5) & (_contig_stats['high_coverage_ratio'] > 0.5)
+        collapsed_df = _contig_stats[collapsed_mask]
+        collapsed_df['CN'] = round(collapsed_df['CN'])
 
-        contig_depth = rd_df.groupby('chrom')['count'].mean().to_frame()
+
+        contig_depth = rd_df.groupby('chrom')['count'].median().to_frame()
         contig_depth['CN'] = contig_depth['count'] / peak_depth
+
 
         # collapsed_df = contig_depth[contig_depth['CN'] > 1.5]
         
         collapsed_df['length'] = collapsed_df.index.map(self.contigsizes_db.get)
 
+        
         collapsed_df = collapsed_df.reset_index()
         logger.info(f"Identified {collapsed_df['length'].sum():,} bp contigs with read depth >= {upper_depth:.2f}")
         collapsed_df.drop(columns=["length", "high_coverage_ratio"], inplace=True)
    
         collapsed_df.to_csv("contigs.collapsed.contig.list", sep='\t', header=False, index=False)
+        with open("contigs.collapsed.dup.contig.list", 'w') as out:
+            for idx, row in collapsed_df.iterrows():
+                contig, cn = row['chrom'], row['CN']
+                for i in range(2, int(cn) + 1):
+                    print(contig, f"{contig}_d{i}", sep='\t', file=out)
 
         low_df = contig_depth[contig_depth['CN'] < 0.1]
         low_df['length'] = low_df.index.map(self.contigsizes_db.get)
@@ -442,7 +453,8 @@ class CollapsedRescue:
     """
     def __init__(self, HG, clustertable, alleletable, contigsizes,
                     collapsed_contigs, allelic_similarity: float=.85,
-                    min_contacts=5, min_cis_weight=20, min_weight=2):
+                    min_contacts=5, min_cis_weight=20, min_weight=2,
+                    only_unplaced_rescue=False, threads=10):
         
         self.HG = HG 
         self.clustertable = clustertable
@@ -458,6 +470,12 @@ class CollapsedRescue:
         self.min_contacts = min_contacts
         self.min_cis_weight = min_cis_weight
         self.min_weight = min_weight
+        self.only_unplaced_rescue = only_unplaced_rescue
+        self.threads = threads
+
+        self.log_dir = "logs"
+        Path(self.log_dir).mkdir(exist_ok=True)
+
         self.hap_groups = self.clustertable.hap_groups
 
         self.H = HG.incidence_matrix(min_contacts=self.min_contacts)
@@ -493,7 +511,7 @@ class CollapsedRescue:
             self.vertices = self.vertices[retain_idx]
             logger.info(f"Filtered {raw_contig_counts - contig_counts} contigs with less than {self.min_cis_weight} cis weight")
 
-    def rescue(self):
+    def rescue1(self):
         vertices_idx = self.vertices_idx
         idx_to_vertices = self.idx_to_vertices
         new_cluster_data = {}
@@ -690,39 +708,459 @@ class CollapsedRescue:
         logger.info(f"Rescued {len(rescued_contigs)} contigs, total length: {rescued_length:,} bp")
         self.clustertable.save("collapsed.rescue.clusters.txt")
 
+    def rescue(self):
+        """
+        Rescue the collapsed contigs into a group with Re-assignment logic.
+        """
+        vertices = self.vertices
+        vertices_idx = self.vertices_idx
+        idx_to_vertices = self.idx_to_vertices
+
+        median_len = np.nanmedian(self.contigsizes.values)
+        if np.isnan(median_len) or median_len == 0:
+            median_len = 1000000
+
+        placed_contigs = set()
+        for groups in self.hap_groups.values():
+            placed_contigs.update(list_flatten(groups))
+        
+        all_collapsed = set(self.collapsed_contigs.index)
+        unplaced_collapsed = [
+            c for c in self.collapsed_contigs.index 
+            if c not in placed_contigs and c in vertices_idx
+        ]
+
+        valid_placed = [c for c in placed_contigs if c in vertices_idx]
+        all_involved = valid_placed + unplaced_collapsed
+        involved_idx = [vertices_idx[c] for c in all_involved]
+        
+        sub_old2new = dict(zip(involved_idx, range(len(involved_idx))))
+        sub_new2old = {v: k for k, v in sub_old2new.items()} 
+        
+        sub_H, _, _ = extract_incidence_matrix2(self.H, involved_idx)
+        sub_raw_A = HyperGraph.clique_expansion_init(
+            sub_H,
+            min_weight=self.min_weight,
+        )
+        if self.alleletable is None:
+            P_allelic_idx = None
+            P_weak_idx = None
+            P_allelic_sim = None
+
+        else:
+            sub_alleletable = self.alleletable.data[
+                self.alleletable.data[1].isin(all_involved)
+                & self.alleletable.data[2].isin(all_involved)
+            ].copy()
+            sub_alleletable[1] = (
+                sub_alleletable[1].map(vertices_idx.get).map(sub_old2new.get)
+            )
+            sub_alleletable[2] = (
+                sub_alleletable[2].map(vertices_idx.get).map(sub_old2new.get)
+            )
+            sub_alleletable.dropna(axis=0, inplace=True)
+            P_allelic_idx = [
+                sub_alleletable[1].astype(int),
+                sub_alleletable[2].astype(int),
+            ]
+            P_allelic_sim = sub_alleletable['similarity'].astype(float).values
+            P_weak_idx = None
+
+
+            sub_involved_vertices = np.array([idx_to_vertices[sub_new2old[i]] for i in range(len(involved_idx))])
+
+            df = HyperGraph.to_contacts(sub_raw_A, sub_involved_vertices, min_weight=self.min_weight, output=None)
+
+        
+            df = df.to_pandas()
+
+            df.to_csv("collapsed.hypergraph.expansion.contacts", sep='\t', header=None, index=None)
+            tmp_collapsed_contigs_list = "tmp.collapsed.contigs.list"
+            with open(tmp_collapsed_contigs_list, 'w') as out:
+                for contig in all_collapsed:
+                    print(contig, file=out)
+
+            cmd = ["cphasing-rs", "kprune", self.alleletable.filename, "collapsed.hypergraph.expansion.contacts", 
+                   "collapsed.prune.table", "-t", str(self.threads), "--whitelist", tmp_collapsed_contigs_list, "-p"]
+            flag = run_cmd(cmd, log=f"{self.log_dir}/collapsed.hyperpartition_kprune.log")
+            assert flag == 0, "Failed to execute command, please check log."
+
+            if Path(tmp_collapsed_contigs_list).exists():
+                Path(tmp_collapsed_contigs_list).unlink()
+
+            if not Path("collapsed.prune.table").exists() or Path("collapsed.prune.table").stat().st_size == 0:
+                logger.warning("No pruned results from kprune, skipping rescue.")
+                P_allelic_idx = None
+                P_weak_idx = None
+                P_allelic_sim = None
+            else:
+                prune_table = pd.read_csv("collapsed.prune.table", sep='\t', header=None)
+                prune_table[0] = prune_table[0].map(vertices_idx.get).map(sub_old2new.get)
+                prune_table[1] = prune_table[1].map(vertices_idx.get).map(sub_old2new.get)
+
+                allelic_table = prune_table[prune_table[6] == 0]
+                cross_allelic_table = prune_table[prune_table[6] == 1]
+                P_allelic_idx = [allelic_table[0].astype(int), allelic_table[1].astype(int)]
+                P_weak_idx = [cross_allelic_table[0].astype(int), cross_allelic_table[1].astype(int)]
+                P_allelic_sim = allelic_table[5].astype(float).values
+        
+        sub_A = HyperGraph.reweight_adjacency_matrix(sub_raw_A, P_allelic_idx=P_allelic_idx, P_weak_idx=P_weak_idx, allelic_factor=0)
+        
+        group_to_idx = {}
+        for hap_group, groups in self.hap_groups.items():
+            for i, g_contigs in enumerate(groups):
+                g_name = f"{hap_group}g{i+1}"
+                group_to_idx[g_name] = [sub_old2new[vertices_idx[c]] for c in g_contigs if c in vertices_idx]
+
+        allele_db = defaultdict(dict)
+        if P_allelic_idx is not None:
+            for u, v, sim in zip(P_allelic_idx[0], P_allelic_idx[1], P_allelic_sim):
+                allele_db[u][v] = sim
+                allele_db[v][u] = sim
+
+        if unplaced_collapsed:
+            u_lengths = self.contigsizes.reindex(unplaced_collapsed).values.flatten()
+            u_lengths[np.isnan(u_lengths)] = 0
+            unplaced_collapsed = [
+                c for _, c in sorted(zip(u_lengths, unplaced_collapsed), reverse=True)
+            ]
+            
+            logger.info(f"Attempting to pre-rescue {len(unplaced_collapsed)} unplaced collapsed contigs...")
+          
+            for u_contig in unplaced_collapsed:
+                u_idx_new = sub_old2new[vertices_idx[u_contig]]
+                
+                hap_group_scores = {}
+                for hap_group, groups in self.hap_groups.items():
+                    hg_idx_new = []
+                    for i in range(len(groups)):
+                        g_name = f"{hap_group}g{i+1}"
+                        if g_name in group_to_idx:
+                            hg_idx_new.extend(group_to_idx[g_name])
+                            
+                    if not hg_idx_new:
+                        continue
+                        
+                    interactions = sub_raw_A[u_idx_new, hg_idx_new]
+                    if hasattr(interactions, "toarray"):
+                        interactions = interactions.toarray()
+                    elif hasattr(interactions, "A"):
+                        interactions = interactions.A
+                    interactions = np.array(interactions, dtype=float).flatten()
+                    
+                    target_contigs = [idx_to_vertices[sub_new2old[idx]] for idx in hg_idx_new]
+                    lengths = self.contigsizes.reindex(target_contigs).values.flatten()
+                    lengths[np.isnan(lengths) | (lengths == 0)] = median_len
+                    rel_lengths = lengths / median_len
+                    
+                    norm_interactions = interactions / rel_lengths
+                    
+                    score = norm_interactions.mean()
+                    hap_group_scores[hap_group] = score
+                    
+                if not hap_group_scores:
+                    continue
+                    
+                best_hap_group = max(hap_group_scores, key=hap_group_scores.get)
+                best_hg_score = hap_group_scores[best_hap_group]
+      
+                if best_hg_score <= 0.01:
+                    continue
+        
+                best_sub_score = 0
+                best_sub_idx = None
+                
+                groups = self.hap_groups[best_hap_group]
+                for i in range(len(groups)):
+                    g_name = f"{best_hap_group}g{i+1}"
+                    g_idx_new = group_to_idx.get(g_name)
+                    if not g_idx_new:
+                        continue
+
+                    interactions = sub_A[u_idx_new, g_idx_new]
+                    if hasattr(interactions, "toarray"):
+                        interactions = interactions.toarray()
+                    elif hasattr(interactions, "A"):
+                        interactions = interactions.A
+                    interactions = np.array(interactions, dtype=float).flatten()
+                    
+                    target_contigs = [idx_to_vertices[sub_new2old[idx]] for idx in g_idx_new]
+                    lengths = self.contigsizes.reindex(target_contigs).values.flatten()
+                    lengths[np.isnan(lengths) | (lengths == 0)] = median_len
+                    rel_lengths = lengths / median_len
+                    
+                    norm_interactions = interactions / rel_lengths
+
+                    score = norm_interactions.mean()
+
+                    if score > best_sub_score:
+                        best_sub_score = score
+                        best_sub_idx = i
+                
+                if best_sub_idx is not None and best_sub_score > 0.01:
+                    self.hap_groups[best_hap_group][best_sub_idx].append(u_contig)
+                    best_g_name = f"{best_hap_group}g{best_sub_idx+1}"
+                    
+
+                    group_to_idx[best_g_name].append(u_idx_new)
+
+                    logger.debug(f"Pre-rescued unplaced {u_contig} to {best_g_name} (HG Score: {best_hg_score:.2f}, Sub Score: {best_sub_score:.2f})")
+
+            current_placed = set()
+            for groups in self.hap_groups.values():
+                current_placed.update(list_flatten(groups))
+                
+            pre_rescued_contigs = [c for c in unplaced_collapsed if c in current_placed]
+            pre_rescued_count = len(pre_rescued_contigs)
+            
+            if pre_rescued_count > 0:
+                pre_rescued_length = int(np.nansum(self.contigsizes.reindex(pre_rescued_contigs).values))
+            else:
+                pre_rescued_length = 0
+
+            logger.info(
+                f"Pre-rescued {pre_rescued_count} unplaced collapsed contigs, total length: {pre_rescued_length:,} bp"
+            )
+
+        
+        new_cluster_data = {}
+
+        for k, hap_group in enumerate(self.hap_groups):
+            groups = self.hap_groups[hap_group]
+            if len(groups) < 2:
+                for i, g_contigs in enumerate(groups):
+                    new_cluster_data[f"{hap_group}g{i+1}"] = g_contigs
+                continue
+
+            contigs = list_flatten(groups)
+
+            contigs_idx = list(
+                filter(lambda x: x is not None, map(vertices_idx.get, contigs))
+            )
+            sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
+
+            if self.alleletable is None:
+                sub_alleletable = None
+                P_allelic_idx = None
+            else:
+                sub_alleletable = self.alleletable.data[
+                    self.alleletable.data[1].isin(contigs)
+                    & self.alleletable.data[2].isin(contigs)
+                ].copy()
+                sub_alleletable[1] = (
+                    sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
+                )
+                sub_alleletable[2] = (
+                    sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+                )
+                sub_alleletable.dropna(axis=0, inplace=True)
+                P_allelic_idx = [
+                    sub_alleletable[1].astype(int),
+                    sub_alleletable[2].astype(int),
+                ]
+                sub_alleletable.set_index([1], inplace=True)
+
+            sub_H, _, _ = extract_incidence_matrix2(self.H, contigs_idx)
+            sub_A = self.HG.clique_expansion_init(
+                sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0
+            )
+
+            current_groups_idx = list(
+                map(
+                    lambda x: list(
+                        filter(lambda x: x is not None, map(vertices_idx.get, x))
+                    ),
+                    groups,
+                )
+            )
+            groups_new_idx = list(
+                map(lambda x: list(map(sub_old2new_idx.get, x)), current_groups_idx)
+            )
+
+            groups_new_idx_db = {}
+            for i in range(len(groups_new_idx)):
+                for idx in groups_new_idx[i]:
+                    groups_new_idx_db[idx] = i
+
+            sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(
+                axis=0
+            )
+            sub_collapsed_contigs_idx_new = [
+                sub_old2new_idx.get(vertices_idx.get(idx))
+                for idx in sub_collapsed_contigs.index
+            ]
+            sub_collapsed_contigs_idx_new = [
+                int(idx) for idx in sub_collapsed_contigs_idx_new if idx is not None
+            ]
+            sub_collapsed_contigs_cn_dict = dict(
+                zip(sub_collapsed_contigs_idx_new, sub_collapsed_contigs["CN"])
+            )
+            allele_db = defaultdict(set)
+            if P_allelic_idx is not None:
+                for u, v in zip(P_allelic_idx[0], P_allelic_idx[1]):
+                    allele_db[u].add(v)
+                    allele_db[v].add(u)
+            original_groups_new_idx = [list(g) for g in groups_new_idx]
+            if not self.only_unplaced_rescue:
+                for j in sub_collapsed_contigs_idx_new:
+                    group_scores = []
+                    for i in range(len(groups)):
+                        if len(groups_new_idx[i]) > 0:
+                            interactions = sub_A[j, groups_new_idx[i]]
+                            if hasattr(interactions, "toarray"):
+                                interactions = interactions.toarray()
+                            elif hasattr(interactions, "A"): 
+                                interactions = interactions.A
+                            interactions = np.asarray(interactions).flatten()
+            
+                            target_contigs = [idx_to_vertices[contigs_idx[idx]] for idx in groups_new_idx[i]]
+                            lengths = self.contigsizes.reindex(target_contigs).values.flatten()
+                            lengths[np.isnan(lengths) | (lengths == 0)] = median_len
+                            rel_lengths = lengths / median_len
+                            
+                            norm_interactions = interactions / rel_lengths
+                            
+                            score = norm_interactions.mean()
+                        else:
+                            score = 0
+                     
+                        group_scores.append(score)
+
+                    group_scores = np.array(group_scores)
+
+                    best_group_idx = np.argmax(group_scores)
+                    primary_score = group_scores[best_group_idx]
+
+                
+                    original_g_idx = groups_new_idx_db.get(j)
+
+                    if primary_score <= 0.01:
+                        continue
+
+                    if original_g_idx is not None and best_group_idx != original_g_idx:
+                        logger.debug(
+                            f"Contig {idx_to_vertices[contigs_idx[j]]} re-assigned: Group {original_g_idx} -> {best_group_idx}"
+                        )
+
+                    cn = int(round(sub_collapsed_contigs_cn_dict[j]))
+                    if cn < 2:
+                        continue
+
+                    candidates = []
+                    for idx, s in enumerate(group_scores):
+                        if idx == best_group_idx:
+                            continue
+                        if s > 0.01:
+                            candidates.append((idx, s))
+
+                    candidates.sort(key=lambda x: x[1], reverse=True)
+
+                    rescued_count = 0
+                    for candidate_idx, score in candidates:
+                        logger.debug(
+                            f"Evaluating candidate group {candidate_idx} for contig {idx_to_vertices[
+                                contigs_idx[j]
+                            ]} (Score: {score:.2f}, Primary: {primary_score:.2f})"
+                        )
+                        if rescued_count >= (cn - 1):
+                            break
+
+                        if score < (primary_score * 0.05):
+                            continue
+
+                        if j not in groups_new_idx[candidate_idx]:
+                            groups_new_idx[candidate_idx].append(j)
+                            logger.debug(
+                                f"Rescued {idx_to_vertices[contigs_idx[j]]} to group {candidate_idx} (Score: {score:.2f})"
+                            )
+                            rescued_count += 1
+
+            for k, idx_list in enumerate(groups_new_idx):
+                converted_names = [idx_to_vertices[contigs_idx[i]] for i in idx_list]
+                new_cluster_data[f"{hap_group}g{k+1}"] = list(
+                    OrderedDict.fromkeys(converted_names)
+                ) 
+
+        
+
+        self.clustertable.data = new_cluster_data
+
+        new_contigs_all = self.clustertable.contigs
+        count_stats = Counter(new_contigs_all)
+        rescued_contigs = [c for c, count in count_stats.items() if count > 1]
+
+        with open("collapsed.rescue.contigs.list", "w") as out:
+            for contig in rescued_contigs:
+                for i in range(2, count_stats[contig] + 1):
+                    print(f"{contig}\t{contig}_d{i}", file=out)
+
+        if rescued_contigs:
+            lengths = self.contigsizes.reindex(rescued_contigs).values.flatten()
+            lengths[np.isnan(lengths)] = 0
+            extra_copies = np.array([count_stats[c] - 1 for c in rescued_contigs])
+            
+            rescued_length = int(np.sum(lengths * extra_copies))
+            rescued_copies_count = int(np.sum(extra_copies))
+        else:
+            rescued_length = 0
+            rescued_copies_count = 0
+
+        logger.info(
+            f"Rescued {rescued_copies_count} copies from {len(rescued_contigs)} unique contigs, total rescued length: {rescued_length:,} bp"
+        )
+        self.clustertable.save("collapsed.rescue.clusters.txt")
+
 
 class CollapsedRescue2:
     """
     Rescue the collapsed contigs into a ordered and oriented group
     """
-    def __init__(self, HG, agp, fasta,
-                 alleletable, split_contacts, 
-                    collapsed_contigs, allelic_similarity: float=.85):
-        
-        self.HG = HG 
+
+    def __init__(
+        self,
+        HG,
+        agp,
+        fasta,
+        alleletable,
+        split_contacts,
+        collapsed_contigs,
+        allelic_similarity: float = 0.85,
+    ):
+        self.HG = HG
         self.agp_file = agp
 
         self.cluster_df = agp2cluster(self.agp_file, store=False)
         self.cluster_df = self.cluster_df.reset_index()
-        self.cluster_df = self.cluster_df[self.cluster_df['id'].apply(lambda x: len(x) > 0)]
-        self.cluster_df.set_index('chrom', inplace=True)
-        self.cluster_data = self.cluster_df.to_dict()['id']
+        self.cluster_df = self.cluster_df[
+            self.cluster_df["id"].apply(lambda x: len(x) > 0)
+        ]
+        self.cluster_df.set_index("chrom", inplace=True)
+        self.cluster_data = self.cluster_df.to_dict()["id"]
 
-        self.fasta = fasta 
+        self.fasta = fasta
         self.fasta_path = Path(self.fasta).absolute()
-        
-        self.contigsizes = read_chrom_sizes(str(get_contig_size_from_fasta(self.fasta_path)))
-        self.alleletable = alleletable 
+
+        self.contigsizes = read_chrom_sizes(
+            str(get_contig_size_from_fasta(self.fasta_path))
+        )
+        self.alleletable = alleletable
         self.alleletable.data = self.alleletable.data[
-            self.alleletable.data['similarity'] >= allelic_similarity]
+            self.alleletable.data["similarity"] >= allelic_similarity
+        ]
 
         self.split_contacts = split_contacts
 
         if self.split_contacts:
-            self.split_link_df  = pl.read_csv(self.split_contacts, separator='\t', has_header=False,
-                            dtypes={"column_1": pl.Categorical, 
-                                    "column_2": pl.Categorical,
-                                    "column_3": pl.UInt32}).to_pandas()
+            self.split_link_df = pl.read_csv(
+                self.split_contacts,
+                separator="\t",
+                has_header=False,
+                dtypes={
+                    "column_1": pl.Categorical,
+                    "column_2": pl.Categorical,
+                    "column_3": pl.UInt32,
+                },
+            ).to_pandas()
             self.split_link_df.columns = [0, 1, 2]
 
         else:
@@ -732,7 +1170,7 @@ class CollapsedRescue2:
         self.allelic_similarity = allelic_similarity
 
         self.H = HG.incidence_matrix()
-        self.vertices = self.HG.nodes 
+        self.vertices = self.HG.nodes
 
     @property
     def hap_groups(self):
@@ -752,31 +1190,33 @@ class CollapsedRescue2:
 
                     db[hap].append(self.cluster_data[group])
                 except UnboundLocalError:
-                    logger.warning("Unexpect group name `{group}`, must be Chr[\d+]g[\d+]")
-            
+                    logger.warning(
+                        "Unexpect group name `{group}`, must be Chr[\d+]g[\d+]"
+                    )
+
         return db
 
     @property
     def vertices_idx(self):
-        return dict(zip(self.vertices, 
-                        range(len(self.vertices))))
-    
+        return dict(zip(self.vertices, range(len(self.vertices))))
+
     @property
     def idx_to_vertices(self):
         idx_to_vertices = dict(zip(range(len(self.vertices)), self.vertices))
-        
+
         return idx_to_vertices
 
     def get_group_with_orientation(self):
-        
         db = agp2tour(self.agp_file, store=False)
         for group in db:
             db[group] = OrderedDict(db[group])
 
-        return db 
-    
+        return db
+
     @staticmethod
-    def _rescue(A, ):
+    def _rescue(
+        A,
+    ):
         pass
 
     def rescue(self):
@@ -787,37 +1227,63 @@ class CollapsedRescue2:
         for k, hap_group in enumerate(self.hap_groups):
             groups = self.hap_groups[hap_group]
             if len(groups) < 2:
-                continue 
+                continue
             contigs = list_flatten(groups)
-            contigs_idx = list(filter(lambda x: x is not None, map(vertices_idx.get, contigs)))
-            
+            contigs_idx = list(
+                filter(lambda x: x is not None, map(vertices_idx.get, contigs))
+            )
+
             sub_old2new_idx = dict(zip(contigs_idx, range(len(contigs_idx))))
             sub_alleletable = self.alleletable.data[
-                self.alleletable.data[1].isin(contigs) & self.alleletable.data[2].isin(contigs)]
-            sub_alleletable[1] = sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
-            sub_alleletable[2] = sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+                self.alleletable.data[1].isin(contigs)
+                & self.alleletable.data[2].isin(contigs)
+            ]
+            sub_alleletable[1] = (
+                sub_alleletable[1].map(vertices_idx.get).map(sub_old2new_idx.get)
+            )
+            sub_alleletable[2] = (
+                sub_alleletable[2].map(vertices_idx.get).map(sub_old2new_idx.get)
+            )
             P_allelic_idx = [sub_alleletable[1], sub_alleletable[2]]
             sub_alleletable.set_index([1], inplace=True)
-            
+
             sub_H, _ = extract_incidence_matrix2(self.H, contigs_idx)
-            sub_A = self.HG.clique_expansion_init(sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0)
-           
+            sub_A = self.HG.clique_expansion_init(
+                sub_H, P_allelic_idx=P_allelic_idx, allelic_factor=0
+            )
+
             # sub_allelic = set(map(tuple, sub_alleletable[[1, 2]].values.tolist()))
 
-            groups_idx = list(map(lambda x: list(filter(lambda x: x is not None, map(vertices_idx.get, x))), groups))
+            groups_idx = list(
+                map(
+                    lambda x: list(
+                        filter(lambda x: x is not None, map(vertices_idx.get, x))
+                    ),
+                    groups,
+                )
+            )
 
-            groups_new_idx = list(map(lambda x: list(map(sub_old2new_idx.get, x)), groups_idx))
+            groups_new_idx = list(
+                map(lambda x: list(map(sub_old2new_idx.get, x)), groups_idx)
+            )
             groups_new_idx_db = {}
             rescued_new_idx_db = OrderedDict()
             for i in range(len(groups_new_idx)):
-                groups_new_idx_db.update(dict(zip(groups_new_idx[i], [i] * len(groups_new_idx[i]))))
-                
-            sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(axis=0)
-            sub_collapsed_contigs_idx = list(map(vertices_idx.get, sub_collapsed_contigs.index.tolist()))
-            sub_collapsed_contigs_idx_new = list(map(sub_old2new_idx.get, sub_collapsed_contigs_idx))
+                groups_new_idx_db.update(
+                    dict(zip(groups_new_idx[i], [i] * len(groups_new_idx[i])))
+                )
+
+            sub_collapsed_contigs = self.collapsed_contigs.reindex(contigs).dropna(
+                axis=0
+            )
+            sub_collapsed_contigs_idx = list(
+                map(vertices_idx.get, sub_collapsed_contigs.index.tolist())
+            )
+            sub_collapsed_contigs_idx_new = list(
+                map(sub_old2new_idx.get, sub_collapsed_contigs_idx)
+            )
 
             res = []
-           
 
             for j in sub_collapsed_contigs_idx_new:
                 try:
@@ -832,44 +1298,40 @@ class CollapsedRescue2:
                 shared_similarity = np.zeros(len(groups))
                 tmp_res = []
                 for i in range(len(groups)):
-                    
                     if i == groups_new_idx_db[j]:
                         tmp_res.append(0)
                     else:
                         if len(tmp_allelic_table) > 1:
                             tmp = tmp_allelic_table.reindex(groups_new_idx[i]).dropna()
                             if len(tmp) > 1:
-                                shared_similarity[i] = tmp['mzShared'].sum()
+                                shared_similarity[i] = tmp["mzShared"].sum()
 
                         tmp_res.append(sub_A[j, groups_new_idx[i]].mean())
-                     
-                
+
                 max_idx = np.argmax(tmp_res)
                 groups_new_idx[max_idx].append(j)
                 if max_idx not in rescued_new_idx_db:
                     rescued_new_idx_db[max_idx] = []
                 rescued_new_idx_db[max_idx].append(j)
                 res.append(tmp_res)
-            
+
             new_rescued_groups = []
             new_groups = []
             for n, group_idx in enumerate(groups_new_idx):
                 tmp = list(map(lambda x: contigs_idx[x], group_idx))
                 tmp = list(map(idx_to_vertices.get, tmp))
                 new_groups.append(tmp)
-            
+
                 tmp = list(map(lambda x: contigs_idx[x], rescued_new_idx_db[n]))
                 tmp = list(map(idx_to_vertices.get, tmp))
                 new_rescued_groups.append(tmp)
-            
 
             for k, group in enumerate(new_rescued_groups):
-                rescued_data[f'{hap_group}g{k+1}'] = group 
-
+                rescued_data[f"{hap_group}g{k+1}"] = group
 
             for k, group in enumerate(new_groups):
-                new_cluster_data[f'{hap_group}g{k+1}'] = group 
-            
+                new_cluster_data[f"{hap_group}g{k+1}"] = group
+
         self.rescued_data = rescued_data
 
     def assign(self):
@@ -1118,13 +1580,10 @@ def convert_matrix_with_dup_contigs(cool, dup_contig_path, output, threads=4):
             tmp_pixels['bin2_id'] = tmp_pixels['bin2_id'].parallel_apply(get_col_idx)
             res.append(tmp_pixels) 
         
-        ## replace 
         rows, cols = triu(matrix).tocsr()[idxes].nonzero()
         matrix[rows, cols] /= float(cn)
         rows, cols = triu(matrix).tocsr()[:, idxes].nonzero()
         matrix[rows, cols] /= float(cn)
-
- 
 
     pixels = pd.Series.sparse.from_coo(triu(matrix).tocoo())
     

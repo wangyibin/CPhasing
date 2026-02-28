@@ -54,10 +54,18 @@ banner = """
 
 HIDDEN = True
 
-# help_config = click.RichHelpConfiguration(
-#     show_arguments=True,
-    
-# )
+
+click_version = tuple(map(int, click.__version__.split('.')[:2]))
+if click_version >= (1, 9):
+    context_settings = {
+        "help_to_stderr": True,
+        "help_option_names": ["-h", "--help", "-help"],
+    }
+else:
+    context_settings = {
+        "help_option_names": ["-h", "--help", "-help"],
+    }
+
 click.rich_click.USE_MARKDOWN = True
 click.rich_click.STYLE_COMMANDS_TABLE_SHOW_LINES = False
 click.rich_click.STYLE_COMMANDS_TABLE_PAD_EDGE = True
@@ -132,7 +140,7 @@ click.rich_click.COMMAND_GROUPS = {
 PIPE_OPTION_GROUPS = [
         {
             "name": "Options of Input Files",
-            "options": ["--fasta", "--porec-data", "--porectable", 
+            "options": ["--fasta", "--porec-data", "--paf", "--porectable", 
                             "--pairs", "--hic1", "--hic2"]
         },
         {
@@ -181,7 +189,7 @@ PIPE_OPTION_GROUPS = [
                           "--disable-merge-in-first", "--disable-merge-use-allele",
                           "--allelic-positive-factor", "--exclude-group-from-first",
                           "--exclude-group-to-second", "--enable-misassembly-remove",
-                          "--refine", "--output-hg"
+                          "--refine", "--disable-recluster-by-linkage", "--output-hg"
                           ]
         },
         {
@@ -225,6 +233,7 @@ click.rich_click.OPTION_GROUPS = {
                         "--vmin", "--vmax", 
                         "--scale", 
                         "--triangle",
+                        "--lower-left",
                         "--width", "--height",
                         "--fontsize",
                         "--dpi", "--cmap", "--whitered", "--cbar-bottom",
@@ -265,11 +274,10 @@ class CommandGroup(DYMGroup, click.RichGroup, RichCommand):
         return super().get_command(ctx, cmd_name)
 
 
-
 @click.version_option(__version__, "-V", "--version")
-@click.group(context_settings={"help_option_names": ["-h", "--help", "-help"]},
+@click.group(context_settings=context_settings,
              cls=CommandGroup,
-             epilog=__epilog__)
+             epilog=__epilog__, no_args_is_help=True)
 @click.option(
     "-v", 
     "--verbose", 
@@ -309,7 +317,7 @@ def cli(verbose, quiet):
 
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, context_settings=context_settings)
 @click.option(
     '-f',
     '--fasta',
@@ -337,6 +345,15 @@ def cli(verbose, quiet):
     "However, the prefix of subsequence output files use the read1. "
     "If you want to run parallel of multi porec data, you can run `cphasing mapper` for each cell. "
     "And then use `cphasing-rs porec-merge` to merge porec table into a single file",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
+    '-paf',
+    '--paf',
+    metavar="PAF",
+    help="PAF file generated from `cphasing mapper`",
     type=click.Path(exists=True),
     default=None,
     show_default=True
@@ -830,7 +847,7 @@ def cli(verbose, quiet):
     "-q1",
     "--min-quality1",
     "min_quality1",
-    help="Minimum quality of hyperedge in first cluster, also control the minimum mapping quality of plotting heatmap.",
+    help="Minimum quality of hyperedge in first cluster.",
     type=click.IntRange(0, 60),
     default=MAPQ1,
     show_default=True, 
@@ -839,7 +856,7 @@ def cli(verbose, quiet):
     "-q2",
     "--min-quality2",
     "min_quality2",
-    help="Minimum quality of hyperedge in second cluster.",
+    help="Minimum quality of hyperedge in second cluster, , also control the minimum mapping quality of plotting heatmap.",
     type=click.IntRange(0, 60),
     default=MAPQ2,
     show_default=True,
@@ -899,6 +916,14 @@ def cli(verbose, quiet):
     show_default=True
 )
 @click.option(
+    "--disable-recluster-by-linkage",
+    "disable_recluster_by_linkage",
+    help="disable recluster contigs by linkage",
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
     "--refine",
     help="Refine the allelic contig cluster into one group, only support for second partition of phasing mode",
     is_flag=True,
@@ -930,6 +955,15 @@ def cli(verbose, quiet):
     show_default=True,
     type=click.Path(exists=True),
     hidden=True
+)
+@click.option(
+    "--collapsed-contigs",
+    "collapsed_contigs",
+    help="Path of collapsed contigs (three column tsv file, chrom coverage CN)",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     '-scaf-method',
@@ -1054,6 +1088,7 @@ def cli(verbose, quiet):
 def pipeline(fasta, 
              ul_data,
             porec_data, 
+            paf,
             porectable, 
             pairs, 
             hic1,
@@ -1113,9 +1148,11 @@ def pipeline(fasta,
             min_scaffold_length,
             cluster_method,
             enable_misassembly_remove,
+            disable_recluster_by_linkage,
             refine,
             whitelist,
             blacklist,
+            collapsed_contigs,
             scaffolding_method, 
             enable_haplotype_cluster,
             binsize,
@@ -1137,6 +1174,7 @@ def pipeline(fasta,
         3. hyperpartiton : partition contigs into several groups\n
         4. scaffolding : ordering and orientation contigs \n
         5. plot : plot the heatmap of assembly\n
+        6. curation : several command for curation in juicebox
 
     > **Usages:**\n
     > - Input pore-c data\n
@@ -1247,7 +1285,7 @@ def pipeline(fasta,
     try:
         run(fasta, 
             ul_data,
-            porec_data,
+            porec_data, paf,
             porectable, pairs, 
             hic1=hic1,
             hic2=hic2,
@@ -1298,6 +1336,7 @@ def pipeline(fasta,
             exclude_group_from_first=exclude_group_from_first,
             whitelist=whitelist,
             blacklist=blacklist,
+            collapsed_contigs=collapsed_contigs,
             allelic_similarity=allelic_similarity,
             min_allelic_overlap=min_allelic_overlap,
             min_weight=min_weight,
@@ -1310,6 +1349,7 @@ def pipeline(fasta,
             min_scaffold_length=min_scaffold_length,
             cluster_method=cluster_method,
             enable_misassembly_remove=enable_misassembly_remove,
+            disable_recluster_by_linkage=disable_recluster_by_linkage,
             refine=refine,
             binsize=binsize,
             colormap=cmap,
@@ -1334,7 +1374,7 @@ def pipeline(fasta,
 from .hitig.cli import hitig 
 from .methalign.cli import methalign
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "reference",
     type=click.Path(exists=True)
@@ -1494,7 +1534,7 @@ def mapper(reference, fastq, enzyme, kmer_size,
     pcm.run()
 
 
-@cli.group(cls=CommandGroup, epilog=__epilog__, short_help='Process Pore-C alignments.')
+@cli.group(cls=CommandGroup, epilog=__epilog__, no_args_is_help=True, short_help='Process Pore-C alignments.')
 @click.pass_context
 def alignments(ctx):
     pass
@@ -2069,7 +2109,7 @@ def pairs_downsample(pairs, number, min_mapq, threads):
     pairs_pqs_downsample(pairs, number, min_mapq, threads)
     
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.option(
     '-f',
     '--fasta',
@@ -2197,7 +2237,7 @@ def chimeric(fasta, pairs, min_mapq,
                                             sep='\t', index=None, header=None)
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__, 
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, 
                 short_help='Only retain the HCRs from Pore-C data')
 @click.option(
     "-f",
@@ -2205,6 +2245,15 @@ def chimeric(fasta, pairs, min_mapq,
     metavar="FILE",
     help="polyploid contig-level fasta.",
     type=click.Path(exists=True),
+)
+@click.option(
+    '-paf',
+    '--paf',
+    metavar="PAF",
+    help="PAF file generated from `cphasing mapper`",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
 )
 @click.option(
     '-pct',
@@ -2331,10 +2380,19 @@ def chimeric(fasta, pairs, min_mapq,
     default=None,
     show_default=True
 )
-def hcr(fasta, porectable, pairs, depth,
+@click.option(
+    '-t',
+    '--threads',
+    help="Number of threads. ",
+    type=int,
+    default=10,
+    metavar='INT',
+    show_default=True,
+)
+def hcr(fasta, paf, porectable, pairs, depth,
         contigsize, pattern, binsize, 
         lower, upper, collapsed_contig_ratio,
-          bed, invert, min_quality, fofn, output):
+          bed, invert, min_quality, fofn, output, threads):
     """
     Only retain high confidence regions to subsequence analysis.
         High confidence regions are identified from contacts.
@@ -2343,9 +2401,9 @@ def hcr(fasta, porectable, pairs, depth,
     from .hitig.hcr.hcr_by_contacts import hcr_by_contacts
     from .utilities import is_file_changed
 
-    assert porectable or pairs or depth, "The Pore-C table or 4DN pairs or depth file should be provided at least one."
+    assert paf or porectable or pairs or depth, "The PAF or Pore-C table or 4DN pairs or depth file should be provided at least one."
 
-    os.environ["POLARS_MAX_THREADS"] = "10"
+    os.environ["POLARS_MAX_THREADS"] = f"{threads}"
 
     if pattern in ("None", "None", "none", "NULL", "null", "NA"):
         pattern = None
@@ -2358,7 +2416,19 @@ def hcr(fasta, porectable, pairs, depth,
         while prefix.suffix in {'.gz', 'gz', '.depth'}:
             prefix = prefix.with_suffix('')
     else:
-        if porectable:
+        if paf:
+            prefix = Path(paf).name.replace(".gz", "").rsplit(".", 1)[0]
+            depth_file = f"{prefix}.{binsize}.depth"
+            if is_file_changed(paf) or not Path(depth_file).exists():
+                logger.info("Calculating depth from PAF ...")
+                cmd = ['cphasing-rs', 'paf2depth', '-w', str(binsize), '-s', str(binsize),
+                        '-q', str(min_quality), '-t', str(threads), str(paf), str(contigsize), 
+                        '-o', depth_file]
+                flag = run_cmd(cmd, log=f"logs/{prefix}.paf2depth.log")
+                assert flag == 0, "Failed to execute command, please check log."
+            else:
+                logger.warning(f"Use existing depth file of `{depth_file}`.")
+        elif porectable:
             if fofn:
                 pore_c_tables = [i.strip() for i in open(porectable) if i.strip()]
             else:
@@ -2421,7 +2491,7 @@ def hcr(fasta, porectable, pairs, depth,
             logger.warning(f"Use exists depth file of `{depth_file}`.")
     
     else:
-        if depth is None:
+        if depth_file is None:
             if is_file_changed(str(pairs)) or not Path(depth_file).exists():
                 if str(pairs).endswith(".gz"):
                     cmd0 = decompress_cmd(pairs, threads=10)
@@ -2490,9 +2560,9 @@ def hcr(fasta, porectable, pairs, depth,
         depth_file = depth_file.replace(".depth", ".norm.depth")
         df.to_csv(depth_file, header=None, index=None, sep='\t')
         
-       
+    skip_adjust = True if paf is not None else False
     hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
-                        lower, upper, collapsed_contig_ratio)
+                        lower, upper, skip_adjust, collapsed_contig_ratio)
     bed =  f"{prefix}.{binsize}.hcr.bed"
 
     if invert:
@@ -2521,7 +2591,7 @@ def hcr(fasta, porectable, pairs, depth,
         
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__, short_help='Prepare data for subsequence analysis.')
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help='Prepare data for subsequence analysis.')
 @click.argument(
     "fasta",
     metavar="INPUT_FASTA_PATH",
@@ -2531,16 +2601,6 @@ def hcr(fasta, porectable, pairs, depth,
     'pairs',
     metavar='INPUT_PAIRS_PATH',
     type=click.Path(exists=True)
-)
-@click.option(
-    '-p',
-    '--pattern',
-    help='Pattern of restrict enzyme. Commam separate for multiple pattern.'
-    ' Suggest using the default parameter, different restrict enzymes do '
-    'not effect any results.',
-    metavar="STR",
-    default=DEFAULT_PATTERN,
-    show_default=True,
 )
 @click.option(
     "-q",
@@ -2559,6 +2619,25 @@ def hcr(fasta, porectable, pairs, depth,
     help='Minimum contacts between contig pairs',
     metavar='INT',
     default=1,
+    show_default=True,
+)
+@click.option(
+    '-p',
+    '--pattern',
+    help='Pattern of restrict enzyme. Commam separate for multiple pattern.'
+    ' Suggest using the default parameter, different restrict enzymes do '
+    'not effect any results.',
+    metavar="STR",
+    default=DEFAULT_PATTERN,
+    show_default=True,
+)
+@click.option(
+    "-bs",
+    "--binsize",
+    metavar="INT",
+    help="Bin size for depth calculation",
+    default=10000,
+    type=int,
     show_default=True,
 )
 @click.option(
@@ -2600,7 +2679,7 @@ def hcr(fasta, porectable, pairs, depth,
     show_default=True
 )
 def prepare(fasta, pairs, min_mapq,
-            min_contacts, pattern,
+            min_contacts, pattern, binsize,
             skip_pairs2contacts, skip_pairs2clm,
             low_memory, threads, outprefix):
     """
@@ -2611,15 +2690,18 @@ def prepare(fasta, pairs, min_mapq,
     if pattern == "None" or pattern == "none":
         pattern = None
 
-    pipe(fasta, pairs, pattern, 
-         min_mapq,
-         min_contacts, skip_pairs2clm=skip_pairs2clm,
+    pipe(fasta, pairs, 
+         pattern=pattern, 
+         min_mapq=min_mapq,
+         min_contacts=min_contacts, 
+         binsize=binsize,
+         skip_pairs2clm=skip_pairs2clm,
          skip_pairs2contacts=skip_pairs2contacts,
          low_memory=low_memory,
          threads=threads, outprefix=outprefix)
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.option(
     "-f",
     "--fasta",
@@ -3175,7 +3257,7 @@ def alleles3(fasta, ploidy,
     aa.run()
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__, short_help="Generate the allelic contig and cross-allelic contig table.")
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Generate the allelic contig and cross-allelic contig table.")
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -3323,7 +3405,7 @@ def kprune(alleletable, contacts,
     # kp.save_prune_list(output, symmetric)
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "contacts",
     metavar="Contacts",
@@ -3568,7 +3650,7 @@ def hypergraph(contacts,
         #     e.save(output)
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4092,11 +4174,28 @@ def hypergraph(contacts,
     hidden=True
 )
 @click.option(
+    "--disable-recluster-by-linkage",
+    "disable_recluster_by_linkage",
+    help="disable recluster contigs by linkage",
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
     "--refine",
     help="Refine the allelic contig cluster into one group, only support for second partition of phasing mode",
     is_flag=True,
     default=False,
     show_default=True,
+)
+@click.option(
+    "--collapsed-contigs",
+    "collapsed_contigs",
+    help="Path of collapsed contigs (three column tsv file, chrom coverage CN)",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     "--output-hg",
@@ -4195,7 +4294,9 @@ def hyperpartition(hypergraph,
                     min_scaffold_length,
                     enable_misassembly_remove,
                     is_recluster_contigs,
+                    disable_recluster_by_linkage,
                     refine,
+                    collapsed_contigs,
                     output_hg,
                     threshold, 
                     max_round, 
@@ -4369,7 +4470,7 @@ def hyperpartition(hypergraph,
         else:
             try:
                 split_length = humanized2numeric(split_length)
-                logger.info(f"The `--split-length` parameter was set to {split_length}.")
+                logger.info(f"The `--split-length` parameter was set to {to_humanized2(split_length)}.")
             except ValueError:
                 logger.warning(f"Split length `{split_length}` is not a valid integer, "
                                 "will try to determine the split length automatically.")
@@ -4464,6 +4565,27 @@ def hyperpartition(hypergraph,
 
         logger.info(f"`{len(blacklist)}` contigs will be removed to cluster, which specified in `{blacklist_file}`..")
 
+    if collapsed_contigs:
+        collapsed_contigs_file = collapsed_contigs
+        collapsed_contigs_df = pd.read_csv(collapsed_contigs_file, sep='\t', header=None)
+        
+        try:
+            max_cn = n[1] - 1
+        except IndexError:
+            max_cn = 3
+
+        collapsed_contigs_df = collapsed_contigs_df[collapsed_contigs_df[2] < (max_cn + 0.5)]
+        collapsed_contigs_df.reset_index(drop=True, inplace=True)
+        
+        logger.info(f"`{len(collapsed_contigs_df)}` collapsed contigs will be removed to cluster, which specified in `{collapsed_contigs_file}`..")
+        if whitelist:
+            collapsed_contigs_df = collapsed_contigs_df[collapsed_contigs_df[0].isin(whitelist)]
+        if blacklist:
+            collapsed_contigs_df = collapsed_contigs_df[~collapsed_contigs_df[0].isin(blacklist)]
+    else: 
+        collapsed_contigs_df = None
+
+
     if merge_cluster:
         assert n[0] != 0, "parameter `k` must add to run merge cluster"
         logger.info("Only run the algorithm of clusters merging.")
@@ -4548,11 +4670,12 @@ def hyperpartition(hypergraph,
                             min_scaffold_length,
                             is_remove_misassembly,
                             is_recluster_contigs,
+                            disable_recluster_by_linkage,
                             refine,
+                            collapsed_contigs_df,
                             threshold, 
                             max_round, 
                             threads, 
-                            # chunksize
                             )
     
   
@@ -4588,7 +4711,7 @@ def hyperpartition(hypergraph,
             hp.to_cluster(output)
     
 
-@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__, no_args_is_help=True)
 @click.option(
     "-f",
     "--gfa",
@@ -4602,12 +4725,12 @@ def gfa2depth(gfa):
     cfg.run()
 
 
-@cli.group(cls=CommandGroup, epilog=__epilog__, short_help="Collapsed contigs rescue. (nightly)")
+@cli.group(cls=CommandGroup, epilog=__epilog__, no_args_is_help=True, short_help="Collapsed contigs rescue. (nightly)")
 @click.pass_context
 def collapse(ctx):
     pass 
 
-@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Identify collapsed contigs from GFA file")
+@collapse.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Identify collapsed contigs from GFA file")
 @click.argument(
     "gfa",
     metavar="GFA",
@@ -4618,19 +4741,38 @@ def from_gfa(gfa):
     cfg = CollapseFromGfa(gfa)
     cfg.run()
 
-@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Identify collapsed contigs from depth file")
+@collapse.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Identify collapsed contigs from depth file")
 @click.argument(
     "depth",
     metavar="Depth",
     type=click.Path(exists=True)
 )
-def from_depth(depth):
+@click.option(
+    '-cb',
+    '--cn-offset',
+    help="Copy number offset of collapsed contigs, default to 0.25, which means the contigs with copy number more than 1.75 will be considered as collapsed contigs in diploid genome.",
+    metavar="FLOAT",
+    type=float,
+    default=0.25,
+    show_default=True
+)
+def from_depth(depth, cn_offset):
+    """
+    Depth file should be four columns bedgraph file, chrom start end depth.
+
+    Usage:  
+        ```shell
+        cphasing-rs paf2depth  -w 5000 -s 1000  input.paf.gz draft.asm.contigsizes -o output.depth
+        cphasing collapse from-depth output.depth
+        ```
+
+    """
     from .collapse import CollapseFromDepth
-    cfd = CollapseFromDepth(depth)
+    cfd = CollapseFromDepth(depth, cn_offset=cn_offset)
     cfd.run()
 
 
-@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Rescue collapsed contigs to a clusterfile, which before scaffolding")
+@collapse.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Rescue collapsed contigs to a clusterfile, which before scaffolding")
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4683,7 +4825,7 @@ def from_depth(depth):
     type=int
 )
 @click.option(
-    "-q1",
+    "-q",
     "--min-quality",
     "min_quality",
     help="Minimum quality of hyperedge.",
@@ -4742,6 +4884,15 @@ def from_depth(depth):
     show_default=True
 )
 @click.option(
+    '-cb',
+    '--cn-offset',
+    help="Copy number offset of collapsed contigs, default to 0.25, which means the contigs with copy number more than 1.75 will be considered as collapsed contigs in diploid genome.",
+    metavar="FLOAT",
+    type=float,
+    default=0,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -4753,7 +4904,7 @@ def from_depth(depth):
 def rescue(hypergraph, contigsizes, clustertable, 
                     collapsed_contigs, pairs, porec, ploidy,
                     min_quality, alleletable, allelic_similarity,
-                    min_contacts, min_weight, min_cis_weight, threads):
+                    min_contacts, min_weight, min_cis_weight, cn_offset, threads):
     """
 
     """
@@ -4816,7 +4967,7 @@ def rescue(hypergraph, contigsizes, clustertable,
     collapsed_contigs = pd.read_csv(collapsed_contigs, sep='\t', index_col=0, header=None,
                                         names=["contig", "depth", "CN"])
     
-    collapsed_contigs['CN'] = round(collapsed_contigs['CN'], 0)
+    collapsed_contigs['CN'] = round(collapsed_contigs['CN'] - cn_offset, 0)
     
     collapsed_contigs = collapsed_contigs[collapsed_contigs["CN"] <= ploidy]
 
@@ -4834,7 +4985,7 @@ def rescue(hypergraph, contigsizes, clustertable,
     cr.filter_hypergraph()
     cr.rescue()
 
-@collapse.command(cls=RichCommand, epilog=__epilog__, short_help="Process the pairs.gz or pairs.pqs file for collapsed contigs")
+@collapse.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Process the pairs.gz or pairs.pqs file for collapsed contigs")
 @click.argument(
     "pairs",
     metavar="Pairs",
@@ -4853,14 +5004,14 @@ def rescue(hypergraph, contigsizes, clustertable,
     default="-",
 )
 def pairs_dup(pairs, collapsed_contigs, output):
-    
+    Path("logs").mkdir(exist_ok=True)
     cmd = ["cphasing-rs", "pairs-dup", str(pairs), str(collapsed_contigs), "-o", str(output)]
 
-    flag = run_cmd(cmd)
+    flag = run_cmd(cmd, log=f"logs/pairs_dup.log")
     assert flag == 0, "Failed to run `cphasing-rs pairs-dup`"
 
 
-@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__)
+@cli.command(cls=RichCommand, hidden=True, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "hypergraph",
     metavar="HyperGraph",
@@ -4956,7 +5107,7 @@ def collapsed_rescue2(hypergraph, fasta, agp_file,
 
     cr.run()
 
-@collapse.command(cls=RichCommand, epilog=__epilog__)
+@collapse.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "fasta",
     metavar="Fasta",
@@ -4988,7 +5139,7 @@ def fasta_dup(fasta, collapsed_list, output):
     fasta_dup(fasta, collapsed_list, output)
     
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "clustertable",
     metavar="ClusterTable",
@@ -6385,7 +6536,7 @@ def pairs_merge(pairs, output):
 
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -6571,7 +6722,7 @@ def pairs2cool(pairs, chromsize, outcool,
             os.remove(f'temp.{pid}.header')
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__, hidden=True)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, hidden=True)
 @click.argument(
     "pairs",
     metavar="INPUT_PAIRS_PATH",
@@ -6637,7 +6788,7 @@ def pairs2cool2(pairs, outcool,
     p.to_cool(outcool, binsize=binsize)
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.option(
     '-m',
     '--matrix',
@@ -6749,6 +6900,12 @@ def pairs2cool2(pairs, outcool,
     "--triangle",
     is_flag=True,
     help="Plot the heatmap in triangle",
+    default=False,
+)
+@click.option(
+    "--lower-left",
+    is_flag=True,
+    help="Plot the heatmap in lower left of square, default is upper right.",
     default=False,
 )
 @click.option(
@@ -7111,6 +7268,7 @@ def plot(matrix,
             threads, 
             scale,
             triangle,
+            lower_left,
             vmin,
             vmax,
             chromosomes, 
@@ -7380,6 +7538,7 @@ def plot(matrix,
                 cbar_bottom=cbar_bottom,
                 scale=scale,
                 triangle=triangle,
+                lower_left=lower_left,
                 plot_cis_only=plot_cis_only,
                 plot_hap_only=plot_hap_only,
                 vmin=vmin,
@@ -7405,7 +7564,7 @@ def plot(matrix,
 
 
 
-@cli.command(cls=RichCommand, epilog=__epilog__, hidden=True)
+@cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, hidden=True)
 @click.option(
     '-a',
     '--agp',
@@ -7429,35 +7588,100 @@ def plot(matrix,
     type=click.File('w'),
     default=sys.stdout
 )
+@click.option(
+    '--rename',
+    help="Rename chromosomes based on sorted order.",
+    is_flag=True,
+    default=False,
+    show_default=True
+)
+@click.option(
+    '-hp',
+    '--hap-pattern',
+    metavar="STR",
+    help="Regex pattern of haplotype, e.g., 'Chr01g1', use pattern '(Chr\d+)g(\d+)'",
+    default=r'(Chr\d+)g(\d+)',
+    show_default=True
+)
 def sort_chromosomes(
                     agp,
                     matrix,
-                    output
+                    output,
+                    rename,
+                    hap_pattern
                     ):
     """
     Sort chromosomes by their interaction patterns.
     """
     from .plot import sort_chromosomes_grouped
     _, c = sort_chromosomes_grouped(matrix)
-    
+
+    rename_map = {}
+    if rename:
+        regex = re.compile(hap_pattern)
+        if len(c) > 0 and any(regex.search(i) for i in c):
+            seen_groups = {}
+            group_cnt = 1
+            
+            group_hap_counts = {}
+            for chrom in c:
+                m = regex.search(chrom)
+                if m:
+                    orig_group = m.group(1)
+                    
+                    if orig_group not in seen_groups:
+                        seen_groups[orig_group] = group_cnt
+                        group_cnt += 1
+                    
+                    new_idx = seen_groups[orig_group]
+
+                    if new_idx not in group_hap_counts:
+                        group_hap_counts[new_idx] = 1
+                    else:
+                        group_hap_counts[new_idx] += 1
+                        
+                    new_suffix = group_hap_counts[new_idx]
+                    new_name = f"Chr{new_idx}g{new_suffix}"
+                    rename_map[chrom] = new_name
+                else:
+                    rename_map[chrom] = chrom
+        else:
+            chr_idx = 1
+            for old in c:
+                if old.startswith('group') or old.startswith('Chr'):
+                    rename_map[old] = f"Chr{chr_idx}"
+                    chr_idx += 1
+                else:
+                    rename_map[old] = old
+
     if agp:
         agp_df = pd.read_csv(agp, sep="\t", header=None)
         
-        agp_df['chrom_order'] = agp_df[0].map(c.index)
+        sort_map = {name: i for i, name in enumerate(c)}
+        agp_df['chrom_order'] = agp_df[0].map(sort_map)
+        
         agp_df = agp_df.sort_values(['chrom_order', 1])
+        
+        if rename:
+            agp_df[0] = agp_df[0].map(rename_map).fillna(agp_df[0])
+            
         agp_df = agp_df.drop(columns=['chrom_order'])
         
         agp_df.to_csv(output, sep="\t", index=False, header=False)
 
     else:
-        print("\n".join(c), file=output)
+        if rename:
+            for chrom in c:
+                print(f"{chrom}\t{rename_map.get(chrom, chrom)}", file=output)
+        else:
+            print("\n".join(c), file=output)
 
 ## hic subcommand
 from .hic.cli import hic
 
 
 @cli.group(cls=CommandGroup, hidden=True, 
-           short_help='Evaluation tools.', epilog=__epilog__)
+           short_help='Evaluation tools.', epilog=__epilog__, no_args_is_help=True)
 @click.pass_context
 def evaluator(ctx):
     """
@@ -7769,7 +7993,7 @@ def scaf_eval(truth_agp, test_agp):
     scaf_eval(truth_agp, test_agp)
 
 
-@cli.group(cls=CommandGroup, short_help='Misc tools.', epilog=__epilog__)
+@cli.group(cls=CommandGroup, short_help='Misc tools.', epilog=__epilog__, no_args_is_help=True)
 @click.pass_context
 def utils(ctx):
     pass
@@ -7805,7 +8029,7 @@ def agp2assembly(agpfile, output, add_gap):
     agp2assembly(agpfile, output, add_gap)
 
 
-@utils.command(cls=RichCommand, short_help='Convert agp to cluster file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to cluster file.', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -7828,7 +8052,7 @@ def agp2cluster(agpfile, output):
     agp2cluster(agpfile, output)
 
 
-@utils.command(cls=RichCommand, short_help='Convert agp to fasta file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to fasta file.', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -7856,6 +8080,12 @@ def agp2cluster(agpfile, output):
     default=False,
 )
 @click.option(
+    '--skip-gap',
+    help="Skip gap sequences in agp file.",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -7866,7 +8096,8 @@ def agp2cluster(agpfile, output):
     hidden=True
 
 )
-def agp2fasta(agpfile, fasta, output, contig, threads):
+def agp2fasta(agpfile, fasta, output, contig, 
+              skip_gap, threads):
     """
     Convert agp to fasta
 
@@ -7877,10 +8108,11 @@ def agp2fasta(agpfile, fasta, output, contig, threads):
     from .agp import agp2fasta
     from .utilities import read_fasta
     fasta = read_fasta(fasta)
-    agp2fasta(agpfile, fasta, output, contig)
+    agp2fasta(agpfile, fasta, output, contig,
+              skip_gap=skip_gap, threads=threads)
 
 
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "agp",
     metavar="AGP",
@@ -7912,7 +8144,7 @@ def agp2tour(agp, outdir, force):
 
     agp2tour(agp, outdir, force)
 
-@utils.command(cls=RichCommand, short_help='Rename dupliacted contig in agp file')
+@utils.command(cls=RichCommand, short_help='Rename dupliacted contig in agp file', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "agp",
     metavar="AGP",
@@ -7965,7 +8197,7 @@ def split_agp(agp, hap_pattern, outdir):
     split_agp(agp, hap_pattern, outdir)
 
 
-@utils.command(cls=RichCommand, short_help="Convert assembly to agp file and contigs file")
+@utils.command(cls=RichCommand, short_help="Convert assembly to agp file and contigs file", epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "assembly",
     metavar="Assembly",
@@ -8047,7 +8279,7 @@ def assembly2agp(assembly, n,
                     sort_by_length=sort_by_length, outprefix=outprefix)
 
 
-@utils.command(cls=RichCommand, short_help='Statistics of contigsizes')
+@utils.command(cls=RichCommand, short_help='Statistics of contigsizes', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     'contigsizes',
     metavar="ContigSizes",
@@ -8093,7 +8325,7 @@ def statagp(agp, output):
     statagp(agp, output)
 
 
-@utils.command(cls=RichCommand, short_help='Statistics of ClusterTable.')
+@utils.command(cls=RichCommand, short_help='Statistics of ClusterTable.', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -8141,13 +8373,21 @@ def statcluster(cluster, contigsizes, output):
     show_default=True,
 )
 @click.option(
+    "-g",
+    "--gap-size",
+    metavar="INT",
+    help="Gap size between contigs, default 100bp",
+    default=100,
+    show_default=True,
+)
+@click.option(
     "-o",
     "--output",
     help="Output of results",
     type=click.File('w'),
     default=sys.stdout
 )
-def cluster2agp(cluster, contigsizes, init_agp, output):
+def cluster2agp(cluster, contigsizes, init_agp, gap_size, output):
     """
     Convert cluster table to a pseudo agp file
 
@@ -8168,10 +8408,11 @@ def cluster2agp(cluster, contigsizes, init_agp, output):
         tmp_df.set_index('id', inplace=True)
         orientation_db = tmp_df.to_dict()['orientation']
     
-    ct.to_agp(contigsizes=contigsizes, output=output, orientation_db=orientation_db)
+    ct.to_agp(contigsizes=contigsizes, output=output, 
+              orientation_db=orientation_db, gap=gap_size)
 
 
-@utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.')
+@utils.command(cls=RichCommand, short_help='Convert cluster to several count RE files.', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -8216,7 +8457,7 @@ def cluster2fasta(cluster, fasta):
     ct = ClusterTable(cluster)
     ct.to_fasta(fasta=fasta)
 
-@utils.command(cls=RichCommand, short_help='Convert cluster to pseudo assembly file.')
+@utils.command(cls=RichCommand, short_help='Convert cluster to pseudo assembly file.', epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "cluster",
     metavar='Cluster',
@@ -8304,7 +8545,7 @@ def countRE2cluster(count_re, output, fofn):
         print(f"{group_name}\t{cr.ncontigs}\t{' '.join(cr.contigs)}", 
                 file=output) 
 
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH",
@@ -8361,6 +8602,15 @@ def cool2depth(coolfile, output):
     type=click.Path(exists=True)
 )
 @click.option(
+    "-cs",
+    "--contigsizes",
+    metavar="PATH",
+    help="Path to contig sizes file, which is used to normalize contacts",
+    default=None,
+    show_default=True,
+    type=click.Path(exists=True)
+)
+@click.option(
     "-o",
     "--output",
     metavar="PATH",
@@ -8368,16 +8618,17 @@ def cool2depth(coolfile, output):
     default="file_pefix.expansion.contacts",
     show_default=True
 )
-def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, output):
+def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, contigsizes, output):
     """
     Convert hypergraph to contacts.
     """
     import msgspec
-    from .algorithms.hypergraph import HyperEdges, HyperGraph
+    from .algorithms.hypergraph import HyperEdges, HyperGraph, numpy_dec_hook
     from .core import PruneTable
+    from .utilities import read_chrom_sizes
 
    
-    he = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges)
+    he = msgspec.msgpack.decode(open(hypergraph, 'rb').read(), type=HyperEdges, dec_hook=numpy_dec_hook)
     he.to_numpy()
     hg = HyperGraph(he, min_quality=min_mapq)
     H = hg.incidence_matrix(min_contacts=min_contacts)
@@ -8410,12 +8661,16 @@ def hg2contacts(hypergraph, min_mapq, min_contacts, prunetable, output):
                                  min_weight=min_weight,
                                  allelic_factor=0,
                                  P_allelic_idx=P_allelic_idx, 
-                                 P_weak_idx=P_weak_idx)
-    hg.to_contacts(A, nodes, output=output, min_weight=min_weight)
+                                 P_weak_idx=P_weak_idx,
+                                 use_high_order=False)
+    
+    if contigsizes is not None:
+        contigsizes = read_chrom_sizes(contigsizes)
+    hg.to_contacts(A, nodes, output=output, min_weight=min_weight, contigsizes=contigsizes)
 
 
 
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH",
@@ -8485,7 +8740,7 @@ def merge_cool(coolfile,
                     no_dia=no_dia,
                     symmetric_upper=symmetric_upper)
     
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH"
@@ -8513,7 +8768,7 @@ def extract_matrix(coolfile, chromlist, outcool):
     chromlist = [i.strip() for i in open(chromlist) if i.strip()]
     extract_matrix(coolfile, chromlist, outcool)
 
-@utils.command(hidden=True, cls=RichCommand)
+@utils.command(hidden=True, cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "coolfile",
     metavar="INPUT_COOL_PATH"
@@ -8545,7 +8800,7 @@ def prune_matrix(coolfile, prunetable, outcool):
 
     prune_matrix(coolfile, prunepairs, outcool)
 
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     "real_list",
     metavar="Real_List",
@@ -8557,13 +8812,21 @@ def prune_matrix(coolfile, prunetable, outcool):
     type=click.Path(exists=True)
 )
 @click.option(
+    "-g",
+    "--gap-size",
+    metavar="INT",
+    help="Gap size between contigs, default 100bp",
+    default=100,
+    show_default=True,
+)
+@click.option(
     "-o",
     "--output",
     help="Output of results [default: stdout]",
     type=click.File('w'),
     default=sys.stdout
 )
-def pseudo_agp(real_list, contigsizes, output):
+def pseudo_agp(real_list, contigsizes, gap_size, output):
     """
     create a pseudo agp from simulation data
 
@@ -8572,10 +8835,32 @@ def pseudo_agp(real_list, contigsizes, output):
         ContigSizes: Path of contig sizes file.
     """
     from .agp import pseudo_agp
-    pseudo_agp(real_list, contigsizes, output)
+    pseudo_agp(real_list, contigsizes, gap_size, output)
 
 
-@utils.command(cls=RichCommand)
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Convert clm to distance matrix")
+@click.argument(
+    "clm",
+    metavar="CLM",
+    type=click.Path(exists=True)
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output of results [default: stdout]",
+    type=click.File('w'),
+    default=sys.stdout,
+)
+def clm2distance(clm, output):
+    """
+    convert clm to distance matrix
+    """
+    from .core import Clm
+    clm = Clm(clm)
+    clm.dk_df.to_csv(output, sep='\t', index=True, header=True)
+
+
+@utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(
     'alleletable',
     metavar='AlleleTable',
@@ -8618,12 +8903,12 @@ def filter_high_similarity_contigs(alleletable,
                                    output)
 
 
-@cli.group(cls=CommandGroup, epilog=__epilog__, short_help="Gfa tools. (nightly)", hidden=True)
+@cli.group(cls=CommandGroup, epilog=__epilog__, no_args_is_help=True, short_help="Gfa tools. (nightly)", hidden=True)
 @click.pass_context
 def gfa(ctx):
     pass 
 
-@gfa.command(cls=RichCommand, epilog=__epilog__, short_help="Remove overlapped regions on utg")
+@gfa.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True, short_help="Remove overlapped regions on utg")
 @click.argument(
     "gfa",
     metavar="GFA",

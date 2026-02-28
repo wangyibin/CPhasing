@@ -23,6 +23,9 @@ from ..cli import (mapper as porec_mapper,
                     alleles, 
                     prepare,
                     hyperpartition,
+                    rescue as collapsed_rescue,
+                    pairs_dup,
+                    agp_dup,
                     scaffolding,
                     pairs2cool,
                     pairs2pqs,
@@ -57,6 +60,7 @@ logger = logging.getLogger(__name__)
 def run(fasta,
         ul_data,
         porec_data,
+        paf,
         porec_table,
         pairs, 
         hic1=None,
@@ -119,9 +123,11 @@ def run(fasta,
         min_scaffold_length=5e6,
         cluster_method="louvain",
         enable_misassembly_remove=False,
+        disable_recluster_by_linkage=False,
         refine=False,
         whitelist=None,
         blacklist=None,
+        collapsed_contigs=None,
         binsize="500k",
         colormap="viridis",
         whitered=False,
@@ -173,6 +179,9 @@ def run(fasta,
     if hic1 and hic2:
         hic1 = str(Path(hic1).absolute())
         hic2 = str(Path(hic2).absolute())
+
+    if paf:
+        paf_path = Path(paf).absolute()
     
     
     if porec_table:
@@ -218,12 +227,24 @@ def run(fasta,
     if blacklist:
         blacklist = str(Path(blacklist).absolute())
 
+    if collapsed_contigs:
+        collapsed_contigs = str(Path(collapsed_contigs).absolute())
+        collapsed_rescued_contigs = f"{str(Path.cwd())}/{outdir}/3.hyperpartition/collapsed.rescue.contigs.list"
+
     os.chdir(outdir)
 
     try:
         Path(fasta).symlink_to(fasta_path)
     except FileExistsError:
         pass
+
+    if paf:
+        target_path = Path(Path(paf).name)
+        try:
+            target_path.symlink_to(paf_path)
+        except FileExistsError:
+            pass
+        paf = Path(paf).name
 
     if porec_table:
         target_path = Path(Path(porec_table).name)
@@ -304,6 +325,12 @@ def run(fasta,
     while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
         fasta_prefix = fasta_prefix.with_suffix("")
 
+    contigsizes = f"{fasta_prefix}.contigsizes"
+    if not Path(contigsizes).exists() or is_empty(contigsizes):
+        
+        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+        flag = run_cmd(cmd, log=os.devnull)
+        assert flag == 0, "Failed to execute command, please check log."
 
     if porec_data:
         porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
@@ -334,7 +361,42 @@ def run(fasta,
                 steps.add("0")
                 
                 os.remove(porec_table)
+    elif paf:
+        porec_prefix = paf.replace(".gz", "").rsplit(".", 1)[0]
+        pairs_prefix = paf.replace(".gz", "").rsplit(".", 1)[0]
 
+        expected_porec = f"{porec_prefix}.porec.gz"
+        expected_pqs = f"{pairs_prefix}.pairs.pqs"
+        original_porec_path = paf_path.parent / expected_porec
+        original_pqs_path = paf_path.parent / expected_pqs
+
+        if original_porec_path.exists():
+            try:
+                Path(expected_porec).symlink_to(original_porec_path)
+                logger.info(f"Existing porec table found, linked: {expected_porec}")
+            except FileExistsError:
+                pass
+        
+        if original_pqs_path.exists():
+            try:
+                Path(expected_pqs).symlink_to(original_pqs_path)
+                logger.info(f"Existing pairs pqs found, linked: {expected_pqs}")
+            except FileExistsError:
+                pass
+
+        pqs_file = expected_pqs
+        is_pairs2pqs = True
+        hg_input = expected_porec
+        hg_flag = ""
+        porec_table = hg_input
+        input_param = "--porec"
+        skip_steps.add("0")
+        pairs = pqs_file
+        if not Path(porec_table).exists():
+            logger.info(f"Generating porec table from existing paf: {paf}")
+            cmd = ["cphasing-rs", "paf2porec", paf, "-o", porec_table]
+            run_cmd(cmd, log=f"logs/paf2porec.log")
+        
     
     elif hic1 and hic2:
         pairs_prefix = Path(Path(hic1).stem).with_suffix('')
@@ -345,9 +407,8 @@ def run(fasta,
             pairs_prefix = pairs_prefix.with_suffix('')
 
         pairs_prefix = str(pairs_prefix).replace('_R1', '').replace('_1', '')
-        pairs = f"{pairs_prefix}.pairs.gz"
-        if hic_aligner == "minimap2" or hic_aligner == "bwa-mem2":
-            pairs = f"{pairs_prefix}.pairs.pqs"
+       
+        pairs = f"{pairs_prefix}.pairs.pqs"
         pqs_file = f"{pairs_prefix}.pairs.pqs"
         is_pairs2pqs = False
         hg_input = f"{pairs_prefix}.pairs.pqs"
@@ -371,9 +432,10 @@ def run(fasta,
 
     else:
         if "0" in steps:
-            steps = steps - set("0")
-            if "0" not in skip_steps:
-                logger.warning("Mapping step will not be run, because not specified porec data with `-pcd` or hic data with `-hic1` and `-hic2`")
+            if not paf:
+                steps = steps - set("0")
+                if "0" not in skip_steps:
+                    logger.warning("Mapping step will not be run, because not specified porec data with `-pcd` or hic data with `-hic1` and `-hic2`")
         if porec_table:
             porec_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
             pairs_prefix = porec_table.replace(".gz", "").rsplit(".", 1)[0]
@@ -468,13 +530,6 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
     
-
-    contigsizes = f"{fasta_prefix}.contigsizes"
-    if not Path(contigsizes).exists() or is_empty(contigsizes):
-        
-        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
-        flag = run_cmd(cmd, log=os.devnull)
-        assert flag == 0, "Failed to execute command, please check log."
     
 
     if porec_table is not None and pairs is None:
@@ -492,7 +547,15 @@ def run(fasta,
     try:
         _pairs = Pairs2(pairs)
         if _pairs.is_pairs():
-            if not Path(f"{pairs_prefix}.pairs.pqs").exists() or is_file_changed(pairs):
+            
+            is_skip = True if skip_steps.intersection({"2", "3", "4", "5"}) else False
+            if is_skip:
+                pairs_changed = False
+            else:
+                pairs_changed = is_file_changed(str(pairs))
+
+            pqs_exists = Path(f"{pairs_prefix}.pairs.pqs").exists()
+            if not pqs_exists or pairs_changed:
                 logger.info("Coverting pairs or pairs.gz to pairs.pqs ...")
                 args = [pairs, "-t", str(threads), "-o", f"{pairs_prefix}.pairs.pqs"]
                 try:
@@ -507,7 +570,6 @@ def run(fasta,
                         raise e
                 is_pairs2pqs = True
                 pqs_file = pairs = f"{pairs_prefix}.pairs.pqs"
-                is_file_changed(pairs)
                 if not porec_table or use_pairs:
                     hg_input = pqs_file
                     hg_flag = "--pairs"
@@ -689,6 +751,88 @@ def run(fasta,
             out.write("\n".join(whitelist_contigs))
         logger.info(f"Filter `{len(contigsizes_df) - len(retain_contigs)}` contig which length < {min_length} (N{Nx})")
 
+
+    if whitelist or blacklist:
+        filtered_fasta = f"{fasta_prefix}.filtered.fasta"
+        if not Path(filtered_fasta).exists() or is_file_changed(fasta):
+            logger.info(f"Generating filtered FASTA based on whitelist/blacklist: `{filtered_fasta}`")
+            filter_cmd = ["seqkit", "grep"]
+            if whitelist:
+                filter_cmd.extend(["-f", str(whitelist)])
+            if blacklist:
+                filter_cmd.extend(["-v", "-f", str(blacklist)])
+            
+            filter_cmd.extend([fasta, "-o", filtered_fasta])
+            
+            flag = run_cmd(filter_cmd, log=os.devnull)
+            assert flag == 0, "Failed to filter FASTA using seqkit."
+        
+        fasta = filtered_fasta
+        fasta_path = Path(fasta).absolute()
+        
+        fasta_prefix = Path(Path(fasta).name).with_suffix("")
+        while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
+            fasta_prefix = fasta_prefix.with_suffix("")
+
+        contigsizes = f"{fasta_prefix}.contigsizes"
+        cmd = ["cphasing-rs", "chromsizes", fasta, "-o", contigsizes]
+        flag = run_cmd(cmd, log=os.devnull)
+        assert flag == 0, "Failed to update chromsizes for the filtered FASTA."
+
+
+    collapsed_rescue = False
+    collapsed_rescue_wrkdir = "0_3.collapsed_rescue"
+    if collapsed_rescue or "0_3" in steps and "0_3" not in skip_steps:
+        from ..cli import from_depth as collapse_from_depth
+        from ..cli import fasta_dup as collapse_fasta_dup
+
+        Path(collapsed_rescue_wrkdir).mkdir(exist_ok=True)
+        os.chdir(collapsed_rescue_wrkdir)
+        with open("collapsed_rescue.cmd.sh", 'w') as _out_sh:
+            _out_sh.write(f"#!/bin/bash\n")
+        
+        if paf:
+            logger.info("Identifying collapsed contigs from PAF depth ...")
+            depth_file = f"{fasta_prefix}.depth"
+            
+            if not Path(depth_file).exists():
+                with open("collapsed_rescue.cmd.sh", 'a') as _out_sh:
+                    _out_sh.write(" ".join(map(str, ["cphasing-rs", "paf2depth", f"../{paf}", f"../{contigsizes}", "-o", depth_file])))
+                    _out_sh.write("\n")
+                cmd = ["cphasing-rs", "paf2depth", f"../{paf}", f"../{contigsizes}", "-o", depth_file]
+                flag = run_cmd(cmd, log="../logs/paf2depth.log")
+                assert flag == 0, "Failed to execute paf2depth, please check log."
+            
+            args = [str(depth_file)]
+            with open("collapsed_rescue.cmd.sh", 'a') as _out_sh:
+                _out_sh.write(" ".join(map(str, ["cphasing", "collapse", "from-depth", *args,])))
+                _out_sh.write("\n")
+
+            try:
+                collapse_from_depth.main(args=args, prog_name='rescue')
+            except SystemExit as e:
+                if e.code != 0:
+                    raise e
+            
+            collapsed_contigs_file = f"contigs.collapsed.contig.list"
+            collapsed_dup_contigs = f"contigs.collapsed.dup.contig.list"
+
+            if porec_table:
+                with open("collapsed_rescue.cmd.sh", 'a') as _out_sh:
+                    _out_sh.write(" ".join(map(str, ["cphasing-rs", "porec-dup", f"../{porec_table}", collapsed_dup_contigs, "-o", f"{porec_prefix}.collapsed.porec.gz"])))
+                    _out_sh.write("\n")
+                cmd = ["cphasing-rs", "porec-dup", f"../{porec_table}", collapsed_dup_contigs, "-o", f"{porec_prefix}.dup.porec.gz"]
+                flag = run_cmd(cmd, log="../logs/porec-dup.log")
+                assert flag == 0, "Failed to execute porec-dup, please check log."
+                
+                porec_table = f"{porec_prefix}.dup.porec.gz"
+            
+
+  
+        os.chdir("../")
+
+
+
     if hcr_flag:
         if porec_table and not use_pairs:
             if is_pairs2pqs:
@@ -719,7 +863,8 @@ def run(fasta,
 
 
     if porec_table or porec_data:
-        if (not Path(prepare_input).exists() and (hic1 is None )):
+
+        if (not Path(Path(prepare_input).name).exists() and (hic1 is None )):
             # or ((hic1 is None) and is_compressed_table_empty(prepare_input))
             logger.info("Generating pairs file ...")
             cmd = ["cphasing-rs", "porec2pairs", porec_table, contigsizes,
@@ -729,40 +874,39 @@ def run(fasta,
 
 
     try:
-        prepare_input_prefix = Path(prepare_input).with_suffix("")
-        while prepare_input_prefix.suffix in {".pairs", ".gz", ".pqs"}:
-            prepare_input_prefix = prepare_input_prefix.with_suffix("")
+        if str(prepare_input).endswith(".pqs") and Path(prepare_input).exists():
+            is_pairs2pqs = True
+            pqs_file = pairs = str(prepare_input)
+            logger.info(f"Using existing PQS file: {pairs}")
+        else:
+            prepare_input_prefix = Path(prepare_input).with_suffix("")
+            while prepare_input_prefix.suffix in {".pairs", ".gz", ".pqs"}:
+                prepare_input_prefix = prepare_input_prefix.with_suffix("")
 
         _pairs = Pairs2(prepare_input)
         if _pairs.is_pairs():
-            if not Path(f"{prepare_input_prefix}.pairs.pqs").exists() or is_file_changed(pairs):
-                is_file_changed(pairs)
-                logger.info("Coverting pairs or pairs.gz to pairs.pqs ...")
-                args = [pairs, "-t", str(threads), "-o", f"{prepare_input_prefix}.pairs.pqs"]
+            pqs_path = Path(f"{prepare_input_prefix}.pairs.pqs")
+            if not pqs_path.exists() or is_file_changed(str(prepare_input)):
+                logger.info("Converting pairs or pairs.gz to pairs.pqs ...")
+                args = [str(prepare_input), "-t", str(threads), "-o", str(pqs_path)]
                 try:
                     pairs2pqs.main(args=args, prog_name='pairs2pqs')
                 except SystemExit as e:
-                    exc_info = sys.exc_info()
-                    exit_code = e.code
-                    if exit_code is None:
-                        exit_code = 0
-                    
-                    if exit_code != 0:
+                    if e.code != 0: 
                         raise e
                 
                 is_pairs2pqs = True
-                pqs_file = pairs = f"{prepare_input_prefix}.pairs.pqs"
+                pqs_file = pairs = str(pqs_path)
                 if not porec_table or use_pairs:
                     hg_input = pqs_file
                     hg_flag = "--pairs"
-                is_file_changed(pairs)
             else:
                 
-                _p = PQS(f"{pairs_prefix}.pairs.pqs")
-                if _p.is_pqs(f"{pairs_prefix}.pairs.pqs"):
+                current_pqs = Path(f"{prepare_input_prefix}.pairs.pqs")
+                if PQS.is_pqs(str(current_pqs)):
                     logger.info("Use exists pairs.pqs file.")
                     is_pairs2pqs = True
-                    pqs_file = pairs = f"{pairs_prefix}.pairs.pqs"
+                    pqs_file = pairs = str(current_pqs)
                     if not porec_table or use_pairs:
                         hg_input = pqs_file
                         hg_flag = "--pairs"
@@ -802,6 +946,7 @@ def run(fasta,
             _out_sh.write("cphasing alleles ")
             _out_sh.write(" ".join(map(str, args)))
             _out_sh.write("\n")
+        os.chmod('alleles.cmd.sh', 0o755)
         
         try:
             alleles.main(args=args,
@@ -817,7 +962,9 @@ def run(fasta,
         
         os.chdir("../")
 
-    allele_table = None if mode == "basal" else f"{alleles_dir}/{fasta_prefix}.allele.table" 
+    allele_table_basename = f"{fasta_prefix}.allele.table"
+    allele_table = None if mode == "basal" else f"{alleles_dir}/{allele_table_basename}" 
+    
 
     prepare_prefix = Path(Path(prepare_input).name)
     while prepare_prefix.suffix in {".pairs", ".gz", ".pqs"}:
@@ -833,31 +980,24 @@ def run(fasta,
         Path(prepare_dir).mkdir(exist_ok=True)
         os.chdir(prepare_dir)
 
-        if porec_table:
-            args = [f"../{fasta}",
-                    f"../{prepare_input}", 
-                    "-p",
-                    pattern, 
-                    "-q",
-                    mapping_quality,
-                    "-t",
-                    threads,
-                    "--skip-pairs2contacts"]
-        else:
-            args = [f"../{fasta}",
-                    f"../{prepare_input}", 
-                    "-p",
-                    pattern,
-                    "-q",
-                    mapping_quality,
-                    "-t",
-                    threads,
-                    "--skip-pairs2contacts"]
-            
+        args = [f"../{fasta}",
+                f"../{prepare_input}", 
+                "-p",
+                pattern, 
+                "-bs",
+                hcr_bs,
+                "-q",
+                mapping_quality,
+                "-t",
+                threads,
+                "--skip-pairs2contacts"]
+        
         with open("prepare.cmd.sh", 'w') as _out_sh:
             _out_sh.write("cphasing prepare ")
             _out_sh.write(" ".join(map(str, args)))
             _out_sh.write("\n")
+        
+        os.chmod("prepare.cmd.sh", 0o755)
                 
         try:
             prepare.main(args=args,
@@ -871,6 +1011,7 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
+
 
         os.chdir("..")
     
@@ -914,56 +1055,59 @@ def run(fasta,
 
         if hcr_flag and "3" not in skip_steps and "3" in steps:
             hcr_invert_string = "-v" if hcr_invert else ""
-            if Path(f"../2.prepare/{prepare_prefix}.depth").exists():
+            init_args = []
+            current_pattern = pattern
+
+            if paf and not corrected:
+                init_args = ["-paf", f"../{paf}"]
+                current_pattern = None 
+            elif Path(f"../2.prepare/{prepare_prefix}.depth").exists():
                 depth = f"../2.prepare/{prepare_prefix}.depth"
                 init_args = ["-d", depth]   
             else:
                 init_args = ["-prs", f"../{pairs}"]
                              
+       
+            hcr_args = init_args + [
+                "-cs", f"../{contigsizes}",
+                "-f", f"../{fasta}",
+                "-u", hcr_upper,
+                "-l", hcr_lower,
+                "-cr", collapsed_contig_ratio,
+                "-bs", hcr_bs
+            ]
+
+            
+            if hcr_invert_string:
+                hcr_args.append(hcr_invert_string)
+            if hcr_bed:
+                hcr_args.extend(["-b", f"{hcr_bed}"])
+
+            hcr_args.extend(["-p", current_pattern])
+
+            with open("hcr.cmd.sh", 'w') as _out_sh:
+                _out_sh.write("cphasing hcr \\")
+                _out_sh.write("\n")
+                _hcr_args = []
+                skip_next = False
+                for i in range(len(hcr_args)):
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    
+                    if i + 1 < len(hcr_args) and hcr_args[i+1] is None:
+                        skip_next = True
+                        continue
+                    
+                    if hcr_args[i] is not None:
+                        _hcr_args.append(str(hcr_args[i]))
+          
+                _out_sh.write(" ".join(pretty_cmd(map(str, _hcr_args))))
+                _out_sh.write("\n")
+
+            os.chmod("hcr.cmd.sh", 0o755)
             try:
-                if hcr_invert_string:
-                    args = init_args + \
-                                [
-                                "-cs",
-                                f"../{contigsizes}",
-                                "-p", pattern,
-                                "-f", f"../{fasta}",
-                                "-b",
-                                hcr_bed,
-                                "-u",
-                                hcr_upper,
-                                "-l",
-                                hcr_lower,
-                                "-cr",
-                                collapsed_contig_ratio,
-                                # "-q",
-                                # min_quality1,
-                                hcr_invert_string]
-                    hcr.main(
-                        args=args,
-                        prog_name="hcr"
-                    )
-                else:
-                    args = init_args +  [
-                                "-cs",
-                                f"../{contigsizes}",
-                                "-p", pattern,
-                                "-f", f"../{fasta}",
-                                "-b",
-                                hcr_bed,
-                                "-u",
-                                hcr_upper,
-                                "-l",
-                                hcr_lower,
-                                "-cr",
-                                collapsed_contig_ratio,
-                                # "-q",
-                                # min_quality1,
-                                ]
-                    hcr.main(
-                        args=args,
-                        prog_name="hcr"
-                    )
+                hcr.main(args=hcr_args, prog_name="hcr")
 
             except SystemExit as e:
                 exc_info = sys.exc_info()
@@ -975,20 +1119,7 @@ def run(fasta,
                     raise e
                 
             hcr_bed = f"{pairs_prefix}.{hcr_bs}.hcr.bed"
-
-            with open("hcr.cmd.sh", 'w') as _out_sh:
-                _out_sh.write("cphasing hcr \\")
-                _out_sh.write("\n")
-
-                _hcr_args = []
-                for i in range(0, len(args), 2):
-                    if args[i+1] is not None:
-                        _hcr_args.append(args[i])
-                        _hcr_args.append(args[i+1])
-                
-                _out_sh.write(" ".join(pretty_cmd(map(str, _hcr_args))))
-                _out_sh.write("\n")
-
+            
         _mode = mode
         _mode = "phasing" if _mode == "phasing2" else _mode
         hyperpartition_args = [
@@ -1063,6 +1194,8 @@ def run(fasta,
             
         if enable_misassembly_remove:
             hyperpartition_args.append(enable_misassembly_remove)
+        if disable_recluster_by_linkage:
+            hyperpartition_args.append("--disable-recluster-by-linkage")
         if refine:
             hyperpartition_args.append("--refine")
         if hyperpartition_normalize:
@@ -1092,7 +1225,7 @@ def run(fasta,
             hyperpartition_args.extend(["-cm", cluster_method])
 
         if output_hg:
-            hyperpartition_args.extend(["--output-hg", output_hg])
+            hyperpartition_args.extend(["--output-hg"])
             
         with open("hyperpartition.cmd.sh", 'w') as _out_sh:
             _out_sh.write('cphasing hyperpartition \\\n    ')
@@ -1113,6 +1246,8 @@ def run(fasta,
             _out_sh.write(" ".join(pretty_cmd(map(str, _hyperpartition_args))))
             _out_sh.write("\n")
 
+        os.chmod("hyperpartition.cmd.sh", 0o755)
+
         try:
             hyperpartition.main(args=hyperpartition_args,
                             prog_name='hyperpartition')
@@ -1124,6 +1259,71 @@ def run(fasta,
             
             if exit_code != 0:
                 raise e
+
+        if collapsed_contigs:
+            collapsed_rescue_args = [
+                f"../{hg_input}",
+                f"../{contigsizes}",
+                output_cluster,
+                collapsed_contigs,
+                "-n", str(_n[1] if _n[1] else 2),
+                "-at", allele_table_basename if mode == "phasing" else None,
+                "-mw", str(min_weight),
+                "-q",  str(min_quality2),
+                "-mcw", str(min_cis_weight),
+                "-mc", str(min_contacts),
+                "-as", str(allelic_similarity),
+                "-t", str(threads),
+                input_param,
+            ]
+            logger.info("Rescuing collapsed contigs ...")
+
+            with open("hyperpartition.cmd.sh", 'a') as _out_sh:
+                _out_sh.write("\n")
+                _out_sh.write("cphasing collapse rescue \\\n    ")
+                _collapsed_rescue_args = []
+                remove_index = []
+                for i in range(4, len(collapsed_rescue_args), 2):
+                    try:
+                        if collapsed_rescue_args[i+1] is None:
+                            remove_index.append(i)
+                            remove_index.append(i+1)
+                    except IndexError:
+                        continue
+                for i, j in enumerate(collapsed_rescue_args):
+                    if i not in remove_index:
+                        _collapsed_rescue_args.append(j)
+                
+                _out_sh.write(" ".join(pretty_cmd(map(str, _collapsed_rescue_args))))
+                _out_sh.write("\n")
+
+            try:
+                collapsed_rescue.main(args=collapsed_rescue_args,
+                                      prog_name="rescue")
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+            
+            output_cluster = "collapsed.rescue.clusters.txt"
+            with open("hyperpartition.cmd.sh", 'a') as _out_sh:
+                _out_sh.write("\n")
+                _out_sh.write("mv collapsed.rescue.clusters.txt output.clusters.txt\n")
+                
+            collapsed_rescued_contigs = str(Path("collapsed.rescue.contigs.list").absolute())
+
+
+        if Path(output_cluster).exists():
+            logger.info(f"Renaming `{output_cluster}` to `final.clusters.txt` ...")
+            shutil.copy(output_cluster, "final.clusters.txt")
+            with open("hyperpartition.cmd.sh", 'a') as _out_sh:
+                _out_sh.write("\n")
+                _out_sh.write(f"cp {output_cluster} final.clusters.txt\n")
+            output_cluster = "final.clusters.txt"
 
         os.chdir("../")
 
@@ -1149,7 +1349,6 @@ def run(fasta,
                 f"../{count_re}",
                 "--clm",
                 f"../{clm}",
-                " ",
                 "-sc",
                 f"../{split_contacts}",
                 "-f",
@@ -1168,7 +1367,6 @@ def run(fasta,
                 f"../{count_re}",
                 "--clm",
                 f"../{clm}",
-                " ",
                 "-sc",
                 f"../{split_contacts}",
                 "-f",
@@ -1189,10 +1387,24 @@ def run(fasta,
             
         with open("scaffolding.cmd.sh", "w") as _out_sh:
             _out_sh.write("cphasing scaffolding \\\n    ")
-            _out_sh.write(" ".join(pretty_cmd(map(str, args), n=2)))
+            _scaffolding_args = []
+            remove_index = []
+            for i in range(4, len(args), 2):
+                try:
+                    if args[i+1] is None:
+                        remove_index.append(i)
+                        remove_index.append(i+1)
+                except IndexError:
+                    continue
+            for i, j in enumerate(args):
+                if i not in remove_index:
+                    _scaffolding_args.append(j)
+            _out_sh.write(" ".join(pretty_cmd(map(str, _scaffolding_args))))
             _out_sh.write("\n")
+        os.chmod("scaffolding.cmd.sh", 0o755)
 
         args = list(filter(lambda x: x != " ", args))
+
         try:
             scaffolding.main(args=args,
                             prog_name='scaffolding')
@@ -1205,11 +1417,56 @@ def run(fasta,
             if exit_code != 0:
                 raise e
         
+        if collapsed_contigs and not is_empty(collapsed_rescued_contigs):
+            with open("scaffolding.cmd.sh", 'a') as _out_sh:
+                _out_sh.write("\n")
+                _out_sh.write("cphasing collapse agp-dup \\\n    ")
+                _out_sh.write(" ".join(pretty_cmd(map(str, [
+                    out_agp,
+                    "-o",
+                    out_agp.replace(".agp", ".dup.agp"),
+                ]), n=2)))
+                _out_sh.write("\n")
+            try:
+                agp_dup.main(args=[out_agp,
+                                   "-o",
+                                   out_agp.replace(".agp", ".dup.agp"),],
+                                prog_name='scaffolding')
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                pass
+
+            logger.info("Renamed rescued collapsed contigs to AGP ...")
+
+            try:
+                pairs_dup.main(
+                    args=[f"../{pairs}",
+                          collapsed_rescued_contigs,
+                          "-o",
+                          f"../{pairs.replace('.pairs', '.dup.pairs')}"],
+                )
+            except SystemExit as e:
+                exc_info = sys.exc_info()
+                exit_code = e.code
+                if exit_code is None:
+                    exit_code = 0
+                
+                if exit_code != 0:
+                    raise e
+                pass
+            
+            out_agp = out_agp.replace(".agp", ".dup.agp")
+            pairs = f"{pairs.replace('.pairs', '.dup.pairs')}"
+
         # shutil.copy('groups.agp', '..')
-        generate_to_hic_cmd('groups.agp', f"../{fasta}", f"../{pairs}", n=n )
-        if corrected:
-            # shutil.copy('groups.corrected.agp', '..')
-            generate_to_hic_cmd('groups.corrected.agp', f"../{fasta}", f"../{pairs}", n=n)
+        generate_to_hic_cmd(out_agp, f"../{fasta}", f"../{pairs}", n=n )
+      
         
         os.chdir("..")
 
@@ -1230,7 +1487,8 @@ def run(fasta,
             input_agp = out_agp
     else:
         input_agp = out_agp
-    
+
+    plot_mapq = min_quality2
     plot_dir = str("5.plot")
     if "5" not in skip_steps and "5" in steps:
         logger.info("""
@@ -1240,8 +1498,9 @@ def run(fasta,
         Path(plot_dir).mkdir(exist_ok=True)
 
         os.chdir(plot_dir)
+   
 
-        out_small_cool = f"{pairs_prefix}.q{min_quality1}.{to_humanized2(init_binsize)}.cool"
+        out_small_cool = f"{pairs_prefix}.q{plot_mapq}.{to_humanized2(init_binsize)}.cool"
 
         if not is_file_changed(f"../{pairs}") and Path(out_small_cool).exists():
             logger.warning(f"`{out_small_cool}` exists, skipped `pairs2cool`.")
@@ -1250,7 +1509,7 @@ def run(fasta,
                     f"../{contigsizes}",
                     out_small_cool,
                     "-q", 
-                    min_quality1,
+                    plot_mapq,
                     "-bs",
                     init_binsize,
                     ]
@@ -1264,7 +1523,7 @@ def run(fasta,
                     f"../{contigsizes}",
                     out_small_cool,
                     "-q", 
-                    min_quality1,
+                    plot_mapq,
                     "-bs",
                     init_binsize,
                     ]
@@ -1288,7 +1547,7 @@ def run(fasta,
                         f"{pairs_prefix}",
                         f"../{contigsizes}",
                         f"../{scaffolding_dir}/{input_agp}", 
-                        min_quality1, init_binsize,
+                        plot_mapq, init_binsize,
                         binsize, colormap, 
                         whitered, mode,)
         args = [
@@ -1297,7 +1556,7 @@ def run(fasta,
                 "-m",
                 out_small_cool,
                 "-o",
-                f"groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png",
+                f"groups.q{plot_mapq}.{to_humanized2(binsize)}.wg.png",
                 "-bs",
                 binsize,
                 "-oc",
@@ -1343,7 +1602,7 @@ def run(fasta,
                         f"../{pairs}",
                         binsize,
                         init_binsize,
-                        min_quality1,
+                        plot_mapq,
                         scaffolding_dir,
                         plot_dir,
                         n,
@@ -1374,14 +1633,12 @@ def run(fasta,
     if ("4" in steps or "5" in steps) and ("4" not in skip_steps or "5" not in skip_steps):
         logger.info("Please check these results:")
     if "4" in steps and "4" not in skip_steps:
-        logger.info(f"    {outdir}/4.scaffolding/groups.agp")
-        if corrected:
-            logger.info(f"    {outdir}/4.scaffolding/groups.corrected.agp")
+        logger.info(f"    {outdir}/4.scaffolding/{out_agp}")
     if "5" in steps and "5" not in skip_steps:
         if corrected:
-            logger.info(f"    {outdir}/5.plot/groups.corrected.q{min_quality1}.{to_humanized2(binsize)}.wg.png")
+            logger.info(f"    {outdir}/5.plot/groups.q{plot_mapq}.{to_humanized2(binsize)}.wg.png")
         else:
-            logger.info(f"    {outdir}/5.plot/groups.q{min_quality1}.{to_humanized2(binsize)}.wg.png")
+            logger.info(f"    {outdir}/5.plot/groups.q{plot_mapq}.{to_humanized2(binsize)}.wg.png")
 
 
     if "6" in steps and "6" not in skip_steps:

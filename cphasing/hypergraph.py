@@ -66,7 +66,8 @@ class Extractor:
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
                  min_quality=1, hcr_bed=None, hcr_invert=False,
                  threads=4, edge_length=2e6, split_length=None, 
-                 split_contig_boundarys=None, low_memory=True, log_dir="logs"):
+                 split_contig_boundarys=None, max_q0_ratio=2.0,
+                 low_memory=True, log_dir="logs"):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
         self.contigsizes = contigsizes
@@ -89,6 +90,7 @@ class Extractor:
         self.edge_length = edge_length
         self.split_length = split_length
         self.split_contig_boundarys = split_contig_boundarys
+        self.max_q0_ratio = max_q0_ratio
         self.low_memory = low_memory
 
         self.log_dir = Path(log_dir)
@@ -165,6 +167,7 @@ class Extractor:
                     cmd = ["cphasing-rs", "pairs-intersect", 
                            self.pairs_pathes[0], self.hcr_bed, 
                            "-q", str(self.min_mapq),
+                           "--max-q0-ratio", str(self.max_q0_ratio),
                            "-t", str(self.threads)]
 
                     if self.hcr_invert:
@@ -185,7 +188,8 @@ class Extractor:
                 res = p.to_hg_df(chunks, self.contig_idx, self.min_mapq, 
                                  edge_length=self.edge_length, 
                                  split_length=self.split_length,
-                                    split_contig_boundarys=self.split_contig_boundarys)
+                                    split_contig_boundarys=self.split_contig_boundarys,
+                                    max_q0_ratio=self.max_q0_ratio)
                 
                 
                 if Path(f"{pairs_prefix}.intersect.pqs").exists():
@@ -1031,7 +1035,7 @@ class HyperExtractor:
 
                 cmd += f" 2>{self.log_dir}/{porec_prefix}.porec.intersect.log"
                 logger.info(f"Generating hcr porec table by {self.hcr_bed} ...")
-                # flag = os.system(cmd)
+                
                 flag = subprocess.run(cmd, shell=True)
                 assert flag.returncode == 0, "Failed to execute command, please check log."
 

@@ -1257,6 +1257,12 @@ def coarsen_matrix(cool, cool_binsize, k, out, threads):
     "sample.500k.cool"
     """
     from cooler.cli.coarsen import coarsen
+
+    if k <= 1:
+        logger.warning(f"Coarsening factor k={k} is not greater than 1, skipping coarsening.")
+        return cool
+    
+
     if not out:
         input_resolution = cool_binsize
         out_resolution = f"{k * input_resolution}"
@@ -1615,6 +1621,7 @@ def plot_heatmap(matrix, output,
                     vmin=None, vmax=None,
                     scale="log1p", 
                     triangle=False,
+                    lower_left=False,
                     xlabel=None, ylabel=None, 
                     xticks=True, yticks=True,
                     rotate_xticks=False, rotate_yticks=False,
@@ -1893,22 +1900,6 @@ def plot_heatmap(matrix, output,
             else:
                 norm = None
 
-        # factor = round(matrix.shape[0] / 5000 + 1, 2)  
-        # factor = np.log2(round((matrix.shape[0] * binsize) / 1e9  + 1, 2)) + 1
-    
-        # logger.debug(f"Figure factor is `{factor}`")
-        # if triangle:
-        #     fig_width = round(7 * factor, 2) 
-        #     fig_height = round(3.2 * factor, 2)
-        # else:
-        #     if figwidth is None:
-        #         fig_width = round(7 * factor, 2) 
-        #     else:
-        #         fig_width = figwidth 
-        #     if figheight is None:
-        #         fig_height = round(8 * factor, 2)
-        #     else:
-        #         fig_height = figheight
         if factor is None:
             if factor_formula == "bins_linear":
                 factor = round(matrix.shape[0] / 5000.0 + 1, 2)
@@ -1978,6 +1969,7 @@ def plot_heatmap(matrix, output,
                                chromsizes=chromsizes,
                             chrom_offset=chrom_offset, norm=norm,
                             triangle=triangle,
+                            lower_left=lower_left,
                             plot_cis_only=plot_cis_only,
                             plot_hap_only=plot_hap_only,
                             xticks=xticks, yticks=yticks, 
@@ -2356,6 +2348,7 @@ def plot_heatmap_core(matrix,
                         chrom_offset=None,
                         norm=None, vmin=None, vmax=None,
                         triangle=False,
+                        lower_left=False,
                         plot_cis_only=False,
                         plot_hap_only=False,
                         xlabel=None, ylabel=None, 
@@ -2736,21 +2729,30 @@ def plot_heatmap_core(matrix,
         fig = ax.figure
         try:
             fig.canvas.draw()
+            renderer = fig.canvas.get_renderer()
         except Exception:
-            pass
+            renderer = None
+        last_bbox = None
         kept_last_y = None
-        for lab in ax.get_yticklabels():
-            if not lab.get_visible():
+        yticklabels = sorted(ax.get_yticklabels(), key=lambda l: l.get_position()[1])
+        for lab in yticklabels:
+            if not lab.get_visible() or not lab.get_text():
                 continue
-            if not lab.get_text():
-                continue
-            y_data = lab.get_position()[1]
-            pixel = ax.transData.transform((0, y_data))
-            y_px = pixel[1]
-            if kept_last_y is None or abs(y_px - kept_last_y) >= ytick_min_dist:
-                kept_last_y = y_px
+
+            if renderer:
+                bbox = lab.get_window_extent(renderer)
+                if last_bbox is None or (bbox.y0 > last_bbox.y1 + 2) or (bbox.y1 < last_bbox.y0 - 2):
+                    last_bbox = bbox
+                else:
+                    lab.set_visible(False)
             else:
-                lab.set_visible(False)
+                y_data = lab.get_position()[1]
+                pixel = ax.transData.transform((0, y_data))
+                y_px = pixel[1]
+                if kept_last_y is None or abs(y_px - kept_last_y) >= ytick_min_dist:
+                    kept_last_y = y_px
+                else:
+                    lab.set_visible(False)
 
     if xlabel:
         ax.set_xlabel(xlabel, fontsize=18, labelpad=15)
@@ -2762,7 +2764,7 @@ def plot_heatmap_core(matrix,
         sns.despine(top=False, right=False)
 
 
-    if triangle:
+    if triangle or lower_left:
         ax.axis([0, matrix.shape[0], 0, matrix.shape[1]])
     else:
         ax.axis([0, matrix.shape[0], matrix.shape[1], 0])

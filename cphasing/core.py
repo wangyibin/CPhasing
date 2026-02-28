@@ -12,6 +12,7 @@ import os.path as op
 import re
 import shutil
 import sys
+import _io
 
 import math
 import numpy as np
@@ -174,6 +175,21 @@ class CountRE:
         """
         return self.data['Length'].to_dict()
 
+    @property
+    def re_db(self):
+        """
+        Returns:
+        --------
+        dict:
+            dict of RE counts
+
+        Examples:
+        --------
+        >>> cr.re_db
+        {'utg001': 5, 'utg002': 3, ...}
+        """
+        return self.data['RECounts'].to_dict()  
+
     @property 
     def midpoint_db(self):
         """
@@ -305,22 +321,72 @@ class AlleleTable:
         >>> at.check()
         """
         with open(self.filename, 'r') as fp:
-            n = 0
+            max_cols = 0
             for line in fp:
-                if not line.strip():
+                line = line.strip()
+                if not line:
                     continue
                 if line[0] == "#":
-                    if fmt == "allele1":
-                        continue
-                    else:
-                        _info = AlleleInfo(line)
-                        self.info[_info.contig] = _info 
+                    if fmt == "allele2":
+                        res = line[1:].split()
+                        if res:
+                            self.info[res[0]] = res 
+                    continue
 
-                al = AlleleLine(line)
-                if al.n > n:
-                    n = al.n
+                n_cols = line.count('\t') + 1
+                if n_cols > max_cols:
+                    max_cols = n_cols
         
-        self.columns = list(range(n + 2))
+        self.columns = list(range(max_cols))
+    
+    # def get_data(self):
+    #     df = pl.read_csv(self.filename, separator='\t', has_header=False, 
+    #                      comment_prefix='#', infer_schema_length=0,
+    #                      ignore_errors=True,
+    #                      new_columns=[str(i) for i in self.columns])
+        
+    #     if df.is_empty():
+    #         self.data = df.to_pandas()
+    #         return 
+
+    #     if self.fmt == "allele1":
+    #         df = df.drop("1")
+            
+    #         if self.sort:
+    #             allele_cols = [c for c in df.columns if c != "0"]
+    #             df = df.with_columns(
+    #                 pl.concat_list(allele_cols).list.sort().alias("_sorted")
+    #             ).with_columns([
+    #                 pl.col("_sorted").list.get(i).alias(c) 
+    #                 for i, c in enumerate(allele_cols)
+    #             ]).drop("_sorted")
+            
+    #         df = df.unique()
+
+    #     elif self.fmt == "allele2":
+    #         df = df.drop("1")
+    #         new_names = {"0": "idx1"}
+    #         new_names.update({
+    #             str(i + 2): name 
+    #             for i, name in enumerate(['contig1', 'contig2'] + self.AlleleHeader2[4:])
+    #         })
+    #         df = df.rename(new_names)
+    #         df = df.unique(subset=['contig1', 'contig2'])
+            
+    #     self.data = df.to_pandas()
+    #     ## set data type of mz1 mz2 mzShared similarity
+    #     if self.fmt == "allele2":
+    #         self.data = self.data.astype({
+    #             'mz1': 'int64',
+    #             'mz2': 'int64',
+    #             'mzShared': 'int64',
+    #             'similarity': 'float32',
+    #             'strand': 'int8'
+    #         })
+    #         self.data = self.data.rename(columns={'contig1': 1, 'contig2': 2})
+    #     if self.fmt == "allele1":
+    #         self.data.columns = [0] + list(range(1, len(self.data.columns)))
+    #         self.data.set_index(0, inplace=True)
 
     def get_data(self):
         def sort_row(row):
@@ -1117,7 +1183,7 @@ class ClusterTable:
             _idx = list(map(lambda x: int(x)+1, _idx))
             print(" ".join(map(str, _idx)), file=output)
     
-    def to_agp(self, contigsizes, output, orientation_db=None):
+    def to_agp(self, contigsizes, output, orientation_db=None, gap=100):
         """
         Convert cluster to a pseudo agp 
         """
@@ -1145,9 +1211,9 @@ class ClusterTable:
                 chrom_start = chrom_end + 1 
                 chrom_end = chrom_start + 100 - 1
                 idx += 1
-                if i < len(_contigs):
+                if i < len(_contigs) and gap > 0:
                     tmp_res = [group, chrom_start, chrom_end, idx, 
-                            "U", 100, "contig", "yes", "map"]
+                            "U", gap, "contig", "yes", "map"]
                     agp_res.append(tmp_res)
                     idx += 1 
 
@@ -1327,7 +1393,10 @@ class ClusterTable:
             print(group, f"{len(self.data[group])}", 
                     " ".join(self.data[group]), 
                     sep='\t', file=output)
-        logger.info(f'Output cluster table to `{output}`')
+        if isinstance(output, _io.TextIOWrapper):
+            logger.info(f'Output cluster table to `{output.name}`')
+        else:
+            logger.info(f'Output cluster table to `{output}`')
 
     def get_max_group(self):
         res = 0
@@ -1355,9 +1424,15 @@ class ClmLine():
     
     @property
     def dk(self):
-        
-        # reciprocal_values = list(map(lambda x: 1/np.log(x + 1), self.distances))
-        reciprocal_values = list(map(lambda x: 1/x, self.distances))
+        # lam = 5e5 
+        # reciprocal_values = list(map(lambda x: np.exp(-x / lam), self.distances))
+
+        # alpha = 1.1
+        # d0 = 1000
+        # reciprocal_values = list(map(lambda x: 1 / (x + d0)**alpha, self.distances))
+
+        reciprocal_values = list(map(lambda x: 1/np.log(x), self.distances))
+        # reciprocal_values = list(map(lambda x: 1/x, self.distances))
         return sum(reciprocal_values)
     
     def __str__(self):
@@ -2946,6 +3021,22 @@ class Contacts:
         )
 
         return df.to_pandas()
+
+    def get_contig_contacts(self, contigsizes=None):
+        """
+        Get the contact of one contig to all other contigs.
+        """
+        data = self.data[self.data['contig1'] != self.data['contig2']]
+        res = data.groupby('contig1')['count'].sum()
+        res = res.to_frame()
+    
+        if contigsizes is not None:
+            res = pd.concat([res, contigsizes], axis=1, join='inner')
+
+            res['count'] = res['count'] / res['length'] * 10000
+
+        return res
+
 
     def __copy__(self):
         return Contacts(self.filename)

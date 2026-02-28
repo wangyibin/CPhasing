@@ -8,7 +8,7 @@ tags:
 === "recommended" 
     从GitHub release下载`C-Phasing`软件，并加载`activate_cphasing`激活环境。
     ```shell
-    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-x86.tar.gz" | cut -d '"' -f 4)
+    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
     wget $LATEST_URL
     tar xzvf CPhasing*.tar.gz
     

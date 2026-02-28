@@ -33,58 +33,133 @@ from scipy.ndimage import gaussian_filter1d
 
 logger = logging.getLogger(__name__)
 
-# def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
-#     fig, ax = plt.subplots(figsize=(5.7, 5))
-#     plt.rcParams['font.family'] = 'Arial'
-#     data = data[data <= np.percentile(data, 98) * 1.5]
-#     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
-#     ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
-#     kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
-#     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-#     formatter = plt.gca().get_yaxis().get_major_formatter()
-#     plt.gca().yaxis.set_major_formatter(formatter)
-#     plt.gca().yaxis.get_offset_text().set_fontsize(14)
-#     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-#     formatter = plt.gca().get_xaxis().get_major_formatter()
-#     plt.gca().xaxis.set_major_formatter(formatter)
-#     plt.gca().xaxis.get_offset_text().set_fontsize(14)
-#     plt.xlim(0, np.percentile(data, 95) * 2)
-#     plt.xticks(fontsize=18)
-#     plt.yticks(fontsize=18)
-#     plt.xlabel("Contacts", fontsize=24)
-#     plt.ylabel("Density", fontsize=24)
+def plot1(data, lower_value=0.1, upper_value=1.75, output="output"):
+    fig, ax = plt.subplots(figsize=(5.7, 5))
+    plt.rcParams['font.family'] = 'Arial'
+    data = data[data <= np.percentile(data, 98) * 1.5]
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    kdelines = sns.kdeplot(data, ax=ax, color='#253761', linewidth=2)
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    formatter = plt.gca().get_yaxis().get_major_formatter()
+    plt.gca().yaxis.set_major_formatter(formatter)
+    plt.gca().yaxis.get_offset_text().set_fontsize(14)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    formatter = plt.gca().get_xaxis().get_major_formatter()
+    plt.gca().xaxis.set_major_formatter(formatter)
+    plt.gca().xaxis.get_offset_text().set_fontsize(14)
+    plt.xlim(0, np.percentile(data, 95) * 2)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xlabel("Contacts", fontsize=24)
+    plt.ylabel("Density", fontsize=24)
 
-#     x = kdelines.lines[0].get_xdata()
-#     y = kdelines.lines[0].get_ydata()
+    x = kdelines.lines[0].get_xdata()
+    y = kdelines.lines[0].get_ydata()
 
 
-#     peak_ind = find_peaks(y, distance=10)[0]
+    peak_ind = find_peaks(y, distance=10)[0]
 
-#     median_value = np.quantile(data, .3)
-#     peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-#     if len(peak_ind) == 0:
-#         max_idx = np.argsort(x)[len(x)//2]
-#     else:
-#         max_idx = peak_ind[np.argmax(y[peak_ind])]
+    median_value = np.quantile(data, .3)
+    peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+    if len(peak_ind) == 0:
+        max_idx = np.argsort(x)[len(x)//2]
+    else:
+        max_idx = peak_ind[np.argmax(y[peak_ind])]
     
   
     
-#     ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
-#                     0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
-#     ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
-#     ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
-#     ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
-#     ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
+    ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    ax.axvline(x[max_idx] * lower_value, linestyle='--', color='k')
+    ax.axvline(x[max_idx] * upper_value, linestyle='--', color='k')
+    ax.axvline(x[max_idx], linestyle='--', color='#cb6e7f')
+    ax.text(int(x[max_idx]), ax.get_ylim()[1] / 4, str(int(x[max_idx])), fontsize=10, color='#cb6e7f')    
 
-#     # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
-#     plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
-#     plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
-#     logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
+    # plt.plot(x[max_idx], y[max_idx], ms=10, color='r')
+    plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+    logger.info(f"Output kde plot of contacts distribution in `{output}.kde.plot.png`")
     
-#     return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
-
+    return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
 
 def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
+    fig, ax = plt.subplots(figsize=(5.7, 5))
+    plt.rcParams['font.family'] = 'Arial'
+    
+    data = data[data <= np.percentile(data, 98) * 1.5]
+    
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+
+    bins = min(500, max(100, int(np.sqrt(len(data)))))
+    counts, edges = np.histogram(data, bins=bins, density=True)
+    
+    x_grid = (edges[:-1] + edges[1:]) / 2.0
+    y_grid = counts
+
+    try:
+        y_smooth = gaussian_filter1d(y_grid, sigma=1.5)
+    except Exception:
+        y_smooth = y_grid
+
+    ax.plot(x_grid, y_smooth, color='#253761', linewidth=2)
+
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    formatter = plt.gca().get_yaxis().get_major_formatter()
+    plt.gca().yaxis.set_major_formatter(formatter)
+    plt.gca().yaxis.get_offset_text().set_fontsize(14)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    formatter = plt.gca().get_xaxis().get_major_formatter()
+    plt.gca().xaxis.set_major_formatter(formatter)
+    plt.gca().xaxis.get_offset_text().set_fontsize(14)
+    
+    plt.xlim(0, np.percentile(data, 95) * 2)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.xlabel("Contacts", fontsize=24)
+    plt.ylabel("Density", fontsize=24)
+
+    q10 = np.quantile(data, 0.10)
+    q99 = np.quantile(data, 0.99)
+    mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
+    x = x_grid[mask]
+    y = y_smooth[mask]
+    _x_peak = np.median(data)
+
+    if len(x) == 0 or len(y) == 0:
+        max_idx = 0
+    else:
+        height_thresh = 0.05 * float(y.max())  
+        prom_thresh = 0.10 * float(y.max())    
+        distance = max(2, len(y) // 50)  
+        peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
+
+        if len(peaks) == 0:
+            max_idx = int(np.argmax(y))
+        else:
+            prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
+            max_idx = int(peaks[int(np.argmax(prominences))])
+
+    x_peak = float(x[max_idx])
+    
+    x_peak = _x_peak if x_peak < _x_peak else x_peak
+
+    ax.set_ylim(0)
+    ax.fill_between((x_peak * lower_value, x_peak * upper_value), 
+                    0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
+    ax.axvline(x_peak * lower_value, linestyle='--', color='k')
+    ax.axvline(x_peak * upper_value, linestyle='--', color='k')
+    ax.axvline(x_peak, linestyle='--', color='#cb6e7f')
+    ax.text(int(x_peak), ax.get_ylim()[1] / 4, str(int(x_peak)), fontsize=10, color='#cb6e7f')    
+
+    plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
+    logger.info(f"Output distribution plot (Histogram-based) into `{output}.kde.plot.png`")
+    
+    return int(x_peak), x_peak * lower_value, x_peak * upper_value
+
+def plot2(data, lower_value=0.1, upper_value=1.75, output="output"):
     fig, ax = plt.subplots(figsize=(5.7, 5))
     plt.rcParams['font.family'] = 'Arial'
     data = data[data <= np.percentile(data, 98) * 1.5]
@@ -130,24 +205,25 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
     x = x_grid[mask]
     y = y_smooth[mask]
+    x_peak = data.mean()
 
 
-    if len(x) == 0 or len(y) == 0:
-        max_idx = 0
-    else:
-        height_thresh = 0.05 * float(y.max())  
-        prom_thresh = 0.10 * float(y.max())    
-        distance = max(5, len(y) // 200)  
-        peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
+    # if len(x) == 0 or len(y) == 0:
+    #     max_idx = 0
+    # else:
+    #     height_thresh = 0.05 * float(y.max())  
+    #     prom_thresh = 0.10 * float(y.max())    
+    #     distance = max(5, len(y) // 200)  
+    #     peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
 
-        if len(peaks) == 0:
+    #     if len(peaks) == 0:
 
-            max_idx = int(np.argmax(y))
-        else:
-            prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
-            max_idx = int(peaks[int(np.argmax(prominences))])
+    #         max_idx = int(np.argmax(y))
+    #     else:
+    #         prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
+    #         max_idx = int(peaks[int(np.argmax(prominences))])
 
-    x_peak = float(x[max_idx])
+    # x_peak = float(x[max_idx])
 
     ax.fill_between((x_peak * lower_value, x_peak * upper_value), 
                     0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
@@ -231,6 +307,7 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
     logger.info(f"Successful output HCRs into `{output}`.")
 
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
+                    skip_adjust=False,
                     min_remove_whole_collapsed_contigs_rate=0.9,
                     edge_length=None):
 
@@ -243,32 +320,32 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     contigsizes = depth[['chrom', 'end']].groupby('chrom')['end'].max()
 
 
-  
+
     logger.debug("Adjusting small bins value ...")
     sum_values = depth['count'].values
 
-    small_bins = depth[depth['end'] - depth['start'] < binsize]
+    small_bins = depth[(depth['end'] - depth['start']) < binsize]
     small_bins_sum_values = sum_values[small_bins.index]
 
-    adjust_small_bins_sum_values = small_bins_sum_values.T / \
-        ((small_bins['end'] - small_bins['start']) / binsize).values
-    sum_values[small_bins.index] = adjust_small_bins_sum_values
-  
+    if not skip_adjust:
+        adjust_small_bins_sum_values = small_bins_sum_values.T / \
+            ((small_bins['end'] - small_bins['start']) / binsize).values
+        sum_values[small_bins.index] = adjust_small_bins_sum_values
+    
     sum_values_nonzero = sum_values[sum_values > 0]
 
     peak_value, min_value, max_value = plot(sum_values_nonzero, lower_value, 
                                 upper_value, output=output.replace(".bed", ""))
-   
+
     res = np.where((sum_values <= max_value) & (sum_values >= min_value))
-    
+
     bins['count'] = sum_values
-    contig_counts = bins.groupby('chrom')['count'].mean().to_frame()
+    contig_counts = bins.groupby('chrom')['count'].median().to_frame()
     contig_counts['CN'] = contig_counts['count'] / peak_value
     collapsed_contigs = contig_counts.query('count > @max_value')
     collapsed_contigs.to_csv(output.replace(".bed", ".high_coverage.contigs.txt"), sep='\t',
                              index=True, header=None)
     contigsizes.loc[contig_counts.query('count > @max_value').index].sum()
-
     hcr_regions = bins.loc[res[0]]
     
     res = np.where((sum_values > max_value))
@@ -282,13 +359,12 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     
     num_hcr_regions = len(hcr_regions)
     logger.debug(f"Identify {num_hcr_regions} regions")
-    hcr_length = sum(hcr_regions["end"] - hcr_regions["start"])
-    logger.info(f"Identified {hcr_length/total_length:.2%} high-confidence regions")
     
     hcr_regions['start'] = hcr_regions['start'].astype(np.int64)
     hcr_regions['end'] = hcr_regions['end'].astype(np.int64)
+    hcr_regions = hcr_regions.sort_values(['chrom', 'start'])
     hcr_regions.to_csv(f"tmp.{output}", sep='\t', index=None, header=None)
-
+    
     cmd = f"bedtools merge -i tmp.{output} 2>/dev/null > tmp.merge.{output}"
     flag = os.system(cmd)
     assert flag == 0, f"Failed to merge HCRs by `{cmd}`"
@@ -359,7 +435,12 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     
     else:
         hcr_regions_df.to_csv(output, sep='\t', index=None, header=None)
+    
+    hcr_regions_df.columns = ['chrom', 'start', 'end']
+    final_hcr_length = (hcr_regions_df['end'] - hcr_regions_df['start']).sum()
+    logger.info(f"Identified {final_hcr_length/total_length:.2%} high-confidence regions.")
     logger.info(f"Successful output HCRs into `{output}`.")
+
 
 def main(args):
     p = argparse.ArgumentParser(prog=__file__,

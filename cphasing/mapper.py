@@ -315,10 +315,10 @@ class ChromapMapper:
                 '-k', str(self.kmer_size), '-w', str(self.window_size),
                 '-i', '-r', str(self.reference), '-o', 
                 str(self.index_path)]
-        with open("hicmapper.index.sh", "w") as f:
+        with open("hicmapper.index.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(" ".join(cmd) + "\n")
-
+        os.chmod("hicmapper.index.cmd.sh", 0o755)
         flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.index_path}.log')
         assert flag == 0, "Failed to execute command, please check log."
 
@@ -343,6 +343,7 @@ class ChromapMapper:
         with open("hicmapper.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(cmd + "\n")
+        os.chmod("hicmapper.cmd.sh", 0o755)
         logger.info('Running command:')
         logger.info('\t' + cmd)
         subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)
@@ -377,6 +378,9 @@ class ChromapMapper:
         logger.info('Converting pairs to pairs.pqs ...')
 
         args = [str(self.output_pairs) + ".gz", "-t", str(self.threads)]
+        with open("hicmapper.cmd.sh", "+a") as f:
+            f.write("cphasing pairs2pqs " + " ".join(args) + "\n")
+        
         try:
             pairs2pqs.main(args=args, prog_name='pairs2pqs')
         except SystemExit as e:
@@ -387,6 +391,7 @@ class ChromapMapper:
             
             if exit_code != 0:
                 raise e
+        
         
         logger.info(f"Successfully converted pairs to `{str(self.output_pairs)}.pqs`")
             
@@ -444,7 +449,7 @@ class MinimapMapper:
     """
     def __init__(self, reference, read1, read2, 
                     kmer_size=21, window_size=11, min_quality=0, 
-                    threads=4, additional_arguments=(), 
+                    threads=4, additional_arguments="", 
                     output_format='pairs.pqs',
                     path='minimap2', log_dir='logs'):
         
@@ -458,12 +463,24 @@ class MinimapMapper:
         self.window_size = window_size
         self.min_quality = min_quality
         self.output_format = output_format
-        self.additional_artuments=()
+        self.additional_arguments = additional_arguments
         
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self._path = path
+
+        self.prefix = Path(Path(self.read1[0]).stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
+            self.prefix = self.prefix.with_suffix('')
+        
+        if str(self.prefix).endswith("_R1"):
+            self.prefix = Path(str(self.prefix)[:-3])
+        elif str(self.prefix).endswith("_1"):
+            self.prefix = Path(str(self.prefix)[:-2])
+
+        self.prefix = Path(str(self.prefix).replace('_R1', '').replace('_1', ''))
+
 
         self.get_contig_sizes()
         if self.get_genome_size_from_contig_sizes() > 16e9:
@@ -480,17 +497,6 @@ class MinimapMapper:
             self.compressor = 'pigz'
         else:
             self.compressor = 'crabz'
-
-        self.prefix = Path(Path(self.read1[0]).stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
-            self.prefix = self.prefix.with_suffix('')
-        
-        if str(self.prefix).endswith("_R1"):
-            self.prefix = Path(str(self.prefix)[:-3])
-        elif str(self.prefix).endswith("_1"):
-            self.prefix = Path(str(self.prefix)[:-2])
-
-        self.prefix = Path(str(self.prefix).replace('_R1', '').replace('_1', ''))
 
         self.output_pairs = Path(f'{self.prefix}.{self.output_format}')
 
@@ -530,30 +536,46 @@ class MinimapMapper:
 
    
     def mapping(self):
+        decomp_threads = 4 
+        comp_threads = 8
         if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
-            decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
-            compress_cmd = f'crabz -p 8 --format mgzip 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
+            decompress_cmd = f'crabz -d -p {decomp_threads} 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+            compress_cmd = f'crabz -p {comp_threads} --format mgzip 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
         else:
             decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
             compress_cmd = f'pigz -c -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
         self.secondary = "no"
+
+        if "-N" not in self.additional_arguments:
+            self.additional_arguments += f" -N 500"
+        if "-p" not in self.additional_arguments:
+            self.additional_arguments += f" -p .99999"
+
+
         reads_1 = " ".join(self.read1)
         reads_2 = " ".join(self.read2)
+        # rename_filter = r"""awk -F'\t' 'BEGIN{OFS="\t"} {while(sub(/\/[12]$/, "", $1)); print $0}'"""
+        rename_filter = r"sed -E 's/(\/[12])+([[:blank:]])/\2/g'"
         cmd = f"{self._path} -t {self.threads} -c -x sr " \
                 f"-I {self.batchsize} " \
-                f"-k {self.kmer_size} -w {self.window_size} {str(self.reference)} " \
-                f"<({decompress_cmd} {reads_1}) <({decompress_cmd} {reads_2}) " \
+                f"-k {self.kmer_size} -w {self.window_size} " \
                 f"--secondary={self.secondary} " \
+                f"{self.additional_arguments} " \
+                f"{str(self.reference)} " \
+                f"<({decompress_cmd} {reads_1}) <({decompress_cmd} {reads_2}) " \
                 f"2>{self.log_dir}/{self.prefix}.hic.mapping.log | " \
+                f"{rename_filter} | " \
                 f"{compress_cmd} > {str(self.prefix)}.paf.gz"
         
         self.output_paf = f"{str(self.prefix)}.paf.gz"
         with open("hicmapper.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(cmd + "\n")
+        os.chmod("hicmapper.cmd.sh", 0o755)
         logger.info('Running command:')
         logger.info('\t' + cmd)
 
+        cmd = "bash hicmapper.cmd.sh"
         subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)
 
 
@@ -730,7 +752,7 @@ class BwaMapper:
         with open("hicmapper.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(cmd + "\n")
-        
+        os.chmod("hicmapper.cmd.sh", 0o755)
         logger.info('Running command:')
         logger.info('\t' + cmd)
 
@@ -913,6 +935,10 @@ class PoreCMapper:
         if "secondary" in self.additional_arguments:
             secondary = ""
 
+        if "-N" not in self.additional_arguments:
+            self.additional_arguments += f" -N 500"
+        if "-p" not in self.additional_arguments:
+            self.additional_arguments += f" -p .99999"
         
         if self.compressor == 'crabz' and len(self.reads) == 1:
             decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
@@ -934,6 +960,7 @@ class PoreCMapper:
         with open(f"{self.prefix}.mapper.cmd.sh", "w") as f:
             f.write("#!/bin/bash\n")
             f.write(cmd + "\n")
+        os.chmod(f"{self.prefix}.mapper.cmd.sh", 0o755)
         logger.info('Running command:')
         logger.info('\t' + cmd)
         subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)

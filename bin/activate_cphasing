@@ -80,12 +80,22 @@ case "$-" in
   *i*) is_interactive=1 ;;
 esac
 
+is_sourced=0
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    is_sourced=1
+fi
+
+use_hook=0
+if [ "$force_hook" -eq 1 ] || [ "$is_tty" == "not a tty" ]; then
+    use_hook=1
+elif [ "$is_sourced" -eq 1 ] && [ "$is_interactive" -eq 0 ]; then
+    use_hook=1
+fi
+
 env_dir="$software_dir/.pixi/envs/${env_name}"
 env_file="$env_dir/.env"
-
-if [ "$is_tty" == "not a tty" ] || [ "$force_hook" -eq 1 ]; then
-# if [ "$is_interactive" -eq 0 ] || [ "$force_hook" -eq 1 ]; then
-    pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install -e $env_name > $env_file
+if [ "$use_hook" -eq 1 ]; then
+     pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install -e $env_name > $env_file
     . $env_file
 else 
     # export PS1="(CPhasing) $PS1"

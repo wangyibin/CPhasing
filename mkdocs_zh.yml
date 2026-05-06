@@ -153,8 +153,7 @@ extra:
     - name: 简体中文
       link: /CPhasing/zh/
       lang: zh
-
-
+      
 plugins:
   - search
   # - ultralytics:
@@ -185,6 +184,7 @@ nav:
     - CLI/mapper.md
     - CLI/methalign.md
     - CLI/hic_mapper.md
+    - CLI/prepartition.md
     - CLI/alleles.md
     - CLI/collapse.md
     - CLI/rename.md

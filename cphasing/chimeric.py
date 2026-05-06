@@ -30,7 +30,7 @@ from sklearn.metrics import mean_squared_error
 try: 
     from .core import PairHeader
     from .pqs import PQS
-    from .utilities import read_fasta, xopen, run_cmd
+    from .utilities import read_fasta_yield, xopen, run_cmd
 except ImportError:
     pass
 
@@ -569,20 +569,22 @@ def break_points_to_regions(break_points_df, contigsizes):
     return correct_contig_list
 
 def write_fasta(fasta, corrected_positions, output):
-    fasta_db = read_fasta(str(fasta))
-    output = xopen(output, 'w')
-    corrected_contigs = set(corrected_positions['chrom'].values.tolist())
-    corrected_positions.set_index('chrom', inplace=True)
-    for contig in fasta_db:
-        seq = fasta_db[contig]
-        if contig in corrected_contigs:
-            for _, item in corrected_positions.loc[contig].iterrows():
-                start, end, name = item
-                print(f'>{name}\n{str(seq[start - 1: end])}',
-                        file=output)
-
-        else:
-            print(f'>{contig}\n{str(seq)}', file=output)        
+    fasta_db = read_fasta_yield(str(fasta))
+    regions_dict = defaultdict(list)
+    for row in corrected_positions.itertuples(index=False):
+        regions_dict[row.chrom].append((row.start, row.end, row.name))
+    
+    with xopen(output, 'w') as out:
+        for contig, seq in fasta_db:
+            seq_str = str(seq)
+            if contig in regions_dict:
+                write_buf = "".join(
+                    f">{name}\n{seq_str[start:end]}\n" 
+                    for start, end, name in regions_dict[contig]
+                )
+                out.write(write_buf)
+            else:
+                out.write(f">{contig}\n{str(seq)}\n") 
 
 def corrected_pairs(pairs, break_bed, output):
     cmd = ["cphasing-rs", "pairs-break", pairs, break_bed, "-o", output]

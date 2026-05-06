@@ -47,7 +47,7 @@ cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hi
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
 !!! note
-    - **1** | `cphasing pipeline` 不支持输入多组Hi-C数据，但是用户可以自行使用`cphasing hic mapper` 进行比对，然后再使用`cphasing-rs pairs-merge` 合并所有的`.pairs.gz`文件, 然后通过 `-prs` 参数输入.  
+    - **1** | 指定多组数据可以设置多个`-hic1`和`-hic2`参数 (例如，`-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz`)  
     - **2** | 如果基因组的大小大于8Gb，需要提高比对的`k` 和`w`的大小，避免`chromap`报错，例如 `-hic-mapper-k 27 -hic-mapper-w 14`.
 
 
@@ -80,6 +80,15 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT 
 ```  
+
+### 塌缩补救
+```bash
+cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue 
+```
+or 
+```bash
+cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue --gfa draft.asm.p_utg.noseq.gfa 
+```
 
 ## 通过Juicebox 人工调整基因组组装 [可以直接运行`6.curation/curation.cmd.sh`]
 - 首先需要生成两个文件：`.assembly` 和 `.hic`, 以下步骤依赖于[3d-dna](https://github.com/aidenlab/3d-dna) 软件，用户需自行安装。

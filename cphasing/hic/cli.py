@@ -130,6 +130,8 @@ def hic(ctx):
 @click.option(
     '-a',
     '--aligner',
+    '--hic-aligner',
+    'aligner',
     help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
     'if you want to use the offical version you can set aligner to `chromap`',
     type=click.Choice(['_chromap', 'chromap', 'minimap2', 'bwa-mem2']),#, 'hisat2']),

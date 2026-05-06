@@ -16,7 +16,7 @@ from joblib import Parallel, delayed
 from pathlib import Path
 
 from .core import Tour
-from .utilities import get_contig_length
+from .utilities import get_contig_length, read_fasta
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ def agp2cluster(agp, store=None):
 
     return cluster_df
 
-def agp2fasta(agp, fasta, output=sys.stdout, 
+def agp2fasta_v0(agp, fasta, output=sys.stdout, 
               output_contig=False, 
               skip_gap=False,
               threads=1):
@@ -189,10 +189,14 @@ def agp2fasta(agp, fasta, output=sys.stdout,
             id_orient = cluster.loc[:, ['id', 'tig_start', 'tig_end', 'orientation']].values.tolist()
         
             for contig, contig_start, contig_end, orient in id_orient:
+                fetch_contig = contig 
+                if fetch_contig not in seq_db:
+                    fetch_contig = re.sub(r'_d\d+$', '', contig)
+
                 if orient == '+':
-                    seqs.append(str(seq_db[contig][contig_start - 1: contig_end]))
+                    seqs.append(str(seq_db[fetch_contig][contig_start - 1: contig_end]))
                 else:
-                    seqs.append(str(seq_db[contig][contig_start - 1: contig_end].reverse_complement()))
+                    seqs.append(str(seq_db[fetch_contig][contig_start - 1: contig_end].reverse_complement()))
             
             out_seq = GAP.join(seqs)
             print(f'>{chrom}', file=output)
@@ -207,10 +211,15 @@ def agp2fasta(agp, fasta, output=sys.stdout,
         collapsed_rescued_contigs = []
         for record in tmp_data:
             output_contig, raw_contig, start, end = record 
+            fetch_contig = raw_contig
+            if fetch_contig not in seq_db:
+                fetch_contig = re.sub(r'_d\d+$', '', contig)
+
             try:
-                seq = seq_db[raw_contig]
+                seq = seq_db[fetch_contig]
             except KeyError:
                 logger.warning(f"Counld not found `{raw_contig}`, skipped.")
+                continue
             seq_length = len(seq)
             if start == 1 and end == seq_length:
                 seq = str(seq)
@@ -239,6 +248,171 @@ def agp2fasta(agp, fasta, output=sys.stdout,
                 for raw_contig, output_contig in collapsed_rescued_contigs:
                     out.write(f"{raw_contig}\t{output_contig}\n")
             logger.info(f"Output collapsed contigs: `{output_file}`")
+
+def agp2fasta(agp, fasta, output=sys.stdout, 
+              output_contig=False, 
+              skip_gap=False,
+              threads=1):
+    """
+    Convert agp to chromosome-level fasta file.
+
+    Params:
+    --------
+    agp: str
+        Path to agp file.
+    fasta: OrderedDict
+        Fasta sequence database.
+    output: _io.TextIOWrapper
+        Output handle
+    output_contig: bool or str
+        Output mode. 
+        - False (or "chr"): Output chromosome-level sequences containing Ns (default).
+        - True (or "raw"): Output raw individual sliced contigs.
+        - "block": Join gapless adjacent contigs into blocks (scaffolds) and break output when hitting a gap.
+    skip_gap: bool
+        If True, ignore gap lines (U/N) and concatenate sequences without Ns.
+    threads: int
+        Number of threads
+    
+    Returns:
+    --------
+    None
+    """
+    agp_df = import_agp(agp, split=False)
+    if isinstance(fasta, str):
+        seq_db = read_fasta(fasta)
+    else:
+        seq_db = fasta
+    
+    if isinstance(output, str):
+        output = open(output, "w")
+        
+   
+    if output_contig is True or output_contig == 'block':
+        mode = 'block'
+    elif output_contig == 'raw':
+        mode = 'raw'
+    else:
+        mode = 'chr'
+
+    if mode == 'raw':
+        agp_df_w = agp_df[agp_df[4].isin(['W', 'D', 'F'])]
+        tmp_data = agp_df_w[[0, 5, 6, 7]].values.tolist()
+        
+        contig_idx = defaultdict(int)
+        collapsed_rescue_flag = False 
+        collapsed_rescued_contigs = []
+        
+        for record in tmp_data:
+            chrom, raw_contig, start, end = record 
+            start, end = int(start), int(end)
+            
+            fetch_contig = raw_contig
+            if fetch_contig not in seq_db:
+                fetch_contig = re.sub(r'_d\d+$', '', raw_contig)
+
+            try:
+                seq = seq_db[fetch_contig]
+            except KeyError:
+                logger.warning(f"Counld not found `{raw_contig}`, skipped.")
+                continue
+                
+            seq_length = len(seq)
+            if start == 1 and end == seq_length:
+                seq_str = str(seq)
+                output_name = raw_contig
+            else:
+                seq_str = str(seq[start-1: end])
+                output_name = f"{raw_contig}:{start}-{end}"
+                
+            contig_idx[output_name] += 1
+            if contig_idx[output_name] > 1:
+                logger.info(f"Duplicated contig `{output_name}` found, rename to `{output_name}_d{contig_idx[output_name]}`")
+                old_name = output_name
+                output_name = f"{output_name}_d{contig_idx[output_name]}"
+                collapsed_rescue_flag = True
+                collapsed_rescued_contigs.append((old_name, output_name))
+
+            print(f'>{output_name}', file=output)
+            print(seq_str, file=output)
+
+        logger.info(f"Output raw contig-level fasta into `{output.name}`.")
+
+        if collapsed_rescue_flag:
+            try:
+                output_file = str(output.name).replace(".fasta", ".collapsed.contig.list")
+                with open(f"{output_file}", "w") as out:
+                    for raw_ctg, out_ctg in collapsed_rescued_contigs:
+                        out.write(f"{raw_ctg}\t{out_ctg}\n")
+                logger.info(f"Output collapsed contigs: `{output_file}`")
+            except Exception:
+                pass
+                
+    else:
+        block_idx = 1
+
+        for chrom, cluster_df in agp_df.groupby(0):
+            block_seqs = []
+        
+            block_names = [] 
+            
+            for _, row in cluster_df.iterrows():
+                comp_type = row[4]
+                
+                if comp_type in ['W', 'D', 'F']:
+                    contig = row[5]
+                    tig_start = int(row[6])
+                    tig_end = int(row[7])
+                    orient = row[8]
+                    
+                    fetch_contig = contig 
+                    if fetch_contig not in seq_db:
+                        fetch_contig = re.sub(r'_d\d+$', '', contig)
+
+                    try:
+                        tmp_seq = seq_db[fetch_contig][tig_start - 1: tig_end]
+                    except KeyError:
+                        logger.warning(f"Could not found `{contig}`, skipped.")
+                        continue
+                        
+                    if orient == '-':
+                        tmp_seq = tmp_seq.reverse_complement()
+                        
+                    block_seqs.append(str(tmp_seq))
+                    block_names.append(f"{contig}:{tig_start}-{tig_end}{orient}")
+                    
+                elif comp_type in ['U', 'N']:
+                    gap_length = int(row[5])
+                    
+                    if mode == 'block':
+                        if not skip_gap and len(block_seqs) > 0:
+                            out_seq = "".join(block_seqs)
+                            block_header = "|".join(block_names)
+                            block_name = f"unitig{block_idx:>07}l"
+                            print(f'>{block_name} {block_header}', file=output)
+                            print(out_seq, file=output)
+                            block_idx += 1
+                            block_seqs = []
+                            block_names = [] 
+                    elif mode == 'chr':
+                        if not skip_gap and gap_length > 0:
+                            block_seqs.append("N" * gap_length)
+                            
+            if len(block_seqs) > 0:
+                out_seq = "".join(block_seqs)
+                if mode == 'block':
+                    block_header = "|".join(block_names)
+                    block_name = f"unitig{block_idx:>07}l"
+                    print(f'>{block_name} {block_header}', file=output)
+                    block_idx += 1
+                else:
+                    print(f'>{chrom}', file=output)
+                print(out_seq, file=output)
+                
+        if mode == 'block':
+            logger.info(f"Output gapless block-level fasta into `{output.name}`.")
+        else:
+            logger.info(f"Output chromosome-level fasta into `{output.name}`.")
 
 def agp2tour(agp, outdir="tour", force=False, store=True):
     """
@@ -392,7 +566,7 @@ def pseudo_agp(real_list, contigsizes, gap_size, output):
     Create a pseudo agp file from a list and contigsizes.
     """
     real_list = pd.read_csv(real_list, sep='\t', header=None, index_col=None)
-    contig_sizes = dict(i.strip().split() for i in open(contigsizes) if i.strip())
+    contig_sizes = dict(i.strip().split()[:2] for i in open(contigsizes) if i.strip())
 
     idx = 0
     for chrom, contig_df in real_list.groupby(0):

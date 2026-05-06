@@ -11,13 +11,14 @@ import subprocess
 import logging
 import time
 import gc
+import shutil
 
 import pickle
 import pandas as pd
 import polars as pl
 import numpy as np
 import argparse
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from multiprocessing import Pool
 from itertools import combinations, product
 
@@ -61,6 +62,37 @@ def parse_fasta(fasta):
             else:
                 fa_dict[ctg] += len(line.strip())
     return fa_dict
+
+def parse_tours(tour_files, fa_dict):
+
+    logger.info('Parsing tour files...')
+
+    output_ctgs = set()
+    tour_dict = OrderedDict()
+
+    for tour_file in tour_files:
+        basename = os.path.basename(tour_file)
+        group = os.path.splitext(basename)[0].rsplit('_', 1)[0]
+        tour_dict[group] = list()
+        last_line  = ''
+        with open(tour_file) as f:
+            for line in f:
+                if line.strip():
+                    last_line = line.strip()
+
+        for ctg_ori in last_line.split():
+            ctg = ctg_ori[:-1]
+            ori = ctg_ori[-1]
+            if ctg not in fa_dict:
+                raise RuntimeError('CANNOT find ctg {} in FASTA file'.format(ctg))
+            elif ctg in output_ctgs:
+                raise RuntimeError('Contig {} is repeated'.format(ctg))
+            else:
+                output_ctgs.add(ctg)
+            tour_dict[group].append((ctg, ori))
+
+    return tour_dict, output_ctgs
+
 
 def dict_to_matrix(dict_, shape, add_self_loops=False):
 
@@ -669,8 +701,12 @@ def run_allhic_optimization(args, group, prefix, clm, allhic):
             '--mutapb', str(args.mutprob),
             '--ngen', str(args.ngen),
             '--npop', str(args.npop),
-            '--seed', str(args.seed)
+            '--seed', str(args.seed),
+     
             ]
+
+    if args.logDist:
+        cmd_list.append('--logDist')
 
     if not args.skip_fast_sort:
         cmd_list.append('--resume')
@@ -686,11 +722,156 @@ def run_allhic_optimization(args, group, prefix, clm, allhic):
             )
 
 
+def evaluate_tour_score(tour_file, fa_dict, sub_HT_dict, HT_index_dict):
+    if not os.path.exists(tour_file):
+        return float('inf')
+        
+    with open(tour_file, 'r') as f:
+        lines = [line.strip() for line in f if line.strip()]
+        if not lines:
+            return float('inf')
+        tour_line = lines[-1]
+        if tour_line.startswith('>'): 
+            return float('inf')
+        tour = tour_line.split()
+
+    if len(tour) <= 1:
+        return 0.0
+
+
+    link_lookup = {}
+    for (u, v), links in sub_HT_dict.items():
+        link_lookup[(u, v)] = links
+        link_lookup[(v, u)] = links
+
+    path_length = 0.0
+    penalty = 10000.0  
+
+
+    for i in range(len(tour) - 1):
+        curr_ctg = tour[i][:-1]
+        curr_ori = tour[i][-1]
+        
+        next_ctg = tour[i+1][:-1]
+        next_ori = tour[i+1][-1]
+
+        if curr_ori == '+':
+            curr_right = f"{curr_ctg}_1" 
+        else:
+            curr_right = f"{curr_ctg}_0"
+            
+        if next_ori == '+':
+            next_left = f"{next_ctg}_0" 
+        else:
+            next_left = f"{next_ctg}_1" 
+            
+
+        idx_u = HT_index_dict.get(curr_right)
+        idx_v = HT_index_dict.get(next_left)
+        
+        if idx_u is None or idx_v is None:
+            path_length += penalty
+            continue
+            
+        links = link_lookup.get((idx_u, idx_v), 0)
+        
+        if links > 0:
+            dist = 1.0 / float(links)
+        else:
+            dist = penalty
+            
+        path_length += dist
+
+    return path_length
+
+def compare_fast_sort_and_allhic(prefix, fa_dict):
+    logging.info('[{}] Comparing the results of fast sorting and ALLHiC optimization...'.format(prefix))
+    def find_lis(compare_list, order_len_dict, forward=True):
+
+        order_list = []
+        if forward:
+            order_list = [order for order in compare_list if order > 0]
+        else:
+            order_list = [order for order in compare_list if order < 0]
+
+        if not order_list:
+            return 0
+
+        dp = [0] * len(order_list)
+        sequence = [None] * len(order_list)
+        max_sum_idx = 0
+
+        for i in range(len(order_list)):
+            dp[i] = order_len_dict[order_list[i]]
+            for j in range(i):
+                if order_list[i] > order_list[j] and dp[i] < dp[j] + order_len_dict[order_list[i]]:
+                    dp[i] = dp[j] + order_len_dict[order_list[i]]
+                    sequence[i] = j
+            if dp[i] >= dp[max_sum_idx]:
+                max_sum_idx = i
+        max_sum = dp[max_sum_idx]
+
+        return max_sum
+
+    fast_sort_tour = '{}.tour.sav'.format(prefix)
+    allhic_tour = '{}.tour'.format(prefix)
+
+    fast_sort_ctg_list, fast_sort_ori_list = [], []
+    for ctg, ori in list(parse_tours([fast_sort_tour], fa_dict)[0].values())[0]:
+        fast_sort_ctg_list.append(ctg)
+        fast_sort_ori_list.append(ori)
+
+    ctg_len_list = [fa_dict[ctg] for ctg in fast_sort_ctg_list]
+    group_len = sum(ctg_len_list)
+    # if contigs are short enough, always choose allhic
+    group_ctg_len_ratio = group_len / max(ctg_len_list)
+    if group_ctg_len_ratio > 50:
+        logger.info('{}: choose allhic optimization (group length / longest contig = {})'.format(prefix, group_ctg_len_ratio))
+        return False
+
+    allhic_ctg_list, allhic_ori_list = [], []
+    for ctg, ori in list(parse_tours([allhic_tour], fa_dict)[0].values())[0]:
+        allhic_ctg_list.append(ctg)
+        allhic_ori_list.append(ori)
+
+    max_lis_len_ratio = 0
+    for n in range(len(fast_sort_ctg_list) - 1):
+        compare_list, order_len_dict = [], dict()
+        for i, ctg in enumerate(fast_sort_ctg_list):
+            j = allhic_ctg_list.index(ctg)
+            if fast_sort_ori_list[i] == allhic_ori_list[j]:
+                compare_list.append(j+1)
+                order_len_dict[j+1] = fa_dict[ctg]
+            else:
+                compare_list.append(-j-1)
+                order_len_dict[-j-1] = fa_dict[ctg]
+
+        max_sum_f = find_lis(compare_list, order_len_dict, forward=True)
+        max_sum_r = find_lis(compare_list, order_len_dict, forward=False)
+
+        max_sum = max(max_sum_f, max_sum_r)
+
+        lis_len_ratio = max_sum / group_len
+
+        if lis_len_ratio >= 0.9:
+            logger.info('{}: choose allhic optimization (LIS length / group length = {})'.format(prefix, max_sum / group_len))
+            return False
+        else:
+            if lis_len_ratio > max_lis_len_ratio:
+                max_lis_len_ratio = lis_len_ratio
+            fast_sort_ctg_list = fast_sort_ctg_list[1:] + [fast_sort_ctg_list[0]]
+            fast_sort_ori_list = fast_sort_ori_list[1:] + [fast_sort_ori_list[0]]
+
+    logger.info('{}: choose fast sorting (maximum LIS length / group length = {})'.format(prefix, lis_len_ratio))
+    return True
+
+
 def run_haphic_sorting(args, group, fa_dict, group_specific_data, group_param, allhic):
 
     prefix, clm = group_param
-
+    ctg_info_list, ctgs, sub_HT_dict, HT_index_dict = group_specific_data
     only_one_contig = False
+    output_sav = False
 
     if not args.skip_fast_sort:
 
@@ -704,6 +885,12 @@ def run_haphic_sorting(args, group, fa_dict, group_specific_data, group_param, a
     if not args.skip_allhic and not only_one_contig:
         run_allhic_optimization(args, group, prefix, clm, allhic)
 
+    #     if not args.skip_fast_sort:
+    #         output_sav = compare_fast_sort_and_allhic(prefix, fa_dict)
+
+    # if output_sav:
+    #     os.remove('{}.tour'.format(prefix))
+    #     os.symlink('../{}.tour.sav'.format(prefix), '{}.tour'.format(prefix))
 
 def check_exceptions(result_list):
 
@@ -760,6 +947,9 @@ def parse_arguments():
     # Parameters for ALLHiC optimization
     allhic_group = parser.add_argument_group('>>> Parameters for ALLHiC optimization')
     allhic_group.add_argument(
+        "--allhic_path", default='allhic', help='path to ALLHiC executable, default: %(default)s'
+    )
+    allhic_group.add_argument(
             '--skip_allhic', default=False, action='store_true',
             help='skip the entire ALLHiC optimization step, default: %(default)s')
     allhic_group.add_argument(
@@ -777,6 +967,10 @@ def parse_arguments():
     allhic_group.add_argument(
             '--seed', type=int, default=42,
             help='random seed, default: %(default)s')
+    allhic_group.add_argument(
+            '--logDist', default=False, action='store_true',
+            help='use log distance in the genetic algorithm optimization step in ALLHiC, default: %(default)s'
+    )
 
     # Parameters for performance
     performance_group = parser.add_argument_group('>>> Parameters for performance')
@@ -826,7 +1020,7 @@ def run(args, log_file=None):
     # check ALLHiC
     logger.info('Checking the path of ALLHiC...')
     script_realpath = os.path.dirname(os.path.realpath(__file__))
-    allhic = 'allhic'
+    allhic = args.allhic_path
 
     # if os.path.exists(allhic):
     #     logger.info('ALLHiC has been found in {}'.format(script_realpath))

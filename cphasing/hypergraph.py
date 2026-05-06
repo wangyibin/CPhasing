@@ -66,7 +66,7 @@ class Extractor:
     def __init__(self, pairs_pathes, contig_idx, contigsizes, 
                  min_quality=1, hcr_bed=None, hcr_invert=False,
                  threads=4, edge_length=2e6, split_length=None, 
-                 split_contig_boundarys=None, max_q0_ratio=2.0,
+                 split_contig_boundarys=None, max_q0_ratio=0.0,
                  low_memory=True, log_dir="logs"):
         self.pairs_pathes = listify(pairs_pathes)
         self.contig_idx = contig_idx
@@ -1239,7 +1239,12 @@ class HyperExtractor:
 
         
         number_of_contigs = len(self.contig_idx)
-        number_of_hyperedges = edges.col.max() + 1
+        if len(edges.col) == 0:
+            logger.error("No valid hyperedges found after all filters. Check your min_order and mapping_quality.")
+            number_of_hyperedges = 0
+        else:
+            number_of_hyperedges = edges.col.max() + 1
+            
         logger.info(f"Result of {number_of_hyperedges:,} raw "
                     f"hyperedges of {number_of_contigs:,} contigs. "
                     "Note: it's not the final statistics for hypergraph.")

@@ -72,6 +72,7 @@ def hitig(ctx):
     '-i', 
     '--fastq',
     required=True,
+    help="the raw fastq file of Ultra-long ONT or HiFi data, gzipped or not. comma seperate for multiple files.",
 )
 @click.option(
     '-a',
@@ -132,7 +133,7 @@ def hitig(ctx):
     'min_sa',
     metavar='INT',
     help='Number of minmum split alignments in a window.',
-    default=5,
+    default=3, ## 5 for version < 3.0
     type=int,
     show_default=True,
 )
@@ -141,7 +142,7 @@ def hitig(ctx):
     '--edge',
     metavar='INT',
     help='Minimum length of contigs, which mean too short contigs will be skipped.',
-    default=20000,
+    default=100000, # 20 for version < 3.0  
     type=int,
     show_default=True,
 )
@@ -152,7 +153,7 @@ def hitig(ctx):
     metavar='INT',
     help='minimum depth of windows',
     type=int,
-    default=1,
+    default=5, # 1 for version < 3.0
     show_default=True
 )
 @click.option(
@@ -162,7 +163,7 @@ def hitig(ctx):
     help='cutoff of identification chimeric contigs, '
     'which equal (count of splited alignment reads)/(avarage depth in chimeric region).',
     type=click.FloatRange(0, 1.0),
-    default=0.75,
+    default=0.5, # 0.75 for version < 3.0
     show_default=True
 )
 @click.option(

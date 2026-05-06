@@ -39,9 +39,18 @@
     ```
 
 ## 塌缩contig补救
-```shell
-cphasing collapse rescue 3.hyperpartition/porec.align.porec.q1.e5m.hg draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
-```
+=== "Pore-C/CiFi"
+
+    ```shell
+        cphasing collapse rescue sample.porec.gz draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table --porec
+    ```
+
+=== "Hi-C"
+
+    ```shell
+        cphasing collapse rescue sample.hic.pairs.pqs draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table --pairs
+    ```
+
 !!! note
     目前，此步骤输出的为`collapsed.rescue.clusters.txt`格式，需要用户自行运行后续的`4.scaffolding`以完成contig的排序和定向。
 

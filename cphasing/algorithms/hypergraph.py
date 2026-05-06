@@ -235,7 +235,7 @@ class HyperGraph:
 
         logger.debug("Starting to construct hypergraph incidence matrix.")
         data = self.count if self.count is not None else np.ones(len(self.row), dtype=np.int32)
-       
+        # data = np.ones(len(self.row), dtype=np.int32)
         # matrix = csr_matrix((data, (self.row, self.col)), shape=self.shape)   
 
         rows = np.asarray(self.row, dtype=np.int32)
@@ -261,8 +261,17 @@ class HyperGraph:
 
         if min_contacts:
             non_zero_contig_idx = matrix.sum(axis=1).T.A1 >= min_contacts
-            matrix = matrix[non_zero_contig_idx]
+            # 
+            # D_e = matrix.sum(axis=0).A1  
+            # term1 = matrix.dot(D_e)
+            # matrix_sq = matrix.copy()
+            # matrix_sq.data **= 2
+            # term2 = matrix_sq.sum(axis=1).A1
+            # vpc_degree = term1 - term2      
+            # non_zero_contig_idx = vpc_degree >= min_contacts
             # self.remove_contigs = self.nodes[~non_zero_contig_idx]
+
+            matrix = matrix[non_zero_contig_idx]
             self.remove_contig_idx = np.where(~non_zero_contig_idx)[0]
             self.nodes = self.nodes[non_zero_contig_idx]
            
@@ -364,7 +373,19 @@ class HyperGraph:
             # D_e - I
             # D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
             if cis_count is None:
-                D_e_num = (H.sum(axis=0).A1 - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+                ## v0.3.0 
+                # D_e_num = (H.sum(axis=0).A1 - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+                ## v0.3.1
+                # k = H.sum(axis=0).A1
+                # D_e_num = (k * (k - 1) / 2.0).astype(HYPERGRAPH_ORDER_DTYPE)
+                ## v0.3.2
+        
+                D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE) - 1
+                ## v0.3.3
+                # D_e_num = H.multiply(H).sum(axis=0).A1 
+
+                ## v0.2.0
+                # D_e_num = ((H.sum(axis=0).A1 - 1) * (H.sum(axis=0).A1) / 2).astype(HYPERGRAPH_ORDER_DTYPE)
                 # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
             else:
                 D_e_num = (cis_count - H.sum(axis=0).A1 - 1).astype(HYPERGRAPH_ORDER_DTYPE)
@@ -375,8 +396,19 @@ class HyperGraph:
         # if W is not None:
         #     W = dia_matrix((W, np.array([0])), shape=(m, m), dtype=np.float32)
         # W = dia_matrix((D_e_num, np.array([0])), (m, m), dtype=np.float32)
-        
-       
+      
+        # edge_weights = np.ones(H.shape[1], dtype=np.float64)
+        # edge_sizes = np.array(H.sum(axis=0)).flatten()
+        # norm_factor = np.zeros_like(edge_sizes, dtype=np.float64)
+        # valid_edges = edge_sizes >= 2
+
+        # norm_factor[valid_edges] = edge_weights[valid_edges] / (edge_sizes[valid_edges] * (edge_sizes[valid_edges] - 1) / 2.0)
+
+        # Zhou's
+        # n = H.shape[0]
+        # D_v = np.array(H.sum(axis=1)).flatten()
+        # D_v_inv_sqrt = dia_matrix(((1.0 / np.sqrt(np.maximum(D_v, 1))).astype(np.float32), [0]), shape=(n, n))
+
         # inverse diagonal matrix D_e
         D_e_inv = dia_matrix(((1 / np.maximum(D_e_num, 1)).astype(np.float32), [0]), shape=(m, m))
 
@@ -389,8 +421,12 @@ class HyperGraph:
                 from sparse_dot_mkl import dot_product_mkl
                 A = dot_product_mkl(H.tocsr().astype(np.float32), D_e_inv.tocsr())
                 A = dot_product_mkl(A, H.T.astype(np.float32))
+                
             except ImportError:
                 A = H.dot(D_e_inv).dot(H.T)
+            # A = D_v_inv_sqrt @ A @ D_v_inv_sqrt
+            # from scipy.sparse import diags
+            # A = H.dot(diags(norm_factor)).dot(D_e_inv).dot(H.T)
         logger.debug("Calculated clique expansion/reduction adjacency matrix.")
      
 
@@ -469,7 +505,7 @@ class HyperGraph:
     
     @staticmethod
     def filter_adjacency_matrix(A, nodes, contigsizes, invert=False,
-                                method="max",
+                                method="quantile",
                                 high_q=0.999,
                                 low_q=None,
                                 mad_z=3.0):
@@ -695,6 +731,115 @@ class HyperGraph:
             return 
         else:
             return df
+
+    @staticmethod
+    def bipartite_leiden_clustering(H, resolution=1.0, min_weight=0.01,
+                                    P_allelic_idx=None, P_weak_idx=None,
+                                    allelic_factor=-1.0, cross_allelic_factor=0.0,
+                                    max_k=15):
+        from scipy.sparse import bmat, diags, triu, csr_matrix
+        import igraph as ig
+
+        logger.info("Building Bipartite (Star-Expansion) Graph instead of Clique Expansion...")
+        n_contigs, n_hyperedges = H.shape
+
+        k = np.array(H.sum(axis=0)).flatten()
+        valid_edges = k <= max_k
+        H_sub = H[:, valid_edges]
+        k_sub = k[valid_edges]
+
+        weight_decay = 1.0 / np.maximum(k_sub - 1, 1).astype(np.float32)
+        H_weighted = H_sub @ diags(weight_decay)
+
+        logger.info("Projecting to Contig-Contig adjacency matrix...")
+        A = H_weighted @ H_sub.T
+        
+        if min_weight > 0:
+            A.data[A.data < min_weight] = 0
+            A.eliminate_zeros()
+            
+        A.setdiag(0)
+        A.eliminate_zeros()
+
+
+        
+        if P_allelic_idx or P_weak_idx:
+            logger.info("Applying penalizations to adjacency matrix...")
+            if P_allelic_idx:
+                r, c = HyperGraph._normalize_pair_index(P_allelic_idx)
+                if allelic_factor == 0:
+                    A[r, c] = 0
+                else:
+                    A[r, c] *= allelic_factor
+                    
+            if P_weak_idx:
+                r, c = HyperGraph._normalize_pair_index(P_weak_idx)
+                A[r, c] *= cross_allelic_factor
+        # P_row, P_col, P_data = [], [], []
+        # if P_allelic_idx is not None or P_weak_idx is not None:
+        #     logger.info("Applying P_allelic_idx / P_weak_idx penalizations via direct explicit edges...")
+            
+        #     def add_penalty(P_idx, factor):
+        #         if P_idx is None: 
+        #             return
+        #         r, c = HyperGraph._normalize_pair_index(P_idx)
+                
+        #         implicit_w = H_weighted[r].multiply(H_weighted[c]).sum(axis=1).A1
+                
+             
+        #         delta_w = implicit_w * (factor - 1.0)
+                
+        #         valid = np.abs(delta_w) > 1e-6
+        #         P_row.extend(r[valid])
+        #         P_col.extend(c[valid])
+        #         P_data.extend(delta_w[valid])
+
+        #     add_penalty(P_allelic_idx, allelic_factor) 
+        #     add_penalty(P_weak_idx, cross_allelic_factor)
+        # if len(P_data) > 0:
+        #     C_C_mat = csr_matrix((P_data, (P_row, P_col)), shape=(n_contigs, n_contigs))
+        #     C_C_mat = triu(C_C_mat) + triu(C_C_mat, k=1).T
+        # else:
+        #     C_C_mat = None
+
+        # B = bmat([
+        #     [C_C_mat, H_weighted],
+        #     [H_weighted.T, None]
+        # ], format='csr')
+        
+        # B_upper = triu(B, format='coo')
+        # B_upper.eliminate_zeros()
+        A_upper = triu(A, format='coo')
+        A_upper.eliminate_zeros()
+        
+        edges = np.column_stack((A_upper.row, A_upper.col))
+        G = ig.Graph(
+            n=n_contigs + n_hyperedges,
+            edges=edges.tolist(),
+            edge_attrs={'weight': A_upper.data},
+            directed=False
+        )
+        
+        G.vs['type'] = [0] * n_contigs + [1] * n_hyperedges
+        
+        logger.info(f"Running Leiden on Bipartite Graph "
+                    f"({n_contigs:,} contigs + {n_hyperedges:,} hyperedges)...")
+        
+        cluster_assignments = G.community_leiden(
+            weights='weight', 
+            resolution_parameter=resolution, 
+            objective_function='modularity'
+        )
+
+        contig_memberships = np.array(cluster_assignments.membership[:n_contigs])
+        
+        cluster_results = []
+        for c_id in np.unique(contig_memberships):
+            cluster_results.append(set(np.where(contig_memberships == c_id)[0]))
+            
+        logger.info(f"Bipartite clustering finished: found {len(cluster_results)} groups.")
+        
+        return contig_memberships, cluster_results
 
 
 def calc_new_weight(k, c, e_c, m):

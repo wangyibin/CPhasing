@@ -66,6 +66,9 @@ crabz = ">=0.10.0,<0.11"
 bwa-mem2 = ">=2.3,<3"
 samblaster = ">=0.1.26,<0.2"
 needletail = ">=0.7.1,<0.8"
+minigraph = ">=0.21,<0.22"
+xopen = ">=2.0.2,<3"
+plotnine = ">=0.15.3,<0.16"
 
 [target.linux-64.dependencies]
 sparse_dot_mkl = ">=0.9.10,<0.10"
@@ -82,7 +85,7 @@ platforms = ["linux-64", "linux-aarch64"]
 [feature.methalign.dependencies]
 ont-modkit = ">=0.4.3,<0.5"
 #dorado = ">=0.7.2,<0.8"
-bammap2 = ">=0.1.4,<0.2"
+bammap2 = ">=0.1.7,<0.2"
 [feature.methalign.target.linux-64.dependencies]
 pbmm2 = ">=1.16.99,<2"
 pb-cpg-tools = ">=3.0.0,<4"
@@ -112,7 +115,7 @@ mike = "2.0.0.*"
 pillow = ">=9.4.0"
 cairosvg = "2.7.1.*"
 git-cliff = ">=2.4.0,<3"
-zensical = ">=0.0.15,<0.0.16"
+zensical = ">=0.0.30,<0.0.31"
 
 [feature.docs.pypi-dependencies]
 mkdocs-static-i18n = ">=1.2.3"

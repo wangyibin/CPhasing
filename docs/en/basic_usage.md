@@ -53,7 +53,7 @@ cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hi
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
 !!! note
-    - **1** | If you want to run multiple samples, you can use `cphasing hic mapper` and `cphasing-rs pairs-merge` to generate the merged `pairs.pqs` file, and input it by `-prs` parameter.  
+    - **1** | If you want to run multiple samples, you can specified mutiple `-hic1` and `-hic2` parameters (e.g., `-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz`)  
     - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of `chromap`. 
 
 
@@ -83,7 +83,16 @@ Add the `-hcr` parameter to remove the greedy contacts (several regions contact 
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT
 ```
-    
+
+### Collapsed rescue
+```bash
+cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue 
+```
+or 
+```bash
+cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue --gfa draft.asm.p_utg.noseq.gfa 
+```
+ 
 ## Curation by Juicebox [Or directly run `6.curation/curation.cmd.sh`]
 
 - generate `.assembly` and `.hic`, depend on [3d-dna](https://github.com/aidenlab/3d-dna)  

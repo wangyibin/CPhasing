@@ -329,14 +329,19 @@ class ChromapMapper:
     def mapping(self):
         reads_1 = " ".join(self.read1)
         reads_2 = " ".join(self.read2)
+        is_compressed = str(self.read1[0]).endswith('.gz')
+        if is_compressed:
+            decomp_cmd = "crabz -d -p 8" if getattr(self, 'compressor', 'pigz') == 'crabz' else "pigz -dc -p 8"
+        else:
+            decomp_cmd = "cat"
         cmd = f"{self._path} -t {self.threads} " \
                 f"-q {self.min_quality} "\
                 f"--preset hic " \
                 f"-x {str(self.index_path)} " \
                 f"--remove-pcr-duplicates " \
                 f"-r {str(self.reference)} " \
-                f"-1 <(pigz -dc -p 8 {reads_1}) " \
-                f"-2 <(pigz -dc -p 8 {reads_2}) " \
+                 f"-1 <({decomp_cmd} {reads_1} 2>/dev/null) " \
+                f"-2 <({decomp_cmd} {reads_2} 2>/dev/null) " \
                 f"-o {str(self.output_pairs)} " \
                 f"2>{self.log_dir}/{self.prefix}.mapping.log"
 
@@ -407,11 +412,25 @@ class ChromapMapper:
             self.index()
         else:
             logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
-        
-        self.mapping()
-        self.compress()
+
+        compressed_pairs = Path(f"{self.output_pairs}.gz")
+        if not compressed_pairs.exists():
+            self.mapping()
+            self.compress()
+        else:
+            if is_compressed_table_empty(str(compressed_pairs)):
+                logger.warning(f"Empty existing mapping result: `{compressed_pairs}`, force rerun mapper.")
+                self.mapping()
+                self.compress()
+            else:
+                logger.warning(f"The mapping result `{compressed_pairs}` existing, skipped `reads mapping` ...")
+
         if self.output_format == 'pairs.pqs':
-            self.pairs2pqs()
+            outpqs = Path(f"{self.output_pairs}.pqs")
+            if not outpqs.exists():
+                self.pairs2pqs()
+            else:
+                logger.warning(f"The pairs archive `{outpqs}` existing, skipped `pairs2pqs` ...")
 
 class MinimapMapper:
     """
@@ -549,7 +568,7 @@ class MinimapMapper:
         if "-N" not in self.additional_arguments:
             self.additional_arguments += f" -N 500"
         if "-p" not in self.additional_arguments:
-            self.additional_arguments += f" -p .99999"
+            self.additional_arguments += f" -p 1.0"
 
 
         reads_1 = " ".join(self.read1)
@@ -617,8 +636,27 @@ class MinimapMapper:
         logger.info("Done.")         
 
     def run(self):
-        self.mapping()
-        self.paf2pairs()
+        self.output_paf = Path(f"{self.prefix}.paf.gz")
+        
+        if not self.output_paf.exists():
+            self.mapping()
+        else:
+            if is_compressed_table_empty(str(self.output_paf)):
+                logger.warning(f"Empty existing mapping result: `{self.output_paf}`, force rerun mapper.")
+                self.mapping()
+            else:
+                logger.warning(f"The mapping result `{self.output_paf}` existing, skipped `reads mapping` ...")
+
+        if not Path(self.output_pairs).exists():
+            self.paf2pairs()
+        else:
+            if str(self.output_pairs).endswith('.pqs'):
+                logger.warning(f"The pairs archive `{self.output_pairs}` existing, skipped `paf2pairs` ...")
+            elif is_empty(self.output_pairs):
+                logger.warning(f"Empty existing pairs result: `{self.output_pairs}`, force rerun paf2pairs.")
+                self.paf2pairs()
+            else:
+                logger.warning(f"The pairs result `{self.output_pairs}` existing, skipped `paf2pairs` ...")
 
 class BwaMapper:
     """
@@ -742,7 +780,7 @@ class BwaMapper:
         reads_1 = " ".join(self.read1)
         reads_2 = " ".join(self.read2)
         
-        cmd = f"{self._path} mem -t {self.threads} -5SPM " \
+        cmd = f"{self._path} mem -t {self.threads} -5SP " \
               f"{self.reference} " \
               f"<({decompress_cmd} {reads_1}) <({decompress_cmd} {reads_2}) " \
               f"2>{self.log_dir}/{self.prefix}.hic.mapping.log | " \
@@ -794,10 +832,33 @@ class BwaMapper:
         logger.info("Done.")
 
     def run(self):
-        self.get_contig_sizes()
+        if not Path(f"{self.prefix}.contigsizes").exists():
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes` existing, skipped ...")
+            
         self.index()
-        self.mapping()
-        self.bam2pairs()
+        
+        if not self.output_bam.exists():
+            self.mapping()
+        else:
+            if is_empty(self.output_bam):
+                logger.warning(f"Empty existing mapping result: `{self.output_bam}`, force rerun mapper.")
+                self.mapping()
+            else:
+                logger.warning(f"The mapping result `{self.output_bam}` existing, skipped `reads mapping` ...")
+
+        if not Path(self.output_pairs).exists():
+            self.bam2pairs()
+        else:
+            if str(self.output_pairs).endswith('.pqs'):
+                logger.warning(f"The pairs archive `{self.output_pairs}` existing, skipped `bam2pairs` ...")
+            elif is_empty(self.output_pairs):
+                logger.warning(f"Empty existing pairs result: `{self.output_pairs}`, force rerun bam2pairs.")
+                self.bam2pairs()
+            else:
+                logger.warning(f"The pairs result `{self.output_pairs}` existing, skipped `bam2pairs` ...")
+
 class PoreCMapper:
     def __init__(self, reference, reads, pattern="GATC", 
                     k=15, w=10, min_quality=1, 

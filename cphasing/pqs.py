@@ -264,7 +264,7 @@ class PQS:
         if not path.exists():
             return False
         
-        if path.is_dir():
+        if path.is_dir() or path.is_symlink():
             if (path / "_metadata").exists() and (path / "_contigsizes").exists():
                 if not os.listdir(path / "q0") and not os.listdir(path / "q1"):
                     return False
@@ -277,6 +277,9 @@ class PQS:
                     return False
             else:
                 return False
+    
+        return False
+            
     
     def is_pairs(self, path=None):
         """
@@ -314,6 +317,7 @@ class PQS:
         ), "The given path is not a .pqs file or could not found this path."
 
         self._contigsizes = read_chrom_sizes(Path(path) / "_contigsizes").sort_index()
+        self._contigsizes = self._contigsizes[~self._contigsizes.index.duplicated(keep='first')]
     
         with open(Path(path) / "_metadata", "r") as f:
             self._metadata = eval(f.read())
@@ -702,7 +706,7 @@ class PQS:
 
             
         q0_sample_prob = 1.0
-        if is_with_mapq and min_mapq == 0 and base is not None and max_q0_ratio is not None:
+        if is_with_mapq and min_mapq == 0 and base is not None and max_q0_ratio is not None and max_q0_ratio != 0:
             mc = _read_metadata_counts(str(base))
             if mc is not None:
                 q0_total = mc["q0_records"]

@@ -1,35 +1,47 @@
-## [v0.3.0] - 2026-02-01
+## [v0.3.0] - 2026-04-10
+#### New features
+- `prepartition`: Introduced a method to use a monoploid reference for guiding the initial contig clustering. This can be integrated into the `pipeline` using the `-fc` flag to bypass the 1st-round `hyperpartition`.
+- `pipeline`: Added the `--gfa` option to facilitate the removal of redundant contigs post-scaffolding.
+
 #### Enhancement
-- **Improved anchor rate when using Pore-C data**
-    - `mapper`  
-        - Reducing the incidence of h-*trans* artifacts in Pore-C alignments with a MAPQ score of 1.
+- **Improved anchor rate for Pore-C data**  
+    - `mapper`    
+        - Minimized the incidence of h-*trans* artifacts in Pore-C alignments specifically for reads with a MAPQ of 1.  
+    - `pipeline`   
+        - Adjusted `-q2` to 1 to leverage more hyperedges for phasing haplotypes.
+ 
+- **Enhanced performance of collapsed rescue**  
     - `pipeline`  
-        - Refactor the steps to add collapsed rescue step
-        - integrated collapsed rescue module by input a collapsed contig list ('--collapsed-contigs') (experiment)
-    
-        - Change `-q2` to 1 for using more hyperedges to phase haplotypes
-       
-    - `collapse rescue`
-        - Refactor the code to improve the results
-        
+        - Refactored the step ordering to seamlessly integrate the collapsed rescue module.  
+        - The collapsed rescue module can now be activated by providing a collapsed contig list (`--collapsed-contigs`) or by using the `--collapsed-rescue` flag (which delivers higher performance implicitly suited for Pore-C data).
+    - `collapsed rescue`   
+        - Refactored the underlying code to boost overall execution speed.
+
+- `rename`  
+    - support for rename chromosome-level fasta (`cphasing rename -r mono.fa -f groups.asm.fasta`)
 
 #### Bug fixes
 - `alleles`  
-    - Fixed: Contig length support increased from 134 Mb to 34 Gb (max 1M contigs).
+    - Contig length support has been significantly scaled up, increasing the maximum supported length from 134 Mb to 34 Gb (handling up to 1M contigs).
 - `hyperpartition`  
-    - Fixed the bug that makes kprune run slowly
-    - Fixed bug that reported in issue #45
+    - Fixed a performance bug that caused `kprune` to execute slowly.
+    - Resolved a bug reported in issue #45.
 - `pipeline`   
-    - fixed bug that when `pairs.pqs` existed the second round still run again
+    - Fixed an issue where the second round inadvertently re-ran even if `pairs.pqs` already existed.
 - `scaffolding`  
-    - fixed bug that scaffolding can not process duplicated contigs.
+    - Fixed a bug preventing the scaffolding module from properly processing duplicated contigs.
 - `curation`  
-    - fixed bug that only one chromosome in assembly when separate haplotypes
+    - Fixed an issue where separating haplotypes resulted in only one chromosome appearing in the final assembly.
 - `hic mapper`  
-    - fixed bug that minimap2 report `self.prefix` unassigned
-    - fixed bug that convert pairs to pairs.pqs repeatedly
+    - Fixed an error in Minimap2 reporting `self.prefix` as unassigned.
+    - Resolved a bug that caused the repeated conversion of `pairs` files to `pairs.pqs`.
 - `cphasing-rs bam2paf`  
-    - fixed bug that generated error read positions of alignments
+    - Fixed a bug that generated incorrect read positions during alignment parsing.
+
+#### Acknowledgments
+- We are grateful to the Director of Bioinformatics (Zhang Yaolong) from `HuaBiology` for the optimization suggestions provided.
+
+
 
 ## [v0.2.10] - 2026-01-25
 #### Enhancements

@@ -99,7 +99,8 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     y_grid = counts
 
     try:
-        y_smooth = gaussian_filter1d(y_grid, sigma=1.5)
+        dynamic_sigma = max(1.5, bins / 100.0)
+        y_smooth = gaussian_filter1d(y_grid, sigma=dynamic_sigma)
     except Exception:
         y_smooth = y_grid
 
@@ -125,7 +126,7 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
     x = x_grid[mask]
     y = y_smooth[mask]
-    _x_peak = np.median(data)
+    _x_peak = np.median(data) 
 
     if len(x) == 0 or len(y) == 0:
         max_idx = 0
@@ -240,7 +241,7 @@ def plot2(data, lower_value=0.1, upper_value=1.75, output="output"):
 
 
 def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
-                    min_remove_whole_collapsed_contigs_rate=0.9):
+                    min_remove_whole_collapsed_contigs_rate=0.9, ploidy=None,):
 
     cool = cooler.Cooler(cool_file)
     binsize = cool.binsize
@@ -291,7 +292,7 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
         
         collapsed_regions['Total_length'] = collapsed_regions['Chromosome'].map(contigsizes_db.get)
         collapsed = collapsed_regions.groupby('Chromosome')['Length'].sum().reset_index()
-        collapsed['Total_length'] = collapsed['Chromosome'].map(contigsizes_db.get)
+        collapsed['Total_length'] = collapsed['Chromosome'].map(contigsizes_db.get).astype(float)
         
         collapsed = collapsed.eval('Rate = 1 - (Total_length - Length) / Total_length')
         collapsed = collapsed[collapsed['Rate'] > min_remove_whole_collapsed_contigs_rate]
@@ -309,9 +310,9 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
                     skip_adjust=False,
                     min_remove_whole_collapsed_contigs_rate=0.9,
-                    edge_length=None):
+                    edge_length=None, ploidy=None):
 
-    
+    logger.info(f"Reading depth file `{depth_file}` ...")
     depth = pl.read_csv(depth_file, separator='\t', has_header=False,
                         new_columns=['chrom', 'start', 'end', 'count']).to_pandas()
 
@@ -343,8 +344,21 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     contig_counts = bins.groupby('chrom')['count'].median().to_frame()
     contig_counts['CN'] = contig_counts['count'] / peak_value
     collapsed_contigs = contig_counts.query('count > @max_value')
-    collapsed_contigs.to_csv(output.replace(".bed", ".high_coverage.contigs.txt"), sep='\t',
+    collapsed_contigs.to_csv("contigs.collapsed.contig.list", sep='\t',
                              index=True, header=None)
+
+    collapsed_contigs.reset_index(inplace=True)    
+    collapsed_contigs['CN'] = collapsed_contigs['CN'].round()
+
+    if ploidy is not None:
+        collapsed_contigs = collapsed_contigs[collapsed_contigs['CN'] <= ploidy]
+    
+    with open("contigs.collapsed.dup.contig.list", 'w') as out:
+        for idx, row in collapsed_contigs.iterrows():
+            contig, cn = row['chrom'], row['CN']
+            for i in range(2, int(cn) + 1):
+                print(contig, f"{contig}_d{i}", sep='\t', file=out)
+
     contigsizes.loc[contig_counts.query('count > @max_value').index].sum()
     hcr_regions = bins.loc[res[0]]
     

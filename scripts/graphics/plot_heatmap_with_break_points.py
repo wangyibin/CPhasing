@@ -64,7 +64,7 @@ def main(args):
     bins = bins.loc[args.chromosome]
 
     ax = plot_heatmap(args.cool, "test.png", 
-                      fontsize=12, scale="none",
+                      fontsize=16, scale="none",
                       vmax=args.vmax, 
                       triangle=True, chromosomes=args.chromosome, 
                       rotate_xticks=True)
@@ -91,7 +91,7 @@ def main(args):
                     fillstyle='none', label=software)
                    
 
-        plt.legend(fontsize=8)
+        plt.legend(fontsize=16)
             
     # ax.plot(pos, -5, marker='^', markersize=5, 
     #             linewidth=1, alpha=0.75,
@@ -102,10 +102,9 @@ def main(args):
 
     sns.despine(left=True, bottom=True)
     plt.yticks([])
-    plt.xlabel(" ".join(args.chromosome), fontsize=14)
+    plt.xlabel(" ".join(args.chromosome), fontsize=16)
     plt.ylim(-(ylim[1]/15))
     output_prefix = "_".join(args.chromosome)
-    plt.savefig(f"{output_prefix}.tria.png", dpi=600, bbox_inches='tight')
     plt.savefig(f"{output_prefix}.tria.pdf", dpi=600, bbox_inches='tight')
 
 

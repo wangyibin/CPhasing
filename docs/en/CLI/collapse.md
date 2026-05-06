@@ -46,13 +46,13 @@ Collapsed contigs are commonly observed in polyploid hybrids due to the presence
 === "Pore-C/CiFi"
 
     ```shell
-        cphasing collapse rescue sample.porec.gz draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
+        cphasing collapse rescue sample.porec.gz draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table --porec
     ```
 
 === "Hi-C"
 
     ```shell
-        cphasing collapse rescue sample.hic.pairs.pqs draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table
+        cphasing collapse rescue sample.hic.pairs.pqs draft.asm.contigsizes 3.hyperpartition/output.clusters.txt contigs.collapsed.contig.list -n 4 -at 3.hyperpartition/draft.asm.allele.table --pairs
     ```
 
 !!! note

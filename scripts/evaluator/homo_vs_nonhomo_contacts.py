@@ -74,7 +74,7 @@ def main(args):
         cis2 = matrix.fetch(chrom_pair[1]).sum()
         if cis1 == 0 or cis2 == 0:
             continue
-        contacts = trans / sqrt(cis1 * cis2)
+        contacts = trans / (cis1 + cis2 + trans)
         if chrom_pair in homo_chroms:
             homo_contacts.append(contacts)
         else:
@@ -92,6 +92,7 @@ def main(args):
     res_df.dropna(axis=0, inplace=True)
 
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     fig, ax = plt.subplots(figsize=(3.5, 5))
 
     colors = ['#df8384', '#8dc0ed', '#a83836',  "#253761",]

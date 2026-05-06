@@ -973,18 +973,29 @@ def build_bin_mapping(cool, agp_df, bin_size, coarsen_factor=1):
             
         c_info = contig_id_map[contig_name]
         old_start_id, old_end_id = c_info['min'], c_info['max']
-
-        num_bins = old_end_id - old_start_id + 1
-        old_bin_ids = np.arange(old_start_id, old_end_id + 1)
         
-        tig_starts = contig_starts[old_start_id : old_end_id+1]
+        agp_tig_start = row.tig_start - 1  # 0-based
+        agp_tig_end = row.tig_end
+
+        old_bin_ids_all = np.arange(old_start_id, old_end_id + 1)
+        tig_starts_all = contig_starts[old_start_id : old_end_id+1]
+        tig_ends_all = contig_ends[old_start_id : old_end_id+1]
+
+        valid_mask = (tig_ends_all > agp_tig_start) & (tig_starts_all < agp_tig_end)
+        if not np.any(valid_mask):
+            continue
+
+        old_bin_ids = old_bin_ids_all[valid_mask]
+        tig_starts = tig_starts_all[valid_mask]
+        tig_ends = tig_ends_all[valid_mask]
+
+        actual_starts = np.maximum(tig_starts, agp_tig_start)
+        actual_ends = np.minimum(tig_ends, agp_tig_end)
         
         if orientation == '+':
-            chrom_coords = agp_start + tig_starts
+            chrom_coords = agp_start + (actual_starts - agp_tig_start)
         else:
-            tig_len = row.tig_end
-            tig_ends = contig_ends[old_start_id : old_end_id+1]
-            chrom_coords = agp_start + (tig_len - tig_ends)
+            chrom_coords = agp_start + (agp_tig_end - actual_ends)
   
         rel_bin_indices = (chrom_coords // target_bin_size).astype(np.int64)
         base_offset = chrom_offset[chrom_name]
@@ -1634,6 +1645,10 @@ def plot_heatmap(matrix, output,
                     add_hap_shadow=False,
                     hap_shadow_color='grey',
                     hap_shadow_alpha=0.1,
+                    add_chrom_border=False,
+                    chrom_border_color='black',      
+                    chrom_border_width=0.5, 
+                    yticks_as_hap=False,  
                     add_lines=False,
                     line_color='black',
                     line_width=0.5,
@@ -1656,6 +1671,7 @@ def plot_heatmap(matrix, output,
                     dpi=1200, 
                     cmap="redp1_r",
                     cbar_bottom=False,
+                    plot_cbar=True,
                     balanced=False,
                     remove_empty=True,
                     threads=1):
@@ -1839,7 +1855,7 @@ def plot_heatmap(matrix, output,
         except ValueError:
             hap_name_df = pd.Series()
         
-        if len(hap_name_df) <= 1:
+        if len(hap_name_df) == 0:
             hap_name_df = chromnames_df['chrom'].to_frame()
             hap_name_df.reset_index(drop=False, inplace=True)
             hap_name_df.columns = ['index', 'chrom']
@@ -1975,13 +1991,18 @@ def plot_heatmap(matrix, output,
                             xticks=xticks, yticks=yticks, 
                             rotate_xticks=rotate_xticks, rotate_yticks=rotate_yticks,
                             vmin=vmin, vmax=vmax, 
-                            cmap=cmap, cbar_bottom=cbar_bottom, add_lines=add_lines,
+                            cmap=cmap, cbar_bottom=cbar_bottom, 
+                            plot_cbar=plot_cbar, add_lines=add_lines,
                             add_hap_border=add_hap_border,
                             hap_border_color=hap_border_color,
                             hap_border_width=hap_border_width,
                             add_hap_shadow=add_hap_shadow,
                             hap_shadow_color=hap_shadow_color,
                             hap_shadow_alpha=hap_shadow_alpha,
+                            add_chrom_border=add_chrom_border,     
+                            chrom_border_color=chrom_border_color, 
+                            chrom_border_width=chrom_border_width, 
+                            yticks_as_hap=yticks_as_hap,         
                             line_color=line_color,
                             line_width=line_width,
                             line_style=line_style,
@@ -2000,14 +2021,15 @@ def plot_heatmap(matrix, output,
                                         cmap=cmap, balanced=balanced,
                                         vmin=vmin, vmax=vmax, group_by_homologs=group_by_homologs,
                                         hap_pattern=hap_pattern, threads=threads)
-
-    logger.info(f"  Set dpi to `{dpi}`.")
-    plt.savefig(output, dpi=dpi, bbox_inches='tight')
     
-    logger.info(f'Successful, plotted the heatmap into `{output}`')
-    if output.endswith('.png'):
-        plt.savefig(output.replace('.png', '.pdf'), dpi=dpi, bbox_inches='tight')
-        logger.info(f"Successful, also saved the heatmap into `{output.replace('.png', '.pdf')}`")
+    logger.info(f"  Set dpi to `{dpi}`.")
+    for out in output:
+        plt.savefig(out, dpi=dpi, bbox_inches='tight')
+        
+        logger.info(f'Successful, plotted the heatmap into `{out}`')
+        # if output.endswith('.png'):
+        #     plt.savefig(output.replace('.png', '.pdf'), dpi=dpi, bbox_inches='tight')
+        #     logger.info(f"Successful, also saved the heatmap into `{output.replace('.png', '.pdf')}`")
 
     return ax
 
@@ -2364,6 +2386,10 @@ def plot_heatmap_core(matrix,
                         add_hap_shadow=False,
                         hap_shadow_color='grey',
                         hap_shadow_alpha=0.1,
+                        add_chrom_border=False,        
+                        chrom_border_color='black',    
+                        chrom_border_width=0.5,     
+                        yticks_as_hap=False,        
                         add_lines=False,
                         line_color='black',
                         line_width=0.5,
@@ -2654,9 +2680,17 @@ def plot_heatmap_core(matrix,
 
     else:
         ax.set_xticks([])
+    
+    if add_chrom_border and chrom_offset is not None:
+        for start, end in zip(chrom_offset[:-1], chrom_offset[1:]):
+            plt.plot([start, start], [start, end], color=chrom_border_color, linestyle='-', linewidth=chrom_border_width)
+            plt.plot([start, end], [start, start], color=chrom_border_color, linestyle='-', linewidth=chrom_border_width)
+            plt.plot([end, end], [start, end], color=chrom_border_color, linestyle='-', linewidth=chrom_border_width)
+            plt.plot([start, end], [end, end], color=chrom_border_color, linestyle='-', linewidth=chrom_border_width)
+
     if chromnames:
-        if hap_name_df is not None and (add_hap_border or add_hap_shadow):
-            add_hap_internal_lines = True 
+        if hap_name_df is not None and (add_hap_border or add_hap_shadow or yticks_as_hap):
+            add_hap_internal_lines = (add_hap_border or add_hap_shadow) and not add_chrom_border 
             hap_internal_mode = 'grid'
             new_mid_tick_pos = []
             hap_names = []

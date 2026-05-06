@@ -80,6 +80,7 @@ def main(args):
     def dotplot(chr,rho, x_data, y_data,chrom_sizes):
         
         plt.rcParams['font.family'] = 'Arial'
+        plt.rcParams['pdf.fonttype'] = 42
 
         labels = copy_ref_dic[chr]
 

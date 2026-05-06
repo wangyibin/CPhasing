@@ -182,7 +182,34 @@ def main(args):
         line = [(init_start + contig_start, idx), (init_start + contig_end, idx)]
         unanchored_lines.append(line)
 
+    def merge_segments(line_segments):
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for (p1, p2) in line_segments:
+            y = p1[1]
+            start_x, end_x = min(p1[0], p2[0]), max(p1[0], p2[0])
+            groups[y].append([start_x, end_x])
+            
+        merged_res = []
+        for y, intervals in groups.items():
+            intervals.sort(key=lambda x: x[0])
+            merged = []
+            for iv in intervals:
+              
+                if not merged or merged[-1][1] < iv[0]:
+                    merged.append(iv)
+                else:
+                    merged[-1][1] = max(merged[-1][1], iv[1])
+            for m in merged:
+                merged_res.append([(m[0], y), (m[1], y)])
+        return merged_res
+
+    lines = merge_segments(lines)
+    error_lines = merge_segments(error_lines)
+    unanchored_lines = merge_segments(unanchored_lines)
+
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
 
     fig = plt.figure(figsize=(3, 0.12 * (max_idx + 1)))
 
@@ -219,7 +246,7 @@ def main(args):
             frameon=False)
 
     output = Path(args.agp).stem if not args.output else args.output
-    plt.savefig(f"{output}.png", dpi=600, bbox_inches='tight')
+    plt.savefig(f"{output}.png", dpi=1200, bbox_inches='tight')
     plt.savefig(f"{output}.pdf", dpi=300, bbox_inches='tight')
 
 
@@ -252,15 +279,17 @@ def main(args):
 
     
 
-    print(output, correct_count, misassignment_count, missing_count, total_count, 
-            correct_length, misassignment_length, missing_length, total_length, 
-            correct_length/ total_length, misassignment_length / total_length, missing_length / total_length,
-            E_F_correct_count, E_F_misassignments_count, E_F_missing_count, E_F_total_count,
-            E_F_correct_length, E_F_misassignments_length, E_F_missing_length, E_F_total_length, 
-            E_F_correct_length / E_F_total_length, E_F_misassignments_length / E_F_total_length, 
-            E_F_missing_length / E_F_total_length, sep='\t')
+    # print(output, correct_count, misassignment_count, missing_count, total_count, 
+    #         correct_length, misassignment_length, missing_length, total_length, 
+    #         correct_length/ total_length, misassignment_length / total_length, missing_length / total_length,
+    #         E_F_correct_count, E_F_misassignments_count, E_F_missing_count, E_F_total_count,
+    #         E_F_correct_length, E_F_misassignments_length, E_F_missing_length, E_F_total_length, 
+    #         E_F_correct_length / E_F_total_length, E_F_misassignments_length / E_F_total_length, 
+    #         E_F_missing_length / E_F_total_length, sep='\t')
     
-
+    print(output, correct_length/ total_length * 100, misassignment_length / total_length * 100, missing_length / total_length * 100,
+        E_F_correct_length / E_F_total_length * 100, E_F_misassignments_length / E_F_total_length * 100, 
+            E_F_missing_length / E_F_total_length * 100, sep='\t')
 
 
 if __name__ == "__main__":

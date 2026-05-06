@@ -27,6 +27,7 @@ from itertools import combinations
 from multiprocessing import Process, Pool
 from pathlib import Path
 from pandarallel import pandarallel
+from rich.table import Table
 from subprocess import check_call, Popen, PIPE
 
 from ._config import *
@@ -297,12 +298,14 @@ class AlleleTable:
     AlleleHeader2 = ['idx1', 'idx2', 'contig1', 'contig2', 
                      'mz1', 'mz2', 'mzShared', 'similarity', 
                      'strand']
-    def __init__(self, infile, sort=True, fmt="allele1"):
+    def __init__(self, infile, sort=True, fmt="allele1", load_self=False):
         self.filename = infile
         self.sort = sort
         self.fmt = fmt 
+        self.load_self = load_self
         assert self.fmt in ("allele1", "allele2"), \
                 "format must in ['allele1', 'allele2']"
+
         if not Path(self.filename).exists():
             logger.error(f'No such file of `{self.filename}`.')
             sys.exit()
@@ -412,6 +415,26 @@ class AlleleTable:
             df.columns = [1, 2] + self.AlleleHeader2[4:]
 
             df.drop_duplicates([1, 2], inplace=True)
+            if self.load_self:
+                comment_data = []
+                with xopen(self.filename, 'r') as fp:
+                    for line in fp:
+                        if line.startswith("#"):
+                            res = line[1:].split()
+                            if res and len(res) >= 4:
+                                comment_data.append(res)
+                if comment_data:
+                    comment_df = pd.DataFrame(comment_data)
+                    comment_df.columns = [1, "length", "mz1", "mzUnique"]
+                    comment_df.drop(['length', 'mzUnique'], axis=1, inplace=True)
+                    comment_df[2] = comment_df[1]
+                    comment_df['mz2'] = comment_df['mz1']
+                    comment_df['mzShared'] = comment_df['mz1']
+                    comment_df['similarity'] = 1.0000 
+                    comment_df['strand'] = 1
+                    df = pd.concat([df, comment_df], axis=0)
+                    
+                    df.reset_index(drop=True, inplace=True)
             
         df = df.reset_index(drop=True)
 
@@ -1025,6 +1048,31 @@ class ClusterTable:
         logger.info(f'Load cluster table: `{self.filename}`.')
         self.get_data()
 
+    @staticmethod
+    def from_dict(data, filename=None):
+        """
+        Create ClusterTable from dictionary.
+
+        Params:
+        --------
+        data: dict
+            dictionary of cluster results
+        filename: str
+            pseudo filename for cluster table
+        """
+        ct = ClusterTable.__new__(ClusterTable)
+        
+        ct.filename = filename if filename is not None else "dict_cluster.txt"
+        
+        from collections import OrderedDict
+        if isinstance(data, OrderedDict):
+            ct.data = data
+        else:
+            ct.data = OrderedDict(data)
+            
+        return ct
+
+
     def parse(self):
         with open(self.filename, 'r') as fp:
             for line in fp:
@@ -1183,6 +1231,33 @@ class ClusterTable:
             _idx = list(map(lambda x: int(x)+1, _idx))
             print(" ".join(map(str, _idx)), file=output)
     
+    def get_stat_table(self, contigsizes=None):
+        table = Table(title=None, header_style="bold")
+        table.add_column("Group", justify="left", style="cyan")
+        table.add_column("NContigs", justify="right", style="magenta")
+        
+        if contigsizes is not None:
+            contigsizes_df = contigsizes
+            contigsizes_db = contigsizes_df.to_dict()['length']
+            table.add_column("Length", justify="right", style="green")
+            
+            for group, ncontigs in self.stat.items():
+                group_len = sum(contigsizes_db.get(ctg, 0) for ctg in self.data[group])
+                table.add_row(str(group), str(ncontigs), f"{group_len:,}")
+            if hasattr(table, "add_section"):
+                table.add_section()
+            table.add_row("Total", str(self.ncontigs), f"{sum(contigsizes_db.get(ctg, 0) for ctg in self.contigs):,}", style="bold")
+        else:
+            for group, ncontigs in self.stat.items():
+                table.add_row(str(group), str(ncontigs))
+            if hasattr(table, "add_section"):
+                table.add_section()
+            table.add_row("Total", str(self.ncontigs), style="bold")
+
+                
+        return table
+
+
     def to_agp(self, contigsizes, output, orientation_db=None, gap=100):
         """
         Convert cluster to a pseudo agp 
@@ -3037,6 +3112,8 @@ class Contacts:
 
         return res
 
+    def to_dict(self):
+        return self.data.set_index(['contig1', 'contig2'])['count'].to_dict()
 
     def __copy__(self):
         return Contacts(self.filename)

@@ -1,6 +1,20 @@
 ---
 icon: lucide/circle-question-mark
 ---
+
+
+### How to choose restriction enzymes and library preparation strategies
+To achieve the best scaffolding and phasing performance, we recommend the following strategies for different sequencing data types:
+
+- **For long-read based technologies (e.g., Pore-C or CiFi):**
+  We recommend using **4-cutter restriction enzymes** (such as *Dpn*II, *Mbo*I， or *Nla*III) rather than 6-cutter enzymes (such as *Hind*III). 4-cutter enzymes have a much higher density of restriction sites, which can generate a larger number of shorter DNA fragments on a single long read. This allows for the capture of richer and higher-order physical contacts.
+
+- **For short-read based technologies (e.g., traditional Hi-C):**
+  The recommended priority is: **Omni-C > Multi-restriction sites Hi-C (e.g., Arima) > Traditional single-restriction site Hi-C**.
+  - **Omni-C** uses DNase I for sequence-independent digestion, providing extremely uniform sequence coverage and eliminating the sequence bias and blind spots associated with specific restriction enzyme motifs.
+  - **Arima multi-enzyme protocols** provide significantly higher site density than single-enzyme protocols, facilitating the accurate resolution of challenging regions in polyploid and complex genomes.
+
+
 ### The results of the first round partition are unsatisfactory.
 In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be not enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the `-q1 0` for `hyperpartition` to increase the rate of h-trans errors. However, this parameter may raise error of `out of memory` when you input huge pore-c data in porec table or hic contacts in pairs file. 
 

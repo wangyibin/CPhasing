@@ -45,7 +45,7 @@ cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hi
 !!! note
     The mapping results of HiFi-C is similar to Pore-C, such as output suffix with `porec.gz`, and process it use `porec-merge`, `porec-intersect`, et al.
 
-### Start from **Hi-C data** 
+### Start from **Hi-C / Omni-C data** 
 ```bash
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```

@@ -116,10 +116,15 @@ def allelic_completeness_index(mono_bed, contig_bed, poly_bed, ploidy):
             total_v += v
             dup_v = len(tmp_df2) - v
             total_dup_v += dup_v
-            print(chrom, v/N_hap, dup_v/(v + dup_v), sep='\t')
+            
+            v_ratio = v / N_hap if N_hap > 0 else 0
+            dup_ratio = dup_v / (v + dup_v) if (v + dup_v) > 0 else 0
+            print(chrom, v_ratio, dup_ratio, sep='\t')
 
-    print("Total", total_v/total_N_hap/ploidy, total_dup_v/(total_v + total_dup_v), sep='\t')
-
+    total_v_ratio = (total_v / total_N_hap / ploidy) if (total_N_hap > 0 and ploidy > 0) else 0
+    total_dup_ratio = (total_dup_v / (total_v + total_dup_v)) if (total_v + total_dup_v) > 0 else 0
+    print("Total", total_v_ratio, total_dup_ratio, sep='\t')
+    
 def find_lis(seq1, seq2):
     n = len(seq1)
     m = len(seq2)

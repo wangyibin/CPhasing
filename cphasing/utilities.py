@@ -546,6 +546,23 @@ def ligation_site(enzyme):
     
     return ligated_sites
 
+def is_fastx(fastx):
+    """
+    Check if the file is in FASTA or FASTQ format.
+    """
+    try:
+        from needletail import parse_fastx_file, NeedletailError
+    except ImportError:
+        return True 
+    try:
+        for record in parse_fastx_file(fastx):
+            return True
+    except NeedletailError:
+        return False
+
+
+
+
 def get_genome_size(fasta):
     """
     Get the size of genome.
@@ -636,9 +653,12 @@ def read_chrom_sizes(chrom_size):
 
     return df 
 
-def get_contig_size_from_fasta(fasta, force=False):
+def get_contig_size_from_fasta(fasta, force=False, output=None):
     fasta_path = Path(fasta)
-    contigsizes = Path(f"{fasta_path.stem}.contigsizes")
+    if output is not None:
+        contigsizes = Path(output)
+    else:
+        contigsizes = Path(f"{fasta_path.stem}.contigsizes")
 
     if contigsizes.exists() and force is False:
         logger.info(f"Load exists contigsizes: `{str(contigsizes)}`")
@@ -1151,6 +1171,33 @@ def prune_matrix(coolfile, prunepairs, outcool):
   
     cooler.create_cooler(outcool, cool.bins()[:], pixels)
 
+def rename_cool_chroms(coolfile, chrom_mapping, outcool):
+    """
+    Rename chromosomes in a cool file based on a mapping dictionary.
+
+    Params:
+    --------
+    coolfile: str
+        Input cool file path
+    chrom_mapping: dict
+        Dictionary of {old_chrom: new_chrom}
+    outcool: str
+        Output cool file path
+    """
+    import cooler
+
+    logger.info(f"Loading `{coolfile}` for renaming ...")
+    cool = cooler.Cooler(coolfile)
+    
+    bins = cool.bins()[:]
+    bins['chrom'] = bins['chrom'].astype(str).map(lambda x: chrom_mapping.get(x, x))
+
+    pixels = cool.pixels()[:]
+
+    logger.info(f"Creating new cool file: `{outcool}` ...")
+    cooler.create_cooler(outcool, bins, pixels)
+    logger.info("Renaming chromosomes finished.")
+
 
 def trim_axes(axes, N):
     """
@@ -1251,7 +1298,7 @@ cphasing utils agp2assembly {agp_prefix}.sorted.agp -o {agp_prefix}.sorted.assem
 cphasing utils split-agp {agp_prefix}.sorted.agp -o separate_groups
 
 cd separate_groups
-for group_agp in `ls *.agp | sort -v`; do
+for group_agp in `ls *.agp | sort -V`; do
     cphasing utils agp2assembly $group_agp -o $(basename $group_agp .agp).assembly
     echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 $(basename $group_agp .agp).assembly ../{pairs_prefix}.mnd.txt" 
 done > to_hic_separate.cmd.sh
@@ -1286,6 +1333,7 @@ def generate_plot_cmd(pairs, pairs_prefix, contigsizes, agp,
                       output="plot.cmd.sh"):
 
     out_heatmap =  f"groups.q${{min_quality}}.${{heatmap_binsize}}.wg.png"
+    out_heatmap2 =  f"groups.q${{min_quality}}.${{heatmap_binsize}}.wg.pdf"
     plot_another_args = ""
     if colormap != "redp1_r":
         plot_another_args += f" -cm {colormap}"
@@ -1308,7 +1356,8 @@ if [ ! -f {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool ]; then
 fi
 cphasing plot -a {agp} \\
     -m {pairs_prefix}.q${{min_quality}}.${{cool_binsize}}.cool \\
-        -o {out_heatmap} -bs ${{heatmap_binsize}} -oc \\
+        -o {out_heatmap} -o {out_heatmap2} \\
+        -bs ${{heatmap_binsize}} -oc \\
             {plot_another_args}
     """
 
@@ -1677,3 +1726,90 @@ def determine_split_length(
     else:
         logger.info("Contig length distribution is relatively uniform. Deactivating splitting.")
         return None
+
+
+def cluster_from_hifiasm_haps(fasta, pattern=r'(h\d+)tg.*'):
+    """
+    Cluster contigs based on hifiasm haplotig names.
+    """
+    import re
+    from collections import defaultdict
+
+    cluster_dict = defaultdict(list)
+
+
+    for title, seq in read_fasta_yield(fasta):
+        match = re.match(pattern, title)
+        if match:
+            cluster_id = match.group(1)
+            cluster_dict[cluster_id].append((title))
+        else:
+            logger.warning(f"Contig {title} does not match the expected pattern and will be skipped.")
+
+    return dict(cluster_dict)
+
+
+def rename_cool(coolfile, chrom_mapping, outcool):
+    """
+    Rename and optionally invert chromosomes in a cool file based on a mapping dictionary.
+
+    Params:
+    --------
+    coolfile: str
+        Input cool file path
+    chrom_mapping: dict
+        Dictionary of {old_chrom: (new_chrom, strand)} or {old_chrom: new_chrom}.
+        Strand can be '+' or '-'. If '-', the contact matrix for that chromosome will be reversed (flipped).
+    outcool: str
+        Output cool file path
+    """
+    import cooler
+    import numpy as np
+    
+    logger.info(f"Loading `{coolfile}` for renaming and/or flipping ...")
+    cool = cooler.Cooler(coolfile)
+    
+    bins = cool.bins()[:]
+    pixels = cool.pixels()[:]
+
+    bins['chrom'] = bins['chrom'].astype(str)
+
+    bin_mapping_array = np.arange(len(bins))
+    
+    for chrom in bins['chrom'].unique():
+        if chrom in chrom_mapping:
+            val = chrom_mapping[chrom]
+            if isinstance(val, (tuple, list)) and len(val) >= 2:
+                new_chrom, strand = val[0], val[1]
+            else:
+                new_chrom, strand = val, '+'
+            
+            if strand == '-':
+                c_bins = bins[bins['chrom'] == chrom].index.values
+                if len(c_bins) > 0:
+                    S, E = c_bins.min(), c_bins.max()
+                    bin_mapping_array[S:E+1] = E - (bin_mapping_array[S:E+1] - S)
+
+    if not np.array_equal(bin_mapping_array, np.arange(len(bins))):
+        logger.info("Flipping specific chromosomes ...")
+        b1 = bin_mapping_array[pixels['bin1_id'].values]
+        b2 = bin_mapping_array[pixels['bin2_id'].values]
+        
+        mask = b1 > b2
+        pixels['bin1_id'] = np.where(mask, b2, b1)
+        pixels['bin2_id'] = np.where(mask, b1, b2)
+        
+        logger.info("Sorting pixels ...")
+        pixels = pixels.sort_values(by=['bin1_id', 'bin2_id']).reset_index(drop=True)
+
+    def _get_new_chrom(x):
+        if x in chrom_mapping:
+            val = chrom_mapping[x]
+            return val[0] if isinstance(val, (tuple, list)) else val
+        return x
+
+    bins['chrom'] = bins['chrom'].map(_get_new_chrom)
+
+    logger.info(f"Creating new cool file: `{outcool}` ...")
+    cooler.create_cooler(outcool, bins, pixels)
+    logger.info("Renaming (and flipping) chromosomes finished.")

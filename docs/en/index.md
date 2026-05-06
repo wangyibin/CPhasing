@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
-<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>(<b>C</b>iFi), Ultra-long, or Hi-<b>C</b> data</p>.
+<p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>(<b>C</b>iFi), Ultra-long, Hi-<b>C</b> or Omni-<b>C</b> data</p>.
 
 ![](https://img.shields.io/github/v/tag/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/top/wangyibin/CPhasing) ![](https://img.shields.io/github/commit-activity/m/wangyibin/CPhasing) ![](https://img.shields.io/github/last-commit/wangyibin/CPhasing) ![](https://img.shields.io/github/contributors/wangyibin/CPhasing) ![](https://img.shields.io/github/languages/code-size/wangyibin/CPhasing) ![platforms](https://img.shields.io/badge/platforms-aarch64%20|%20x86-blue) [![](https://img.shields.io/github/downloads/wangyibin/CPhasing/total?style=flat)](https://github.com/wangyibin/CPhasing/releases)
 
@@ -14,7 +14,6 @@ The advantages of `C-Phasing`:
     - High accuracy of polyploid phasing.   
 
 ![Summary_of_CPhasing](https://raw.githubusercontent.com/wangyibin/CPhasing/main/pictures/Summary_of_CPhasing.png)
-
 
 
 <div class="grid cards" markdown>

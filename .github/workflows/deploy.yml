@@ -9,6 +9,7 @@ permissions:
   id-token: write
 jobs:
   deploy:
+    needs: build-docs
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

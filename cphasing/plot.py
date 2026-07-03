@@ -2469,18 +2469,21 @@ def plot_heatmap_core(matrix,
                 cis_matrix = cis_matrix[~np.isnan(cis_matrix)]
                 cis_matrix = cis_matrix[cis_matrix > 0] 
             
-            def vmax_by_iqr(vals, k):
-                q1, q3 = np.percentile(vals, [25, 75])
-                iqr = q3 - q1
-                return float(q3 + k * iqr)
+            if len(cis_matrix) == 0:
+                vmax = 1.0
+            else:
+                def vmax_by_iqr(vals, k):
+                    q1, q3 = np.percentile(vals, [25, 75])
+                    iqr = q3 - q1
+                    return float(q3 + k * iqr)
 
-            def vmax_by_mad(vals, k):
-                med = np.median(vals)
-                mad = np.median(np.abs(vals - med)) * 1.4826
-                return float(med + k * mad)
-         
-            # vmax = vmax_by_mad(cis_matrix, 5)
-            vmax = vmax_by_iqr(cis_matrix, 1.5)
+                def vmax_by_mad(vals, k):
+                    med = np.median(vals)
+                    mad = np.median(np.abs(vals - med)) * 1.4826
+                    return float(med + k * mad)
+            
+                # vmax = vmax_by_mad(cis_matrix, 5)
+                vmax = vmax_by_iqr(cis_matrix, 1.5)
           
             if vmax == 0:
                 try:

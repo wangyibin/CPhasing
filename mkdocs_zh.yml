@@ -173,10 +173,14 @@ nav:
   - 教程: 
     - Pore-C&HiFi-C:
       - tutorials/porec/porec_monoploid.md
+      - tutorials/porec/porec_tetraploid_hifiasm_hap_aware.md
+      - tutorials/porec/porec_hexaploid_sweet_potato.md
       - tutorials/porec/porec_decaploid.md
       - tutorials/porec/porec_sugarcane.md
     - Hi-C:
       - tutorials/hic/hic_monoploid.md
+      - tutorials/hic/hic_tetraploid_hifiasm_hap_aware.md
+      - tutorials/hic/hic_hexaploid_sweet_potato.md
       - tutorials/hic/hic_decaploid.md
       - tutorials/hic/hic_sugarcane.md
 
@@ -185,7 +189,6 @@ nav:
     - CLI/methalign.md
     - CLI/hic_mapper.md
     - CLI/prepartition.md
-    - CLI/alleles.md
     - CLI/collapse.md
     - CLI/rename.md
     - CLI/plot.md

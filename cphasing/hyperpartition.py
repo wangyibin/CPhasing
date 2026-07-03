@@ -11,9 +11,11 @@ import numpy as np
 import igraph as ig
 import pandas as pd
 import polars as pl
+import threading
 
-
+from contextlib import contextmanager
 from collections import defaultdict, OrderedDict 
+from functools import cached_property
 from itertools import (
     permutations, 
     combinations, 
@@ -56,6 +58,19 @@ from ._config import *
 logger = logging.getLogger(__name__)
 
 # from line_profiler import profile
+
+@contextmanager
+def silence_logs(logger_names, level=logging.WARNING):
+    loggers = [logging.getLogger(name) for name in logger_names]
+    original_levels = [log.level for log in loggers]
+    try:
+        for log in loggers:
+            log.setLevel(level)
+        yield
+    finally:
+        for log, orig_level in zip(loggers, original_levels):
+            log.setLevel(orig_level)
+
 class HyperPartition:
     """
     Method of contigs partition based on hypergraph partition.
@@ -224,6 +239,10 @@ class HyperPartition:
             self.parse_trimmed_contig()
         self.contigs = self.contigsizes.index.values.tolist()
         self.K = []
+
+        self._cached_raw_contigsizes = None
+        if self.split:
+            self.get_raw_contigsizes()
 
         if not mapq_filter_1_to_2:
             logger.debug(f"min_quality1: {self.min_quality1}")
@@ -1234,7 +1253,8 @@ class HyperPartition:
         """
         single function for incremental_partition.
         """
-
+        for target_logger in ["cphasing.core", "cphasing.utilities"]:
+            logging.getLogger(target_logger).setLevel(logging.ERROR)
         if k == 1:
             return None, None, [K]
         
@@ -1283,6 +1303,10 @@ class HyperPartition:
         sub_vertices_idx_sizes = vertices_idx_sizes.reindex(K)
         sub_vertices_new_idx_sizes = sub_vertices_idx_sizes
         sub_vertices_new_idx_sizes.index = sub_vertices_idx_sizes.index.map(sub_old2new_idx.get)
+        
+        sub_size_db = sub_vertices_new_idx_sizes.to_dict()
+        if 'length' in sub_size_db:
+            sub_size_db = sub_size_db['length']
 
         sub_vertices = np.array(list(idx_to_vertices[i] for i in K))
         sub_vertives_idx = dict(zip(sub_vertices, range(len(sub_vertices))))
@@ -1319,7 +1343,13 @@ class HyperPartition:
                                     threads=threads)
 
         elif  prune_pair_df is not None:      
-            sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
+
+            # sub_prune_pair_df = prune_pair_df.reindex(list(permutations(K, 2))).dropna().reset_index()
+            K_set = set(K)
+            sub_prune_pair_df = prune_pair_df[
+                prune_pair_df.index.get_level_values(0).isin(K_set) & 
+                prune_pair_df.index.get_level_values(1).isin(K_set)
+            ].reset_index()
 
             sub_prune_pair_df['contig1'] = sub_prune_pair_df['contig1'].map(sub_old2new_idx.get)
             sub_prune_pair_df['contig2'] = sub_prune_pair_df['contig2'].map(sub_old2new_idx.get)
@@ -1470,28 +1500,16 @@ class HyperPartition:
         ## remove the scaffold that is too short
         # before_filter_K = new_K.copy()
         # new_K = list(map(list, new_K))
+        # new_K = list(map(list, filter(
+        #                 lambda x: sub_vertices_new_idx_sizes.loc[list(x)].sum().values[0] \
+        #                     >= min_scaffold_length, new_K)))
         new_K = list(map(list, filter(
-                        lambda x: sub_vertices_new_idx_sizes.loc[list(x)].sum().values[0] \
-                            >= min_scaffold_length, new_K)))
-
-        filtered_K = list(filter(
-                                lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
-                                    < min_scaffold_length, new_K)
-                )
-        
-        # removed_idxes = set(list_flatten(before_filter_K)) - set(list_flatten(new_K))
-        # if removed_idxes:
-        #     raw_A = np.delete(raw_A, removed_idxes, axis=0)
-        #     raw_A = np.delete(raw_A, removed_idxes, axis=1)
-
-        #     A = np.delete(A, removed_idxes, axis=0)
-        #     A = np.delete(A, removed_idxes, axis=1)
-        #     new_K = [k for i, k in enumerate(new_K) if i not in removed_idxes]
-            # for idx in removed_idxes:
-            #     if idx in sub_vertices_new_idx_sizes:
-            #         del sub_vertices_new_idx_sizes[idx]
-
-            ## update A and raw_A and new_K and sub_vertices_new_idx_sizes and 
+                        lambda x: sum(sub_size_db.get(item, 0) for item in x) >= min_scaffold_length, 
+                        new_K)))
+        # filtered_K = list(filter(
+        #                         lambda x: sub_vertices_new_idx_sizes.reindex(x).sum().values[0] \
+        #                             < min_scaffold_length, new_K)
+        #         )
         
         
         if k and len(new_K) > k:
@@ -1533,50 +1551,12 @@ class HyperPartition:
                                                         min_weight=min_weight)
             
 
-        # vertices_length = sub_vertices_new_idx_sizes['length']
-        # new_K = raw_sort(new_K, A, vertices_length, threads=1)
         sub_new2old_idx = dict(zip(range(len(K)), K))
         new_K = list(map(lambda x: list(map(lambda y: sub_new2old_idx[y], x)), new_K))
 
-        # new_flatten_K = list_flatten(new_K)
-        # if len(new_flatten_K) < len(raw_K):
-
-        #     new_vertices = list(map(lambda x: list(map(idx_to_vertices.get, x)), new_K))
-        #     new_flatten_vertices = list_flatten(new_vertices)
-            
-        #     raw_vertices = list(map(raw_idx_to_vertices.get, raw_K))
-        #     raw_vertices_to_idx = dict(items[::-1] for items in raw_idx_to_vertices.items())
-            
-        #     new_with_raw_idx = list(map(lambda x: list(map(raw_vertices_to_idx.get, x)), new_vertices))
-
-        #     unanchor_vertices = list(filter(lambda x: x not in set(new_flatten_vertices), set(raw_vertices)))
-            
-        #     sub_raw_new2old_idx = dict(zip(raw_K, range(len(raw_K))))
-        #     # sub_raw_A = raw_A[raw_K, :][:, raw_K]
-        #     # unanchor_list_new_idx = list(map(sub_raw_new2old_idx.get, unanchor_list))
-        #     unanchor_idx = list(map(raw_vertices_to_idx.get, unanchor_vertices))
-        #     # unanchor_idx = list(map(sub_raw_new2old_idx.get, unanchor_idx))
-
-        #     # new_with_raw_idx = list(map(lambda x: list(map(sub_raw_new2old_idx.get, x)), new_with_raw_idx))
-        #     anchor_res_db = {}
-        #     for idx in unanchor_idx:
-        #         res_matrix = np.zeros(len(new_with_raw_idx))
-        #         for j, g in enumerate(new_with_raw_idx):
-        #             # print(raw_idx_to_vertices[idx])
-        #             # print(new_vertices[j])
-        #             res_matrix[j] = raw_A[idx, :][:, g].sum()
-                
-        #         anchor_g = np.argmax(res_matrix)
-        #         anchor_res_db[idx] = anchor_g
-            
-        #     for idx in anchor_res_db:
-        #         new_with_raw_idx[anchor_res_db[idx]].append(idx)
-            
-        #     new_K = new_with_raw_idx
-            
-
         new_K = sorted(new_K, key=lambda x: vertices_idx_sizes.reindex(x).dropna()['length'].sum(), reverse=True)
-
+        logger.info(f"Subgroup {num} result {len(new_K)} groups.")
+        
         return A, cluster_assignments, new_K
     
 
@@ -1917,7 +1897,7 @@ class HyperPartition:
                                         None, None, self.allelic_factor, 
                                         self.cross_allelic_factor, tmp_resolution,
                                         self.min_weight, self.threshold, 
-                                        self.max_round, threads=self.threads,
+                                        1, threads=self.threads,
                                         method=self.cluster_method)
                     self.K = list(map(list, self.K))
                     self.K = self.filter_cluster(verbose=0)
@@ -1936,7 +1916,7 @@ class HyperPartition:
                                     None, None, self.allelic_factor, 
                                         self.cross_allelic_factor, tmp_resolution, 
                                         self.min_weight, self.threshold, 
-                                        self.max_round, threads=self.threads,
+                                        1, threads=self.threads,
                                         method=self.cluster_method)
 
                             new_K = list(map(list, new_K))
@@ -1965,7 +1945,7 @@ class HyperPartition:
                                     None, None, self.allelic_factor, 
                                         self.cross_allelic_factor, tmp_resolution, 
                                         self.min_weight, self.threshold, 
-                                        self.max_round, threads=self.threads,
+                                        1, threads=self.threads,
                                         method=self.cluster_method)
 
                             self.K = list(map(list, self.K))
@@ -1982,7 +1962,7 @@ class HyperPartition:
                                 None, None, self.allelic_factor, 
                                     self.cross_allelic_factor, self.resolution1, 
                                     self.min_weight, self.threshold, 
-                                    self.max_round, threads=self.threads,
+                                    1, threads=self.threads,
                                     method=self.cluster_method)
 
             A = _A
@@ -2196,21 +2176,30 @@ class HyperPartition:
                         sub_threads, self.cluster_method))
             
             # results.append(HyperPartition._incremental_partition(args[-1])
- 
-        with parallel_backend('loky', n_jobs=min(self.threads, len(args))):
-            try:
-                results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
-                            delayed(HyperPartition._incremental_partition)(*a) for a in args)
-            except TypeError:
-                results = Parallel(n_jobs=min(self.threads, len(args)))(
-                            delayed(HyperPartition._incremental_partition)(*a) for a in args)
-            
-            results = list(filter(lambda x: x[2] is not None, results))
+
+        with silence_logs(["cphasing.algorithms.hypergraph", "cphasing.hyperpartition"], logging.WARNING):
+            with parallel_backend('loky', n_jobs=min(self.threads, len(args))):
+                try:
+                    results = Parallel(n_jobs=min(self.threads, len(args)), return_as="generator")(
+                                delayed(HyperPartition._incremental_partition)(*a) for a in args)
+                except TypeError:
+                    results = Parallel(n_jobs=min(self.threads, len(args)))(
+                                delayed(HyperPartition._incremental_partition)(*a) for a in args)
+                
+                results = list(filter(lambda x: x[2] is not None, results))
+
+            for target_logger in ["cphasing.core", "cphasing.utilities"]:
+                logging.getLogger(target_logger).setLevel(logging.INFO)
 
         if results:
-            self.sub_A_list, self.cluster_assignments, results = zip(*results)
+            _, self.cluster_assignments, results = zip(*results)
         else:
-            self.sub_A_list, self.cluster_assignments, results = [], [], []
+            _, self.cluster_assignments, results = [], [], []
+        
+        if 'args' in locals():
+            del args
+
+        gc.collect()
 
         if self.split:
             new_results = []
@@ -2219,7 +2208,7 @@ class HyperPartition:
                 self.K = _K
                 _raw_K, _K, _raw_idx_sizes = self.merge_split()
                 new_results.append(_K)
-            
+
             results = new_results   
           
         self.inc_chr_idx = []
@@ -2248,7 +2237,7 @@ class HyperPartition:
             _A = HyperGraph.reweight_adjacency_matrix(raw_A, P_allelic_idx=self.P_allelic_idx, 
                                                       P_weak_idx=self.P_weak_idx, allelic_factor=0)
             reclustered_count = self.recluster_by_linkage(A=_A, min_ratio=1.5, iter_count=iter_count)
-        
+
         second_group_info = [f"{i}g{j}" for i, res in enumerate(results, 1) 
                                         for j, _ in enumerate(res, 1) ]
 
@@ -2307,6 +2296,15 @@ class HyperPartition:
         if not k:
             return K 
         
+        if hasattr(vertices_idx_sizes, 'to_dict'):
+            size_db = vertices_idx_sizes.to_dict()
+            if 'length' in size_db:
+                size_db = size_db['length']
+        elif isinstance(vertices_idx_sizes, pd.DataFrame):
+            size_db = vertices_idx_sizes['length'].to_dict()
+        else:
+            size_db = dict(vertices_idx_sizes)
+
         if alleletable_df is not None:
             mz_df = alleletable_df[[1, 2, 'mzShared']]
             mz_df.set_index([1, 2], inplace=True)
@@ -2324,7 +2322,8 @@ class HyperPartition:
             if shared_mz_db is not None:
                 return float(mz_df.reindex(g_tuple).sum().values[0])
             else:
-                return float(vertices_idx_sizes.reindex(g_tuple).sum().values[0])
+                # return float(vertices_idx_sizes.reindex(g_tuple).sum().values[0])
+                return float(sum(size_db.get(c, 0.0) for c in g_tuple))
 
         iter_round = 0 
         while k and len(K) > k:
@@ -2337,7 +2336,8 @@ class HyperPartition:
             if shared_mz_db is not None:
                 group_lengths = np.array([contig_mz_df.reindex(g).sum().values[0] for g in K_tuples])
             else:
-                group_lengths = np.array([vertices_idx_sizes.reindex(g).sum().values[0] for g in K_tuples])
+                # group_lengths = np.array([vertices_idx_sizes.reindex(g).sum().values[0] for g in K_tuples])
+                group_lengths = np.array([sum(size_db.get(c, 0.0) for c in g) for g in K_tuples])
             
             contig_to_group_map = {contig: i for i, group in enumerate(K_tuples) for contig in group}
 
@@ -2376,8 +2376,10 @@ class HyperPartition:
 
                 for (i, j), s1 in allelic_contigs_g1.items():
                     s2 = allelic_contigs_g2.get((i, j), set())
-                    len1 = vertices_idx_sizes.loc[list(s1)]['length'].sum() if len(s1) else 0.0
-                    len2 = vertices_idx_sizes.loc[list(s2)]['length'].sum() if len(s2) else 0.0
+                    # len1 = vertices_idx_sizes.loc[list(s1)]['length'].sum() if len(s1) else 0.0
+                    # len2 = vertices_idx_sizes.loc[list(s2)]['length'].sum() if len(s2) else 0.0
+                    len1 = sum(size_db.get(c, 0.0) for c in s1) if len(s1) else 0.0
+                    len2 = sum(size_db.get(c, 0.0) for c in s2) if len(s2) else 0.0
                     allelic_len_g1[(i, j)] = float(len1)
                     allelic_len_g2[(i, j)] = float(len2)
 
@@ -2391,25 +2393,40 @@ class HyperPartition:
                         flag_matrix[i, j] = 0
                         overlap_matrix[i, j] = max(overlap1, overlap2)
             
+            rows = []
+            cols = []
+            for gid, group in enumerate(K_tuples):
+                rows.extend(group)
+                cols.extend([gid] * len(group))
+            
+            M = csr_matrix((np.ones(len(rows), dtype=np.float32), (rows, cols)), 
+                           shape=(A.shape[0], current_group_number))
+            value_matrix = (M.T.dot(A).dot(M)).toarray()
+            np.fill_diagonal(value_matrix, 0)
+            if method == "mean":
+                group_sizes = np.array([len(g) for g in K_tuples], dtype=np.float32)
+                size_outer = np.outer(group_sizes, group_sizes)
+                size_outer[size_outer == 0] = 1.0
+                value_matrix = value_matrix / size_outer
 
-            for i in range(current_group_number):
-                group1 = K_tuples[i]
-                for j in range(i + 1, current_group_number):
-                    group2 = K_tuples[j]
+            # for i in range(current_group_number):
+            #     group1 = K_tuples[i]
+            #     for j in range(i + 1, current_group_number):
+            #         group2 = K_tuples[j]
                     
-                    sub_matrix = A[group1, :][:, group2]
-                    if method == "mean":
-                        value = sub_matrix.mean()
-                    elif method == "median":
-                        if sub_matrix.nnz > 0:
-                            value = np.median(sub_matrix.toarray())
-                        else:
-                            value = 0.0
-                    else:
-                        value = sub_matrix.sum()
-                    value_matrix[i, j] = value
+            #         sub_matrix = A[group1, :][:, group2]
+            #         if method == "mean":
+            #             value = sub_matrix.mean()
+            #         elif method == "median":
+            #             if sub_matrix.nnz > 0:
+            #                 value = np.median(sub_matrix.toarray())
+            #             else:
+            #                 value = 0.0
+            #         else:
+            #             value = sub_matrix.sum()
+            #         value_matrix[i, j] = value
    
-            value_matrix += value_matrix.T
+            # value_matrix += value_matrix.T
             total_value = max(np.triu(value_matrix, 1).sum(), 1e-9)
             res = {}
 
@@ -3996,13 +4013,13 @@ class HyperPartition:
         if verbose == 1: 
             logger.info(f"Removed groups less than {to_humanized2(self.min_scaffold_length)} in length. (--min-scaffold-length)")
 
+        size_dict = self.vertices_idx_sizes
         try: 
             self.inc_chr_idx 
             pop_idx = []
             _K = []
             for i, group in enumerate(self.K):
-                _size = HyperPartition.get_k_size(
-                            group, self.contigsizes, self.idx_to_vertices)
+                _size = sum(size_dict.get(x, 0) for x in group)
                 if _size >= self.min_scaffold_length:
                     _K.append(group)
                 else:
@@ -4015,11 +4032,11 @@ class HyperPartition:
             self.inc_chr_idx = _new_inc_chr_idx
 
         except AttributeError:
-            _K = list(
-                filter(lambda x: HyperPartition.get_k_size(
-                        x, self.contigsizes, self.idx_to_vertices) \
-                            >= self.min_scaffold_length, 
-                        self.K))
+            _K = []
+            for group in self.K:
+                _size = sum(size_dict.get(x, 0) for x in group)
+                if _size >= self.min_scaffold_length:
+                    _K.append(group)
             
         
         logger.info(f"After filtering, {len(_K)} groups remain.")
@@ -4058,11 +4075,20 @@ class HyperPartition:
     def get_raw_contigsizes(self):
         contigsizes = self.contigsizes.copy()
         contigsizes.reset_index(inplace=True)
-        contigsizes[['source_chrom', 'start_end']] = contigsizes['chrom'].str.rsplit("|", n=1, expand=True)
-        contigsizes[['start', 'end']] = contigsizes['start_end'].str.split("_", n=1, expand=True).astype(int)
+        # contigsizes[['source_chrom', 'start_end']] = contigsizes['chrom'].str.rsplit("|", n=1, expand=True)
+        # contigsizes[['start', 'end']] = contigsizes['start_end'].str.split("_", n=1, expand=True).astype(int)
         
-        return contigsizes.groupby(['source_chrom'])['length'].sum()
+        # return contigsizes.groupby(['source_chrom'])['length'].sum()
+        if hasattr(self, '_cached_raw_contigsizes') and self._cached_raw_contigsizes is not None:
+            return self._cached_raw_contigsizes
         
+        merged_sizes = defaultdict(int)
+        for chrom, length in self.contig_sizes.items():
+            source_chrom = chrom.rsplit('|', 1)[0] if '|' in chrom else chrom
+            merged_sizes[source_chrom] += length
+            
+        self._cached_raw_contigsizes = dict(merged_sizes)
+        return self._cached_raw_contigsizes
 
     def parse_trimmed_contig(self):
         contigsizes = self.contigsizes.copy()
@@ -4144,7 +4170,7 @@ class HyperPartition:
                            "They might be misassembled or chimeric.")
 
 
-        merged_contig_sizes =  self.get_raw_contigsizes().to_dict()
+        merged_contig_sizes =  self.get_raw_contigsizes()
         clusters_db = defaultdict(list)
         for contig, (group_idx, length) in new_res_db.items():
             clusters_db[group_idx].append(contig)
@@ -4168,8 +4194,9 @@ class HyperPartition:
         merged_clusters = tmp_merged_clusters
         
         new_split_clusters = [[] for _ in range(len(merged_clusters))]
+        allowed_vertices = set(idx_to_vertices.keys())
         for v, v_idx in vertices_to_idx.items():
-            if v_idx not in self.idx_to_vertices:
+            if v_idx not in allowed_vertices:
                 continue
             contig, _, _ = parse_split_contigs(v)
             if contig in new_res_db:

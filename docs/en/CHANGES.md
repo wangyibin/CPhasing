@@ -1,4 +1,23 @@
-## [v0.3.0] - 2026-04-10
+## [v0.3.1] - 2026-07-04
+#### Enhancement
+- `hic mapper`:  
+    - Added support for the `minibwa` aligner (by `--aligner minibwa` or `--hic-aligner minibwa` for `pipeline`).
+    - Automatically set higher `k=27` and `w=14` values for large genomes (> 8 Gb) when using the `Chromap` aligner.
+- `mapper`:  
+    - Added support for BAM input format for raw Pore-C and CiFi data.
+- `hyperpartition`: Optimized contig splitting to significantly improve execution speed.
+- `collapse rescue`: Accelerated `kprune` performance by processing homologous groups separately.
+- `collapse from-gfa/from-depth`: Added the `--main-peak` option to allows users to manually specify a custom coverage main peak.
+
+- `cphasing-rs porec-dup`, Speed up.
+- `cphasing-rs pairs-dup`, Speed up.
+
+#### Bug fixes 
+- `hic mapper`: Fixed a bug that prevented processing multiple input files
+- `hcr`, try to fixed bug reported in #53
+
+
+## [v0.3.0] - 2026-05-07
 #### New features
 - `prepartition`: Introduced a method to use a monoploid reference for guiding the initial contig clustering. This can be integrated into the `pipeline` using the `-fc` flag to bypass the 1st-round `hyperpartition`.
 - `pipeline`: Added the `--gfa` option to facilitate the removal of redundant contigs post-scaffolding.

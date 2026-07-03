@@ -154,8 +154,10 @@ PIPE_OPTION_GROUPS = [
             "options": ["--ul-data", "--use-existed-hitig"]
         },
         {
-            "name": "Options of Pore-C/HiFi-C Mapper",
-            "options": ["--mapper-k", "--mapper-w", "--mapping-quality", "--mm2-params"]
+            "name": "Options of Pore-C/CiFi Mapper",
+            "options": [
+                        # "--mapper-k", "--mapper-w", 
+                        "--mapping-quality", "--aligner", "--mm2-params"]
         },
          {
             "name": "Options of Hi-C Mapper",
@@ -390,9 +392,9 @@ def cli(verbose, quiet):
     '-pcd',
     '--porec-data',
     'porec_data',
-    metavar="PoreC Data",
+    metavar="PoreC/CiFi Data",
     multiple=True,
-    help="Pore-C data. Multiple files use multiple options, such as -pcd read1.fq.gz -pcd read2.fq.gz. "
+    help="Pore-C/CiFi data (FASTX[.gz] or BAM). Multiple files use multiple options, such as -pcd read1.fq.gz -pcd read2.fq.gz. "
     "However, the prefix of subsequence output files use the read1. "
     "If you want to run parallel of multi porec data, you can run `cphasing mapper` for each cell. "
     "And then use `cphasing-rs porec-merge` to merge porec table into a single file",
@@ -463,8 +465,9 @@ def cli(verbose, quiet):
     "mapper_k",
     metavar="INT",
     help="kmer size for mapper",
-    default=15,
-    show_default=True
+    default=MAPPER_K,
+    show_default=True,
+    hidden=True,
 )
 @click.option(
     '-mapper-w',
@@ -472,7 +475,16 @@ def cli(verbose, quiet):
     "mapper_w",
     metavar="INT",
     help="window size for mapper",
-    default=10,
+    default=MAPPER_W,
+    show_default=True,
+    hidden=True
+)
+@click.option(
+    "-a",
+    "--aligner",
+    help="Aligner executable for Pore-C/CiFi data",
+    type=click.Choice(['minimap2', 'c3align']),
+    default=DEFAULT_ALIGNER,
     show_default=True
 )
 @click.option(
@@ -480,8 +492,10 @@ def cli(verbose, quiet):
     "--mm2-opts",
     "mm2_params",
     metavar="STR",
-    help="additional parameters for minimap2",
-    default="-x lr:hq",
+     help="Additional parameters passed directly to minimap2 or c3align. "
+         "(e.g., '-x porec' translates to '-x lr:hq' for minimap2; "
+         "'-x cifi' translates to '-x map-hifi' for minimap2).",
+    default="-x porec",
     show_default=True
 )
 @click.option(
@@ -499,7 +513,7 @@ def cli(verbose, quiet):
     '--hic-aligner',
     help='Aligner executable. `_chromap` is the modifed version in `C-Phasing`, '
     'if you want to use the offical version you can set aligner to `chromap`',
-    type=click.Choice(['_chromap', 'chromap', 'minimap2', 'bwa-mem2']),#, 'hisat2']),
+    type=click.Choice(['_chromap', 'chromap', 'minimap2', 'bwa-mem2', 'minibwa']),#, 'hisat2']),
     default=DEFAULT_HIC_ALIGNER,
     show_default=True
 )
@@ -1190,6 +1204,7 @@ def pipeline(fasta,
             pattern,
             mapper_k,
             mapper_w,
+            aligner,
             mm2_params,
             mapping_quality,
             chimeric_correct,
@@ -1313,8 +1328,6 @@ def pipeline(fasta,
     from .pipeline.pipeline import run 
     from .utilities import is_fastx
 
-
-
     try:
         allelic_positive_factor = float(allelic_positive_factor)
     except ValueError:
@@ -1331,10 +1344,10 @@ def pipeline(fasta,
     
     if has_porec_data:
         from .utilities import is_fastx
-    
-        porec_data = list(filter(is_fastx, porec_data))
-        if not porec_data:
-            logger.error("No valid fastq file found in the input")
+        is_bam_lambda = lambda f: f.lower().endswith(".bam")
+        porec_data = [pd for pd in porec_data if is_bam_lambda(pd) or is_fastx(pd)]
+        if not porec_data :
+            logger.error("No valid fastq|bam file found in the input")
             sys.exit(1) 
     
     if hic1 and hic2 and hic_aligner == "_chromap":
@@ -1408,6 +1421,7 @@ def pipeline(fasta,
             pattern=pattern,
             mapper_k=mapper_k, 
             mapper_w=mapper_w,
+            aligner=aligner,
             mm2_params=mm2_params,
             mapping_quality=mapping_quality,
             hic_aligner=hic_aligner,
@@ -1500,7 +1514,7 @@ from .methalign.cli import methalign
     type=click.Path(exists=True)
 )
 @click.argument(
-    "fastq",
+    "reads",
     nargs=-1,
     type=click.Path(exists=True),
     required=True
@@ -1520,7 +1534,7 @@ from .methalign.cli import methalign
     help="kmer size for mapping.",
     metavar="INT",
     type=int,
-    default=15,
+    default=MAPPER_K,
     show_default=True,
     hidden=True,
 )
@@ -1530,7 +1544,7 @@ from .methalign.cli import methalign
     help="minimizer window size for mapping.",
     metavar="INT",
     type=int,
-    default=10,
+    default=MAPPER_W,
     show_default=True,
     hidden=True,
 )
@@ -1539,8 +1553,8 @@ from .methalign.cli import methalign
     "--mm2-opts",
     "mm2_params",
     metavar="STR",
-    help="additional parameters for minimap2, such as '-x map-ont', '-x map-ont -k 27 -w 14' or '-x map-hifi'",
-    default="-x lr:hq",
+    help="additional parameters for minimap2/c3align, such as '-x map-ont', '-x map-ont -k 27 -w 14' or '-x map-hifi'",
+    default="-x porec",
     show_default=True
 )
 @click.option(
@@ -1613,6 +1627,14 @@ from .methalign.cli import methalign
     show_default=True
 )
 @click.option(
+    '-a',
+    '--aligner',
+    help="The aligner used for mapping.",
+    type=click.Choice(["minimap2", "c3align"]),    
+    default=DEFAULT_ALIGNER,
+    show_default=True
+)
+@click.option(
     '-t',
     '--threads',
     help='Number of threads.',
@@ -1621,45 +1643,72 @@ from .methalign.cli import methalign
     metavar='INT',
     show_default=True,
 )
-def mapper(reference, fastq, enzyme, kmer_size, 
+def mapper(reference, reads, enzyme, kmer_size, 
             window_size, mm2_params, mapq, 
             min_identity, min_length, max_edge,
-            secondary, realign, force, outprefix, threads):
+            secondary, realign, force, outprefix, 
+            aligner, threads):
     """
-    Mapper for pore-c/CiFi/HiFi-C reads.
+    Mapper for pore-c/CiFi reads.
 
         REFERENCE: Path of reference
 
-        FASTQ: Path of pore-c reads, multiple file enabled, the prefix of output default only use sample 1.
+        FASTX/BAM: Path of pore-c/cifi reads, multiple file enabled, the prefix of output default only use sample 1.
 
     """
-    from .mapper import PoreCMapper
+    from .mapper import PoreCMapper, C3alignMapper
     from .utilities import is_fastx
     
-    fastq = list(filter(is_fastx, fastq))
+    is_bam = lambda x: str(x).endswith(".bam")
+    input_is_bam = any(is_bam(x) for x in reads)
+    fastq = list(filter(lambda x: is_fastx(x) or is_bam(x), reads))
     if not fastq:
-        logger.error("No valid fastq file found in the input")
+        logger.error("No valid FASTQ or BAM file found in the input")
         sys.exit(1)
 
     additional_arguments = mm2_params.strip()
 
 
- 
-    pcm = PoreCMapper(reference, fastq,
-                        pattern=enzyme,
-                        k = kmer_size,
-                        w = window_size,
-                        force=force,
-                        secondary=secondary,
-                        realign=realign,
-                        min_quality=mapq,
-                        min_identity=min_identity,
-                        min_length=min_length,
-                        max_edge=max_edge,
-                        additional_arguments=additional_arguments,
-                        outprefix=outprefix,
-                        threads=threads)
-    pcm.run()
+    if aligner == "c3align":
+        # additional_arguments = re.sub(r'-x\s+lr:hq\b', '-x porec', additional_arguments)
+        # additional_arguments = re.sub(r'-x\s+map-hifi\b', '-x cifi', additional_arguments)
+        # additional_arguments = re.sub(r'-x\s+sr\b', '-x hic', additional_arguments)
+        pcm = C3alignMapper(
+            reference, reads,
+            k = kmer_size,
+            w = window_size,
+            force=force,
+            min_quality=mapq,
+            min_identity=min_identity,
+            min_length=min_length,
+            max_edge=max_edge,
+            additional_arguments=additional_arguments,
+            outprefix=outprefix,
+            threads=threads
+        )
+        pcm.run()
+    else:
+        additional_arguments = re.sub(r'-x\s+porec\b', '-x lr:hq', additional_arguments)
+        additional_arguments = re.sub(r'-x\s+cifi\b', '-x map-hifi', additional_arguments)
+        additional_arguments = re.sub(r'-x\s+hic\b', '-x sr', additional_arguments)
+
+        pcm = PoreCMapper(reference, reads,
+                            pattern=enzyme,
+                            is_bam = input_is_bam,
+                            k = kmer_size,
+                            w = window_size,
+                            force=force,
+                            secondary=secondary,
+                            realign=realign,
+                            min_quality=mapq,
+                            min_identity=min_identity,
+                            min_length=min_length,
+                            max_edge=max_edge,
+                            additional_arguments=additional_arguments,
+                            outprefix=outprefix,
+                            threads=threads)
+        pcm.run()
+    
 
 
 @cli.group(cls=CommandGroup, epilog=__epilog__, no_args_is_help=True, short_help='Process Pore-C alignments.')
@@ -2461,6 +2510,14 @@ def chimeric(fasta, pairs, min_mapq,
     show_default=True,
 )
 @click.option(
+    "--main-peak",
+    "main_peak",
+    help="Main peak value of coverage/contacts depth. If specified, skip peak fitting.",
+    type=float,
+    default=None,
+    show_default=True,
+)
+@click.option(
     "-cr",
     "--collapsed-contigs-ratio",
     "collapsed_contig_ratio",
@@ -2526,7 +2583,7 @@ def chimeric(fasta, pairs, min_mapq,
 )
 def hcr(fasta, paf, porectable, pairs, depth,
         contigsize, ploidy, pattern, binsize, 
-        lower, upper, collapsed_contig_ratio,
+        lower, upper, main_peak, collapsed_contig_ratio,
           bed, invert, min_quality, fofn, output, threads):
     """
     Only retain high confidence regions to subsequence analysis.
@@ -2655,43 +2712,116 @@ def hcr(fasta, paf, porectable, pairs, depth,
 
     if pattern and fasta:
         logger.info("Normalizing each bin by RE counts ...")
-        # cmd1 = ["bedtools", "getfasta", "-fi", str(fasta), 
-        #        "-bed", str(depth_file), "2>logs/hcr_bed2fasta.log"]
-        cmd1 = ["cphasing-rs", "slidefasta", str(fasta),
-                "-w", str(binsize), "2>logs/hcr_slidefasta.log"]
+        # cmd1 = ["cphasing-rs", "slidefasta", str(fasta),
+        #         "-w", str(binsize), "2>logs/hcr_slidefasta.log"]
         
-        cmd2 = ["cphasing-rs", "count_re", "--pattern", str(pattern), "-", 
-               "2>logs/hcr_countre.log", "-o", "tmp.depth.countre.txt"]
-        flag = os.system(" ".join(cmd1) + " | " + " ".join(cmd2))
-        assert flag == 0, "Failed to execute command, please check log."
+        # cmd2 = ["cphasing-rs", "count_re", "--pattern", str(pattern), "-", 
+        #        "2>logs/hcr_countre.log", "-o", "tmp.depth.countre.txt"]
+        # flag = os.system(" ".join(cmd1) + " | " + " ".join(cmd2))
+        # assert flag == 0, "Failed to execute command, please check log."
 
-        df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
-                            names=['chrom', 'start', 'end', 'depth'])
-        df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', 
-                            header=0, index_col=None, 
-                            usecols=[0, 1],
-                            names=['item', "count"])
+        # df1 = pd.read_csv(depth_file, sep='\t', header=None, index_col=None, 
+        #                     names=['chrom', 'start', 'end', 'depth'])
+        # df2 = pd.read_csv("tmp.depth.countre.txt", sep='\s+', 
+        #                     header=0, index_col=None, 
+        #                     usecols=[0, 1],
+        #                     names=['item', "count"])
 
-        if Path("tmp.depth.fasta").exists():
-            os.remove("tmp.depth.fasta")
-        if Path("tmp.depth.countre.txt").exists():
-            os.remove("tmp.depth.countre.txt")
+        # if Path("tmp.depth.fasta").exists():
+        #     os.remove("tmp.depth.fasta")
+        # if Path("tmp.depth.countre.txt").exists():
+        #     os.remove("tmp.depth.countre.txt")
 
-        df1['item'] = df1['chrom'] + ':' + df1['start'].astype(str) + '-' + df1['end'].astype(str)
-        df1.set_index('item', inplace=True)
-        df2.set_index('item', inplace=True)
+        # df1['item'] = df1['chrom'] + ':' + df1['start'].astype(str) + '-' + df1['end'].astype(str)
+        # df1.set_index('item', inplace=True)
+        # df2.set_index('item', inplace=True)
 
-        df = pd.concat([df1, df2], axis=1).dropna().reset_index().drop('item', axis=1)
+        # df = pd.concat([df1, df2], axis=1).dropna().reset_index().drop('item', axis=1)
 
-        df['depth'] = df['depth'] / df['count']
-        df.fillna(0, inplace=True)
-        df.drop('count', axis=1, inplace=True)
-        depth_file = depth_file.replace(".depth", ".norm.depth")
-        df.to_csv(depth_file, header=None, index=None, sep='\t')
+        # df['depth'] = df['depth'] / df['count']
+        # df.fillna(0, inplace=True)
+        # df.drop('count', axis=1, inplace=True)
+        # depth_file = depth_file.replace(".depth", ".norm.depth")
+        # df.to_csv(depth_file, header=None, index=None, sep='\t')
+        import re
+        import numpy as np
+        from joblib import Parallel, delayed
+        from .utilities import read_fasta_yield
+        binsize_val = int(humanized2numeric(str(binsize)))
+        patterns = [p.strip().upper() for p in pattern.split(",")]
+        patterns = [p.replace("N", "[ACGT]") for p in patterns]
+        patterns = list(filter(lambda x: len(x) > 0, patterns))
+
+        fasta_data = read_fasta_yield(fasta)
+        logger.info("Scanning restriction sites and binning inline...")
+        def _scan_single_chrom(chrom, seq, patterns, binsize_val):
+            chrom_clean = chrom.split()[0]
+            seq_upper = str(seq).upper()
+            n_bins = (len(seq_upper) + binsize_val - 1) // binsize_val
+            counts = np.zeros(n_bins, dtype=np.int32)
+            
+            for pat in patterns:
+                pos = [m.start() for m in re.finditer(pat, seq_upper)]
+                if pos:
+                    bin_idx = np.array(pos, dtype=np.get_array_wrap() if hasattr(np, 'get_array_wrap') else np.int64) // binsize_val
+                    counts += np.bincount(bin_idx, minlength=n_bins)[:n_bins].astype(np.int32)
+            
+            sub_results = []
+            for b in range(n_bins):
+                start = b * binsize_val
+                end = min((b + 1) * binsize_val, len(seq_upper))
+                sub_results.append(f"{chrom_clean}:{start}-{end}\t{counts[b]}\n")
+            return sub_results
+
+        parallel_results = Parallel(n_jobs=threads, return_as="generator")(
+            delayed(_scan_single_chrom)(chrom, seq, patterns, binsize_val)
+            for chrom, seq in fasta_data
+        )
+        results = [line for sub_res in parallel_results for line in sub_res]
+        
+        df1 = pl.read_csv(
+            depth_file, 
+            has_header=False, 
+            separator='\t',
+            new_columns=['chrom', 'start', 'end', 'depth'],
+            dtypes={'chrom': pl.Utf8, 'start': pl.Int64, 'end': pl.Int64, 'depth': pl.Float64}
+        )
+
+        df2 = pl.read_csv(
+            "".join(results).encode('utf-8'),
+            has_header=False,
+            separator='\t',
+            new_columns=['item', 'count'],
+            dtypes={'item': pl.Utf8, 'count': pl.Int64}
+        )
+        
+        df2 = df2.with_columns(
+            (pl.col("count") + 1)
+        )
+        df1 = df1.with_columns(
+            (pl.col("chrom") + ":" + pl.col("start").cast(pl.Utf8) + "-" + pl.col("end").cast(pl.Utf8)).alias("item")
+        )
+
+        df = df1.join(df2, on="item", how="inner")
+        if df.height == 0:
+            logger.warning("Normalization join resulted in empty dataset. Mismatched coordinates or chromosome names. Skipping normalization to prevent crash...")
+        else:
+            df = df.with_columns(
+                pl.when(pl.col("count") > 0)
+                .then(pl.col("depth") / pl.col("count"))
+                .otherwise(0.0)
+                .fill_nan(0.0)
+                .fill_null(0.0)
+                .alias("depth")
+            ).select(["chrom", "start", "end", "depth"])
+
+            depth_file = depth_file.replace(".depth", ".norm.depth")
+            df.write_csv(depth_file, include_header=False, separator='\t')
         
     skip_adjust = True if paf is not None else False
     hcr_by_contacts(depth_file, f"{prefix}.{binsize}.hcr.bed" , 
-                        lower, upper, skip_adjust, collapsed_contig_ratio, ploidy=ploidy)
+                        lower, upper, skip_adjust, collapsed_contig_ratio, 
+                        ploidy=ploidy, peak_value=main_peak)
     bed =  f"{prefix}.{binsize}.hcr.bed"
 
     if invert:
@@ -3046,36 +3176,41 @@ def alleles(fasta, output,
 
         
         logger.info("Merging allele table from split contigs ...")
-        # with open(output, 'w') as out:
-        #     for contig in tmp_db:
-        #         tmp_line = " ".join(map(str, tmp_db[contig]))
-        #         print(f"#{contig} {tmp_line}", file=out)
-            
-        #     allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
-        #     allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
-
-        #     max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum',
-        #                                                                     'mzShared': 'sum', 'similarity': 'max',
-        #                                                                     })
-        #     max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
-        #     max_idx = max_idx.set_index([1, 2])['strand']
 
         
         with open(output, 'w') as out:
             for contig in tmp_db:
                 print(f"#{contig} {tmp_db[contig][0]} {tmp_db[contig][1]} {tmp_db[contig][2]}", file=out)
-            allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
-            allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
+            # allele_df[1] = allele_df[1].str.rsplit("|", n=1, expand=True)[0]
+            # allele_df[2] = allele_df[2].str.rsplit("|", n=1, expand=True)[0]
+            # # allele_df = allele_df[(allele_df['mz1'] > 1000) & (allele_df['mz2'] > 1000)]
+            # max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum',
+            #                                                                 'mzShared': 'sum', 'similarity': 'max',
+            #                                                                 })
+            # max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
+            # max_idx = max_idx.set_index([1, 2])['strand']
+            # allele_df = allele_df.groupby([1, 2]).agg(
+            #     {'mz1': 'sum', 'mz2': 'sum', 'mzShared': 'sum', 'similarity': 'max'}
+            # )
+            # allele_df = pd.concat([allele_df, max_idx], axis=1)
+            # allele_df.reset_index().reset_index().reset_index().to_csv(out, sep='\t', header=None, index=None)
+            allele_df[1] = allele_df[1].str.split("|", n=1).str[0]
+            allele_df[2] = allele_df[2].str.split("|", n=1).str[0]
             # allele_df = allele_df[(allele_df['mz1'] > 1000) & (allele_df['mz2'] > 1000)]
-            max_idx = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({'mz1': 'sum', 'mz2': 'sum',
-                                                                            'mzShared': 'sum', 'similarity': 'max',
-                                                                            })
-            max_idx = max_idx.loc[max_idx.groupby([1,  2])['mzShared'].idxmax()]
-            max_idx = max_idx.set_index([1, 2])['strand']
-            allele_df = allele_df.groupby([1, 2]).agg(
-                {'mz1': 'sum', 'mz2': 'sum', 'mzShared': 'sum', 'similarity': 'max'}
+            
+            grouped = allele_df.groupby([1, 2, 'strand'], as_index=False).agg({
+                'mz1': 'sum', 'mz2': 'sum', 'mzShared': 'sum', 'similarity': 'max'
+            })
+            max_strand = (
+                grouped.sort_values('mzShared')
+                .drop_duplicates(subset=[1, 2], keep='last')
+                .set_index([1, 2])['strand']
             )
-            allele_df = pd.concat([allele_df, max_idx], axis=1)
+            allele_df = grouped.groupby([1, 2]).agg({
+                'mz1': 'sum', 'mz2': 'sum', 'mzShared': 'sum', 'similarity': 'max'
+            })
+            allele_df['strand'] = max_strand
+
             allele_df.reset_index().reset_index().reset_index().to_csv(out, sep='\t', header=None, index=None)
 
         logger.info(f"Merged allele table saved to `{output}`.")
@@ -3740,9 +3875,7 @@ def hypergraph(contacts,
     """
     from .hypergraph import (
         HyperExtractor, 
-        HyperExtractorSplit,
         Extractor,
-        ExtractorSplit
         )
     from .utilities import read_chrom_sizes, binnify
 
@@ -3793,11 +3926,6 @@ def hypergraph(contacts,
                             split_contig_boundarys=split_contig_boundarys,
                             min_quality=min_quality, threads=threads)
         he.save(output)
-        # else:
-        #     he = HyperExtractorSplit(pore_c_tables, contig_idx, contigsizes.to_dict()['length'], 
-        #                              split, min_quality, threads)
-        #     he.save(output)
-    
     else:
         if fofn:
             pairs_files = [i.strip() for i in open(contacts) if i.strip()]
@@ -3811,9 +3939,7 @@ def hypergraph(contacts,
                         split_length=split_length, split_contig_boundarys=split_contig_boundarys,
                         min_quality=min_quality, threads=threads)
         e.save(output)
-        # else:
-        #     e = ExtractorSplit(pairs_files, contig_idx, contigsizes.to_dict()['length'], split, threads=threads)
-        #     e.save(output)
+     
 
 
 @cli.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
@@ -4933,7 +5059,15 @@ def collapse(ctx):
     show_default=True,
     default=None,
 )
-def from_gfa(gfa, chimeric_bed):
+@click.option(
+    "--main-peak",
+    "main_peak",
+    help="Main peak value of coverage/contacts depth. If specified, skip peak fitting.",
+    type=float,
+    default=None,
+    show_default=True,
+)
+def from_gfa(gfa, chimeric_bed, main_peak):
     from .collapse import CollapseFromGfa
     from .gfa import Gfa 
     if chimeric_bed:
@@ -4942,7 +5076,7 @@ def from_gfa(gfa, chimeric_bed):
         with open("tmp.break.gfa", "w") as f:
             g.write(f)
         gfa = "tmp.break.gfa"
-    cfg = CollapseFromGfa(gfa)
+    cfg = CollapseFromGfa(gfa, peak_value=main_peak)
     cfg.run()
 
     if chimeric_bed:
@@ -4965,7 +5099,15 @@ def from_gfa(gfa, chimeric_bed):
     default=0.0,
     show_default=True
 )
-def from_depth(depth, cn_offset):
+@click.option(
+    "--main-peak",
+    "main_peak",
+    help="Main peak value of coverage/contacts depth. If specified, skip peak fitting.",
+    type=float,
+    default=None,
+    show_default=True,
+)
+def from_depth(depth, cn_offset, main_peak):
     """
     Depth file should be four columns bedgraph file, chrom start end depth.
 
@@ -4977,7 +5119,7 @@ def from_depth(depth, cn_offset):
 
     """
     from .collapse import CollapseFromDepth
-    cfd = CollapseFromDepth(depth, cn_offset=cn_offset)
+    cfd = CollapseFromDepth(depth, cn_offset=cn_offset, peak_value=main_peak)
     cfd.run()
 
 
@@ -9018,6 +9160,120 @@ def cool2depth(coolfile, output):
     from .utilities import cool2depth
     cool2depth(coolfile, output)     
 
+
+@utils.command(cls=RichCommand, short_help="Convert Pore-C table or pairs to incidence matrix.")
+@click.argument(
+    "contacts",
+    metavar="CONTACTS",
+    type=click.Path(exists=True)
+)
+@click.argument(
+    "contigsize",
+    metavar="CONTIG_SIZES",
+    type=click.Path(exists=True),
+)
+@click.argument(
+    "output",
+    metavar="OUTPUT"
+)
+@click.option(
+    "-prs",
+    "--pairs",
+    "pairs",
+    help="Construct from pairs file instead of pore-c table.",
+    is_flag=True,
+    default=False,
+    show_default=True,
+)
+@click.option(
+    "-q",
+    "--min-mapq",
+    "min_mapq",
+    default=1,
+    metavar="INT",
+    help="Minimum mapping quality of alignments",
+    type=click.IntRange(0, 60),
+    show_default=True,
+)
+@click.option(
+    "-fmt",
+    "--format",
+    "out_format",
+    type=click.Choice(["tsv", "npz", "mtx"]),
+    default="tsv",
+    help="Output format. 'tsv' for human-readable flat tab-delimited file, 'npz' for compressed scipy numpy csr matrix, 'mtx' for Matrix Market format.",
+    show_default=True,
+)
+@click.option(
+    '-t',
+    '--threads',
+    help='Number of threads.',
+    type=int,
+    default=4,
+    metavar='INT',
+    show_default=True,
+)
+def porec2incidence(contacts, contigsize, output, pairs, min_mapq, out_format, threads):
+    """
+    Convert Pore-C table or pairs file to incidence matrix.
+
+    CONTACTS: Path to the Pore-C table or 4DN pairs file.
+
+    CONTIG_SIZES: Two columns file containing contig and length.
+
+    OUTPUT: Output matrix path.
+    """
+    from .hypergraph import HyperExtractor, Extractor
+    from .utilities import read_chrom_sizes
+    import scipy.sparse as sp
+    import numpy as np
+
+    contigsizes = read_chrom_sizes(contigsize)
+    contigs = list(map(str, contigsizes.index.values.tolist()))
+    contig_idx = defaultdict(None, dict(zip(contigs, range(len(contigs)))))
+
+    logger.info("Extracting hyperedges from contacts ...")
+    if not pairs:
+        he = HyperExtractor(contacts, contig_idx, contigsizes.to_dict()['length'],
+                            min_quality=min_mapq, threads=threads)
+        hyperedges = he.edges
+    else:
+        e = Extractor(contacts, contig_idx, contigsizes.to_dict()['length'],
+                      min_quality=min_mapq, threads=threads)
+        hyperedges = e.edges
+
+    hyperedges.to_numpy()
+
+
+
+
+    if out_format == "tsv":
+        logger.info(f"Writing incidence table to {output} (tsv)...")
+        contig_names = [contigs[r] for r in hyperedges.row]
+        df = pd.DataFrame({
+            "contig": contig_names,
+            "read_idx": hyperedges.col
+        })
+        df.to_csv(output, sep="\t", index=False)
+    else:
+        logger.info("Constructing sparse incidence matrix...")
+      
+        num_nodes = len(contigs)
+        num_edges = hyperedges.col.max() + 1 if len(hyperedges.col) > 0 else 0
+        H = sp.coo_matrix((np.ones(len(hyperedges.row), dtype=np.uint8), (hyperedges.row, hyperedges.col)),
+                          shape=(num_nodes, num_edges))
+        
+        H = H.tocsc()[:, H.sum(axis=0).A1 >= 2]
+
+        if out_format == "npz":
+            logger.info(f"Saving sparse matrix to {output} (npz)...")
+            sp.save_npz(output, H)
+        elif out_format == "mtx":
+            logger.info(f"Saving Matrix Market file to {output} (mtx)...")
+            from scipy.io import mmwrite
+            mmwrite(output, H)
+
+    logger.info("Successful output incidence matrix!")
 
 @utils.command(cls=RichCommand, epilog=__epilog__, no_args_is_help=True)
 @click.argument(

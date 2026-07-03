@@ -38,7 +38,7 @@ source activate_cphasing methalign
     Align the ONT reads by [bammap2](https://github.com/wangyibin/bammap2)
 
     ```shell
-    bammap2 -x lr:hq  -t 20 --secondary=no contigs.fasta ont_reads.bam | samtools view -q 1 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
+    bammap2 -x lr:hq -N 500 -t 20 --secondary=no contigs.fasta ont_reads.bam | samtools view -q 1 -@ 10 -b | samtools sort -@ 10 > ont.align.sorted.bam 
     samtools index ont.align.sorted.bam 
     ```
 
@@ -51,16 +51,14 @@ source activate_cphasing methalign
 
 ## Align the candidate reads to contig assembly
 ```shell
-bammap2 -t 40 -x lr:hq --secondary=yes contigs.fasta porec_reads.bam > porec.align.bam
+bammap2 -t 40 -x lr:hq -N 500 --secondary=yes contigs.fasta porec_reads.bam > porec.align.bam
 ```
-!!! note
-    Replace `--secondary=yes` to `--mm2-opts "--secondary=yes"` when using dorado >= 0.8.0
 
 ## Refine alignments
 
 - Refine the alignments by methylation information
 ```shell
-methalign -t 20 contigs.fasta output.methyl.bg porec.reads*.bam -o porec.align.refined.paf.gz
+methalign -t 20 contigs.fasta output.methyl.bg porec.align.bam -o porec.align.refined.paf.gz
 ```
 !!! note
     This step will output `methalign.refined.paf.gz` and `methalign.refined.porec.gz`

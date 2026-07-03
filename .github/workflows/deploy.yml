@@ -29,3 +29,32 @@ jobs:
           path: site
       - uses: actions/deploy-pages@v4
         id: deployment
+        
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: docs
+
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git fetch origin gh-pages:gh-pages || true
+
+      - name: Deploy with mike 🚀
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            pixi run -e docs mike deploy --push --update-aliases $VERSION latest
+            pixi run -e docs mike set-default --push latest
+          else
+            pixi run -e docs mike deploy --push dev
+          fi

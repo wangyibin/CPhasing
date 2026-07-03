@@ -1280,22 +1280,37 @@ def generate_curation_cmd(agp, fasta,
 
     pairs_prefix = str(Path(pairs).name).replace(".gz", "").replace(".pairs", "").replace(".pqs", "")
     agp_prefix = str(Path(agp).name).replace(".agp", "")
+    binsize_str = to_humanized2(binsize)
+    cool_binsize_str = to_humanized2(cool_binsize)
     cmd = f"""#!/usr/bin/bash
 ## Please submit the following command in yourself
 
 _3ddna_path={_3ddna_path}
 min_quality={mapq}
+skip_sort=false # Set to true to skip sort-chromosomes
+
+agp_prefix={agp_prefix}
 
 ## Step 1 [Optional]: sort chromosomes based on interaction map, which may help the curation
-cphasing sort-chromosomes -a ../{str(scaffolding_dir)}/{agp} -m ../{str(plot_dir)}/{agp_prefix}.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.chrom.cool -o {agp_prefix}.sorted.agp --rename
-cphasing plot -a {agp_prefix}.sorted.agp -m ../{str(plot_dir)}/{pairs_prefix}.q${{min_quality}}.{to_humanized2(cool_binsize)}.cool -o {agp_prefix}.sorted.{pairs_prefix}.q${{min_quality}}.{to_humanized2(binsize)}.wg.png -bs {to_humanized2(binsize)} --add-hap-border --no-lines --disable-natural-sort -oc 
+if [ "$skip_sort" = "true" ]; then
+    active_prefix="${{agp_prefix}}"
+    active_agp="${{active_prefix}}.agp"
+    echo "Skipping sort-chromosomes, copying original agp..."
+    cp ../{str(scaffolding_dir)}/{agp} ${{active_agp}}
+else
+    active_prefix="${{agp_prefix}}.sorted"
+    active_agp="${{active_prefix}}.agp"
+    echo "Running sort-chromosomes..."
+    cphasing sort-chromosomes -a ../{str(scaffolding_dir)}/{agp} -m ../{str(plot_dir)}/${{agp_prefix}}.{pairs_prefix}.q${{min_quality}}.{binsize_str}.chrom.cool -o ${{active_agp}} --rename
+    cphasing plot -a ${{active_agp}} -m ../{str(plot_dir)}/{pairs_prefix}.q${{min_quality}}.{cool_binsize_str}.cool -o ${{active_prefix}}.{pairs_prefix}.q${{min_quality}}.{binsize_str}.wg.png -bs {binsize_str} --add-hap-border --no-lines --disable-natural-sort -oc 
+fi
 
 ## Step 2: visualize the interaction map and curate the assembly
 cphasing-rs pairs2mnd -q ${{min_quality}} {pairs} -o {pairs_prefix}.mnd.txt
-cphasing utils agp2assembly {agp_prefix}.sorted.agp -o {agp_prefix}.sorted.assembly
+cphasing utils agp2assembly ${{active_agp}} -o ${{active_prefix}}.assembly
 
 ### Step2.1: you can seperately curation each homologous group
-cphasing utils split-agp {agp_prefix}.sorted.agp -o separate_groups
+cphasing utils split-agp ${{active_agp}} -o separate_groups
 
 cd separate_groups
 for group_agp in `ls *.agp | sort -V`; do
@@ -1306,15 +1321,15 @@ cd ..
 
 ### Step2.2: or directly curate the whole assembly
 
-echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 {agp_prefix}.sorted.assembly {pairs_prefix}.mnd.txt" > to_hic.cmd.sh
+echo "bash $_3ddna_path/visualize/run-assembly-visualizer.sh -p true -q ${{min_quality}} -c -r 2500000,1000000,500000,250000,100000,50000,25000,10000,5000 ${{active_prefix}}.assembly {pairs_prefix}.mnd.txt" > to_hic.cmd.sh
 echo
-echo -e "\e[1mPlease submit the command 'to_hic.cmd.sh' or 'seperate_groups/to_hic_separate.cmd.sh' for manually adjust assembly in Juicbox\e[0m"
+echo -e "\\e[1mPlease submit the command 'to_hic.cmd.sh' or 'seperate_groups/to_hic_separate.cmd.sh' for manually adjust assembly in Juicbox\\e[0m"
 
 
 
 ## Step 3: After curation, convert review.assembly to new agp 
-# cphasing utils assembly2agp groups.sorted.review.assembly -o groups.review -n {n}
-# cphasing utils agp2fasta groups.review.agp {fasta} -o groups.review.fasta
+# cphasing utils assembly2agp ${{active_prefix}}.review.assembly -o ${{active_prefix}}.review -n {n}
+# cphasing utils agp2fasta ${{active_prefix}}.review.agp {fasta} -o ${{active_prefix}}.review.fasta
     """
 
 
@@ -1813,3 +1828,58 @@ def rename_cool(coolfile, chrom_mapping, outcool):
     logger.info(f"Creating new cool file: `{outcool}` ...")
     cooler.create_cooler(outcool, bins, pixels)
     logger.info("Renaming (and flipping) chromosomes finished.")
+
+
+def merge_assemblies(input_files, output_file):
+    """
+    Merge multiple .assembly files into one while properly renumbering the contig IDs.
+
+    Params:
+    --------
+    input_files: list
+        List of input .assembly file paths.
+    output_file: str
+        Output merged .assembly file path.
+    """
+    new_id = 1
+    merged_contigs = []
+    merged_paths = []
+
+    logger.info(f"Merging {len(input_files)} assembly files into `{output_file}` ...")
+
+    for file_path in input_files:
+        id_mapping = {}
+        with open(file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                
+                if line.startswith('>'):
+                    parts = line.split()
+                    contig_name = parts[0]
+                    old_id = parts[1]
+                    length = parts[2]
+                    
+                    id_mapping[old_id] = str(new_id)
+                    merged_contigs.append(f"{contig_name} {new_id} {length}")
+                    new_id += 1
+                
+                else:
+                    new_path = []
+                    for item in line.split():
+                        sign = "-" if item.startswith("-") else ""
+                        abs_val = item.lstrip("-")
+                        if abs_val in id_mapping:
+                            new_path.append(f"{sign}{id_mapping[abs_val]}")
+                        else:
+                            new_path.append(item)
+                    merged_paths.append(" ".join(new_path))
+    
+    with open(output_file, 'w') as out:
+        for contig in merged_contigs:
+            out.write(contig + '\n')
+        for path in merged_paths:
+            out.write(path + '\n')
+            
+    logger.info("Merging assemblies finished.") 

@@ -21,11 +21,11 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import MaxNLocator
+from joblib import Parallel, delayed
 from rich.console import Console
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 from sklearn.mixture import GaussianMixture
-
 from collections import Counter, defaultdict, OrderedDict
 from itertools import product
 from scipy.sparse import triu
@@ -134,13 +134,14 @@ class CollapseFromDepth:
     """
     get collapsed contigs from read depth
     """
-    def __init__(self, depth, cn_offset=0):
+    def __init__(self, depth, cn_offset=0, peak_value=None):
         self.depth = depth
         self.depth_df = self.read_depth()
         self.cn_offset = cn_offset
         self.contigsizes = self.depth_df.groupby('chrom').agg({'end': 'max'})
         self.contigsizes.columns = ['length']
         self.contigsizes_db = self.contigsizes.to_dict()['length']
+        self.peak_value = peak_value
 
     def read_depth(self):
         df = pd.read_csv(self.depth, sep='\t', header=None)
@@ -175,21 +176,26 @@ class CollapseFromDepth:
         x = kdelines.lines[0].get_xdata()
         y = kdelines.lines[0].get_ydata()
 
-        peak_ind = find_peaks(y, distance=10)[0]
-        median_value = np.quantile(data, .3)
-        peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-        if len(peak_ind) == 0:
-            max_idx = np.argsort(x)[len(x)//2]
+        if self.peak_value is not None:
+            peak_val = float(self.peak_value)
         else:
-            max_idx = peak_ind[np.argmax(y[peak_ind])]
+            peak_ind = find_peaks(y, distance=10)[0]
+            median_value = np.quantile(data, .3)
+            peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
+            if len(peak_ind) == 0:
+                max_idx = np.argsort(x)[len(x)//2]
+            else:
+                max_idx = peak_ind[np.argmax(y[peak_ind])]
+            peak_val = float(x[max_idx])
+
 
         # ax.fill_between((x[max_idx] * lower_value, x[max_idx] * upper_value), 
         #             0, ax.get_ylim()[1], alpha=0.5 , color='#bcbcbc')
        
-        ax.axvline(x[max_idx], linestyle='--', color='#b02418')
-        ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
-        ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
-        ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
+        ax.axvline(peak_val, linestyle='--', color='#b02418')
+        ax.text(int(peak_val), ax.get_ylim()[1] * 0.98, str(int(peak_val)), fontsize=14, color='#cb6e7f')    
+        ax.axvline(x=peak_val * 2, linewidth=1, color='#253761', linestyle='--')
+        ax.text(peak_val * 2, ax.get_ylim()[1] * 0.98, f"{peak_val * 2:.1f}", fontsize=14, color='#253761')
 
         sns.despine()
         plt.legend([], frameon=False)
@@ -200,7 +206,7 @@ class CollapseFromDepth:
         plt.savefig(f'{output}.kde.plot.png', dpi=600, bbox_inches='tight')
         plt.savefig(f'{output}.kde.plot.pdf', dpi=600, bbox_inches='tight')
 
-        return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
+        return peak_val, peak_val * lower_value, peak_val * upper_value
         
     def run(self):
         peak_depth, lower_depth, upper_depth = self.plot_distribution()
@@ -306,8 +312,9 @@ class CollapseFromGfa:
     """
     get collapsed contigs from gfa 
     """
-    def __init__(self, gfa):
+    def __init__(self, gfa, peak_value=None):
         self.gfa = gfa
+        self.peak_value = peak_value
 
     def parse_gfa(self):
         length_db = {}
@@ -351,11 +358,15 @@ class CollapseFromGfa:
     def plot_distribution(self, output="plot", lower_value=0.1, upper_value=1.5 ):
         data = self.depth_df['count']
 
-        peak_cov, lower_thr, upper_thr = find_haploid_peak(
-            data,
-            max_multiplier=upper_value
-        )
-
+        if self.peak_value is not None:
+            peak_cov = float(self.peak_value)
+            lower_thr = peak_cov * lower_value
+            upper_thr = peak_cov * upper_value
+        else:
+            peak_cov, lower_thr, upper_thr = find_haploid_peak(
+                data,
+                max_multiplier=upper_value
+            )
 
         fig, ax = plt.subplots(figsize=(5.7, 5))
         plt.rcParams['font.family'] = 'Arial'
@@ -382,21 +393,6 @@ class CollapseFromGfa:
         x = kdelines.lines[0].get_xdata()
         y = kdelines.lines[0].get_ydata()
 
-        # peak_ind = find_peaks(y, distance=10)[0]
-        # median_value = np.quantile(data, .3)
-        # print(peak_ind)
-        # print(median_value)
-        # peak_ind = list(filter(lambda j: x[j] > median_value, peak_ind))
-        # print(peak_ind)
-        # if len(peak_ind) == 0:
-        #     max_idx = np.argsort(x)[len(x)//2]
-        # else:
-        #     max_idx = peak_ind[np.argmax(y[peak_ind])]
-
-        # ax.axvline(x[max_idx], linestyle='--', color='#b02418')
-        # ax.text(int(x[max_idx]), ax.get_ylim()[1] * 0.98, str(int(x[max_idx])), fontsize=14, color='#cb6e7f')    
-        # ax.axvline(x=x[max_idx] * 2, linewidth=1, color='#253761', linestyle='--')
-        # ax.text(x[max_idx] * 2, ax.get_ylim()[1] * 0.98, f"{x[max_idx] * 2:.1f}", fontsize=14, color='#253761')
         ax.axvline(peak_cov, ls='--', color='#b02418')
         ax.text(peak_cov, ax.get_ylim()[1]*0.95, f"{peak_cov:.1f}",
                 color='#b02418', ha='center')
@@ -747,11 +743,57 @@ class CollapsedRescue:
         logger.info(f"Rescued {len(rescued_contigs)} contigs, total length: {rescued_length:,} bp")
         self.clustertable.save("collapsed.rescue.clusters.txt")
 
+    @staticmethod
+    def _run_single_kprune_static(hap_group, groups, vertices_idx, idx_to_vertices, min_weight, 
+                                  alleletable_data, threads, sub_H, all_collapsed, kprune_workdir_str, log_dir):
+        group_contigs = list_flatten(groups)
+        involved_contigs = [c for c in group_contigs if c in vertices_idx]
+        if len(involved_contigs) < 2:
+            return None
+
+        involved_idx = [vertices_idx[c] for c in involved_contigs]
+        sub_old2new = dict(zip(involved_idx, range(len(involved_idx))))
+        sub_new2old = {v: k for k, v in sub_old2new.items()}
+
+       
+        sub_raw_A = HyperGraph.clique_expansion_init(sub_H, min_weight=min_weight)
+
+        sub_alleletable = alleletable_data[
+            alleletable_data[1].isin(involved_contigs)
+            & alleletable_data[2].isin(involved_contigs)
+        ].copy()
+
+        if sub_alleletable.empty:
+            return None
+
+        k_workdir = Path(kprune_workdir_str)
+        tmp_allele_path = k_workdir / f"allele.{hap_group}.table"
+        sub_alleletable.reset_index().reset_index().to_csv(tmp_allele_path, sep='\t', header=False, index=False)
+
+        sub_involved_vertices = np.array([idx_to_vertices[sub_new2old[i]] for i in range(len(involved_idx))])
+        df = HyperGraph.to_contacts(sub_raw_A, sub_involved_vertices, min_weight=min_weight, output=None)
+        df = df.to_pandas()
+        
+        tmp_contacts_path = k_workdir / f"contacts.{hap_group}.table"
+        df.to_csv(tmp_contacts_path, sep='\t', header=None, index=None)
+
+        tmp_collapsed_list = k_workdir / f"collapsed.{hap_group}.list"
+        with open(tmp_collapsed_list, 'w') as out:
+            for contig in all_collapsed.intersection(involved_contigs):
+                print(contig, file=out)
+
+        prune_table_path = k_workdir / f"prune.{hap_group}.table"
+        cmd = ["cphasing-rs", "kprune", str(tmp_allele_path), str(tmp_contacts_path), 
+               str(prune_table_path), "-t", str(threads), "--whitelist", str(tmp_collapsed_list), "-p"]
+        
+        run_cmd(cmd, log=f"{log_dir}/collapsed.kprune.{hap_group}.log")
+
+        return prune_table_path
+    
     def rescue(self):
         """
         Rescue the collapsed contigs into a group with Re-assignment logic.
         """
-        vertices = self.vertices
         vertices_idx = self.vertices_idx
         idx_to_vertices = self.idx_to_vertices
 
@@ -769,6 +811,74 @@ class CollapsedRescue:
             if c not in placed_contigs and c in vertices_idx
         ]
 
+        P_allelic_idx_list = []
+        P_weak_idx_list = []
+        P_allelic_sim_list = []
+        total_hap_groups = len(self.hap_groups)
+        logger.info(f"Segmenting rescue into {total_hap_groups} homological groups to parallelize kprune...")
+        kprune_workdir = Path("collapsed_kprune_workdir")
+        kprune_workdir.mkdir(exist_ok=True)
+    
+
+        max_workers = min(self.threads, total_hap_groups, 8) 
+        kprune_threads = max(1, self.threads // max_workers)
+        if self.alleletable is not None:
+            full_alleletable_data = self.alleletable.data.copy()
+            results = Parallel(n_jobs=max_workers, backend="loky", require=None)(
+                delayed(self._run_single_kprune_static)(
+                    hap_group, 
+                    groups, 
+                    vertices_idx, 
+                    idx_to_vertices,
+                    self.min_weight, 
+                    full_alleletable_data[
+                        full_alleletable_data[1].isin(set(list_flatten(groups))) & 
+                        full_alleletable_data[2].isin(set(list_flatten(groups)))
+                    ].copy(),
+                    kprune_threads, 
+                    extract_incidence_matrix2(self.H, [vertices_idx[c] for c in list_flatten(groups) if c in vertices_idx])[0], 
+                    all_collapsed, 
+                    str(kprune_workdir), 
+                    self.log_dir
+                )
+                for hap_group, groups in self.hap_groups.items()
+            )
+            for prune_table_path in results:
+                if prune_table_path and prune_table_path.exists() and prune_table_path.stat().st_size > 0:
+                    prune_table = pd.read_csv(prune_table_path, sep='\t', header=None)
+                    prune_table[0] = prune_table[0].map(vertices_idx.get)
+                    prune_table[1] = prune_table[1].map(vertices_idx.get)
+                    
+                    prune_table.dropna(subset=[0, 1], inplace=True)
+                    prune_table[0] = prune_table[0].astype(int)
+                    prune_table[1] = prune_table[1].astype(int)
+
+                    allelic_table = prune_table[prune_table[6] == 0]
+                    cross_allelic_table = prune_table[prune_table[6] == 1]
+
+                    P_allelic_idx_list.append([allelic_table[0].values, allelic_table[1].values])
+                    P_weak_idx_list.append([cross_allelic_table[0].values, cross_allelic_table[1].values])
+                    P_allelic_sim_list.append(allelic_table[5].values)
+
+        if kprune_workdir.exists():
+            shutil.rmtree(kprune_workdir)
+
+        if P_allelic_idx_list:
+            global_allelic_rows = np.concatenate([x[0] for x in P_allelic_idx_list])
+            global_allelic_cols = np.concatenate([x[1] for x in P_allelic_idx_list])
+            P_allelic_idx = [global_allelic_rows, global_allelic_cols]
+            
+            global_weak_rows = np.concatenate([x[0] for x in P_weak_idx_list])
+            global_weak_cols = np.concatenate([x[1] for x in P_weak_idx_list])
+            P_weak_idx = [global_weak_rows, global_weak_cols]
+
+            P_allelic_sim = np.concatenate(P_allelic_sim_list)
+        else:
+            P_allelic_idx = None
+            P_weak_idx = None
+            P_allelic_sim = None
+
+
         valid_placed = [c for c in placed_contigs if c in vertices_idx]
         all_involved = valid_placed + unplaced_collapsed
         involved_idx = [vertices_idx[c] for c in all_involved]
@@ -780,74 +890,123 @@ class CollapsedRescue:
         sub_raw_A = HyperGraph.clique_expansion_init(
             sub_H,
             min_weight=self.min_weight,
-
         )
-        if self.alleletable is None:
-            P_allelic_idx = None
-            P_weak_idx = None
-            P_allelic_sim = None
 
-        else:
-            sub_alleletable = self.alleletable.data[
-                self.alleletable.data[1].isin(all_involved)
-                & self.alleletable.data[2].isin(all_involved)
-            ].copy()
-            sub_alleletable[1] = (
-                sub_alleletable[1].map(vertices_idx.get).map(sub_old2new.get)
-            )
-            sub_alleletable[2] = (
-                sub_alleletable[2].map(vertices_idx.get).map(sub_old2new.get)
-            )
-            sub_alleletable.dropna(axis=0, inplace=True)
-            P_allelic_idx = [
-                sub_alleletable[1].astype(int),
-                sub_alleletable[2].astype(int),
-            ]
-            P_allelic_sim = sub_alleletable['similarity'].astype(float).values
-            P_weak_idx = None
+        # if self.alleletable is None:
+        #     P_allelic_idx = None
+        #     P_weak_idx = None
+        #     P_allelic_sim = None
+
+        # else:
+        #     sub_alleletable = self.alleletable.data[
+        #         self.alleletable.data[1].isin(all_involved)
+        #         & self.alleletable.data[2].isin(all_involved)
+        #     ].copy()
+        #     sub_alleletable[1] = (
+        #         sub_alleletable[1].map(vertices_idx.get).map(sub_old2new.get)
+        #     )
+        #     sub_alleletable[2] = (
+        #         sub_alleletable[2].map(vertices_idx.get).map(sub_old2new.get)
+        #     )
+        #     sub_alleletable.dropna(axis=0, inplace=True)
+        #     P_allelic_idx = [
+        #         sub_alleletable[1].astype(int),
+        #         sub_alleletable[2].astype(int),
+        #     ]
+        #     P_allelic_sim = sub_alleletable['similarity'].astype(float).values
+        #     P_weak_idx = None
 
 
-            sub_involved_vertices = np.array([idx_to_vertices[sub_new2old[i]] for i in range(len(involved_idx))])
+        #     sub_involved_vertices = np.array([idx_to_vertices[sub_new2old[i]] for i in range(len(involved_idx))])
 
-            df = HyperGraph.to_contacts(sub_raw_A, sub_involved_vertices, min_weight=self.min_weight, output=None)
+        #     df = HyperGraph.to_contacts(sub_raw_A, sub_involved_vertices, min_weight=self.min_weight, output=None)
 
         
-            df = df.to_pandas()
+        #     df = df.to_pandas()
 
-            df.to_csv("collapsed.hypergraph.expansion.contacts", sep='\t', header=None, index=None)
-            tmp_collapsed_contigs_list = "tmp.collapsed.contigs.list"
-            with open(tmp_collapsed_contigs_list, 'w') as out:
-                for contig in all_collapsed:
-                    print(contig, file=out)
+        #     df.to_csv("collapsed.hypergraph.expansion.contacts", sep='\t', header=None, index=None)
+        #     tmp_collapsed_contigs_list = "tmp.collapsed.contigs.list"
+        #     with open(tmp_collapsed_contigs_list, 'w') as out:
+        #         for contig in all_collapsed:
+        #             print(contig, file=out)
 
-            cmd = ["cphasing-rs", "kprune", self.alleletable.filename, "collapsed.hypergraph.expansion.contacts", 
-                   "collapsed.prune.table", "-t", str(self.threads), "--whitelist", tmp_collapsed_contigs_list, "-p"]
-            flag = run_cmd(cmd, log=f"{self.log_dir}/collapsed.hyperpartition_kprune.log")
-            assert flag == 0, "Failed to execute command, please check log."
+        #     cmd = ["cphasing-rs", "kprune", self.alleletable.filename, "collapsed.hypergraph.expansion.contacts", 
+        #            "collapsed.prune.table", "-t", str(self.threads), "--whitelist", tmp_collapsed_contigs_list, "-p"]
+        #     flag = run_cmd(cmd, log=f"{self.log_dir}/collapsed.hyperpartition_kprune.log")
+        #     assert flag == 0, "Failed to execute command, please check log."
 
-            if Path(tmp_collapsed_contigs_list).exists():
-                Path(tmp_collapsed_contigs_list).unlink()
+        #     if Path(tmp_collapsed_contigs_list).exists():
+        #         Path(tmp_collapsed_contigs_list).unlink()
 
-            if not Path("collapsed.prune.table").exists() or Path("collapsed.prune.table").stat().st_size == 0:
-                logger.warning("No pruned results from kprune, skipping rescue.")
-                P_allelic_idx = None
-                P_weak_idx = None
-                P_allelic_sim = None
-                P_mz_shared = None
+        #     if not Path("collapsed.prune.table").exists() or Path("collapsed.prune.table").stat().st_size == 0:
+        #         logger.warning("No pruned results from kprune, skipping rescue.")
+        #         P_allelic_idx = None
+        #         P_weak_idx = None
+        #         P_allelic_sim = None
+        #         P_mz_shared = None
+        #     else:
+        #         prune_table = pd.read_csv("collapsed.prune.table", sep='\t', header=None)
+        #         prune_table[0] = prune_table[0].map(vertices_idx.get).map(sub_old2new.get)
+        #         prune_table[1] = prune_table[1].map(vertices_idx.get).map(sub_old2new.get)
+
+        #         allelic_table = prune_table[prune_table[6] == 0]
+        #         cross_allelic_table = prune_table[prune_table[6] == 1]
+        #         P_allelic_idx = [allelic_table[0].astype(int), allelic_table[1].astype(int)]
+        #         P_weak_idx = [cross_allelic_table[0].astype(int), cross_allelic_table[1].astype(int)]
+        #         P_allelic_sim = allelic_table[5].astype(float).values
+        #         P_mz_shared = allelic_table[4].astype(float).values
+        
+        # sub_A = HyperGraph.reweight_adjacency_matrix(sub_raw_A, P_allelic_idx=P_allelic_idx, P_weak_idx=P_weak_idx, allelic_factor=0)
+        if P_allelic_idx is not None:
+            keep_mask = np.isin(P_allelic_idx[0], involved_idx) & np.isin(P_allelic_idx[1], involved_idx)
+            rows = np.vectorize(sub_old2new.get)(P_allelic_idx[0][keep_mask]).astype(int)
+            cols = np.vectorize(sub_old2new.get)(P_allelic_idx[1][keep_mask]).astype(int)
+            
+            unique_edges = set()
+            for r, c in zip(rows, cols):
+                if r != c:
+                    unique_edges.add((min(r, c), max(r, c)))
+            
+            if unique_edges:
+                sub_P_allelic_idx = [
+                    np.array([e[0] for e in unique_edges], dtype=int),
+                    np.array([e[1] for e in unique_edges], dtype=int)
+                ]
+                sub_P_allelic_sim = np.ones(len(unique_edges), dtype=float)
             else:
-                prune_table = pd.read_csv("collapsed.prune.table", sep='\t', header=None)
-                prune_table[0] = prune_table[0].map(vertices_idx.get).map(sub_old2new.get)
-                prune_table[1] = prune_table[1].map(vertices_idx.get).map(sub_old2new.get)
-
-                allelic_table = prune_table[prune_table[6] == 0]
-                cross_allelic_table = prune_table[prune_table[6] == 1]
-                P_allelic_idx = [allelic_table[0].astype(int), allelic_table[1].astype(int)]
-                P_weak_idx = [cross_allelic_table[0].astype(int), cross_allelic_table[1].astype(int)]
-                P_allelic_sim = allelic_table[5].astype(float).values
-                P_mz_shared = allelic_table[4].astype(float).values
-        
-        sub_A = HyperGraph.reweight_adjacency_matrix(sub_raw_A, P_allelic_idx=P_allelic_idx, P_weak_idx=P_weak_idx, allelic_factor=0)
-        
+                sub_P_allelic_idx = None
+                sub_P_allelic_sim = None
+            
+            if P_weak_idx is not None:
+                keep_mask_weak = np.isin(P_weak_idx[0], involved_idx) & np.isin(P_weak_idx[1], involved_idx)
+                rows_weak = np.vectorize(sub_old2new.get)(P_weak_idx[0][keep_mask_weak]).astype(int)
+                cols_weak = np.vectorize(sub_old2new.get)(P_weak_idx[1][keep_mask_weak]).astype(int)
+                
+                unique_edges_weak = set()
+                for r, c in zip(rows_weak, cols_weak):
+                    if r != c:
+                        unique_edges_weak.add((min(r, c), max(r, c)))
+                
+                if unique_edges_weak:
+                    sub_P_weak_idx = [
+                        np.array([e[0] for e in unique_edges_weak], dtype=int),
+                        np.array([e[1] for e in unique_edges_weak], dtype=int)
+                    ]
+                else:
+                    sub_P_weak_idx = None
+            else:
+                sub_P_weak_idx = None
+        else:
+            sub_P_allelic_idx = None
+            sub_P_weak_idx = None
+            sub_P_allelic_sim = None
+            
+        sub_A = HyperGraph.reweight_adjacency_matrix(
+            sub_raw_A, 
+            P_allelic_idx=sub_P_allelic_idx, 
+            P_weak_idx=sub_P_weak_idx, 
+            allelic_factor=0
+        )
         group_to_idx = {}
         for hap_group, groups in self.hap_groups.items():
             for i, g_contigs in enumerate(groups):

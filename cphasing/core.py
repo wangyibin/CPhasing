@@ -416,25 +416,54 @@ class AlleleTable:
 
             df.drop_duplicates([1, 2], inplace=True)
             if self.load_self:
-                comment_data = []
+                # comment_data = []
+                # with xopen(self.filename, 'r') as fp:
+                #     for line in fp:
+                #         if line.startswith("#"):
+                #             res = line[1:].split()
+                #             if res and len(res) >= 4:
+                #                 comment_data.append(res)
+                # if comment_data:
+                #     comment_df = pd.DataFrame(comment_data)
+                #     comment_df.columns = [1, "length", "mz1", "mzUnique"]
+                #     comment_df.drop(['length', 'mzUnique'], axis=1, inplace=True)
+                #     comment_df[2] = comment_df[1]
+                #     comment_df['mz2'] = comment_df['mz1']
+                #     comment_df['mzShared'] = comment_df['mz1']
+                #     comment_df['similarity'] = 1.0000 
+                #     comment_df['strand'] = 1
+                #     df = pd.concat([df, comment_df], axis=0)
+                    
+                #     df.reset_index(drop=True, inplace=True)
+                comment_contigs = []
+                comment_mzs = []
                 with xopen(self.filename, 'r') as fp:
                     for line in fp:
                         if line.startswith("#"):
                             res = line[1:].split()
-                            if res and len(res) >= 4:
-                                comment_data.append(res)
-                if comment_data:
-                    comment_df = pd.DataFrame(comment_data)
-                    comment_df.columns = [1, "length", "mz1", "mzUnique"]
-                    comment_df.drop(['length', 'mzUnique'], axis=1, inplace=True)
-                    comment_df[2] = comment_df[1]
-                    comment_df['mz2'] = comment_df['mz1']
-                    comment_df['mzShared'] = comment_df['mz1']
-                    comment_df['similarity'] = 1.0000 
-                    comment_df['strand'] = 1
-                    df = pd.concat([df, comment_df], axis=0)
+                            if len(res) >= 3: 
+                                comment_contigs.append(res[0])
+                                comment_mzs.append(int(res[2]))
+                if comment_contigs:
+                    comment_df = pd.DataFrame({
+                        1: comment_contigs,
+                        2: comment_contigs,
+                        'mz1': comment_mzs,
+                        'mz2': comment_mzs,
+                        'mzShared': comment_mzs,
+                        'similarity': 1.0,
+                        'strand': 1
+                    })
                     
-                    df.reset_index(drop=True, inplace=True)
+                    comment_df = comment_df.astype({
+                        'mz1': 'int64',
+                        'mz2': 'int64',
+                        'mzShared': 'int64',
+                        'similarity': 'float32',
+                        'strand': 'int8'
+                    })
+                    df = pd.concat([df, comment_df], axis=0, ignore_index=True)
+            
             
         df = df.reset_index(drop=True)
 

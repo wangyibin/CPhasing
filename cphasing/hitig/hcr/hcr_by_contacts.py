@@ -83,7 +83,7 @@ def plot1(data, lower_value=0.1, upper_value=1.75, output="output"):
     
     return int(x[max_idx]), x[max_idx] * lower_value, x[max_idx] * upper_value
 
-def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
+def plot(data, lower_value=0.1, upper_value=1.75, output="output", peak_value=None):
     fig, ax = plt.subplots(figsize=(5.7, 5))
     plt.rcParams['font.family'] = 'Arial'
     
@@ -114,37 +114,38 @@ def plot(data, lower_value=0.1, upper_value=1.75, output="output"):
     formatter = plt.gca().get_xaxis().get_major_formatter()
     plt.gca().xaxis.set_major_formatter(formatter)
     plt.gca().xaxis.get_offset_text().set_fontsize(14)
-    
     plt.xlim(0, np.percentile(data, 95) * 2)
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
     plt.xlabel("Contacts", fontsize=24)
     plt.ylabel("Density", fontsize=24)
 
-    q10 = np.quantile(data, 0.10)
-    q99 = np.quantile(data, 0.99)
-    mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
-    x = x_grid[mask]
-    y = y_smooth[mask]
-    _x_peak = np.median(data) 
-
-    if len(x) == 0 or len(y) == 0:
-        max_idx = 0
+    if peak_value is not None:
+        x_peak = float(peak_value)
     else:
-        height_thresh = 0.05 * float(y.max())  
-        prom_thresh = 0.10 * float(y.max())    
-        distance = max(2, len(y) // 50)  
-        peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
+        q10 = np.quantile(data, 0.10)
+        q99 = np.quantile(data, 0.99)
+        mask = (x_grid >= max(q10 * 0.5, 0.0)) & (x_grid <= q99 * 1.1)
+        x = x_grid[mask]
+        y = y_smooth[mask]
+        _x_peak = np.median(data) 
 
-        if len(peaks) == 0:
-            max_idx = int(np.argmax(y))
+        if len(x) == 0 or len(y) == 0:
+            max_idx = 0
         else:
-            prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
-            max_idx = int(peaks[int(np.argmax(prominences))])
+            height_thresh = 0.05 * float(y.max())  
+            prom_thresh = 0.10 * float(y.max())    
+            distance = max(2, len(y) // 50)  
+            peaks, props = find_peaks(y, height=height_thresh, prominence=prom_thresh, distance=distance)
 
-    x_peak = float(x[max_idx])
-    
-    x_peak = _x_peak if x_peak < _x_peak else x_peak
+            if len(peaks) == 0:
+                max_idx = int(np.argmax(y))
+            else:
+                prominences = props.get('prominences', np.zeros_like(peaks, dtype=float))
+                max_idx = int(peaks[int(np.argmax(prominences))])
+
+        x_peak = float(x[max_idx])
+        x_peak = _x_peak if x_peak < _x_peak else x_peak
 
     ax.set_ylim(0)
     ax.fill_between((x_peak * lower_value, x_peak * upper_value), 
@@ -310,7 +311,7 @@ def hcr_by_contacts_cool(cool_file, output, lower_value=0.1, upper_value=1.75,
 def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
                     skip_adjust=False,
                     min_remove_whole_collapsed_contigs_rate=0.9,
-                    edge_length=None, ploidy=None):
+                    edge_length=None, ploidy=None, peak_value=None):
 
     logger.info(f"Reading depth file `{depth_file}` ...")
     depth = pl.read_csv(depth_file, separator='\t', has_header=False,
@@ -336,8 +337,9 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
     sum_values_nonzero = sum_values[sum_values > 0]
 
     peak_value, min_value, max_value = plot(sum_values_nonzero, lower_value, 
-                                upper_value, output=output.replace(".bed", ""))
-
+                                upper_value, output=output.replace(".bed", ""), 
+                                peak_value=peak_value)
+    
     res = np.where((sum_values <= max_value) & (sum_values >= min_value))
 
     bins['count'] = sum_values
@@ -348,7 +350,8 @@ def hcr_by_contacts(depth_file, output, lower_value=0.1, upper_value=1.75,
                              index=True, header=None)
 
     collapsed_contigs.reset_index(inplace=True)    
-    collapsed_contigs['CN'] = collapsed_contigs['CN'].round()
+    collapsed_contigs = collapsed_contigs[np.isfinite(collapsed_contigs['CN'])]
+    collapsed_contigs['CN'] = collapsed_contigs['CN'].round().astype(int)
 
     if ploidy is not None:
         collapsed_contigs = collapsed_contigs[collapsed_contigs['CN'] <= ploidy]

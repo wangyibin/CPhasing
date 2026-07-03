@@ -24,7 +24,6 @@ import numpy as np
 import networkx as nx
 import networkx.algorithms.approximation as nx_app
 import multiprocessing
-import igraph as ig
 import pandas as pd
 import polars as pl
 import re
@@ -57,6 +56,7 @@ from ..utilities import (
 
 logger = logging.getLogger(__name__)
 
+# from line_profiler import profile
 
 class HaplotypeAlign:
     """
@@ -76,44 +76,28 @@ class HaplotypeAlign:
     def __init__(self, at: AlleleTable, tour_list: list, workdir=".", threads: int = 4):
         self.tour_list = tour_list
         try:
-            raw = at.data
-            cols = [1, 2, "mzShared", "strand", "similarity"]
-            raw = raw[cols].copy()
-            raw["mzShared"] = (
-                pd.to_numeric(raw["mzShared"], errors="coerce")
-                .fillna(0)
-                .astype(np.int64)
-            )
-            raw["strand"] = (
-                pd.to_numeric(raw["strand"], errors="coerce").fillna(0).astype(np.int8)
-            )
-            raw["similarity"] = (
-                pd.to_numeric(raw["similarity"], errors="coerce")
-                .fillna(0.0)
-                .astype(float)
-            )
+            raw = at.data[[1, 2, "mzShared", "strand", "similarity"]].copy()
+            
+            for col, dtype in [("mzShared", np.int64), ("strand", np.int8), ("similarity", float)]:
+                if not np.issubdtype(raw[col].dtype, np.number):
+                    raw[col] = pd.to_numeric(raw[col], errors="coerce").fillna(0)
+                else:
+                    raw[col] = raw[col].fillna(0)
+                raw[col] = raw[col].astype(dtype)
 
-            # 关键：将 (1,2) 的重复行聚合成唯一索引，避免 MultiIndex non-unique 导致 reindex() 直接炸
-            def _agg_strand(g: pd.DataFrame) -> int:
-                # mzShared 加权投票
-                s = float(
-                    (g["strand"].astype(float) * g["mzShared"].astype(float)).sum()
-                )
-                if s > 0:
-                    return 1
-                if s < 0:
-                    return -1
-                return 1  # 平票默认 +
+            raw["strand_weight"] = raw["strand"].astype(float) * raw["mzShared"].astype(float)
 
-            agg = raw.groupby([1, 2], sort=False, as_index=True).agg(
+            self.allele_data = raw.groupby([1, 2], sort=False).agg(
                 mzShared=("mzShared", "sum"),
                 similarity=("similarity", "max"),
+                strand_weight=("strand_weight", "sum")
             )
+            
+            self.allele_data["strand"] = np.where(
+                self.allele_data["strand_weight"] < 0, np.int8(-1), np.int8(1)
+            )
+            self.allele_data.drop(columns=["strand_weight"], inplace=True)
 
-            strand_series = raw.groupby([1, 2], sort=False).apply(_agg_strand)
-            strand_series.name = "strand"
-
-            self.allele_data = agg.join(strand_series)
             if not self.allele_data.index.is_unique:
                 self.allele_data = self.allele_data[
                     ~self.allele_data.index.duplicated(keep="first")
@@ -2385,6 +2369,7 @@ class OldOptimize0:
         """
         graph_df, orientation_res = self.filter(as_idx=True)
         # graph_df['weight'] = 1 / graph_df['weight']
+        import igraph as ig
         G = ig.Graph.DataFrame(graph_df, directed=False)
 
         return G
@@ -2474,6 +2459,7 @@ class OldOptimize:
         """
         graph_df, orientation_res = self.filter(as_idx=True)
         # graph_df['weight'] = 1 / graph_df['weight']
+        import igraph as ig
         G = ig.Graph.DataFrame(graph_df, directed=False)
 
         return G
@@ -2624,6 +2610,7 @@ class SimpleOptimize:
         """
         graph_df, orientation_res = self.filter(as_idx=True)
         # graph_df['weight'] = 1 / graph_df['weight']
+        import igraph as ig
         G = ig.Graph.DataFrame(graph_df, directed=False)
 
         return G
@@ -2851,6 +2838,7 @@ class SimpleOptimize2:
         graph_df["weight"] = 1 / graph_df["weight"]
         # graph_df['weight'] = max(graph_df['weight']) - graph_df['weight']
         # graph_df['weight'] = graph_df['weight'].astype(int)
+        import igraph as ig
         G = ig.Graph.DataFrame(graph_df, directed=False)
 
         return G, graph_df
@@ -3335,7 +3323,7 @@ class HyperScaffolding:
             sub_group_idx = dict(zip(range(len(sub_group)), list(sub_group)))
             sub_NA = self.NA[list(sub_group), :][:, list(sub_group)]
             # sub_NA[np.where(sub_NA < 200)] = 0.0
-
+            import igraph as ig
             G = ig.Graph.Weighted_Adjacency(
                 1 / sub_NA, mode="undirected", loops=False
             ).to_networkx()
@@ -3418,7 +3406,7 @@ class HyperScaffolding:
                 )
 
         split_group_A += split_group_A.T - np.diag(split_group_A.diagonal())
-
+        import igraph as ig
         G = ig.Graph.Weighted_Adjacency(
             1 / split_group_A, mode="undirected", loops=False
         ).to_networkx()
@@ -3438,6 +3426,7 @@ class HyperScaffolding:
 
         group_A += group_A.T - np.diag(group_A.diagonal())
         print(group_A)
+        import igraph as ig
         G = ig.Graph.Weighted_Adjacency(
             1 / group_A, mode="undirected", loops=False
         ).to_networkx()
@@ -3517,6 +3506,7 @@ def raw_sort(K, A, length_array, threads=4):
             sub_NA2 = 1 / sub_NA
 
         try:
+            import igraph as ig
             G = ig.Graph.Weighted_Adjacency(
                 sub_NA2, mode="undirected", loops=False
             ).to_networkx()

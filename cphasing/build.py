@@ -75,10 +75,10 @@ def Build(fasta_file, gap_size=100, output='groups.asm.fasta', corrected=False,
                     
                     contig_ranges[contig] -= r 
 
-            unanchor_tigs = set(fasta.keys()) - set(agp_df[agp_df[4] == 'W'][5].values.tolist())
+            unanchor_tigs = set(fasta.keys()) - set(agp_df[agp_df.iloc[:, 4] == 'W'].iloc[:, 5].values.tolist())
 
         else:
-            unanchor_tigs = set(fasta.keys()) - set(agp_df[agp_df[4] == 'W'][5].values.tolist())
+            unanchor_tigs = set(fasta.keys()) - set(agp_df[agp_df.iloc[:, 4] == 'W'].iloc[:, 5].values.tolist())
 
         unanchor_res = []
         for unanchor_tig in unanchor_tigs:

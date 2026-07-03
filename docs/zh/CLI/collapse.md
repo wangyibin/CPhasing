@@ -38,6 +38,14 @@
     cphasing collapse from-gfa hifi.p_utg.noseq.gfa.gz 
     ```
 
+## `contigs.collapsed.contig.list`
+example (`contig\tcoverage\tcopynumber`):
+```bash
+utg1    61  2
+utg2    59  2
+```
+
+
 ## 塌缩contig补救
 === "Pore-C/CiFi"
 

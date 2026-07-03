@@ -69,6 +69,8 @@ needletail = ">=0.7.1,<0.8"
 minigraph = ">=0.21,<0.22"
 xopen = ">=2.0.2,<3"
 plotnine = ">=0.15.3,<0.16"
+minibwa = ">=0.1,<0.2"
+pip = ">=26.1.2,<27"
 
 [target.linux-64.dependencies]
 sparse_dot_mkl = ">=0.9.10,<0.10"
@@ -115,7 +117,7 @@ mike = "2.0.0.*"
 pillow = ">=9.4.0"
 cairosvg = "2.7.1.*"
 git-cliff = ">=2.4.0,<3"
-zensical = ">=0.0.30,<0.0.31"
+zensical = ">=0.0.45,<0.0.46"
 
 [feature.docs.pypi-dependencies]
 mkdocs-static-i18n = ">=1.2.3"

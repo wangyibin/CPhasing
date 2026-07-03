@@ -1,15 +1,23 @@
 
-`cphasing mapper` is designed for process **Pore-C** or **HiFi-C** data, its output two files:   
+`cphasing mapper` is designed for process **Pore-C** or **CiFi** data, its output two files:   
    (1) porec table (`.porec.gz`) which contain high-order contacts  
    (2) 4DN pairs (`.pairs.pqs`) which only retain VPCs.
 !!!note
-    The output of HiFi-C, still named `.porec.gz`, contains the same results whether Pore-C or HiFi-C data.
+    The output of CiFi, still named `.porec.gz`, contains the same results whether Pore-C or CiFi data.
 ## Examples
 
 ### Process one cell Pore-C data
 ```shell
 cphasing mapper draft.contigs.fasta sample.porec.fastq.gz -t 40 
 ```
+
+!!!note
+    By default, `cphasing mapper` uses `minimap2` as the aligner. You can specify different aligners using the `-a` or `--aligner` option:
+    - **`minimap2`** (default): High-performance standard alignment tool.
+    - **`c3align`**: More valid contacts for polyploids.
+  
+    
+
 
 ### Process multiple cells Pore-C data
 #### Process together 

@@ -230,12 +230,24 @@ class PartigAllele:
                     threads=4,
                     log_dir='logs'):
         self.fasta = fasta
-        self.fasta_db = list(x[0] for x in read_fasta_yield(fasta))
+        
         fasta_prefix = Path(Path(fasta).name).with_suffix("")
         while fasta_prefix.suffix in {".fasta", "gz", "fa", ".fa", ".gz"}:
             fasta_prefix = fasta_prefix.with_suffix("")
         self.prefix = fasta_prefix
         self.partig_res = f"{self.prefix}.similarity.res"
+
+        if Path(f"{fasta}.fai").exists():
+            self.fasta_db = pd.read_csv(f"{fasta}.fai", sep='\t', header=None)[0].tolist()
+        elif Path(f"{self.prefix}.contigsizes").exists():
+            self.fasta_db = pd.read_csv(f"{self.prefix}.contigsizes", sep='\t', header=None, index_col=0)[0].to_dict()
+        else:
+            # self.fasta_db = list(x[0] for x in read_fasta_yield(fasta))
+            self.fasta_db = []
+            with xopen(fasta, 'rt') as f:
+                for line in f:
+                    if line.startswith('>'):
+                        self.fasta_db.append(line[1:].strip().split()[0])
 
         ## parameters for partig
         self.k = k

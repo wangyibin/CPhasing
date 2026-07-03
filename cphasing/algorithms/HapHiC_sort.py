@@ -173,7 +173,7 @@ def get_sub_HT_dict(ctgs, HT_link_dict):
             if links:
                 sub_HT_dict[(HT_index_dict[HT_1], HT_index_dict[HT_2])] = links
 
-    return sub_HT_dict, HT_index_dict
+    return dict(sub_HT_dict), HT_index_dict
 
 
 def get_len(HT, fa_dict):
@@ -344,6 +344,8 @@ def format_HTs(HT):
 
 
 def update(path_list, old_sub_HT_matrix, index_HT_dict, HT_index_dict, flank_HT_dict, fa_dict, known_adjacency, flank):
+    if not isinstance(old_sub_HT_matrix, np.ndarray):
+        old_sub_HT_matrix = np.asarray(old_sub_HT_matrix)
 
     def write_output_path_list(HT):
         if isinstance(HT, tuple):
@@ -428,7 +430,10 @@ def update(path_list, old_sub_HT_matrix, index_HT_dict, HT_index_dict, flank_HT_
             
         idx1 = new_idx_to_old_indices[i1]
         idx2 = new_idx_to_old_indices[i2]
-        links = old_sub_HT_matrix[idx1][:, idx2].sum()
+        sub_matrix = old_sub_HT_matrix[idx1]
+        if hasattr(sub_matrix, 'toarray'):
+            sub_matrix = sub_matrix.toarray()
+        links = sub_matrix[:, idx2].sum()
         
         if links > 0:
             sub_HT_dict[(i1, i2)] = links
@@ -602,6 +607,11 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
         else:
             return get_len(HT, fa_dict)
     base_HT_lengths = np.array([get_HT_len(index_HT_dict[i]) for i in range(shape)], dtype=np.float32)
+
+    if hasattr(sub_HT_dict, 'items') is False:
+        sub_HT_dict = dict(sub_HT_dict)
+
+
     while len(path_list) != 1:
 
         r += 1
@@ -609,6 +619,9 @@ def fast_sort(args, fa_dict, group_specific_data, group, prefix):
         if not skip_density_graph_construction:
             # convert sub_HT_dict to sub_HT_matrix
             sub_HT_matrix  = dict_to_matrix(sub_HT_dict, shape)
+            if not isinstance(sub_HT_matrix, np.ndarray):
+                sub_HT_matrix = np.asarray(sub_HT_matrix)
+
 
             # in the first round, record the oldest version of sub_HT_matrix for ctg-ctg link calculation
             if r == 1:
@@ -715,12 +728,17 @@ def run_allhic_optimization(args, group, prefix, clm, allhic):
         cmd_list.append('--skipGA')
 
     # run ALLHiC optimization
-    subprocess.run(
-            cmd_list, check=True,
-            stdout=open('logs/{}.allhic_stdout.log'.format(prefix), 'w'),
-            stderr=open('logs/{}.allhic_stderr.log'.format(prefix), 'w')
-            )
-
+    try:
+        subprocess.run(
+                cmd_list, check=True,
+                stdout=open('logs/{}.allhic_stdout.log'.format(prefix), 'w'),
+                stderr=open('logs/{}.allhic_stderr.log'.format(prefix), 'w')
+                )
+    except subprocess.CalledProcessError as e:
+        logger.error('[{}] ALLHiC optimization failed with exit status {}. '
+                     'Check logs/{}.allhic_stderr.log for key issues. Skipping optimization for this group.'.format(prefix, e.returncode, prefix))
+    except Exception as e:
+        logger.error('[{}] ALLHiC optimization failed: {}. Skipping.'.format(prefix, str(e)))
 
 def evaluate_tour_score(tour_file, fa_dict, sub_HT_dict, HT_index_dict):
     if not os.path.exists(tour_file):

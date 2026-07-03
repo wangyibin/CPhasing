@@ -22,7 +22,7 @@ from cphasing.utilities import ( cmd_exists,
                                  xopen
                                  )
 
-from line_profiler import profile
+# from line_profiler import profile
 
 logger = logging.getLogger(__name__)
 

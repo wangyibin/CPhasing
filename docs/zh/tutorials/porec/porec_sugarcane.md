@@ -18,8 +18,9 @@ cphasing porec-merge porec-*.porec.gz -o porec.merge.porec.gz
 ```
 
 
-## 组装流程
-- 现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（`-n 10:0`)。
+## 组装流程  
+>现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（`-n 10:0`），同时存在大量塌缩`--collapsed-rescue`，从组装图中鉴定塌缩序列`--gfa sh_hifi.bp.p_utg.no_seq.gfa`。也可以加`--refine`参数，避免片段化的等位contig聚集在一起。
+> Optionally, the `-x very-sensitive` parameter can be enabled for fragmented assemblies (HiFi-only) or low-depth sequencing data.
 ```shell
-cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct porec.mrege.porec.gz -t 40 -n 10:0 -hcr -p AAGCTT 
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 10:0 -hcr -p AAGCTT --collapsed-rescue --gfa sh_hifi.bp.p_utg.no_seq.gfa
 ```

@@ -73,6 +73,7 @@ def run(fasta,
         pattern="AAGCTT",
         mapper_k=15,
         mapper_w=10,
+        aligner="minimap2",
         mm2_params="-x map-ont",
         mapping_quality=0,
         hic_aligner="_chromap",
@@ -552,6 +553,8 @@ def run(fasta,
                                     mapper_w,
                                     "-q",
                                     mapping_quality,
+                                    "--aligner",
+                                    aligner,
                                     "--mm2-params",
                                     mm2_params,
                                     "-t",
@@ -566,8 +569,10 @@ def run(fasta,
                     if exit_code != 0:
                         raise e
                 
-                porec_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
-                pairs_prefix = str(Path(porec_data[0]).name).replace(".gz", "").rsplit(".", 1)[0]
+                porec_name = Path(porec_data[0]).name
+                clean_name = re.sub(r'(\.gz|\.bam|\.fastq|\.fq|\.fa|\.fasta)$', '', porec_name)
+                porec_prefix = clean_name.rsplit(".", 1)[0] if "." in clean_name else clean_name
+                pairs_prefix = porec_prefix
                 source_paf = str(Path(f"{porec_prefix}.paf.gz").absolute())
                 source_pairs_name = str(Path(f"{pairs_prefix}.pairs.pqs").absolute())
             

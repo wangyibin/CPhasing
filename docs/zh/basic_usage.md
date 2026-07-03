@@ -34,22 +34,31 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4
 ```
 
 
-### 输入**HiFi-C**数据
-仅需比对的时候更改为`pipeline`或者`mapper`的`--mm2-params "-x map-hifi" `参数. 剩下步骤和生成的文件都与Pore-C数据一致。
+### 输入**CiFi**数据
+仅需比对的时候更改为`pipeline`或者`mapper`的`--mm2-params "-x cifi" `参数. 剩下步骤和生成的文件都与Pore-C数据一致。
 ```bash
-cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x map-hifi" -t 10 -n 8:4
+cphasing pipeline -f draft.asm.fasta -pcd hific.fastq.gz --mm2-params "-x cifi" -t 10 -n 8:4
 ```
 !!! note 
-    HiFi-C的比对结果以`.porec.gz`结尾，处理方式与Pore-C一致，均可用`porec-merge`、`porec-intersect`等命令处理。
+    CiFi的比对结果以`.porec.gz`结尾，处理方式与Pore-C一致，均可用`porec-merge`、`porec-intersect`等命令处理。
 
-### 输入**Hi-C data**数据
+### 输入**Hi-C/Omni-C data**数据
 ```bash
 cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -t 10 -n 8:4
 ```
 !!! note
     - **1** | 指定多组数据可以设置多个`-hic1`和`-hic2`参数 (例如，`-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz`)  
     - **2** | 如果基因组的大小大于8Gb，需要提高比对的`k` 和`w`的大小，避免`chromap`报错，例如 `-hic-mapper-k 27 -hic-mapper-w 14`.
-
+    - **3** | 你可以通过 `-hic-aligner` 选项切换 Hi-C 比对工具。当前支持的工具包括：
+        - **`_chromap`** (默认): C-Phasing 内置的修改版 Chromap。
+        - **`chromap`**: 官方原版 Chromap。
+        - **`bwa-mem2`**: 高性能的 BWA-MEM。
+        - **`minibwa`**: 更轻量、更快速的类 BWA 比对工具。
+        
+        指定使用 `minibwa` 运行示例如下：
+        ```bash
+        cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz -hic-aligner minibwa -t 10 -n 8:4
+        ```
 
 ### 输入4DN pairs (`.pairs.gz` or `.pairs.pqs`)文件
 
@@ -72,22 +81,32 @@ cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
 ## run 3.hyperpartition 
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
 ```
-!!!tips
+!!! tips
     `-s 3,4` to run step 3 and 4.
 
 ### 提升组装质量
-大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定`-p AAGCTT` 进行标准化。
+大部分情况下，设置`-hcr`参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定`-p AAGCTT` 进行标准化。如果是Omni-C数据则不需要设置`-p`参数。
 ```bash
 cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT 
 ```  
 
-### 塌缩补救
+### 塌缩补救 (Collapsed rescue)
+- 从 Pore-C PAF 文件中识别塌缩的 unitig（包含 singletons）：
 ```bash
 cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue 
 ```
-or 
+- 或者从包含 unitig 对应 read 深度的 hifiasm GFA 文件中识别：
 ```bash
 cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue --gfa draft.asm.p_utg.noseq.gfa 
+```
+- 或者提供一个`collapsed.contigs.list` [:octicons-arrow-right-24:Collapse](CLI/collapse.md)
+```bash
+cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-contigs collapsed.contigs.list
+```
+
+- 另一种方式是直接提供自定义的塌缩 unitig 表格（格式为 contig\tcoverage\tcopynumber，详情请参考 [:octicons-arrow-right-24:collapse](CLI/collapse.md)）：
+```bash
+cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-contigs collapsed.contigs.table
 ```
 
 ## 通过Juicebox 人工调整基因组组装 [可以直接运行`6.curation/curation.cmd.sh`]

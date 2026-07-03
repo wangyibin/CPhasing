@@ -24,7 +24,12 @@ cphasing pairs-merge hic-*.pairs.pqs -o hic.merge.pairs.pqs
 
 
 ## Assembling by `cphasing pipeline`
-- Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set `-n 10:0` to automatically output cluster numbers.
+>Modern hybrid sugarcane is an aneuploid genome, containing unequal numbers of chromosomes across homologous groups. Therefore, we set `-n 10:0` to automatically determine the number of clusters.
+
+> To rescue collapsed regions, enable CollapseRescue by providing the assembly graph with `--collapsed-rescue --gfa sh_hifi.bp.p_utg.no_seq.gfa`, allowing collapsed unitigs to be identified and reassigned.
+
+> Optionally, the `--refine` parameter can be enabled to further reduce inter-homologous misassignments and improve phasing accuracy.
+
 ```shell
-cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 10:0 -hcr -p AAGCTT 
+cphasing pipeline -f sh_hifi.bp.p_utg.fasta -pct hic.mrege.pairs.pqs -t 40 -n 10:0 -hcr -p AAGCTT --collapsed-rescue --gfa sh_hifi.bp.p_utg.no_seq.gfa
 ```

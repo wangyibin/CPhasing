@@ -21,6 +21,12 @@ from scipy.sparse import (
     coo_matrix,
 )
 
+try:
+    from sparse_dot_mkl import dot_product_mkl
+    HAS_MKL = True
+except ImportError:
+    HAS_MKL = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,6 +77,25 @@ def numpy_dec_hook(type, obj):
         return np.array(obj)
     
     return obj
+
+def find_csr_data_offsets(A, rows, cols):
+    if len(rows) == 0:
+        return np.array([], dtype=np.int64)
+    coo = A.tocoo()
+    dense_cols = A.shape[1]
+    
+    csr_keys = coo.row.astype(np.int64) * dense_cols + coo.col.astype(np.int64)
+    target_keys = rows.astype(np.int64) * dense_cols + cols.astype(np.int64)
+    
+    sorter = np.argsort(csr_keys)
+    insert_idx = np.searchsorted(csr_keys, target_keys, sorter=sorter)
+    insert_idx = np.clip(insert_idx, 0, len(csr_keys) - 1)
+    matched_indices = sorter[insert_idx]
+    
+    valid_mask = (csr_keys[matched_indices] == target_keys)
+
+    return matched_indices[valid_mask]
+
 
 class HyperEdges(msgspec.Struct):
     idx: dict 
@@ -221,7 +246,6 @@ class HyperGraph:
         # if len(self.mapq) > 1:
         #     self.mapq = self.mapq[remove_idx]
 
-
     def incidence_matrix(self, min_contacts=1):
         """
         The incidence matrix of hypergraph
@@ -234,13 +258,13 @@ class HyperGraph:
         """
 
         logger.debug("Starting to construct hypergraph incidence matrix.")
-        data = self.count if self.count is not None else np.ones(len(self.row), dtype=np.int32)
+        data = self.count if self.count is not None else np.ones(len(self.row), dtype=np.float32)
         # data = np.ones(len(self.row), dtype=np.int32)
         # matrix = csr_matrix((data, (self.row, self.col)), shape=self.shape)   
 
         rows = np.asarray(self.row, dtype=np.int32)
-        cols = np.asarray(self.col, dtype=np.int32)
-        data = np.asarray(data)
+        cols = np.asarray(self.col, dtype=HYPERGRAPH_COL_DTYPE)
+        data = np.asarray(data, dtype=np.float32)
 
         if not np.all(rows[:-1] <= rows[1:]):
             logger.debug("Sorting hypergraph data for incidence matrix construction.")
@@ -255,7 +279,7 @@ class HyperGraph:
         indptr = np.concatenate(([0], np.cumsum(row_counts)))
         del row_counts
 
-        matrix = csr_matrix((data, cols, indptr), shape=self.shape)
+        matrix = csr_matrix((data, cols, indptr), shape=self.shape, dtype=np.float32)
 
         logger.debug("Constructed raw hypergraph incidence matrix.")
 
@@ -285,27 +309,6 @@ class HyperGraph:
         else:
             self.remove_contig_idx = np.array([])
             self.remove_contigs = np.array([])
-        
-        # node_degrees = matrix.sum(axis=1).A1
-        # low_signal_mask = node_degrees >= min_contacts
-        # max_contacts_percentile = 99.5
-        # if max_contacts_percentile < 100:
-        #     upper_bound = np.percentile(node_degrees[node_degrees > 0], max_contacts_percentile)
-        #     hub_mask = node_degrees <= upper_bound
-        #     logger.info(f"Filtering hub contigs with degree > {upper_bound:.2f} ({max_contacts_percentile}th percentile)")
-        # else:
-        #     hub_mask = np.ones_like(low_signal_mask, dtype=bool)
-
-        # non_zero_contig_idx = low_signal_mask & hub_mask
-        
-        # matrix = matrix[non_zero_contig_idx]
-        # self.remove_contigs = self.nodes[~non_zero_contig_idx]
-        # self.remove_contig_idx = np.where(~non_zero_contig_idx)[0]  
-        # self.nodes = self.nodes[non_zero_contig_idx]
-
-        # non_zero_edges_idx = matrix.sum(axis=0).A1 >= 2
-        # matrix = matrix[:, non_zero_edges_idx]
-    
        
         logger.debug("Finished constructing hypergraph incidence matrix.")
         return matrix 
@@ -351,7 +354,6 @@ class HyperGraph:
 
         logger.info(f"Constructed adjacency matrix with {A.nnz} non-zero elements.")
         return A
-
 
     @staticmethod
     def clique_expansion_init(H,
@@ -410,20 +412,38 @@ class HyperGraph:
         # D_v_inv_sqrt = dia_matrix(((1.0 / np.sqrt(np.maximum(D_v, 1))).astype(np.float32), [0]), shape=(n, n))
 
         # inverse diagonal matrix D_e
-        D_e_inv = dia_matrix(((1 / np.maximum(D_e_num, 1)).astype(np.float32), [0]), shape=(m, m))
+        # D_e_inv = dia_matrix(((1 / np.maximum(D_e_num, 1)).astype(np.float32), [0]), shape=(m, m))
 
         logger.debug("Calculated inverse diagonal matrix of hyperedges.")
+        d_e_diag = (1.0 / np.maximum(D_e_num, 1)).astype(np.float32)
+        H = H.astype(np.float32, copy=False)
+
+        # from scipy.sparse import csc_matrix
+        # if isinstance(H, csr_matrix):
+        #     H_T = csc_matrix((H.data, H.indices, H.indptr), shape=(H.shape[1], H.shape[0]))
+        # else:
+        #     H_T = H.T
 
         if W is not None:
-            A = H @ W @ D_e_inv @ H.T
+            scale_vector = W.data[0] * d_e_diag
         else:
+            scale_vector = d_e_diag
+        
+        scale_vector_sqrt = np.sqrt(scale_vector)
+
+        if not isinstance(H, csr_matrix):
+            H_scaled = H.tocsr()
+        else:
+            H_scaled = H.copy()
+        H_scaled.data *= scale_vector_sqrt[H_scaled.indices]
+
+        if HAS_MKL:
             try:
-                from sparse_dot_mkl import dot_product_mkl
-                A = dot_product_mkl(H.tocsr().astype(np.float32), D_e_inv.tocsr())
-                A = dot_product_mkl(A, H.T.astype(np.float32))
-                
-            except ImportError:
-                A = H.dot(D_e_inv).dot(H.T)
+                A = dot_product_mkl(H_scaled, H_scaled.T)
+            except Exception as e:
+                A = H_scaled.dot(H_scaled.T)
+        else:
+            A = H_scaled.dot(H_scaled.T)
             # A = D_v_inv_sqrt @ A @ D_v_inv_sqrt
             # from scipy.sparse import diags
             # A = H.dot(diags(norm_factor)).dot(D_e_inv).dot(H.T)
@@ -761,8 +781,6 @@ class HyperGraph:
         A.setdiag(0)
         A.eliminate_zeros()
 
-
-        
         if P_allelic_idx or P_weak_idx:
             logger.info("Applying penalizations to adjacency matrix...")
             if P_allelic_idx:
@@ -775,40 +793,7 @@ class HyperGraph:
             if P_weak_idx:
                 r, c = HyperGraph._normalize_pair_index(P_weak_idx)
                 A[r, c] *= cross_allelic_factor
-        # P_row, P_col, P_data = [], [], []
-        # if P_allelic_idx is not None or P_weak_idx is not None:
-        #     logger.info("Applying P_allelic_idx / P_weak_idx penalizations via direct explicit edges...")
-            
-        #     def add_penalty(P_idx, factor):
-        #         if P_idx is None: 
-        #             return
-        #         r, c = HyperGraph._normalize_pair_index(P_idx)
-                
-        #         implicit_w = H_weighted[r].multiply(H_weighted[c]).sum(axis=1).A1
-                
-             
-        #         delta_w = implicit_w * (factor - 1.0)
-                
-        #         valid = np.abs(delta_w) > 1e-6
-        #         P_row.extend(r[valid])
-        #         P_col.extend(c[valid])
-        #         P_data.extend(delta_w[valid])
 
-        #     add_penalty(P_allelic_idx, allelic_factor) 
-        #     add_penalty(P_weak_idx, cross_allelic_factor)
-        # if len(P_data) > 0:
-        #     C_C_mat = csr_matrix((P_data, (P_row, P_col)), shape=(n_contigs, n_contigs))
-        #     C_C_mat = triu(C_C_mat) + triu(C_C_mat, k=1).T
-        # else:
-        #     C_C_mat = None
-
-        # B = bmat([
-        #     [C_C_mat, H_weighted],
-        #     [H_weighted.T, None]
-        # ], format='csr')
-        
-        # B_upper = triu(B, format='coo')
-        # B_upper.eliminate_zeros()
         A_upper = triu(A, format='coo')
         A_upper.eliminate_zeros()
         
@@ -869,7 +854,10 @@ def calc_new_weight(k, c, e_c, m):
     >>> calc_new_weight(k, 5, 17, 1000)
     0.523
     """
-    w_new = (1/1+k).sum() * (e_c+c) / m
+    # w_new = (1/1+k).sum() * (e_c+c) / m
+
+    inv_k = 1.0 / (1.0 + k)
+    w_new = inv_k.sum() * (e_c + c) / (e_c * 2.0)
 
     return w_new
 
@@ -912,7 +900,7 @@ def reweight(d_array, cluster_assignments, W, n, chunk):
         e_nodes = set(e.indices)
         e_c = len(e_nodes)
         w_prev = W.data[0][idx]
-        if e_c <= 2:
+        if e_c <= 1:
             W_tmp.append(w_prev)
             continue
         k = np.array([len(e_nodes & cluster_assignments[i]) for i in range(c)])
@@ -1076,7 +1064,6 @@ def balance_matrix_vc(A):
 
     return A 
 
-
 def IRMM(H, A=None,
             NW=None, 
             P_allelic_idx=None,
@@ -1120,9 +1107,6 @@ def IRMM(H, A=None,
     --------
     >>> IRMM(H, vertices)
     """
-
-    if max_round > 1:
-        import dask.array as da 
     # if P_allelic_idx or P_weak_idx:
     #     P_allelic_df = pd.concat(P_allelic_idx, axis=1)
     #     P = csr_matrix((np.ones(len(P_allelic_df), dtype=HYPERGRAPH_ORDER_DTYPE),
@@ -1132,7 +1116,7 @@ def IRMM(H, A=None,
     #     _P = P.T @ H
     #     remove_idx = (_P.toarray() == 2).any(axis=0)
     #     H = H[:, ~remove_idx]
-    
+
     if A is None or max_round > 1:
         m = H.shape[1]
         
@@ -1140,7 +1124,8 @@ def IRMM(H, A=None,
         W = identity(m, dtype=np.float32)
         
         ## D_e - I             
-        D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+        # D_e_num = (H.sum(axis=0) - 1).astype(HYPERGRAPH_ORDER_DTYPE)
+        D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE) - 1
         # D_e_num = H.getnnz(axis=0).astype(HYPERGRAPH_ORDER_DTYPE)
 
         ## inverse diagonal matrix D_e
@@ -1168,58 +1153,103 @@ def IRMM(H, A=None,
             del W, D_e_num, D_e_inv
             gc.collect() 
 
-        raw_A = A.copy()
-
-        if P_allelic_idx or P_weak_idx:
-            if not isinstance(A, csr_matrix):
-                A = A.tocsr()
-            
-            if P_allelic_idx:
-                rows, cols = P_allelic_idx
-                A[rows, cols] *= allelic_factor
-            if P_weak_idx:
-                rows, cols = P_weak_idx
-                A[rows, cols] = 0
-
-
-    else:
-        raw_A = A.copy()
-
-        if P_allelic_idx or P_weak_idx:
-            if not isinstance(A, csr_matrix):
-                A = A.tocsr()
-            if P_allelic_idx:
-                rows, cols = P_allelic_idx
-                A[rows, cols] *= allelic_factor
-            if P_weak_idx:
-                rows, cols = P_weak_idx
-                A[rows, cols] = 0
+       
+    raw_A = A.copy()
+    if P_allelic_idx or P_weak_idx:
+        if not isinstance(A, csr_matrix):
+            A = A.tocsr()
+        if P_allelic_idx:
+            r, c = HyperGraph._normalize_pair_index(P_allelic_idx)
+            offsets = find_csr_data_offsets(A, r, c)
+            if len(offsets) > 0:
+                A.data[offsets] *= allelic_factor
+        if P_weak_idx:
+            r, c = HyperGraph._normalize_pair_index(P_weak_idx)
+            offsets = find_csr_data_offsets(A, r, c)
+            if len(offsets) > 0:
+                A.data[offsets] = 0
 
     A.setdiag(0)
+    # if A.nnz > 5000:
+    #     threshold_val = np.percentile(A.data, 75)
+    #     A.data[A.data < threshold_val] = 0.0
+    #     A.eliminate_zeros()
     A_upper = triu(A, format='csr')
     A_upper.eliminate_zeros() 
-
-    random.seed(os.getenv("CPHASING_RANDOM_SEED", 42))
-    ig.set_random_number_generator(random)
-
+    
+    random_state = 42
+    random.seed(os.getenv("CPHASING_RANDOM_SEED", random_state))
     try:
-        # G = ig.Graph.Weighted_Adjacency(A_upper, mode='undirected', loops=False)
-        A_coo = A_upper.tocoo()
-        edges = np.column_stack((A_coo.row, A_coo.col))
-        G = ig.Graph(
-            n=A.shape[0], 
-            edges=edges, 
-            edge_attrs={'weight': A_coo.data},
-            directed=False
-        )
-    except ValueError:
-        return raw_A, A, None, []
-    if allelic_factor < 0 or method == 'leiden':
-        cluster_assignments = G.community_leiden(weights='weight', 
-                                            resolution_parameter=resolution, 
-                                            objective_function='modularity')
-    else:
-        cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
+        # raise ImportError("sknetwork not available, falling back to igraph for clustering.")
+        # from sknetwork.clustering import Louvain, Leiden
+        
+        # if allelic_factor < 0 or method == 'leiden':
+        #     algo = Leiden(resolution=resolution * 0.9, random_state=random_state)
+        # else:
+        #     algo = Louvain(resolution=resolution * 0.9, random_state=random_state)
+            
+        # labels = algo.fit_predict(A)
+        
+        # unique_labels = np.unique(labels)
+        # cluster_results = [set(np.where(labels == lbl)[0]) for lbl in unique_labels]
+        # cluster_assignments = type('Dummy', (object,), {
+        #     'membership': labels.tolist(), 
+        #     '__iter__': lambda self: iter(cluster_results)
+        # })()
+        
+        raise ImportError("hyrex not avaliable.")
+        import hyrex as hx 
+        # cluster_assignments = hx.graph_louvain(A_upper, resolution=resolution, seed=random_state)
+        if P_allelic_idx is not None:
+            blocked_pairs = list(zip(P_allelic_idx[0].values.tolist(), P_allelic_idx[1].values.tolist()))
+        else:
+            blocked_pairs = None
+        
+        if P_weak_idx is not None:
+            if blocked_pairs is None:
+                blocked_pairs = list(zip(P_weak_idx[0].values.tolist(), P_weak_idx[1].values.tolist()))
+            else:
+                blocked_pairs.extend(list(zip(P_weak_idx[0].values.tolist(), P_weak_idx[1].values.tolist())))
+
+        # cluster_assignments = hx.cluster(H, resolution=resolution, seed=random_state, blocked_pairs=blocked_pairs)
+
+        logger.info(f"Running hypergraph denoising with blocked pairs: {len(blocked_pairs) if blocked_pairs else 0}")
+        H = hx.denoise_hypergraph(H, 
+                                  min_support=2, 
+                                  use_weights=False, 
+                                  max_motif_order=10,
+                                  max_size=16,
+                                  mode="filter_original", 
+                                  evidence="any_pair",
+                                  blocked_pair_strategy="split",
+                                  blocked_pairs=blocked_pairs)
+        logger.info(f"Hypergraph denoising completed. New hypergraph shape: {H.shape}")
+        cluster_assignments = hx.louvain(H, resolution=resolution, 
+                                         aggregate_small_edges=False,
+                                         init='evidence',
+                                         seed=random_state)
+        logger.info(f"Hypergraph clustering completed. Found {len(cluster_assignments)} clusters.")
+
+    except ImportError:
+        ig.set_random_number_generator(random)
+        try:
+            # G = ig.Graph.Weighted_Adjacency(A_upper, mode='undirected', loops=False)
+            A_coo = A_upper.tocoo()
+            edges = np.column_stack((A_coo.row, A_coo.col))
+            G = ig.Graph(
+                n=A.shape[0], 
+                edges=edges, 
+                edge_attrs={'weight': A_coo.data},
+                directed=False
+            )
+        except ValueError:
+            return raw_A, A, None, []
+        if allelic_factor < 0 or method == 'leiden':
+            cluster_assignments = G.community_leiden(weights='weight', 
+                                                resolution_parameter=resolution, 
+                                                objective_function='modularity')
+        else:
+            cluster_assignments = G.community_multilevel(weights='weight', resolution=resolution)
 
     cluster_results = [set(c) for c in cluster_assignments]
   
@@ -1230,52 +1260,92 @@ def IRMM(H, A=None,
 
     iter_round = 1
     diff_value = 1
-
+    previous_memberships = None
+    damping = 0.5
     while diff_value > threshold:
 
         if iter_round >= max_round:
             break
 
+        n_contigs, n_hyperedges = H.shape
+        c = len(cluster_results)
 
-        a = da.from_array(H_T, chunks=(chunk, H_T.shape[1]))
+        C = csr_matrix(
+            (np.ones(n_contigs, dtype=np.float32), (np.arange(n_contigs), current_membership)),
+            shape=(n_contigs, c)
+        )
+        K = (H_T @ C).toarray()
+        e_c = np.array(H.sum(axis=0)).flatten() 
+        w_prev = W.data[0]
 
-        args = [(a, cluster_results, W, i, chunk) 
-                        for i in range(a.npartitions)]
+        inv_k = 1.0 / (1.0 + K)
+        inv_k_sum = inv_k.sum(axis=1)
 
-        res = Parallel(n_jobs=min(a.npartitions, threads))(
-                        delayed(reweight)(i, j, k, l, m) 
-                            for i, j, k, l, m in args)
+        denom = np.maximum(e_c * 2.0, 1.0)
+        w_new = inv_k_sum * (e_c + c) / denom
+        
 
-        res = [i[1] for i in sorted(res, key=lambda x: x[0])]
-        W.data[0] = np.concatenate(res)
+        max_cluster_counts = K.max(axis=1)
+        purity = max_cluster_counts / np.maximum(e_c, 1.0)
+        is_highly_pure_but_has_noise = (purity >= 0.75) & (e_c > max_cluster_counts) & (e_c >= 3)
+        if np.any(is_highly_pure_but_has_noise):
+            logger.debug(f"[IRMM] Suppressing mismatching monomers in {np.sum(is_highly_pure_but_has_noise):,} structured concatemers")
 
-        a, args, res = None, None, None
+            pure_read_indices = np.where(is_highly_pure_but_has_noise)[0]
+            majority_clusters = K[pure_read_indices].argmax(axis=1)
+
+            read_to_maj_cluster = np.full(n_hyperedges, -1, dtype=np.int32)
+            read_to_maj_cluster[pure_read_indices] = majority_clusters
+            H_reweighted = H.tocoo()
+            
+            membership_arr = np.asarray(current_membership, dtype=np.int32)
+            monomer_memberships = membership_arr[H_reweighted.row]
+            expected_maj_clusters = read_to_maj_cluster[H_reweighted.col]
+
+            noise_mask = (expected_maj_clusters >= 0) & (monomer_memberships != expected_maj_clusters)
+            
+            if np.any(noise_mask):
+                H_reweighted.data[noise_mask] = 0.0
+                H_reweighted.eliminate_zeros()
+
+            H = H_reweighted.tocsr()
+        low_purity_penalty = np.where((e_c >= 4) & (purity < 0.4), 0.1, 1.0)
+        w_new = w_new * low_purity_penalty
+
+
+        w_updated = 0.5 * (w_new + w_prev)
+        W.data[0] = np.where(e_c >= 2, w_updated, w_prev)
+
         gc.collect()
 
-        A = H @ W @ D_e_inv @ H_T
+        A_new = H @ W @ D_e_inv @ H_T
         if min_weight > 0:
-            A.data[A.data < min_weight] = 0
-            A.eliminate_zeros()
-        ## normalization
-        # A = A.toarray() * NW
-        # row, col = np.nonzero(A)
-        # values = A[row, col]
-        # A = csr_matrix((values, (row, col)), shape=A.shape)
-        # A.setdiag(0)
-        # A.prune()
+            A_new.data[A_new.data < min_weight] = 0
+            A_new.eliminate_zeros()
+
+        A = A * (1.0 - damping) + A_new * damping
+        if NW is not None:
+            A = HyperGraph.normalize_adjacency_matrix(A, NW=NW)
+
+        A.setdiag(0)
+        A.eliminate_zeros()
         if P_allelic_idx or P_weak_idx:
-            # P = np.ones((H.shape[0], H.shape[0]), dtype=np.int8)
-            # P[np.diag_indices_from(P)] = 0
-            # P[P_idx[0], P_idx[1]] = 0
-            # A = A * P 
             if not isinstance(A, csr_matrix):
                 A = A.tocsr()
             if P_allelic_idx:
-                rows, cols = P_allelic_idx
-                A[rows, cols] *= allelic_factor
+                # rows, cols = P_allelic_idx
+                # A[rows, cols] *= allelic_factor
+                r, c = HyperGraph._normalize_pair_index(P_allelic_idx)
+                offsets = find_csr_data_offsets(A, r, c)
+                if len(offsets) > 0:
+                    A.data[offsets] *= allelic_factor
             if P_weak_idx:
-                rows, cols = P_weak_idx
-                A[rows, cols] = 0
+                # rows, cols = P_weak_idx
+                # A[rows, cols] = 0
+                r, c = HyperGraph._normalize_pair_index(P_weak_idx)
+                offsets = find_csr_data_offsets(A, r, c)
+                if len(offsets) > 0:
+                    A.data[offsets] = 0
 
         A.setdiag(0)
         A_upper = triu(A, format='csr')
@@ -1313,7 +1383,14 @@ def IRMM(H, A=None,
         cluster_stat = list(map(len, cluster_results))
         logger.info(f"Cluster Statistics: {cluster_stat}")
         
-
+        if previous_memberships is not None:
+            from sklearn.metrics import adjusted_rand_score
+            ari = adjusted_rand_score(previous_memberships, current_membership)
+            logger.info(f"[IRMM] Round {iter_round} Similarity to previous round (ARI): {ari:.4f}")
+            if ari > 0.99: 
+                logger.info("[IRMM] Converged early due to stable partitioning.")
+                break
+        previous_memberships = current_membership.copy()
         diff_value = max(abs(W.data[0] - W_prev.data[0]))
         W_prev = W.copy()
         

@@ -42,6 +42,7 @@ def main(args):
     markers = ["^", "s", 'v']
     figsize = (5, 2)
     plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['pdf.fonttype'] = 42
     
     
     for item in ["Precision", "Recall", "F1 score"]:
@@ -57,11 +58,11 @@ def main(args):
             plt.setp(ax.lines, alpha=.7)
             ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
             ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
-            ax.spines['bottom'].set_linewidth(1.5)
-            ax.spines['left'].set_linewidth(1.5)
+            # ax.spines['bottom'].set_linewidth(1.5)
+            # ax.spines['left'].set_linewidth(1.5)
             ax.spines['top'].set_linewidth(0)
             ax.spines['right'].set_linewidth(0)
-            ax.tick_params(which='both', width=2, length=5, labelsize=14)
+            ax.tick_params(which='both', width=1, length=5, labelsize=14)
 
             plt.ylim(0, 1.05)
 
@@ -84,11 +85,11 @@ def main(args):
             plt.setp(ax.collections, alpha=.7) 
             plt.setp(ax.lines, alpha=.7)
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.spines['bottom'].set_linewidth(1.5)
-            ax.spines['left'].set_linewidth(1.5)
+            # ax.spines['bottom'].set_linewidth(1.5)
+            # ax.spines['left'].set_linewidth(1.5)
             ax.spines['top'].set_linewidth(0)
             ax.spines['right'].set_linewidth(0)
-            ax.tick_params(which='both', width=2, length=5, labelsize=14)
+            ax.tick_params(which='both', width=1, length=5, labelsize=14)
 
             plt.ylim(0, 1.05)
 

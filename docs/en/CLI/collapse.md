@@ -42,6 +42,14 @@ Collapsed contigs are commonly observed in polyploid hybrids due to the presence
     cphasing collapse from-gfa hifi.p_utg.noseq.gfa.gz 
     ```
 
+
+## `contigs.collapsed.contig.list`
+example (`contig\tcoverage\tcopynumber`):
+```bash
+utg1    61  2
+utg2    59  2
+```
+
 ## Collapsed contigs rescuing
 === "Pore-C/CiFi"
 

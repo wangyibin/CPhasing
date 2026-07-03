@@ -17,6 +17,7 @@ from pathlib import Path
 from shutil import which
 from subprocess import Popen, PIPE
 
+from ._config import *
 from .utilities import (
     is_compressed_table_empty,
     is_empty,
@@ -26,6 +27,30 @@ from .utilities import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def check_outdated(output, inputs) -> bool:
+    out_p = Path(output)
+    if not out_p.exists():
+        return True
+    if out_p.stat().st_size == 0:
+        return True
+    
+    out_mtime = out_p.stat().st_mtime
+    
+    if isinstance(inputs, (str, Path)):
+        inputs = [inputs]
+        
+    for inp in inputs:
+        if not inp:
+            continue
+        inp_p = Path(inp)
+        if inp_p.exists() and inp_p.stat().st_mtime > out_mtime:
+            return True
+            
+    return False
+
+
 class HisatMapper(object):
     """
     single ends mapping by hisat2
@@ -245,6 +270,18 @@ class ChromapMapper:
         self.threads = threads
         self.kmer_size = kmer_size
         self.window_size = window_size
+
+        try:
+            genome_size = self.get_genome_size()
+            if genome_size > 8e9:
+                if self.kmer_size == 17 and self.window_size == 7:
+                    self.kmer_size = 27
+                    self.window_size = 14
+                    logger.info(f"Genome size (> 8 Gb) detected: {genome_size / 1e9:.2f} Gb. "
+                                f"Automatically adjusted chromap parameters to k={self.kmer_size}, w={self.window_size} to avoid crash.")
+        except Exception as e:
+            logger.warning(f"Failed to auto-detect genome size for chromap parameters adjustment: {e}")
+
         self.min_quality = min_quality
         self.additional_artuments = additional_arguments
         
@@ -331,9 +368,13 @@ class ChromapMapper:
         reads_2 = " ".join(self.read2)
         is_compressed = str(self.read1[0]).endswith('.gz')
         if is_compressed:
-            decomp_cmd = "crabz -d -p 8" if getattr(self, 'compressor', 'pigz') == 'crabz' else "pigz -dc -p 8"
+            if getattr(self, 'compressor', 'pigz') == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
+                decomp_cmd = "crabz -d -p 8"
+            else:
+                decomp_cmd = "pigz -dc -p 8"
         else:
             decomp_cmd = "cat"
+            
         cmd = f"{self._path} -t {self.threads} " \
                 f"-q {self.min_quality} "\
                 f"--preset hic " \
@@ -401,7 +442,7 @@ class ChromapMapper:
         logger.info(f"Successfully converted pairs to `{str(self.output_pairs)}.pqs`")
             
 
-    def run(self):
+    def run_old(self):
         if not Path(f"{self.prefix}.contigsizes").exists():
             self.get_contig_sizes()
         else:
@@ -431,6 +472,34 @@ class ChromapMapper:
                 self.pairs2pqs()
             else:
                 logger.warning(f"The pairs archive `{outpqs}` existing, skipped `pairs2pqs` ...")
+
+    def run(self):
+        contigs_path = Path(f"{self.prefix}.contigsizes")
+        if check_outdated(contigs_path, self.reference):
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{contigs_path}` existing and up-to-date, skipped ...")
+        
+        if check_outdated(self.index_path, self.reference):
+            self.index()
+        else:
+            logger.warning(f'The index of `{self.index_path}` was existing and up-to-date, skipped ...')
+
+        compressed_pairs = Path(f"{self.output_pairs}.gz")
+        mapping_inputs = [self.index_path] + list(self.read1) + list(self.read2)
+        if check_outdated(compressed_pairs, mapping_inputs) or is_compressed_table_empty(str(compressed_pairs)):
+            self.mapping()
+            self.compress()
+        else:
+            logger.warning(f"The mapping result `{compressed_pairs}` existing and up-to-date, skipped `reads mapping` ...")
+
+        if self.output_format == 'pairs.pqs':
+            outpqs = Path(f"{self.output_pairs}.pqs")
+            if check_outdated(outpqs, compressed_pairs):
+                self.pairs2pqs()
+            else:
+                logger.warning(f"The pairs archive `{outpqs}` existing and up-to-date, skipped `pairs2pqs` ...")
+  
 
 class MinimapMapper:
     """
@@ -557,11 +626,18 @@ class MinimapMapper:
     def mapping(self):
         decomp_threads = 4 
         comp_threads = 8
+        is_compressed = str(self.read1[0]).endswith('.gz')
+        if is_compressed:
+            if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
+                decompress_cmd = f'crabz -d -p {decomp_threads} 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+            else:
+                decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+        else:
+            decompress_cmd = 'cat'
+
         if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
-            decompress_cmd = f'crabz -d -p {decomp_threads} 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
             compress_cmd = f'crabz -p {comp_threads} --format mgzip 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
         else:
-            decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
             compress_cmd = f'pigz -c -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
         self.secondary = "no"
 
@@ -657,6 +733,172 @@ class MinimapMapper:
                 self.paf2pairs()
             else:
                 logger.warning(f"The pairs result `{self.output_pairs}` existing, skipped `paf2pairs` ...")
+
+
+class C3alignMapper:
+    """
+    Mapper for reads using c3align.
+
+    Params:
+    --------
+    reference: str
+        Reference genome assembly.
+    reads: list
+        Input reads (single-end or paired-end).
+    """
+    def __init__(self, reference, reads, 
+                    k=19, w=19, min_quality=1, min_identity=0.8, min_length=150, 
+                    max_edge=0, secondary=False, realign=False,
+                    threads=4, additional_arguments="-x porec", outprefix=None,
+                    path='c3align', log_dir='logs', force=False):
+        self.reference = Path(reference)
+        self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
+        self.reads = reads
+        self.additional_arguments = additional_arguments
+        self.threads = threads
+        self.min_quality = min_quality
+        self.k = k 
+        self.w = w
+        self.min_identity = min_identity
+        self.min_length = min_length
+        self.max_edge = max_edge
+        self.force = force
+        self.realign = realign
+
+        # if not self.realign:
+        #     self.additional_arguments += " --no-realign"
+
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._path = path
+        if which(self._path) is None:
+            raise ValueError(f"{self._path}: command not found")
+        
+        if which('crabz') is None and which('pigz') is None:
+            raise ValueError(f"pigz: command not found")
+    
+        if which('crabz') is None:
+            self.compressor = 'pigz'
+        else:
+            self.compressor = 'crabz'
+
+        self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa', 'bam'}:
+            self.prefix = self.prefix.with_suffix('')
+       
+        self.prefix = Path(str(self.prefix)) if not outprefix else outprefix
+
+        self.get_contig_sizes()
+
+        if self.get_genome_size_from_contig_sizes() > 16e9:
+            self.batchsize = to_humanized(self.get_genome_size())
+            self.batchsize = str(int(self.batchsize[:-1]) + 1) + self.batchsize[-1]
+        else:
+            self.batchsize = "16g"
+
+        self.outpaf = f'{self.prefix}.paf.gz'
+        self.outporec = f'{self.prefix}.porec.gz'
+        self.outpairs = f'{self.prefix}.pairs.pqs'
+
+    def get_genome_size(self):
+        from .utilities import get_genome_size
+        return get_genome_size(self.reference)
+
+    def get_contig_sizes(self):
+        if self.contigsizes.exists() and not self.force:
+            return
+
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), "-o", str(tmp_contigsizes)]
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        
+        if flag == 0:
+            try:
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+
+    def get_genome_size_from_contig_sizes(self):
+        from .utilities import read_chrom_sizes
+        df = read_chrom_sizes(self.contigsizes)
+        return df['length'].sum()
+
+    def mapping(self):
+        reads_str = ' '.join([f"{r}" for r in self.reads])
+        cmd = f"{self._path} -t {self.threads} -c " \
+              f"{self.additional_arguments} " \
+              f"{str(self.reference)} " \
+              f"{reads_str} "\
+              f"-o {str(self.outpaf)} " \
+              f" 2> {self.log_dir}/{self.prefix}.mapping.log"
+             
+        with open(f"{self.prefix}.mapper.cmd.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(cmd + "\n")
+        os.chmod(f"{self.prefix}.mapper.cmd.sh", 0o755)
+        logger.info('Running command:')
+        logger.info('\t' + cmd)
+        subprocess.run(cmd, shell=True, executable='/bin/bash', check=True)
+
+    def paf2porec(self):
+        paf = self.outpaf
+        
+        cmd = ["cphasing-rs", "paf2porec", f"{paf}", "-q", 
+                f"{self.min_quality}", "-l", f"{self.min_length}",
+                "-e", f"{self.max_edge}", "-p", f"{self.min_identity}",
+                    "-o", f"{self.outporec}"]
+
+        with open(f"{self.prefix}.mapper.cmd.sh", "a") as f:
+            f.write(" ".join(cmd) + "\n")
+        
+        flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.paf2porec.log')
+        assert flag == 0, "Failed to execute command, please check log."
+
+    def porec2pairs(self):
+        cmd = ["cphasing-rs", "porec2pairs", f"{self.outporec}", 
+               str(self.contigsizes), "-q", f"{self.min_quality}",
+                "-o", f"{self.outpairs}"]
+        with open(f"{self.prefix}.mapper.cmd.sh", "a") as f:
+            f.write(" ".join(cmd) + "\n")
+        flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
+        assert flag == 0, "Failed to execute command, please check log."
+
+    def run(self):
+        contigs_path = Path(f"{self.prefix}.contigsizes")
+        if check_outdated(contigs_path, self.reference) or self.force:
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{contigs_path}` existing and up-to-date, skipped ...")
+
+        mapping_inputs = [self.reference] + list(self.reads)
+        if check_outdated(self.outpaf, mapping_inputs) or is_compressed_table_empty(self.outpaf) or self.force:
+            self.mapping()
+            if is_compressed_table_empty(self.outpaf):
+                logger.error(f"Empty mapping result: `{self.outpaf}`, please check log.")
+                sys.exit(1)
+        else:
+            logger.warning(f"The paf of `{self.outpaf}` existing and up-to-date, skipped `reads mapping` ...")
+
+        porec_inputs = [self.outpaf]
+
+        if check_outdated(self.outporec, porec_inputs) or self.force:
+            self.paf2porec()
+        else:
+            logger.warning(f"The porec table of {self.outporec} existing and up-to-date, skipped `paf2porec`...")
+        
+        pairs_inputs = [self.outporec, self.contigsizes]
+        if check_outdated(self.outpairs, pairs_inputs) or is_compressed_table_empty(self.outpairs) or self.force:
+            self.porec2pairs()
+        else:
+            logger.warning(f"The pairs of {self.outpairs} existing and up-to-date, skipped `porec2pairs` ...")
+
+        logger.info("C3align mapping done.")
 
 class BwaMapper:
     """
@@ -772,11 +1014,15 @@ class BwaMapper:
         assert flag == 0, "Failed to execute command, please check log."
 
     def mapping(self):
-        if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
-            decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+        is_compressed = str(self.read1[0]).endswith('.gz')
+        if is_compressed:
+            if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
+                decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+            else:
+                decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
         else:
-            decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
-        
+            decompress_cmd = 'cat'
+
         reads_1 = " ".join(self.read1)
         reads_2 = " ".join(self.read2)
         
@@ -804,14 +1050,10 @@ class BwaMapper:
         cmd = ['cphasing-rs', 'bam2pairs',
                '-q', str(self.min_quality),
                str(self.output_bam),
-               ]
-
-        cmd2 = ['cphasing-rs', 'pairs2pqs', 
-                '-', 
                 '-o', f'{str(self.output_pairs)}',
                ]
         
-        cmd = cmd + [f"2>{str(self.log_dir)}/{str(self.prefix)}.bam2pairs.log"] + ['|'] + cmd2 + [f"2>>{str(self.log_dir)}/{str(self.prefix)}.bam2pairs.log"]
+        cmd = cmd + [f"2>{str(self.log_dir)}/{str(self.prefix)}.bam2pairs.log"]
         
         with open("hicmapper.cmd.sh", "a") as f:
             f.write(" ".join(cmd) + "\n")
@@ -832,35 +1074,229 @@ class BwaMapper:
         logger.info("Done.")
 
     def run(self):
-        if not Path(f"{self.prefix}.contigsizes").exists():
+        contigs_path = Path(f"{self.prefix}.contigsizes")
+        if check_outdated(contigs_path, self.reference):
             self.get_contig_sizes()
         else:
-            logger.warning(f"The contigsizes of `{self.prefix}.contigsizes` existing, skipped ...")
+            logger.warning(f"The contigsizes of `{contigs_path}` existing and up-to-date, skipped ...")
             
         self.index()
         
-        if not self.output_bam.exists():
+        mapping_inputs = [self.reference] + list(self.read1) + list(self.read2)
+        if check_outdated(self.output_bam, mapping_inputs) or is_empty(self.output_bam):
             self.mapping()
         else:
-            if is_empty(self.output_bam):
-                logger.warning(f"Empty existing mapping result: `{self.output_bam}`, force rerun mapper.")
-                self.mapping()
-            else:
-                logger.warning(f"The mapping result `{self.output_bam}` existing, skipped `reads mapping` ...")
+            logger.warning(f"The mapping result `{self.output_bam}` existing and up-to-date, skipped `reads mapping` ...")
 
-        if not Path(self.output_pairs).exists():
+        if check_outdated(self.output_pairs, self.output_bam) or is_empty(self.output_pairs):
             self.bam2pairs()
         else:
             if str(self.output_pairs).endswith('.pqs'):
-                logger.warning(f"The pairs archive `{self.output_pairs}` existing, skipped `bam2pairs` ...")
+                logger.warning(f"The pairs archive `{self.output_pairs}` existing and up-to-date, skipped `bam2pairs` ...")
             elif is_empty(self.output_pairs):
                 logger.warning(f"Empty existing pairs result: `{self.output_pairs}`, force rerun bam2pairs.")
                 self.bam2pairs()
             else:
-                logger.warning(f"The pairs result `{self.output_pairs}` existing, skipped `bam2pairs` ...")
+                logger.warning(f"The pairs result `{self.output_pairs}` existing and up-to-date, skipped `bam2pairs` ...")
 
+class MinibwaMapper:
+    """
+    Mapper for Hi-C reads using minibwa.
+
+    Params:
+    --------
+    reference: str
+        contig-level assembly.
+    read1: list
+        Hi-C paired-end read1.
+    read2: list
+        Hi-C paired-end read2.
+    min_quality: int, default 0
+        minimum number of mapping quality.
+    threads: int, default 4
+        number of threads.
+    additional_arguments: str, default ""
+        additional arguments for minibwa.
+    path: str, default "minibwa"
+        Path of minibwa.
+    log_dir: str, default "logs"
+        directory of logs.
+    """
+    def __init__(self, reference, read1, read2, 
+                    min_quality=0, threads=4, additional_arguments="", 
+                    output_format='pairs.pqs',
+                    path='minibwa', log_dir='logs', force=False):
+        
+        self.reference = Path(reference)
+        self.contigsizes = Path(f'{self.reference.stem}.contigsizes')
+        self.read1 = read1 
+        self.read2 = read2
+        self.threads = threads
+        self.min_quality = min_quality
+        self.output_format = output_format
+        self.additional_arguments = additional_arguments
+        self.force = force
+        
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._path = path
+        if which(self._path) is None:
+             raise ValueError(f"{self._path}: command not found")
+        
+        if which('crabz') is None and which('pigz') is None:
+            raise ValueError(f"pigz: command not found")
+    
+        if which('crabz') is None:
+            self.compressor = 'pigz'
+        else:
+            self.compressor = 'crabz'
+
+        self.prefix = Path(Path(self.read1[0]).stem).with_suffix('')
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', '.fq', '.gz', '_R1', '_1', '_2', '.fasta', 'fasta', '.fa'}:
+            self.prefix = self.prefix.with_suffix('')
+        
+        if str(self.prefix).endswith("_R1"):
+            self.prefix = Path(str(self.prefix)[:-3])
+        elif str(self.prefix).endswith("_1"):
+            self.prefix = Path(str(self.prefix)[:-2])
+
+        self.prefix = Path(str(self.prefix).replace('_R1', '').replace('_1', ''))
+
+        self.get_contig_sizes()
+        self.output_paf = Path(f'{self.prefix}.paf.gz')
+        self.output_pairs = Path(f'{self.prefix}.{self.output_format}')
+
+    def get_contig_sizes(self):
+        if self.contigsizes.exists() and not self.force:
+            return
+
+        tmp_contigsizes = self.contigsizes.with_suffix(f'.tmp_{uuid.uuid4().hex}')
+        
+        cmd = ["cphasing-rs", "chromsizes", str(self.reference), 
+                "-o", str(tmp_contigsizes)]
+        
+        flag = run_cmd(cmd, log=f"{self.log_dir}/{self.prefix}.contigsizes.log")
+        
+        if flag == 0:
+            try:
+                os.replace(tmp_contigsizes, self.contigsizes)
+            except OSError:
+                if tmp_contigsizes.exists():
+                    tmp_contigsizes.unlink()
+        else:
+            if tmp_contigsizes.exists():
+                tmp_contigsizes.unlink()
+            assert flag == 0, f"Failed to generate {self.contigsizes}, please check log."
+
+    def index(self):
+        """
+        Create minibwa index, generating .l2b and .mbw indexes.
+        """
+        l2b_index = Path(f"{self.reference}.l2b")
+        mbw_index = Path(f"{self.reference}.mbw")
+        if l2b_index.exists() and mbw_index.exists() and not self.force:
+            logger.warning(f'The index of `{self.reference}` (.l2b/.mbw) was existing, skipped ...')
+            return
+
+        cmd = [self._path, 'index', str(self.reference)]
+        
+        with open("hicmapper.index.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(" ".join(cmd) + "\n")
+
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.reference.name}.index.log', out2err=True)
+        assert flag == 0, "Failed to execute minibwa index, please check log."
+
+    def mapping(self):
+        decomp_threads = 4 
+        comp_threads = 8
+        is_compressed = str(self.read1[0]).endswith('.gz')
+        if is_compressed:
+            if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
+                decompress_cmd = f'crabz -d -p {decomp_threads} 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+            else:
+                decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.decompress.log'
+        else:
+            decompress_cmd = 'cat'
+
+        if self.compressor == 'crabz' and len(self.read1) == 1 and len(self.read2) == 1:
+            compress_cmd = f'crabz -p {comp_threads} --format mgzip 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
+        else:
+            compress_cmd = f'pigz -c -p 8 2>{self.log_dir}/{self.prefix}.hic.mapping.compress.log'
+
+        rename_filter = r"sed -E 's/(\/[12])+([[:blank:]])/\2/g'"
+
+
+        reads_1 = " ".join(self.read1)
+        reads_2 = " ".join(self.read2)
+        
+        cmd = f"{self._path} map --hic -f -t {self.threads} " \
+              f"{self.additional_arguments} " \
+              f"{str(self.reference)} " \
+              f"<({decompress_cmd} {reads_1}) <({decompress_cmd} {reads_2}) " \
+              f"2>{self.log_dir}/{self.prefix}.hic.mapping.log | " \
+              f"{rename_filter} | " \
+              f"{compress_cmd} > {self.output_paf}"
+        
+        with open("hicmapper.cmd.sh", "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write(cmd + "\n")
+        os.chmod("hicmapper.cmd.sh", 0o755)
+        logger.info('Running command:')
+        logger.info('\t' + cmd)
+
+        subprocess.run("bash hicmapper.cmd.sh", shell=True, executable='/bin/bash', check=True)
+
+        if not self.output_paf.exists():
+            logger.error(f"Failed to create paf of `{self.output_paf}`.")
+            sys.exit(1)
+
+    def paf2pairs(self):
+        cmd = ['cphasing-rs', 'paf2pairs',
+               "-l", str(30),
+               "-p", str(0.99),
+               '-q', str(self.min_quality),
+               str(self.output_paf), str(self.contigsizes),
+               '-o', str(self.output_pairs)]
+        
+        with open("hicmapper.cmd.sh", "a") as f:
+            f.write(" ".join(cmd) + "\n")
+
+        flag = run_cmd(cmd, log=f'{str(self.log_dir)}/{self.prefix}.paf2pairs.log')
+        assert flag == 0, "Failed to execute paf2pairs, please check log."
+
+        if not Path(self.output_pairs).exists():
+            logger.error(f"Failed to create pairs of `{self.output_pairs}`.")
+            sys.exit(1)
+
+        if is_empty(self.output_pairs):
+            logger.error(f"Empty pairs of `{self.output_pairs}`.")
+            sys.exit(1)    
+
+        logger.info("Done.")
+
+    def run(self):
+        contigs_path = Path(f"{self.prefix}.contigsizes")
+        if check_outdated(contigs_path, self.reference) or self.force:
+            self.get_contig_sizes()
+        else:
+            logger.warning(f"The contigsizes of `{contigs_path}` existing and up-to-date, skipped ...")
+            
+        self.index()
+        
+        mapping_inputs = [self.reference] + list(self.read1) + list(self.read2)
+        if check_outdated(self.output_paf, mapping_inputs) or is_compressed_table_empty(str(self.output_paf)) or self.force:
+            self.mapping()
+        else:
+            logger.warning(f"The mapping result `{self.output_paf}` existing and up-to-date, skipped `reads mapping` ...")
+
+        if check_outdated(self.output_pairs, self.output_paf) or is_empty(self.output_pairs) or self.force:
+            self.paf2pairs()
+        else:
+            logger.warning(f"The pairs result `{self.output_pairs}` existing and up-to-date, skipped `paf2pairs` ...")
 class PoreCMapper:
-    def __init__(self, reference, reads, pattern="GATC", 
+    def __init__(self, reference, reads, pattern="GATC", is_bam=False,
                     k=15, w=10, min_quality=1, 
                     min_identity=0.8, min_length=150, 
                     max_edge=0, secondary=False, realign=False,
@@ -875,6 +1311,7 @@ class PoreCMapper:
         self.additional_arguments = additional_arguments
         self.secondary = secondary
         self.realign = realign
+        self.is_bam = is_bam
         if self.realign:
             self.secondary = True
 
@@ -909,7 +1346,7 @@ class PoreCMapper:
 
 
         self.prefix = Path(Path(self.reads[0]).stem).with_suffix('')
-        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa'}:
+        while self.prefix.suffix in {'.fastq', 'gz', 'fq', "fasta", 'fa', 'bam'}:
             self.prefix = self.prefix.with_suffix('')
        
         self.prefix = Path(str(self.prefix)) if not outprefix else outprefix
@@ -1001,11 +1438,21 @@ class PoreCMapper:
         if "-p" not in self.additional_arguments:
             self.additional_arguments += f" -p .99999"
         
+        if self.is_bam:
+            decompress_cmd = "cphasing-rs bam2fastq"
+        else:
+            is_compressed = str(self.reads[0]).endswith('.gz')
+            if is_compressed:
+                if self.compressor == 'crabz' and len(self.reads) == 1:
+                    decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
+                else:
+                    decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
+            else:
+                decompress_cmd = 'cat'
+
         if self.compressor == 'crabz' and len(self.reads) == 1:
-            decompress_cmd = f'crabz -d -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
             compress_cmd = f'crabz -p 8 --format mgzip 2>{self.log_dir}/{self.prefix}.mapping.compress.log'
         else:
-            decompress_cmd = f'pigz -dc -p 8 2>{self.log_dir}/{self.prefix}.mapping.decompress.log'
             compress_cmd = f'pigz -c -p 8 2>{self.log_dir}/{self.prefix}.mapping.compress.log'
 
         reads = ' '.join(self.reads)
@@ -1014,7 +1461,7 @@ class PoreCMapper:
                 f"-c {secondary} " \
                 f"{self.additional_arguments} " \
                 f"{str(self.reference)} " \
-                f"<({decompress_cmd} {reads}) " \
+                f"<({decompress_cmd} {reads}) "\
                 f" 2> {self.log_dir}/{self.prefix}.mapping.log " \
                 f"| {compress_cmd} > {str(self.outpaf)}"
 
@@ -1061,7 +1508,7 @@ class PoreCMapper:
         flag = run_cmd(cmd, log=f'{self.log_dir}/{self.prefix}.porec2pairs.log')
         assert flag == 0, "Failed to execute command, please check log."
     
-    def run(self):
+    def run_old(self):
         # if not self.index_path.exists() or self.force:
         #     self.index()
         # else:
@@ -1105,5 +1552,51 @@ class PoreCMapper:
                 self.porec2pairs()
             else:
                 logger.warning(f"The pairs of {self.outpairs} existing, skipped `porec2pairs` ...")
+
+        logger.info("Mapping done.")
+
+    def run(self):
+        # if not self.index_path.exists() or self.force:
+        #     self.index()
+        # else:
+        #     logger.warning(f'The index of `{self.index_path}` was exisiting, skipped ...')
+        
+        if self.pattern:
+            slope_bed = Path(f"{self.prefix}.slope.{self.pattern}.bed")
+            if check_outdated(slope_bed, self.reference) or self.force:
+                self.get_digest_bed()
+            else:
+                logger.warning(f"The digest bed of `{slope_bed}` existing and up-to-date, skipped ...")
+
+        mapping_inputs = [self.reference] + list(self.reads)
+        if check_outdated(self.outpaf, mapping_inputs) or is_compressed_table_empty(self.outpaf) or self.force:
+            self.mapping()
+            if is_compressed_table_empty(self.outpaf):
+                logger.error(f"Empty mapping result: `{self.outpaf}`, please check log.")
+                sys.exit(1)
+        else:
+            logger.warning(f"The paf of `{self.outpaf}` existing and up-to-date, skipped `reads mapping` ...")
+
+        if self.realign:
+            if check_outdated(self.realign_outpaf, self.outpaf) or self.force:
+                self.run_realign()
+            else:
+                logger.warning(f"The realign paf of `{self.realign_outpaf}` existing and up-to-date, skipped `realign` ...")
+
+        paf_source = self.realign_outpaf if self.realign else self.outpaf
+        porec_inputs = [paf_source]
+        if self.pattern:
+            porec_inputs.append(Path(f"{self.reference.stem}.slope.{self.pattern}.bed"))
+
+        if check_outdated(self.outporec, porec_inputs) or self.force:
+            self.paf2porec()
+        else:
+            logger.warning(f"The porec table of {self.outporec} existing and up-to-date, skipped `paf2porec`...")
+        
+        pairs_inputs = [self.outporec, self.contigsizes]
+        if check_outdated(self.outpairs, pairs_inputs) or is_compressed_table_empty(self.outpairs) or self.force:
+            self.porec2pairs()
+        else:
+            logger.warning(f"The pairs of {self.outpairs} existing and up-to-date, skipped `porec2pairs` ...")
 
         logger.info("Mapping done.")

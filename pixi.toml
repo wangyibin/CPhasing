@@ -123,7 +123,7 @@ zensical = ">=0.0.45,<0.0.46"
 mkdocs-static-i18n = ">=1.2.3"
 
 [feature.docs.tasks]
-build-docs = "mkdocs build --strict"
+build-docs = "mkdocs build -f mkdocs_en.yml --strict"
 zbuild-docs = "zensical build -f mkdocs_en.md --clean && zensical build -f mkdocs_zh.md" 
 bump-changelog = "git-cliff --unreleased --prepend CHANGELOG.md --tag $RELEASE_VERSION"
 deploy-dev = "mike deploy --push dev devel"

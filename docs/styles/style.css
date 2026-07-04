@@ -2,6 +2,26 @@
     font-family: 'Dosis', sans-serif;
   }
   
+[data-md-component="announce"] {
+  background: linear-gradient(90deg, #da814a, #f5a623);
+  transition: all 250ms;
+}
+
+[data-md-component="announce"]:hover {
+  opacity: 0.8;
+}
+
+[data-md-component="announce"] a {
+  margin-left: 4px;
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+[data-md-component="announce"] .md-icon svg {
+  stroke: #ffffff;
+}
+  
+
   [data-md-color-primary=prefix] {
     --md-primary-fg-color: #F9C405;
     --md-primary-fg-color--light: #ffee57;

@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing logo" width="140px" align="left" />
+<img src="assets/logo.png" alt="C-Phasing logo" width="140px" align="left" />
 <h1 align="center"><b>C</b>-Phasing</h1>
 <p align="center"> <b>Phasing</b> and scaffolding polyploid genomes based on Pore-<b>C</b>, HiFi-<b>C</b>(<b>C</b>iFi), Ultra-long, Hi-<b>C</b> or Omni-<b>C</b> data</p>.
 
@@ -13,7 +13,7 @@ The advantages of `C-Phasing`:
     - High anchor rate of genome.  
     - High accuracy of polyploid phasing.   
 
-![Summary_of_CPhasing](https://raw.githubusercontent.com/wangyibin/CPhasing/main/pictures/Summary_of_CPhasing.png)
+![Summary_of_CPhasing](assets/Summary_of_CPhasing.png)
 
 
 <div class="grid cards" markdown>

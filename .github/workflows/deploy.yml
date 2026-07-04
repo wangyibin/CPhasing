@@ -1,63 +1,92 @@
 name: Documentation
+
 on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      backfill_tags:
+        description: 'Optional space-separated tags to backfill with mike, e.g. "v0.3.0 v0.3.1"'
+        required: false
+        default: ''
+
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+
 jobs:
-  deploy:
-    needs: build-docs
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  docs:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/configure-pages@v5
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.8.1
-        with:
-          environments: docs
-          cache: true
-      - run: |
-          pixi run -e docs zensical build -f mkdocs_en.yml --clean 
-      - run: |
-          pixi run -e docs  zensical build -f mkdocs_zh.yml 
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: site
-      - uses: actions/deploy-pages@v4
-        id: deployment
-        
-  build-docs:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
         with:
           environments: docs
+          cache: true
 
       - name: Configure Git user
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+          git fetch --tags --force
           git fetch origin gh-pages:gh-pages || true
 
-      - name: Deploy with mike 🚀
+      - name: Deploy current ref with mike
+        if: ${{ github.event.inputs.backfill_tags == '' }}
         run: |
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
-            pixi run -e docs mike deploy --push --update-aliases $VERSION latest
+            pixi run -e docs zensical build -f mkdocs_en.yml --clean
+            pixi run -e docs zensical build -f mkdocs_zh.yml
+            pixi run -e docs mike deploy --push --update-aliases "$VERSION" latest
             pixi run -e docs mike set-default --push latest
           else
+            pixi run -e docs zensical build -f mkdocs_en.yml --clean
+            pixi run -e docs zensical build -f mkdocs_zh.yml
             pixi run -e docs mike deploy --push dev
           fi
+
+      - name: Backfill historical tags with mike
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.backfill_tags != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_ref=$(git branch --show-current)
+          if [[ -z "$current_ref" ]]; then
+            current_ref="main"
+          fi
+
+          latest_tag=$(git tag --list 'v*' | sort -V | tail -n 1)
+
+          for tag in ${{ github.event.inputs.backfill_tags }}; do
+            echo "Backfilling $tag"
+            git checkout "$tag"
+            pixi run -e docs zensical build -f mkdocs_en.yml --clean
+            pixi run -e docs zensical build -f mkdocs_zh.yml
+            if [[ "$tag" == "$latest_tag" ]]; then
+              pixi run -e docs mike deploy --push --update-aliases "$tag" latest
+            else
+              pixi run -e docs mike deploy --push "$tag"
+            fi
+          done
+
+          git checkout "$current_ref"
+
+          if [[ -n "$latest_tag" ]]; then
+            git checkout "$latest_tag"
+            pixi run -e docs zensical build -f mkdocs_en.yml --clean
+            pixi run -e docs zensical build -f mkdocs_zh.yml
+            pixi run -e docs mike deploy --push --update-aliases "$latest_tag" latest
+            pixi run -e docs mike set-default --push latest
+          fi
+
+          git checkout "$current_ref"

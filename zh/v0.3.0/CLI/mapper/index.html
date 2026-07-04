@@ -1212,12 +1212,6 @@
 <p class="admonition-title">Note</p>
 <p>HiFi-C数据目前也以<code>.porec.gz</code>后缀命名，内容是一样的。</p>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>默认情况下，<code>cphasing mapper</code> 使用 <code>minimap2</code> 作为比对软件。你可以通过 <code>-a</code> 或 <code>--aligner</code> 选项来指定不同的比对工具：
-- <strong><code>minimap2</code></strong> (默认): 标准长读长比对工具。
-- <strong><code>c3align</code></strong>: 在多倍体里面获得更多有效互作，但会牺牲一定的准确度。</p>
-</div>
 <h2 id="_1">示例<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <h3 id="cellpore-c">处理单个cell的Pore-C数据<a class="headerlink" href="#cellpore-c" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>

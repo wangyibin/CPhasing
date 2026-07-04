@@ -1374,12 +1374,11 @@
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>porec-merge<span class="w"> </span>porec-*.porec.gz<span class="w"> </span>-o<span class="w"> </span>porec.merge.porec.gz<span class="w"> </span>
 </span></code></pre></div>
 <h2 id="_1">组装流程<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<blockquote>
-<p>现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（<code>-n 10:0</code>），同时存在大量塌缩<code>--collapsed-rescue</code>，从组装图中鉴定塌缩序列<code>--gfa sh_hifi.bp.p_utg.no_seq.gfa</code>。也可以加<code>--refine</code>参数，避免片段化的等位contig聚集在一起。
-Optionally, the <code>-x very-sensitive</code> parameter can be enabled for fragmented assemblies (HiFi-only) or low-depth sequencing data.
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>hic.mrege.pairs.pqs<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>--gfa<span class="w"> </span>sh_hifi.bp.p_utg.no_seq.gfa
-</span></code></pre></div></p>
-</blockquote>
+<ul>
+<li>现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（<code>-n 10:0</code>)。
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.mrege.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
 
 
 

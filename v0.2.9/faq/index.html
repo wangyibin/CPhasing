@@ -108,7 +108,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#how-to-choose-restriction-enzymes-and-library-preparation-strategies" class="md-skip">
+        <a href="#the-results-of-the-first-round-partition-are-unsatisfactory" class="md-skip">
           Skip to content
         </a>
       
@@ -855,17 +855,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-to-choose-restriction-enzymes-and-library-preparation-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        How to choose restriction enzymes and library preparation strategies
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#the-results-of-the-first-round-partition-are-unsatisfactory" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -978,17 +967,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-to-choose-restriction-enzymes-and-library-preparation-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        How to choose restriction enzymes and library preparation strategies
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#the-results-of-the-first-round-partition-are-unsatisfactory" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1049,20 +1027,6 @@
 
   <h1 id="__skip">Faq</h1>
 
-<h3 id="how-to-choose-restriction-enzymes-and-library-preparation-strategies">How to choose restriction enzymes and library preparation strategies<a class="headerlink" href="#how-to-choose-restriction-enzymes-and-library-preparation-strategies" title="Permanent link">&para;</a></h3>
-<p>To achieve the best scaffolding and phasing performance, we recommend the following strategies for different sequencing data types:</p>
-<ul>
-<li><strong>For long-read based technologies (e.g., Pore-C or CiFi):</strong>
-  We recommend using <strong>4-cutter restriction enzymes</strong> (such as <em>Dpn</em>II, <em>Mbo</em>I， or <em>Nla</em>III) rather than 6-cutter enzymes (such as <em>Hind</em>III). 4-cutter enzymes have a much higher density of restriction sites, which can generate a larger number of shorter DNA fragments on a single long read. This allows for the capture of richer and higher-order physical contacts.</li>
-</ul>
-<ul>
-<li><strong>For short-read based technologies (e.g., traditional Hi-C):</strong>
-  The recommended priority is: <strong>Omni-C &gt; Multi-restriction sites Hi-C (e.g., Arima) &gt; Traditional single-restriction site Hi-C</strong>.<ul>
-<li><strong>Omni-C</strong> uses DNase I for sequence-independent digestion, providing extremely uniform sequence coverage and eliminating the sequence bias and blind spots associated with specific restriction enzyme motifs.</li>
-<li><strong>Arima multi-enzyme protocols</strong> provide significantly higher site density than single-enzyme protocols, facilitating the accurate resolution of challenging regions in polyploid and complex genomes.</li>
-</ul>
-</li>
-</ul>
 <h3 id="the-results-of-the-first-round-partition-are-unsatisfactory">The results of the first round partition are unsatisfactory.<a class="headerlink" href="#the-results-of-the-first-round-partition-are-unsatisfactory" title="Permanent link">&para;</a></h3>
 <p>In our two-round partition algorithm, the first round partition depends on the h-trans errors between homologous chromosomes; if you input a contig assembly with low level switch errors or input a high accuracy pore-c data, the h-trans will be not enough to cluster all contigs to correct homologous groups, resulting in unsatisfactory results. You can set the <code>-q1 0</code> for <code>hyperpartition</code> to increase the rate of h-trans errors. However, this parameter may raise error of <code>out of memory</code> when you input huge pore-c data in porec table or hic contacts in pairs file. </p>
 <h3 id="the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size">The total size of the chromosomes significantly smaller than the estimate genome size<a class="headerlink" href="#the-total-size-of-the-chromosomes-significantly-smaller-than-the-estimate-genome-size" title="Permanent link">&para;</a></h3>

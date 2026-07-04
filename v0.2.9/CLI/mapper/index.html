@@ -1216,23 +1216,17 @@
 
   <h1 id="__skip">Mapper</h1>
 
-<p><code>cphasing mapper</code> is designed for process <strong>Pore-C</strong> or <strong>CiFi</strong> data, its output two files: <br />
+<p><code>cphasing mapper</code> is designed for process <strong>Pore-C</strong> or <strong>HiFi-C</strong> data, its output two files: <br />
    (1) porec table (<code>.porec.gz</code>) which contain high-order contacts<br />
    (2) 4DN pairs (<code>.pairs.pqs</code>) which only retain VPCs.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The output of CiFi, still named <code>.porec.gz</code>, contains the same results whether Pore-C or CiFi data.</p>
+<p>The output of HiFi-C, still named <code>.porec.gz</code>, contains the same results whether Pore-C or HiFi-C data.</p>
 </div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="process-one-cell-pore-c-data">Process one cell Pore-C data<a class="headerlink" href="#process-one-cell-pore-c-data" title="Permanent link">&para;</a></h3>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>By default, <code>cphasing mapper</code> uses <code>minimap2</code> as the aligner. You can specify different aligners using the <code>-a</code> or <code>--aligner</code> option:
-- <strong><code>minimap2</code></strong> (default): High-performance standard alignment tool.
-- <strong><code>c3align</code></strong>: More valid contacts for polyploids.</p>
-</div>
 <h3 id="process-multiple-cells-pore-c-data">Process multiple cells Pore-C data<a class="headerlink" href="#process-multiple-cells-pore-c-data" title="Permanent link">&para;</a></h3>
 <h4 id="process-together">Process together<a class="headerlink" href="#process-together" title="Permanent link">&para;</a></h4>
 <p><div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>sample2.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>

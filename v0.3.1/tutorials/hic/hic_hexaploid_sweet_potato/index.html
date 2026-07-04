@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/v0.3.1/CLI/collapse/">
+        <link rel="canonical" href="https://wangyibin.github.io/v0.3.1/tutorials/hic/hic_hexaploid_sweet_potato/">
       
       
-        <link rel="prev" href="../prepartition/">
+        <link rel="prev" href="../hic_tetraploid_hifiasm_hap_aware/">
       
       
-        <link rel="next" href="../rename/">
+        <link rel="next" href="../hic_decaploid/">
       
       
         
@@ -29,19 +29,19 @@
     
     
       
-        <title>Collapse - C-Phasing</title>
+        <title>Hexaploid Sweet Potato Assembly & Scaffolding - C-Phasing</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.fba56155.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.fba56155.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
 
@@ -71,9 +71,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/style.css">
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
     
-    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    <script>__md_scope=new URL("../../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
   
@@ -108,7 +108,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#collapsed-contigs-detection" class="md-skip">
+        <a href="#hexaploid-sweet-potato-assembly-scaffolding" class="md-skip">
           Skip to content
         </a>
       
@@ -145,7 +145,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Collapse
+              Hexaploid Sweet Potato Assembly &amp; Scaffolding
             
           </span>
         </div>
@@ -265,7 +265,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   Home
@@ -281,7 +281,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../installation/" class="md-tabs__link">
+      <a href="../../../installation/" class="md-tabs__link">
         
   
   Installation
@@ -297,7 +297,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../basic_usage/" class="md-tabs__link">
+      <a href="../../../basic_usage/" class="md-tabs__link">
         
   
   Get Started
@@ -311,21 +311,7 @@
   
   
   
-  
     
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      
-  
-  
   
   
     
@@ -335,6 +321,24 @@
       
         
       
+    
+    
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
         
       
         
@@ -345,8 +349,8 @@
     
     
     
-      <li class="md-tabs__item">
-        <a href="../../tutorials/porec/porec_monoploid/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../porec/porec_monoploid/" class="md-tabs__link">
           
   
   Tutorials
@@ -364,8 +368,6 @@
   
   
   
-    
-  
   
     
       
@@ -388,8 +390,8 @@
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../mapper/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../CLI/mapper/" class="md-tabs__link">
           
   
   CLI
@@ -406,7 +408,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../citation/" class="md-tabs__link">
+      <a href="../../../citation/" class="md-tabs__link">
         
   
   Citation
@@ -433,7 +435,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../faq/" class="md-tabs__link">
+        <a href="../../../faq/" class="md-tabs__link">
           
   
   Misc
@@ -495,7 +497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -521,7 +523,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
+      <a href="../../../installation/" class="md-nav__link">
         
   
   
@@ -549,7 +551,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../basic_usage/" class="md-nav__link">
+      <a href="../../../basic_usage/" class="md-nav__link">
         
   
   
@@ -572,86 +574,12 @@
       
   
   
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
-  
-  
-  
-    
-  
-  
-  
-    <a href="../../tutorials/porec/porec_monoploid/" class="md-nav__link">
-      
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Tutorials
-
-    
-  </span>
-  
-  
-
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
-  
-
-  
-
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
     
   
   
   
     
     
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
       
         
       
@@ -675,17 +603,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-  CLI
+  Tutorials
 
     
   </span>
@@ -695,12 +623,79 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-  CLI
+  Tutorials
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C&HiFi-C
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Pore-C&HiFi-C
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -712,14 +707,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../mapper/" class="md-nav__link">
+      <a href="../../porec/porec_monoploid/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Mapper
+  Assemble a monoploid of diploid
 
     
   </span>
@@ -739,14 +734,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../methalign/" class="md-nav__link">
+      <a href="../../porec/porec_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Methalign
+  Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
 
     
   </span>
@@ -766,14 +761,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../hic_mapper/" class="md-nav__link">
+      <a href="../../porec/porec_hexaploid_sweet_potato/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  HiC Mapper
+  Hexaploid Sweet Potato Assembly &amp; Scaffolding (Pore-C Mode)
 
     
   </span>
@@ -793,14 +788,172 @@
   
   
     <li class="md-nav__item">
-      <a href="../prepartition/" class="md-nav__link">
+      <a href="../../porec/porec_decaploid/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Prepartition
+  Assemble autodecaploid by Pore-C
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../porec/porec_sugarcane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Assemble hybrid sugarcane by Pore-C
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hi-C
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Hi-C
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hic_monoploid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Assemble a monoploid of diploid
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hic_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hi-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
 
     
   </span>
@@ -826,6 +979,8 @@
       
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -834,7 +989,7 @@
   <span class="md-ellipsis">
     
   
-  Collapse
+  Hexaploid Sweet Potato Assembly &amp; Scaffolding
 
     
   </span>
@@ -851,7 +1006,7 @@
   <span class="md-ellipsis">
     
   
-  Collapse
+  Hexaploid Sweet Potato Assembly &amp; Scaffolding
 
     
   </span>
@@ -867,6 +1022,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -875,10 +1032,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#collapsed-contigs-detection" class="md-nav__link">
+  <a href="#1-contig-assembly-using-hifiasm-hi-c-mode" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Collapsed contigs detection
+        1. Contig Assembly using Hifiasm (Hi-C Mode)
       </span>
     </span>
   </a>
@@ -886,32 +1043,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contigscollapsedcontiglist" class="md-nav__link">
+  <a href="#2-scaffolding-with-c-phasing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>contigs.collapsed.contig.list</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#collapsed-contigs-rescuing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Collapsed contigs rescuing
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#after-scaffolding" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        After scaffolding
+        2. Scaffolding with C-Phasing
       </span>
     </span>
   </a>
@@ -934,14 +1069,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../rename/" class="md-nav__link">
+      <a href="../hic_decaploid/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Rename
+  Assemble autodecaploid by Hi-C
 
     
   </span>
@@ -961,16 +1096,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../plot/" class="md-nav__link">
+      <a href="../hic_sugarcane/" class="md-nav__link">
         
   
-  
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
   
   <span class="md-ellipsis">
     
   
-  Plot
+  Assemble hybrid sugarcane by Hi-C
 
     
   </span>
@@ -989,6 +1122,82 @@
     </li>
   
 
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../CLI/mapper/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  CLI
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
     
       
       
@@ -997,7 +1206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../citation/" class="md-nav__link">
+      <a href="../../../citation/" class="md-nav__link">
         
   
   
@@ -1049,7 +1258,7 @@
   
   
   
-    <a href="../../faq/" class="md-nav__link">
+    <a href="../../../faq/" class="md-nav__link">
       
   
   
@@ -1088,6 +1297,8 @@
                     
                     
                     
+                      
+                    
                     
                       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
                       <div class="md-sidebar-button__wrapper">
@@ -1103,6 +1314,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1111,10 +1324,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#collapsed-contigs-detection" class="md-nav__link">
+  <a href="#1-contig-assembly-using-hifiasm-hi-c-mode" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Collapsed contigs detection
+        1. Contig Assembly using Hifiasm (Hi-C Mode)
       </span>
     </span>
   </a>
@@ -1122,32 +1335,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contigscollapsedcontiglist" class="md-nav__link">
+  <a href="#2-scaffolding-with-c-phasing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>contigs.collapsed.contig.list</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#collapsed-contigs-rescuing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Collapsed contigs rescuing
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#after-scaffolding" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        After scaffolding
+        2. Scaffolding with C-Phasing
       </span>
     </span>
   </a>
@@ -1173,116 +1364,47 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/CLI/collapse.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/tutorials/hic/hic_hexaploid_sweet_potato.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
     </a>
   
 
 
-  <h1 id="__skip">Collapse</h1>
-
-<p>Collapsed contigs are commonly observed in polyploid hybrids due to the presence of highly similar homologous regions introduced through hybridization. These regions pose significant challenges for direct <em>de novo</em> assembly using current computational approaches (e.g. hifiasm). To address this limitation, we developed a strategy comprising two steps:   <br />
-<strong>(1)</strong> Collapsed contigs detection: Identification of candidate contigs (copy number ≥2) through integrated analysis of sequencing depth profiles from HiFi, ONT, and Pore-C data.  <br />
-<strong>(2)</strong> Collapsed contigs rescuing: Duplicating and putting collapsed contigs into correctly groups.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>This methodology’s particular efficacy in resolving localized collapsed regions can not resolve the collapsed regions that nearly whole chromosomes.</p>
-</div>
-<h2 id="collapsed-contigs-detection">Collapsed contigs detection<a class="headerlink" href="#collapsed-contigs-detection" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="hifi-data" name="__tabbed_1" type="radio" /><input id="ont-data" name="__tabbed_1" type="radio" /><input id="pore-c-data" name="__tabbed_1" type="radio" /><input id="gfa" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="hifi-data">HiFi data</label><label for="ont-data">ONT data</label><label for="pore-c-data">Pore-C data</label><label for="gfa">GFA</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<ul>
-<li>Custom mapping
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>minimap2<span class="w"> </span>-cx<span class="w"> </span>map-hifi<span class="w"> </span>-I<span class="w"> </span>16g<span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>draft.asm.fasta<span class="w"> </span>hifi.fastq.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>pigz<span class="w"> </span>-p<span class="w"> </span><span class="m">10</span><span class="w"> </span>-c<span class="w"> </span>&gt;<span class="w"> </span>hifi.align.paf.gz
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>hifi.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>hifi.align.depth
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>hifi.align.depth
-</span></code></pre></div></li>
-</ul>
-<ul>
-<li>Directly use the hitig results  <br />
-<code>output.collapsed.contigs.list</code></li>
-</ul>
-</div>
-<div class="tabbed-block">
-<ul>
-<li>Custom mapping  <br />
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>minimap2<span class="w"> </span>-cx<span class="w"> </span>map-ont<span class="w"> </span>-I<span class="w"> </span>16g<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>draft.asm.fasta<span class="w"> </span>ont.fastq.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>pigz<span class="w"> </span>-p<span class="w"> </span><span class="m">10</span><span class="w"> </span>-c<span class="w"> </span>&gt;<span class="w"> </span>ont.align.paf.gz
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>hifi.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>ont.align.depth
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>ont.align.depth
-</span></code></pre></div></li>
-<li>Directly use the hitig results  <br />
-<code>output.collapsed.contigs.list</code></li>
-</ul>
-</div>
-<div class="tabbed-block">
-<p>The <code>porec.align.paf.gz</code> generated from <code>cphasing mapper</code>.
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>paf2depth<span class="w"> </span>porec.align.paf.gz<span class="w"> </span>-w<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-s<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-o<span class="w"> </span>porec.align.depth
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-depth<span class="w"> </span>porec.align.depth
-</span></code></pre></div></p>
-</div>
-<div class="tabbed-block">
-<p>The GFA file generated from <code>hifiasm</code> record the read number, which can be used to identify the collapsed contigs.
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>from-gfa<span class="w"> </span>hifi.p_utg.noseq.gfa.gz<span class="w"> </span>
-</span></code></pre></div></p>
-</div>
-</div>
-</div>
-<h2 id="contigscollapsedcontiglist"><code>contigs.collapsed.contig.list</code><a class="headerlink" href="#contigscollapsedcontiglist" title="Permanent link">&para;</a></h2>
-<p>example (<code>contig\tcoverage\tcopynumber</code>):
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>utg1<span class="w">    </span><span class="m">61</span><span class="w">  </span><span class="m">2</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>utg2<span class="w">    </span><span class="m">59</span><span class="w">  </span><span class="m">2</span>
-</span></code></pre></div></p>
-<h2 id="collapsed-contigs-rescuing">Collapsed contigs rescuing<a class="headerlink" href="#collapsed-contigs-rescuing" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="pore-ccifi" name="__tabbed_2" type="radio" /><input id="hi-c" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="pore-ccifi">Pore-C/CiFi</label><label for="hi-c">Hi-C</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span>cphasing<span class="w"> </span>collapse<span class="w"> </span>rescue<span class="w"> </span>sample.porec.gz<span class="w"> </span>draft.asm.contigsizes<span class="w"> </span><span class="m">3</span>.hyperpartition/output.clusters.txt<span class="w"> </span>contigs.collapsed.contig.list<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>-at<span class="w"> </span><span class="m">3</span>.hyperpartition/draft.asm.allele.table<span class="w"> </span>--porec
+<h1 id="hexaploid-sweet-potato-assembly-scaffolding">Hexaploid Sweet Potato Assembly &amp; Scaffolding<a class="headerlink" href="#hexaploid-sweet-potato-assembly-scaffolding" title="Permanent link">&para;</a></h1>
+<p>This tutorial demonstrates the assembly and scaffolding workflow for the hexaploid sweet potato (<em>Ipomoea batatas</em>, 2n = 6x = 90).</p>
+<h2 id="1-contig-assembly-using-hifiasm-hi-c-mode">1. Contig Assembly using Hifiasm (Hi-C Mode)<a class="headerlink" href="#1-contig-assembly-using-hifiasm-hi-c-mode" title="Permanent link">&para;</a></h2>
+<p>First, run <code>hifiasm</code> in Hi-C mode using PacBio HiFi reads and paired-end Hi-C data to generate haplotype-resolved unitigs:</p>
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">190</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>--h1<span class="w"> </span>fei-tanzania1_S3HiC_R1.fastq.gz,fei-tanzania2_S3HiC_R1.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span>--h2<span class="w"> </span>fei-tanzania1_S3HiC_R2.fastq.gz,fei-tanzania2_S3HiC_R2.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span>SRR29949524_subreads.fastq.gz
 </span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">    </span>cphasing<span class="w"> </span>collapse<span class="w"> </span>rescue<span class="w"> </span>sample.hic.pairs.pqs<span class="w"> </span>draft.asm.contigsizes<span class="w"> </span><span class="m">3</span>.hyperpartition/output.clusters.txt<span class="w"> </span>contigs.collapsed.contig.list<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>-at<span class="w"> </span><span class="m">3</span>.hyperpartition/draft.asm.allele.table<span class="w"> </span>--pairs
+Next, merge the assemblies and assembly graphs from both haplotypes (<code>hap1</code> and <code>hap2</code>) for downstream scaffolding:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Merge fasta files</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cat<span class="w"> </span>hifi.asm.hic.hap1.p_ctg.fasta<span class="w"> </span>hifi.asm.hic.hap2.p_ctg.fasta<span class="w"> </span>&gt;<span class="w"> </span>haps.p_ctg.fasta<span class="w"> </span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Merge GFA files (without sequence)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>cat<span class="w"> </span>hifi.asm.hic.hap1.p_ctg.noseq.gfa<span class="w"> </span>hifi.asm.hic.hap2.p_ctg.noseq.gfa<span class="w"> </span>&gt;<span class="w"> </span>haps.p_ctg.noseq.gfa
 </span></code></pre></div>
-</div>
-</div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Currently, we output the rescue result into a <code>collapsed.rescue.clusters.txt</code> file, which the user executes the next step of <code>4.scaffolding</code> manually. And the input file can directly use the previous.</p>
-</div>
-<h2 id="after-scaffolding">After scaffolding<a class="headerlink" href="#after-scaffolding" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Generate new contig-level fasta and agp, which renamed the duplicated contigs (e.g. utg000001l -&gt; utg000001_d2)
-The name of collapsed contigs in agp is need to rename for subsequence processes.
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.rescued.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>draft.dup.fasta
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>agp-dup<span class="w"> </span>groups.rescued.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.dup.agp
-</span></code></pre></div></li>
-</ul>
-<ul>
-<li>Generate a new <code>pairs.gz</code> or <code>pairs.pqs</code> file 
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>collapse<span class="w"> </span>pairs-dup<span class="w"> </span>sample.pairs.pqs<span class="w"> </span>collapsed.rescue.contigs.list<span class="w"> </span>-o<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>
-</span></code></pre></div></li>
-</ul>
-<ul>
-<li>Curation by juicebox
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.dup.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.dup.assembly
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>sample.dup.mnd.txt
-</span></code></pre></div></li>
-</ul>
-<ul>
-<li>Rename
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>ref.fa<span class="w"> </span>-f<span class="w"> </span>draft.dup.fasta<span class="w"> </span>-a<span class="w"> </span>groups.dup.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
-</span></code></pre></div></li>
-</ul>
-<ul>
-<li>Plot
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>cphasing<span class="w"> </span>pairs2cool<span class="w"> </span>sample.dup.pairs.pqs<span class="w"> </span>sample.dup.pairs.pqs/_contigsizes<span class="w"> </span>sample.10k.cool<span class="w"> </span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>cphasing<span class="w"> </span>plot<span class="w"> </span>-a<span class="w"> </span>groups.dup.agp<span class="w"> </span>-m<span class="w"> </span>sample.10k.cool<span class="w"> </span>-o<span class="w"> </span>sample.500k.wg.png<span class="w"> </span>
-</span></code></pre></div></li>
-</ul>
+<h2 id="2-scaffolding-with-c-phasing">2. Scaffolding with C-Phasing<a class="headerlink" href="#2-scaffolding-with-c-phasing" title="Permanent link">&para;</a></h2>
+<p>Run the <code>cphasing pipeline</code> to scaffold the merged haploid assemblies. Since sweet potato is hexaploid with 15 chromosomes per monoploid set, the expected number of final groups is 90 ($15 \times 6$). We configure <code>-n 15:6</code> and enable the <code>--collapsed-rescue</code> module to resolve collapsed regions:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>-f<span class="w"> </span>haps.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--hic1<span class="w"> </span>fei-tanzania1_S3HiC_R1.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span>--hic1<span class="w"> </span>fei-tanzania2_S3HiC_R1.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span>--hic2<span class="w"> </span>fei-tanzania1_S3HiC_R2.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span>--hic2<span class="w"> </span>fei-tanzania2_S3HiC_R2.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span>-n<span class="w"> </span><span class="m">15</span>:6<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span>-e<span class="w"> </span><span class="m">0</span><span class="w"> </span>--split-length<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span>--collapsed-rescue<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span>--gfa<span class="w"> </span>haps.p_ctg.noseq.gfa<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span>-hcr<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span>-p<span class="w"> </span>GATC<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span>-o<span class="w"> </span>cphasing_output
+</span></code></pre></div>
 
 
 
@@ -1324,7 +1446,7 @@ The name of collapsed contigs in agp is need to rename for subsequence processes
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../prepartition/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Prepartition">
+          <a href="../hic_tetraploid_hifiasm_hap_aware/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Hi-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1334,20 +1456,20 @@ The name of collapsed contigs in agp is need to rename for subsequence processes
                 Previous
               </span>
               <div class="md-ellipsis">
-                Prepartition
+                Hi-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
               </div>
             </div>
           </a>
         
         
           
-          <a href="../rename/" class="md-footer__link md-footer__link--next" aria-label="Next: Rename">
+          <a href="../hic_decaploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble autodecaploid by Hi-C">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Rename
+                Assemble autodecaploid by Hi-C
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1406,12 +1528,12 @@ The name of collapsed contigs in agp is need to rename for subsequence processes
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.6e5f0216.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.6e5f0216.min.js"></script>
       
-        <script src="../../javascript/extra.js"></script>
+        <script src="../../../javascript/extra.js"></script>
       
     
   </body>

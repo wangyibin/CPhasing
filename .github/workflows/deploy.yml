@@ -72,12 +72,7 @@ jobs:
           fi
 
           latest_tag=$(git tag --list 'v*' | sort -V | tail -n 1)
-
-          git checkout main
-
-          workdir="$(mktemp -d)"
-          trap 'rm -rf "$workdir"' EXIT
-
+          
           for tag in ${{ github.event.inputs.backfill_tags }}; do
             echo "=============================="
             echo "Backfilling $tag"
@@ -88,26 +83,7 @@ jobs:
               exit 1
             }
 
-            tag_dir="$workdir/$tag"
-            rm -rf "$tag_dir"
-            mkdir -p "$tag_dir"
-
-            git archive "$tag" docs | tar -x -C "$tag_dir" || {
-              echo "Failed to extract docs from tag $tag"
-              exit 1
-            }
-
-            if [[ ! -d "$tag_dir/docs" ]]; then
-              echo "No docs/ directory in tag $tag, skip."
-              continue
-            fi
-
-            rm -rf docs.__bak__ || true
-            mv docs docs.__bak__
-            cp -R "$tag_dir/docs" docs
-
-            rm -rf docs
-            mv docs.__bak__ docs
+            git checkout "$tag"
 
             if [[ "$tag" == "$latest_tag" ]]; then
               pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$tag" latest
@@ -117,13 +93,17 @@ jobs:
               pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push "$tag"
             fi
           done
+          
+          git checkout "$current_ref"
+
 
           if [[ -n "${latest_tag:-}" ]]; then
+            git checkout "$latest_tag"
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
             pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
+            git checkout "$current_ref"
           fi
 
-          git checkout "$current_ref"
 
 
 

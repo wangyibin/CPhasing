@@ -1,72 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
       <url>
-        <loc>https://wangyibin.github.io/dev/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/installation/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/installation/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/basic_usage/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/basic_usage/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/porec/porec_monoploid/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_monoploid/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/porec/porec_tetraploid_hifiasm_hap_aware/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_hexaploid_sweet_potato/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/porec/porec_hexaploid_sweet_potato/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_decaploid/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/porec/porec_decaploid/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_sugarcane/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/porec/porec_sugarcane/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_monoploid/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/hic/hic_monoploid/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_tetraploid_hifiasm_hap_aware/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/hic/hic_tetraploid_hifiasm_hap_aware/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_hexaploid_sweet_potato/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/hic/hic_hexaploid_sweet_potato/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_decaploid/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/hic/hic_decaploid/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_sugarcane/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/tutorials/hic/hic_sugarcane/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/mapper/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/mapper/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/methalign/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/methalign/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/hic_mapper/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/hic_mapper/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/prepartition/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/prepartition/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/collapse/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/collapse/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/rename/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/rename/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CLI/plot/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/CLI/plot/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/citation/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/citation/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/faq/</loc>
       </url>
       <url>
-        <loc>https://wangyibin.github.io/dev/faq/</loc>
-      </url>
-      <url>
-        <loc>https://wangyibin.github.io/dev/CHANGES/</loc>
+        <loc>https://wangyibin.github.io/CPhasing/dev/CHANGES/</loc>
       </url>
 </urlset>

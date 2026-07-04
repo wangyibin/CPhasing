@@ -83,7 +83,7 @@ jobs:
               exit 1
             }
 
-            git checkout "$tag"
+            git checkout "refs/tags/$tag" -- docs
 
             if [[ "$tag" == "$latest_tag" ]]; then
               pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$tag" latest
@@ -92,16 +92,14 @@ jobs:
               pixi run -e docs mike deploy -F mkdocs_en.yml --push "$tag"
               pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push "$tag"
             fi
+            git checkout "$current_ref" -- docs
           done
+          git checkout "$current_ref" -- .
           
-          git checkout "$current_ref"
-
 
           if [[ -n "${latest_tag:-}" ]]; then
-            git checkout "$latest_tag"
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
             pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
-            git checkout "$current_ref"
           fi
 
 

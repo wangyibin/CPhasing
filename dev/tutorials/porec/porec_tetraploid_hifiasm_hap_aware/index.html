@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/dev/tutorials/porec/porec_decaploid/">
+        <link rel="canonical" href="https://wangyibin.github.io/dev/tutorials/porec/porec_tetraploid_hifiasm_hap_aware/">
       
       
-        <link rel="prev" href="../porec_hexaploid_sweet_potato/">
+        <link rel="prev" href="../porec_monoploid/">
       
       
-        <link rel="next" href="../porec_sugarcane/">
+        <link rel="next" href="../porec_hexaploid_sweet_potato/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Assemble autodecaploid by Pore-C - C-Phasing</title>
+        <title>Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example) - C-Phasing</title>
       
     
     
@@ -108,7 +108,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assemble-autodecaploid-by-pore-c" class="md-skip">
+        <a href="#pore-c-tutorial-haplotype-aware-scaffolding-from-hifiasm-hap-assemblies-tetraploid-example" class="md-skip">
           Skip to content
         </a>
       
@@ -145,7 +145,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assemble autodecaploid by Pore-C
+              Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
             
           </span>
         </div>
@@ -733,10 +733,36 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../porec_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -751,6 +777,105 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0. Prerequisites
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0. Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Input data
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-prepare-a-combined-fasta-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Prepare a combined FASTA (recommended)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Prepare a combined FASTA (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#important-unique-contig-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Important: unique contig names
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Provide an initial haplotype clustering file (<code>-fc</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-run-c-phasing-hi-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. Run C-Phasing (Hi-C + hapaware)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -787,19 +912,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../porec_decaploid/" class="md-nav__link">
         
   
   
@@ -814,7 +930,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1241,6 +1356,11 @@
                       
                     
                     
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1252,6 +1372,92 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0. Prerequisites
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0. Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Input data
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-prepare-a-combined-fasta-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Prepare a combined FASTA (recommended)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Prepare a combined FASTA (recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#important-unique-contig-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Important: unique contig names
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Provide an initial haplotype clustering file (<code>-fc</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-run-c-phasing-hi-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. Run C-Phasing (Hi-C + hapaware)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1270,17 +1476,87 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/tutorials/porec/porec_decaploid.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/tutorials/porec/porec_tetraploid_hifiasm_hap_aware.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
     </a>
   
 
 
-<h1 id="assemble-autodecaploid-by-pore-c">Assemble autodecaploid by Pore-C<a class="headerlink" href="#assemble-autodecaploid-by-pore-c" title="Permanent link">&para;</a></h1>
-<p>Autodecaploid (2n=10x=80)</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>decaploid_hifi.bp.p_utg.fasta<span class="w"> </span>-pcd<span class="w"> </span>porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:8<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<h1 id="pore-c-tutorial-haplotype-aware-scaffolding-from-hifiasm-hap-assemblies-tetraploid-example">Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)<a class="headerlink" href="#pore-c-tutorial-haplotype-aware-scaffolding-from-hifiasm-hap-assemblies-tetraploid-example" title="Permanent link">&para;</a></h1>
+<p>This tutorial shows how to scaffold <strong>pre-separated haplotypes</strong> produced by <strong>hifiasm</strong> using <strong>C-Phasing</strong> in <strong>haplotype-aware</strong> mode (<code>--mode hapaware</code>) with <strong>Hi-C</strong> data.</p>
+<p>The goal is to keep haplotypes consistent while producing chromosome-scale scaffolds.</p>
+<hr />
+<h2 id="0-prerequisites">0. Prerequisites<a class="headerlink" href="#0-prerequisites" title="Permanent link">&para;</a></h2>
+<h3 id="input-data">Input data<a class="headerlink" href="#input-data" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>hifiasm haplotype assemblies</strong> (FASTA), for example:<ul>
+<li><code>hap1.fa</code></li>
+<li><code>hap2.fa</code></li>
+<li><code>hap3.fa</code></li>
+<li><code>hap4.fa</code></li>
+</ul>
+</li>
+<li><strong>Pore-C read pairs</strong> (FASTQ), for example:<ul>
+<li><code>porec_reads.fastq.gz</code></li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>Notes
+- This tutorial assumes you already have haplotype-separated assemblies (one FASTA per haplotype).
+- If you have hifiasm <code>*.hap*.p_ctg.fasta</code> outputs, convert/select the hap FASTA files you want to scaffold.</p>
+</blockquote>
+<hr />
+<h2 id="1-prepare-a-combined-fasta-recommended">1. Prepare a combined FASTA (recommended)<a class="headerlink" href="#1-prepare-a-combined-fasta-recommended" title="Permanent link">&para;</a></h2>
+<p>C-Phasing expects a single assembly FASTA as the contig set to scaffold.<br />
+For hap-aware scaffolding, concatenate the hap assemblies into one FASTA.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cat<span class="w"> </span>hap1.fa<span class="w"> </span>hap2.fa<span class="w"> </span>hap3.fa<span class="w"> </span>hap4.fa<span class="w"> </span>&gt;<span class="w"> </span>haps.concat.fa
 </span></code></pre></div>
+<h3 id="important-unique-contig-names">Important: unique contig names<a class="headerlink" href="#important-unique-contig-names" title="Permanent link">&para;</a></h3>
+<p>Ensure contig IDs are unique across haplotypes. If hifiasm already prefixes contig names per hap, you are fine. Otherwise, rename contigs to avoid collisions.</p>
+<p>A simple pattern is to add a prefix per haplotype, e.g. <code>h1</code>, <code>h2</code>, <code>h3</code>, <code>h4</code>.</p>
+<hr />
+<h2 id="2-provide-an-initial-haplotype-clustering-file-fc">2. Provide an initial haplotype clustering file (<code>-fc</code>)<a class="headerlink" href="#2-provide-an-initial-haplotype-clustering-file-fc" title="Permanent link">&para;</a></h2>
+<p><code>--mode hapaware</code> is designed for cases where haplotypes are <strong>already separated</strong>.<br />
+Providing an initial cluster file helps C-Phasing keep haplotypes consistent.</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>fa2cluster<span class="w">  </span>haps.concat.fa<span class="w"> </span>-o<span class="w"> </span>haps.clusters.txt<span class="w"> </span>
+</span></code></pre></div>
+<p>Create a <code>haps.clusters.txt</code> with <strong>two columns</strong>:</p>
+<ol>
+<li><code>group_id</code></li>
+<li><code>contig_id</code></li>
+</ol>
+<p>Example (illustrative):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>h1   h1tg000001l
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>h1   h1tg000002l
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>h2   h2tg000001l
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>h2   h2tg000002l
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>h3   h3tg000001l
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>h4   h4tg000001l
+</span></code></pre></div>
+<blockquote>
+<p>Tip: In hap-aware mode, <code>-fc first.clusters.txt</code> is the key input that encodes haplotype priors.</p>
+</blockquote>
+<hr />
+<h2 id="3-run-c-phasing-hi-c-hapaware">3. Run C-Phasing (Hi-C + hapaware)<a class="headerlink" href="#3-run-c-phasing-hi-c-hapaware" title="Permanent link">&para;</a></h2>
+<p>Run the main pipeline with Hi-C read pairs and <code>--mode hapaware</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-f<span class="w"> </span>haps.concat.fa<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-pcd<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--mode<span class="w"> </span>hapaware<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>-fc<span class="w"> </span>haps.clusters.txt<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-o<span class="w"> </span>cphasing_hapaware_out<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span>-t<span class="w"> </span><span class="m">32</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT
+</span></code></pre></div>
+<div class="admonition node">
+<p class="admonition-title">Node</p>
+<ul>
+<li>set mapping quality for 2nd partition:
+    <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>...<span class="w"> </span>-q2<span class="w"> </span><span class="m">0</span><span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
+</div>
 
 
 
@@ -1322,7 +1598,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../porec_hexaploid_sweet_potato/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Hexaploid Sweet Potato Assembly &amp;amp; Scaffolding (Pore-C Mode)">
+          <a href="../porec_monoploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble a monoploid of diploid">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1332,20 +1608,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Hexaploid Sweet Potato Assembly &amp; Scaffolding (Pore-C Mode)
+                Assemble a monoploid of diploid
               </div>
             </div>
           </a>
         
         
           
-          <a href="../porec_sugarcane/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble hybrid sugarcane by Pore-C">
+          <a href="../porec_hexaploid_sweet_potato/" class="md-footer__link md-footer__link--next" aria-label="Next: Hexaploid Sweet Potato Assembly &amp;amp; Scaffolding (Pore-C Mode)">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Assemble hybrid sugarcane by Pore-C
+                Hexaploid Sweet Potato Assembly &amp; Scaffolding (Pore-C Mode)
               </div>
             </div>
             <div class="md-footer__button md-icon">

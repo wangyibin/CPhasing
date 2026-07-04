@@ -52,11 +52,11 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/}
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$VERSION" latest
             pixi run -e docs mike deploy -F mkdocs_zh.yml --push --update-aliases "$VERSION" latest
-            pixi run -e docs mike set-default --push latest
+            pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
           else
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases dev latest
             pixi run -e docs mike deploy -F mkdocs_zh.yml --push --update-aliases dev latest
-            pixi run -e docs mike set-default --push latest
+            pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
           fi
 
       - name: Backfill historical tags with mike
@@ -118,7 +118,7 @@ jobs:
           done
 
           if [[ -n "${latest_tag:-}" ]]; then
-            pixi run -e docs mike set-default --push latest
+            pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
           fi
 
           git checkout "$current_ref"

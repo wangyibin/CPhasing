@@ -1,6 +1,6 @@
 
 <!doctype html>
-<html lang="zh" class="no-js">
+<html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/basic_usage/">
+        <link rel="canonical" href="https://wangyibin.github.io/dev/basic_usage/">
       
       
         <link rel="prev" href="../installation/">
@@ -29,7 +29,7 @@
     
     
       
-        <title>流程化的命令 - C-Phasing</title>
+        <title>One command pipeline of C-Phasing - C-Phasing</title>
       
     
     
@@ -45,6 +45,17 @@
       
       
 
+
+  
+  
+    
+      
+      
+      
+    
+  
+  
+  <style>:root{.md-tag{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20class%3D%22lucide%20lucide-hash%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M4%209h16M4%2015h16M10%203%208%2021M16%203l-2%2018%22/%3E%3C/svg%3E');}}</style>
 
     
     
@@ -93,12 +104,12 @@
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer" aria-label="导航栏"></label>
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
-          跳转至
+        <a href="#one-command-pipeline-of-c-phasing" class="md-skip">
+          Skip to content
         </a>
       
     </div>
@@ -114,13 +125,13 @@
       
 
 <header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="页眉">
+  <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-header__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
   <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing">
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer" aria-label="导航栏">
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
     </label>
@@ -134,7 +145,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              流程化的命令
+              One command pipeline of C-Phasing
             
           </span>
         </div>
@@ -150,27 +161,27 @@
     <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun-moon" viewBox="0 0 24 24"><path d="M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="prefix-light" data-md-color-accent="prefix-light"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="prefix" data-md-color-accent="prefix"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon-star" viewBox="0 0 24 24"><path d="M18 5h4M20 3v4M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
       </label>
     
   
@@ -184,7 +195,7 @@
       <div class="md-header__option">
   <div class="md-select">
     
-    <button class="md-header__button md-icon" aria-label="选择当前语言">
+    <button class="md-header__button md-icon" aria-label="Select language">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
     </button>
     <div class="md-select__inner">
@@ -210,20 +221,20 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search" aria-label="查找">
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
           
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         </label>
-        <div class="md-search" data-md-component="search" role="dialog" aria-label="查找">
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
   <button type="button" class="md-search__button">
-    查找
+    Search
   </button>
 </div>
       
     
     <div class="md-header__source">
       
-        <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+        <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -244,7 +255,7 @@
         
           
             
-<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
       
@@ -257,7 +268,7 @@
       <a href="./.." class="md-tabs__link">
         
   
-  主页
+  Home
 
       </a>
     </li>
@@ -273,7 +284,7 @@
       <a href="../installation/" class="md-tabs__link">
         
   
-  安装
+  Installation
 
       </a>
     </li>
@@ -291,7 +302,7 @@
       <a href="././" class="md-tabs__link">
         
   
-  快速开始
+  Get Started
 
       </a>
     </li>
@@ -340,7 +351,7 @@
         <a href="../tutorials/porec/porec_monoploid/" class="md-tabs__link">
           
   
-  教程
+  Tutorials
 
         </a>
       </li>
@@ -381,7 +392,7 @@
         <a href="../CLI/mapper/" class="md-tabs__link">
           
   
-  工具
+  CLI
 
         </a>
       </li>
@@ -398,7 +409,7 @@
       <a href="../citation/" class="md-tabs__link">
         
   
-  引用
+  Citation
 
       </a>
     </li>
@@ -425,7 +436,7 @@
         <a href="../faq/" class="md-tabs__link">
           
   
-  其它
+  Misc
 
         </a>
       </li>
@@ -453,7 +464,7 @@
   
 
 
-<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-nav__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
@@ -464,7 +475,7 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+      <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -491,7 +502,7 @@
   <span class="md-ellipsis">
     
   
-  主页
+  Home
 
     
   </span>
@@ -519,7 +530,7 @@
   <span class="md-ellipsis">
     
   
-  安装
+  Installation
 
     
   </span>
@@ -554,7 +565,7 @@
   <span class="md-ellipsis">
     
   
-  快速开始
+  Get Started
 
     
   </span>
@@ -571,7 +582,7 @@
   <span class="md-ellipsis">
     
   
-  快速开始
+  Get Started
 
     
   </span>
@@ -583,7 +594,7 @@
         
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -592,7 +603,7 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
@@ -600,19 +611,19 @@
   <a href="#pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        pipeline命令
+        Pipeline
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="pipeline命令">
+    <nav class="md-nav" aria-label="Pipeline">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pore-c-reads" class="md-nav__link">
+  <a href="#start-from-a-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入 <strong>Pore-C 测序reads</strong>:
+        Start from a <strong>pore-c data</strong>:
       </span>
     </span>
   </a>
@@ -620,10 +631,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pore-c-data" class="md-nav__link">
+  <a href="#start-from-multiple-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入多组 <strong>Pore-C data</strong>:
+        Start from multiple <strong>Pore-C data</strong>:
       </span>
     </span>
   </a>
@@ -631,10 +642,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pore-c-table-porecgz" class="md-nav__link">
+  <a href="#start-from-a-pore-c-table-porecgz" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入 <strong>Pore-C table (<code>.porec.gz</code>)</strong>:
+        Start from a <strong>Pore-C table (<code>.porec.gz</code>)</strong>:
       </span>
     </span>
   </a>
@@ -642,10 +653,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cifi" class="md-nav__link">
+  <a href="#start-from-cifi-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入<strong>CiFi</strong>数据
+        Start from <strong>CiFi data</strong>
       </span>
     </span>
   </a>
@@ -653,10 +664,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#hi-comni-c-data" class="md-nav__link">
+  <a href="#start-from-hi-comni-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入<strong>Hi-C/Omni-C data</strong>数据
+        Start from <strong>Hi-C/Omni-C data</strong>
       </span>
     </span>
   </a>
@@ -664,10 +675,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4dn-pairs-pairsgz-or-pairspqs" class="md-nav__link">
+  <a href="#start-from-4dn-pairs-pairspqs-or-pairsgz-file" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入4DN pairs (<code>.pairs.gz</code> or <code>.pairs.pqs</code>)文件
+        Start from 4DN pairs (<code>pairs.pqs</code> or <code>pairs.gz</code>) file
       </span>
     </span>
   </a>
@@ -675,10 +686,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#skip-some-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        跳过一些步骤
+        Skip some steps
       </span>
     </span>
   </a>
@@ -686,10 +697,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#perform-only-specified-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        只跑某一步
+        Perform only specified steps
       </span>
     </span>
   </a>
@@ -697,10 +708,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#improve-performance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        提升组装质量
+        Improve performance
       </span>
     </span>
   </a>
@@ -711,7 +722,7 @@
   <a href="#collapsed-rescue" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        塌缩补救 (Collapsed rescue)
+        Collapsed rescue
       </span>
     </span>
   </a>
@@ -724,10 +735,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#juicebox-6curationcurationcmdsh" class="md-nav__link">
+  <a href="#curation-by-juicebox-or-directly-run-6curationcurationcmdsh" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        通过Juicebox 人工调整基因组组装 [可以直接运行<code>6.curation/curation.cmd.sh</code>]
+        Curation by Juicebox [Or directly run <code>6.curation/curation.cmd.sh</code>]
       </span>
     </span>
   </a>
@@ -735,10 +746,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#rename" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        根据参考基因组重新命名和调整整条染色体的方向
+        Rename
       </span>
     </span>
   </a>
@@ -746,10 +757,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
+  <a href="#heatmap-plotting" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        绘制热图
+        Heatmap plotting
       </span>
     </span>
   </a>
@@ -808,7 +819,7 @@
   <span class="md-ellipsis">
     
   
-  教程
+  Tutorials
 
     
   </span>
@@ -878,7 +889,7 @@
   <span class="md-ellipsis">
     
   
-  工具
+  CLI
 
     
   </span>
@@ -910,7 +921,7 @@
   <span class="md-ellipsis">
     
   
-  引用
+  Citation
 
     
   </span>
@@ -962,7 +973,7 @@
   <span class="md-ellipsis">
     
   
-  其它
+  Misc
 
     
   </span>
@@ -1007,7 +1018,7 @@
                     
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1016,7 +1027,7 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
@@ -1024,19 +1035,19 @@
   <a href="#pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        pipeline命令
+        Pipeline
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="pipeline命令">
+    <nav class="md-nav" aria-label="Pipeline">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pore-c-reads" class="md-nav__link">
+  <a href="#start-from-a-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入 <strong>Pore-C 测序reads</strong>:
+        Start from a <strong>pore-c data</strong>:
       </span>
     </span>
   </a>
@@ -1044,10 +1055,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pore-c-data" class="md-nav__link">
+  <a href="#start-from-multiple-pore-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入多组 <strong>Pore-C data</strong>:
+        Start from multiple <strong>Pore-C data</strong>:
       </span>
     </span>
   </a>
@@ -1055,10 +1066,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#pore-c-table-porecgz" class="md-nav__link">
+  <a href="#start-from-a-pore-c-table-porecgz" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入 <strong>Pore-C table (<code>.porec.gz</code>)</strong>:
+        Start from a <strong>Pore-C table (<code>.porec.gz</code>)</strong>:
       </span>
     </span>
   </a>
@@ -1066,10 +1077,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cifi" class="md-nav__link">
+  <a href="#start-from-cifi-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入<strong>CiFi</strong>数据
+        Start from <strong>CiFi data</strong>
       </span>
     </span>
   </a>
@@ -1077,10 +1088,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#hi-comni-c-data" class="md-nav__link">
+  <a href="#start-from-hi-comni-c-data" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入<strong>Hi-C/Omni-C data</strong>数据
+        Start from <strong>Hi-C/Omni-C data</strong>
       </span>
     </span>
   </a>
@@ -1088,10 +1099,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4dn-pairs-pairsgz-or-pairspqs" class="md-nav__link">
+  <a href="#start-from-4dn-pairs-pairspqs-or-pairsgz-file" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        输入4DN pairs (<code>.pairs.gz</code> or <code>.pairs.pqs</code>)文件
+        Start from 4DN pairs (<code>pairs.pqs</code> or <code>pairs.gz</code>) file
       </span>
     </span>
   </a>
@@ -1099,10 +1110,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#skip-some-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        跳过一些步骤
+        Skip some steps
       </span>
     </span>
   </a>
@@ -1110,10 +1121,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#perform-only-specified-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        只跑某一步
+        Perform only specified steps
       </span>
     </span>
   </a>
@@ -1121,10 +1132,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+  <a href="#improve-performance" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        提升组装质量
+        Improve performance
       </span>
     </span>
   </a>
@@ -1135,7 +1146,7 @@
   <a href="#collapsed-rescue" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        塌缩补救 (Collapsed rescue)
+        Collapsed rescue
       </span>
     </span>
   </a>
@@ -1148,10 +1159,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#juicebox-6curationcurationcmdsh" class="md-nav__link">
+  <a href="#curation-by-juicebox-or-directly-run-6curationcurationcmdsh" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        通过Juicebox 人工调整基因组组装 [可以直接运行<code>6.curation/curation.cmd.sh</code>]
+        Curation by Juicebox [Or directly run <code>6.curation/curation.cmd.sh</code>]
       </span>
     </span>
   </a>
@@ -1159,10 +1170,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#rename" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        根据参考基因组重新命名和调整整条染色体的方向
+        Rename
       </span>
     </span>
   </a>
@@ -1170,10 +1181,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
+  <a href="#heatmap-plotting" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        绘制热图
+        Heatmap plotting
       </span>
     </span>
   </a>
@@ -1199,73 +1210,84 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/basic_usage.md" title="查看本页的源代码" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/basic_usage.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
     </a>
   
 
 
-<h1 id="_1">流程化的命令<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<h2 id="pipeline">pipeline命令<a class="headerlink" href="#pipeline" title="Permanent link">&para;</a></h2>
-<p>以下案例中的参数<code>-n 8:4</code>表示组装一个染色体基数为<strong>8</strong>的四倍体（<strong>4</strong>），指定程序第一次分组输出8组，第二次再每一组里面输出4组，最终输出32条染色体。我们也支持自动分组，只需设置<code>-n 0:0</code>, 这表示两轮自动分组。也可以设置为第一分成8组第二次自动分组（<code>-n 8:0</code>）或者第一次自动分组第二次分4组（<code>-n 0:8</code>)</p>
+<h1 id="one-command-pipeline-of-c-phasing">One command pipeline of C-Phasing<a class="headerlink" href="#one-command-pipeline-of-c-phasing" title="Permanent link">&para;</a></h1>
+<h2 id="pipeline">Pipeline<a class="headerlink" href="#pipeline" title="Permanent link">&para;</a></h2>
+<p>The <code>-n 8:4</code> parameter of the following commands means assembling a tetraploid (<strong>4</strong>) with <strong>8</strong> chromosome basic numbers. If you set <code>-n 0:0</code> means partition in both rounds automatically, also support it set to <code>-n 8:0</code> or <code>-n 0:4</code>.  </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CPhasing也支持单套基因组的挂载，只需设置一个分组数，例如<code>-n 8</code>，染色体数为8，期望程序将contig分成8条染色体。<code>pipeline</code>会自动跳过<code>1.allele</code>这步，并且只执行一次contig分组.</p>
+<p><code>CPhasing</code> also support the monoploid scaffolding, when you set one group number, e.g. <code>-n 8</code>. The <code>pipeline</code> will automatically skip the step <code>1.alleles</code>, and only run one round partition.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>如果用户输入的基因组为异源多倍体，亚基因组的相似性较低，可能无法实现理想的第一次分组，用户应该设置不同的<code>-n</code>参数，例如异源四倍体(2n=4x=32)，组装两套亚基因组的话，应该把它当成无需分型的二倍体组装，设置<code>-n 16</code>, 需要对两套亚基因组分别分型的话可以设置<code>-n 16:2</code>。<br />
-如果为异源六倍体(AAABBB, 2n=6x=48), 可以设置<code>-n 16:3</code>，另一种类型的异源六倍体（AABBCC，2n=6x=48），则设置<code>-n 24:2</code>。</p>
+<p>If the user's genome is an allopolyploid with low subgenome similarity, the initial grouping may not be optimal. In such cases, users should adjust the -n parameter based on the ploidy and genome structure:</p>
+<ul>
+<li>For allotetraploids (2n = 4x = 32), the genome can be treated as a diploid assembly. Use <code>-n 16</code> if you want to assemble two subgenomes, set <code>-n 16:2</code>, if you want to phase the subgenome, respectively. </li>
+<li>
+<p>For allohexaploids:</p>
+<ul>
+<li>AAABBB type (2n = 6x = 48): use <code>-n 16:3</code>.</li>
+</ul>
+<ul>
+<li>AABBCC type (2n = 6x = 48): use <code>-n 24:2</code>.</li>
+</ul>
+</li>
+</ul>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>如果是hifiasm组装的contig，组装分型的基因组选择输入<code>p_utg.fasta</code>, 或者用户可以尝试合并hifiasm (hic)输出的多个hap*.p_ctg.fasta。</p>
+<p>For hifiasm-generated contigs, the <code>p_utg.fasta</code> is recommended for phased genome assembly. Optionally, users may concatenate the <code>hap*.p_ctg.fasta</code> outputs from hifiasm's Hi-C mode.</p>
 </div>
-<h3 id="pore-c-reads">输入 <strong>Pore-C 测序reads</strong>:<a class="headerlink" href="#pore-c-reads" title="Permanent link">&para;</a></h3>
+<h3 id="start-from-a-pore-c-data">Start from a <strong>pore-c data</strong>:<a class="headerlink" href="#start-from-a-pore-c-data" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
-<h3 id="pore-c-data">输入多组 <strong>Pore-C data</strong>:<a class="headerlink" href="#pore-c-data" title="Permanent link">&para;</a></h3>
-<p>每个数据指定一次<code>-pcd</code>参数
+<h3 id="start-from-multiple-pore-c-data">Start from multiple <strong>Pore-C data</strong>:<a class="headerlink" href="#start-from-multiple-pore-c-data" title="Permanent link">&para;</a></h3>
+<p>specify multiple <code>-pcd</code> parameters. 
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>sample1.fastq.gz<span class="w"> </span>-pcd<span class="w"> </span>sample2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>如果你希望，将不同cell的数据分别投递到不同的节点上跑，可以使用<code>cphasing mapper</code>参数，并最后使用<code>cphasing-rs porec-merge</code>将输出的<code>porec.gz</code> 文件合并为一个<code>.merge.porec.gz</code>, 然后再通过<code>-pct</code>参数输入。详细文档<a href="../CLI/mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
+<p>If you want to run on cluster system and submit them to multiple nodes, you can use <code>cphasing mapper</code> and <code>cphasing-rs porec-merge</code> to generate the merged <code>porec.gz</code> file and input it by <code>-pct</code> parameter. Please check the doc:<a href="../CLI/mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
 </div>
-<h3 id="pore-c-table-porecgz">输入 <strong>Pore-C table (<code>.porec.gz</code>)</strong>:<a class="headerlink" href="#pore-c-table-porecgz" title="Permanent link">&para;</a></h3>
-<p>这种文件是由<code>cphasing mapper</code>产生的.
+<h3 id="start-from-a-pore-c-table-porecgz">Start from a <strong>Pore-C table (<code>.porec.gz</code>)</strong>:<a class="headerlink" href="#start-from-a-pore-c-table-porecgz" title="Permanent link">&para;</a></h3>
+<p>which is generated by <code>cphasing mapper</code>.
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
-<h3 id="cifi">输入<strong>CiFi</strong>数据<a class="headerlink" href="#cifi" title="Permanent link">&para;</a></h3>
-<p>仅需比对的时候更改为<code>pipeline</code>或者<code>mapper</code>的<code>--mm2-params "-x cifi"</code>参数. 剩下步骤和生成的文件都与Pore-C数据一致。
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>hific.fastq.gz<span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x cifi&quot;</span><span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
+<h3 id="start-from-cifi-data">Start from <strong>CiFi data</strong><a class="headerlink" href="#start-from-cifi-data" title="Permanent link">&para;</a></h3>
+<p>Run <code>pipeline</code> or <code>mapper</code> with <code>--mm2-params "-x cifi"</code> parameter. And the output similar to the results of pore-c data.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pcd<span class="w"> </span>hific.fastq.gz<span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x cifi &quot;</span><span class="w">  </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CiFi的比对结果以<code>.porec.gz</code>结尾，处理方式与Pore-C一致，均可用<code>porec-merge</code>、<code>porec-intersect</code>等命令处理。</p>
+<p>The mapping results of CiFi is similar to Pore-C, such as output suffix with <code>porec.gz</code>, and process it use <code>porec-merge</code>, <code>porec-intersect</code>, et al.</p>
 </div>
-<h3 id="hi-comni-c-data">输入<strong>Hi-C/Omni-C data</strong>数据<a class="headerlink" href="#hi-comni-c-data" title="Permanent link">&para;</a></h3>
+<h3 id="start-from-hi-comni-c-data">Start from <strong>Hi-C/Omni-C data</strong><a class="headerlink" href="#start-from-hi-comni-c-data" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <ul>
-<li><strong>1</strong> | 指定多组数据可以设置多个<code>-hic1</code>和<code>-hic2</code>参数 (例如，<code>-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz</code>)  </li>
-<li><strong>2</strong> | 如果基因组的大小大于8Gb，需要提高比对的<code>k</code> 和<code>w</code>的大小，避免<code>chromap</code>报错，例如 <code>-hic-mapper-k 27 -hic-mapper-w 14</code>.</li>
+<li><strong>1</strong> | If you want to run multiple samples, you can specified mutiple <code>-hic1</code> and <code>-hic2</code> parameters (e.g., <code>-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz</code>)  </li>
+<li><strong>2</strong> | If the total length of your input genome is larger than 8 Gb, the <code>-hic-mapper-k 27 -hic-mapper-w 14</code> should be specified, to avoid the error of <code>chromap</code>. </li>
 <li>
-<p><strong>3</strong> | 你可以通过 <code>-hic-aligner</code> 选项切换 Hi-C 比对工具。当前支持的工具包括：
-    - <strong><code>_chromap</code></strong> (默认): C-Phasing 内置的修改版 Chromap。
-    - <strong><code>chromap</code></strong>: 官方原版 Chromap。
-    - <strong><code>bwa-mem2</code></strong>: 高性能的 BWA-MEM。
-    - <strong><code>minibwa</code></strong>: 更轻量、更快速的类 BWA 比对工具。</p>
-<p>指定使用 <code>minibwa</code> 运行示例如下：
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>-hic-aligner<span class="w"> </span>minibwa<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
+<p><strong>3</strong> | You can switch the Hi-C aligner using the <code>-hic-aligner</code> option. Supported aligners include:
+    - <strong><code>_chromap</code></strong> (default): Modified version of Chromap bundled with C-Phasing.
+    - <strong><code>chromap</code></strong>: Official version of Chromap.
+    - <strong><code>bwa-mem2</code></strong>: High-performance BWA-MEM.
+    - <strong><code>minibwa</code></strong>: A faster BWA-like mapper.</p>
+<p>Example using <code>minibwa</code>:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-hic1<span class="w"> </span>Lib_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>Lib_R2.fastq.gz<span class="w"> </span>--hic-aligner<span class="w"> </span>minibwa<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4
 </span></code></pre></div></p>
 </li>
 </ul>
 </div>
-<h3 id="4dn-pairs-pairsgz-or-pairspqs">输入4DN pairs (<code>.pairs.gz</code> or <code>.pairs.pqs</code>)文件<a class="headerlink" href="#4dn-pairs-pairsgz-or-pairspqs" title="Permanent link">&para;</a></h3>
+<h3 id="start-from-4dn-pairs-pairspqs-or-pairsgz-file">Start from 4DN pairs (<code>pairs.pqs</code> or <code>pairs.gz</code>) file<a class="headerlink" href="#start-from-4dn-pairs-pairspqs-or-pairsgz-file" title="Permanent link">&para;</a></h3>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="pairspqs" name="__tabbed_1" type="radio" /><input id="pairsgz" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="pairspqs"><code>pairs.pqs</code></label><label for="pairsgz"><code>pairs.gz</code></label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1278,73 +1300,65 @@
 </div>
 </div>
 </div>
-<h3 id="_2">跳过一些步骤<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<h3 id="skip-some-steps">Skip some steps<a class="headerlink" href="#skip-some-steps" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">## skip steps 1.alleles and 2.prepare steps </span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-ss<span class="w"> </span><span class="m">1</span>,2
 </span></code></pre></div>
-<h3 id="_3">只跑某一步<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<h3 id="perform-only-specified-steps">Perform only specified steps<a class="headerlink" href="#perform-only-specified-steps" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">## run 3.hyperpartition </span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-s<span class="w"> </span><span class="m">3</span>
 </span></code></pre></div>
-<div class="admonition tips">
-<p class="admonition-title">Tips</p>
-<p><code>-s 3,4</code> to run step 3 and 4.</p>
-</div>
-<h3 id="_4">提升组装质量<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
-<p>大部分情况下，设置<code>-hcr</code>参数会使得组装质量更高，虽然这会让运行速度变慢，但是该参数的设置可以有效去除一些在全基因组频繁互作的区域对分型的影响。同时由于酶切位点分布的偏好性，建议指定<code>-p AAGCTT</code> 进行标准化。如果是Omni-C数据则不需要设置<code>-p</code>参数。
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+<h3 id="improve-performance">Improve performance<a class="headerlink" href="#improve-performance" title="Permanent link">&para;</a></h3>
+<p>Use the <code>-hcr</code> parameter to filter greedy contacts (regions with excessive genome-wide interactions), which can improve phasing quality.</p>
+<p>For restriction enzyme-based Hi-C libraries, set <code>-p AAGCTT</code> to normalize depth calculations based on restriction site density (AAGCTT is the restriction enzyme recognition sequence). This option is not needed for Omni-C data.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-pct<span class="w"> </span>sample.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT
 </span></code></pre></div></p>
-<h3 id="collapsed-rescue">塌缩补救 (Collapsed rescue)<a class="headerlink" href="#collapsed-rescue" title="Permanent link">&para;</a></h3>
+<h3 id="collapsed-rescue">Collapsed rescue<a class="headerlink" href="#collapsed-rescue" title="Permanent link">&para;</a></h3>
 <ul>
-<li>从 Pore-C PAF 文件中识别塌缩的 unitig（包含 singletons）：
+<li>Identify collapsed unitigs from a Pore-C PAF file (including singletons):
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-paf<span class="w"> </span>sample.paf.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>
 </span></code></pre></div></li>
-<li>或者从包含 unitig 对应 read 深度的 hifiasm GFA 文件中识别：
+<li>Or identify collapsed unitigs from a hifiasm GFA file, which contains the read depth of the unitigs:
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-paf<span class="w">  </span>sample.paf.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>--gfa<span class="w"> </span>draft.asm.p_utg.noseq.gfa<span class="w"> </span>
 </span></code></pre></div></li>
-<li>或者提供一个<code>collapsed.contigs.list</code> <a href="../CLI/collapse/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Collapse</a>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-paf<span class="w">  </span>sample.paf.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-contigs<span class="w"> </span>collapsed.contigs.list
+<li>Alternatively, provide a customized collapsed unitig table (format: <code>contig\tcoverage\tcopynumber</code>, details see the <a href="../CLI/collapse/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>collapse</a>):
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-paf<span class="w">  </span>sample.paf.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-contigs<span class="w"> </span>collapsed.contig.list
 </span></code></pre></div></li>
 </ul>
+<h2 id="curation-by-juicebox-or-directly-run-6curationcurationcmdsh">Curation by Juicebox [Or directly run <code>6.curation/curation.cmd.sh</code>]<a class="headerlink" href="#curation-by-juicebox-or-directly-run-6curationcurationcmdsh" title="Permanent link">&para;</a></h2>
 <ul>
-<li>另一种方式是直接提供自定义的塌缩 unitig 表格（格式为 contig\tcoverage\tcopynumber，详情请参考 <a href="../CLI/collapse/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>collapse</a>）：
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-paf<span class="w"> </span>sample.paf.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-contigs<span class="w"> </span>collapsed.contigs.table
-</span></code></pre></div></li>
+<li>generate <code>.assembly</code> and <code>.hic</code>, depend on <a href="https://github.com/aidenlab/3d-dna">3d-dna</a>  </li>
 </ul>
-<h2 id="juicebox-6curationcurationcmdsh">通过Juicebox 人工调整基因组组装 [可以直接运行<code>6.curation/curation.cmd.sh</code>]<a class="headerlink" href="#juicebox-6curationcurationcmdsh" title="Permanent link">&para;</a></h2>
-<ul>
-<li>首先需要生成两个文件：<code>.assembly</code> 和 <code>.hic</code>, 以下步骤依赖于<a href="https://github.com/aidenlab/3d-dna">3d-dna</a> 软件，用户需自行安装。</li>
-</ul>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>bash<span class="w"> </span>~/software/3d-dna/visualize/run-assembly-visualizer.sh<span class="w"> </span>sample.assembly<span class="w"> </span>sample.mnd.txt
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>cphasing<span class="w"> </span>pairs2mnd<span class="w"> </span>sample.pairs.gz<span class="w"> </span>-o<span class="w"> </span>sample.mnd.txt
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>agp2assembly<span class="w"> </span>groups.agp<span class="w"> </span>&gt;<span class="w"> </span>groups.assembly
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>bash<span class="w"> </span>~/software/3d-dna/visualize/run-assembly-visualizer.sh<span class="w"> </span>sample.assembly<span class="w"> </span>sample.mnd.txt
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>如果contig进行嵌合纠错，请使用<code>groups.corrected.agp</code>，并从原始的<code>pairs.gz</code>通过<code>cphasing-rs pairs-break</code>  生成一个新的 <code>corrected.pairs.gz</code>。</p>
+<p>if chimeric corrected, please use <code>groups.corrected.agp</code> and generate a new <code>corrected.pairs.pqs</code> by <code>cphasing-rs pairs-break</code>  </p>
 </div>
 <ul>
-<li>调整完后生成agp和fasta文件
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1">## convert assembly to agp</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="c1">## or haploid or a homologous group</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="c1">## extract contigs from agp </span>
-</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>contigs.fasta
-</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1">## extract chromosome-level fasta from agp</span>
-</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
+<li>After curation
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1">## convert assembly to agp</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1">## or haploid or a homologous group</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>assembly2agp<span class="w"> </span>groups.review.assembly<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="c1">## extract contigs from agp </span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>--contigs<span class="w"> </span>&gt;<span class="w"> </span>contigs.fasta
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1">## extract chromosome-level fasta from agp</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>cphasing<span class="w"> </span>agp2fasta<span class="w"> </span>groups.review.agp<span class="w"> </span>draft.asm.fasta<span class="w"> </span>&gt;<span class="w"> </span>groups.review.asm.fasta
 </span></code></pre></div></li>
 </ul>
-<h2 id="_5">根据参考基因组重新命名和调整整条染色体的方向<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<p>我们内置了<code>cphasing rename</code>命令，该命令可以根据一套单倍型或者近缘物种的染色体水平基因组去调整多倍体分型组装的染色体编号和整条染色体的方向方向，可以查看详细的文档<a href="../CLI/rename/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Rename</a>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
+<h2 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">&para;</a></h2>
+<p>Rename and orient chromosome according a monoploid reference (or genome of closely related species).  More details please check <a href="../CLI/rename/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Rename</a>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.review.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span>
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>为了减少时间消耗，我们只对每套同源染色体组内的第一条进行比对，然后根据此比对结果，对整个同源组进行重命名和调整方向。这是因为我们在<code>scaffolding</code>步骤的时候已经把同源染色体的方向调整为一致了。如果你需要对所有同源组内的染色体进行比对，可以设置<code>--unphased</code>参数实现。</p>
+<p>To reduce the time consumed, we only align the first haplotype (g1) to the monoploid, which the orientation among different haplotypes has already been set to the same in the <code>scaffolding</code> step. If not, you can set <code>—-unphased</code> to align all haplotypes to the monoploid to adjust the orientation.  </p>
 </div>
-<h2 id="_6">绘制热图<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
-<p>查看详细文档<a href="../CLI/plot/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Plot</a></p>
+<h2 id="heatmap-plotting">Heatmap plotting<a class="headerlink" href="#heatmap-plotting" title="Permanent link">&para;</a></h2>
+<p>Please check the doc: <a href="../CLI/plot/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Plot</a></p>
 
 
 
@@ -1374,7 +1388,7 @@
           <button type="button" class="md-top md-icon" data-md-component="top" hidden>
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
-  回到页面顶部
+  Back to top
 </button>
         
       </main>
@@ -1383,33 +1397,33 @@
   
     
       
-      <nav class="md-footer__inner md-grid" aria-label="页脚" >
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 安装">
+          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                上一页
+                Previous
               </span>
               <div class="md-ellipsis">
-                安装
+                Installation
               </div>
             </div>
           </a>
         
         
           
-          <a href="../tutorials/porec/porec_monoploid/" class="md-footer__link md-footer__link--next" aria-label="下一页: 单倍体或单套基因组的挂载">
+          <a href="../tutorials/porec/porec_monoploid/" class="md-footer__link md-footer__link--next" aria-label="Next: Assemble a monoploid of diploid">
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                下一页
+                Next
               </span>
               <div class="md-ellipsis">
-                单倍体或单套基因组的挂载
+                Assemble a monoploid of diploid
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1426,7 +1440,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright © 2022-2026 Tanger-lab 保留所有权利。
+      Copyright © 2022-2026 Tanger-lab, All rights reserved.
     </div>
   
   
@@ -1468,7 +1482,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"已复制","clipboard.copy":"复制","search.result.more.one":"在该页上还有 1 个符合条件的结果","search.result.more.other":"在该页上还有 # 个符合条件的结果","search.result.none":"没有找到符合条件的结果","search.result.one":"找到 1 个符合条件的结果","search.result.other":"# 个符合条件的结果","search.result.placeholder":"键入以开始搜索","search.result.term.missing":"缺少","select.version":"选择当前版本"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.6e5f0216.min.js"></script>

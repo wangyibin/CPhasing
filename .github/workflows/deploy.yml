@@ -51,11 +51,11 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$VERSION" latest
-            pixi run -e docs mike deploy -F mkdocs_zh.yml --push --update-aliases "$VERSION" latest
+            pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases "$VERSION" latest
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
           else
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases dev latest
-            pixi run -e docs mike deploy -F mkdocs_zh.yml --push --update-aliases dev latest
+            pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases dev latest
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
           fi
 
@@ -110,10 +110,10 @@ jobs:
 
             if [[ "$tag" == "$latest_tag" ]]; then
               pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$tag" latest
-              pixi run -e docs mike deploy -F mkdocs_zh.yml --push --update-aliases "$tag" latest
+              pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases "$tag" latest
             else
               pixi run -e docs mike deploy -F mkdocs_en.yml --push "$tag"
-              pixi run -e docs mike deploy -F mkdocs_zh.yml --push "$tag"
+              pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push "$tag"
             fi
           done
 

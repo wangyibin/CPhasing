@@ -170,8 +170,6 @@ plugins:
   #     add_json_ld: True
   #     add_share_buttons: True
   #     add_css: False
-  - mike:
-    deploy_prefix: ''
 
 
 

@@ -835,7 +835,7 @@
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>从GitHub release下载<code>C-Phasing</code>软件，并加载<code>activate_cphasing</code>激活环境。
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">LATEST_URL</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>https://api.github.com/repos/wangyibin/CPhasing/releases/latest<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;browser_download_url.*linux-64.tar.gz&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;&quot;&#39;</span><span class="w"> </span>-f<span class="w"> </span><span class="m">4</span><span class="k">)</span>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">LATEST_URL</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>https://api.github.com/repos/wangyibin/CPhasing/releases/latest<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;browser_download_url.*linux-x86.tar.gz&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;&quot;&#39;</span><span class="w"> </span>-f<span class="w"> </span><span class="m">4</span><span class="k">)</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>wget<span class="w"> </span><span class="nv">$LATEST_URL</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>tar<span class="w"> </span>xzvf<span class="w"> </span>CPhasing*.tar.gz
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -876,7 +876,7 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>如果你想运行在arm(<strong>aarch64</strong>)平台上，请从<a href="https://github.com/wangyibin/CPhasing/releases">github release</a>页面下载，git仓库里默认存放x86-64版本</p>
+<p>如果你想运行在arm(<strong>aarch64</strong>)平台上，请从<a href="https://github.com/wangyibin/CPhasing/releases/tag/v0.2.8">github release</a>页面下载，git仓库里默认存放x86-64版本</p>
 </div>
 </div>
 <div class="tabbed-block">

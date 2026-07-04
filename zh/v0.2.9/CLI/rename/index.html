@@ -895,18 +895,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#agp" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        调整agp文件
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="调整agp文件">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#phasing-mode" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -916,8 +904,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -927,28 +915,12 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         用字母作为不同单倍型的后缀
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        调整染色体水平基因组
       </span>
     </span>
   </a>
@@ -1125,18 +1097,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#agp" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        调整agp文件
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="调整agp文件">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#phasing-mode" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1146,8 +1106,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1157,28 +1117,12 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         用字母作为不同单倍型的后缀
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        调整染色体水平基因组
       </span>
     </span>
   </a>
@@ -1213,27 +1157,23 @@
 
 <h1 id="rename">Rename<a class="headerlink" href="#rename" title="Permanent link">&para;</a></h1>
 <p>以单倍型或者近缘物种的参考基因组作为参考，将当前组装的多倍体进行重命名和染色体方向调整.</p>
-<h2 id="agp">调整agp文件<a class="headerlink" href="#agp" title="Permanent link">&para;</a></h2>
-<h3 id="phasing-mode">调整<code>phasing</code> mode的组装结果<a class="headerlink" href="#phasing-mode" title="Permanent link">&para;</a></h3>
+<h2 id="phasing-mode">调整<code>phasing</code> mode的组装结果<a class="headerlink" href="#phasing-mode" title="Permanent link">&para;</a></h2>
 <p>默认情况下<code>phasing</code> mode已经将同源染色体聚成一组，并且不同同源染色体将的方向已经调整至平行，为了节省时间开销，我们仅将第一个单倍型即<code>Chr??.g1</code>比对至参考基因组上，剩下的单倍型命名和方向跟随<code>g1</code>进行调整。如果不符合以上说明，则需加<code>--unphased</code>参数对所有染色体进行比对。
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>
 </span></code></pre></div>
 <img alt="phasing" src="https://pic.superbed.cc/item/67960ddcfa9f77b4dc145ac9.png" /></p>
-<h3 id="_1">对所有染色体进行重命名<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
+<h2 id="_1">对所有染色体进行重命名<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <p><code>basal</code>或者<code>basal_withprune</code> mode，需要对所有染色体进行比对，然后重命名和重新调整方向，需要加<code>--unphased</code>参数。
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>--unphased<span class="w"> </span>
 </span></code></pre></div></p>
 <p><img alt="uphased" src="https://pic.superbed.cc/item/67960d93fa9f77b4dc1458f2.png" /></p>
-<h3 id="_2">用字母作为不同单倍型的后缀<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<h2 id="_2">用字母作为不同单倍型的后缀<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p><code>Chr01A Chr01B Chr01C ...</code>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fa<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-a<span class="w"> </span>groups.agp<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>-s<span class="w"> </span>upperletter
 </span></code></pre></div></p>
 </blockquote>
 <p><img alt="upperletter" src="https://pic.superbed.cc/item/67960d32fa9f77b4dc1455ab.png" /></p>
-<h2 id="_3">调整染色体水平基因组<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>rename<span class="w"> </span>-r<span class="w"> </span>mono.fasta<span class="w"> </span>-f<span class="w"> </span>groups.asm.fasta<span class="w"> </span>
-</span></code></pre></div>
 
 
 

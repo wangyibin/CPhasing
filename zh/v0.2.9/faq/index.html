@@ -847,17 +847,6 @@
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        如何选择限制性内切酶
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
         第一轮分组的结果不好:
       </span>
     </span>
@@ -866,7 +855,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         挂载上的染色体总大小远低于预估基因组大小
@@ -970,17 +959,6 @@
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        如何选择限制性内切酶
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
         第一轮分组的结果不好:
       </span>
     </span>
@@ -989,7 +967,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         挂载上的染色体总大小远低于预估基因组大小
@@ -1038,25 +1016,13 @@
 
   <h1 id="__skip">Faq</h1>
 
-<h3 id="_1">如何选择限制性内切酶<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
-<p>为了获得最佳的组装与分型（Scaffolding &amp; Phasing）效果，我们对不同测序技术的数据类型推荐如下：
-- <strong>基于长读长的技术（如 Pore-C 或 CiFi）：</strong>
-  推荐使用 <strong>4 碱基限制性内切酶</strong>（如 DpnII、MboI, 甚至NlaIII），而不是 6 碱基酶（如 HindIII）。因为 4 碱基酶的酶切位点分布更密集，可以在单条长读长序列（Read）上生成大量较短的 DNA 片段，从而捕获更丰富、更高阶的多体物理互作（High-order contacts）。</p>
-<ul>
-<li><strong>基于短读长的技术（普通 Hi-C）：</strong>
-  推荐优先级为：<strong>Omni-C &gt; 多酶切位点 Hi-C（如 Arima） &gt; 传统单酶切 Hi-C</strong>。<ul>
-<li><strong>Omni-C</strong> 使用 DNase I 进行随机序列切割，覆盖度极其均匀，能消除基于限制性内切酶带来的序列偏好性和覆盖盲区。</li>
-<li><strong>Arima 多酶切位点方案</strong> 则能显著高于单酶切方案的位点密度，有利于多倍体及复杂基因组中高难度区域的精确破译。</li>
-</ul>
-</li>
-</ul>
-<h3 id="_2">第一轮分组的结果不好:<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<h3 id="_1">第一轮分组的结果不好:<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <p>在我们的两轮聚类算法中，第一轮聚类依赖于同源染色体之间比对错误；如果用户输入低水平Switch error的contigs或输入高精度的Pore-c数据，h-<em>trans</em>将不足以支撑将来自同源染色体的contig聚到一起，这容易导致结果不理想。用户可以为<code>hyperpartition</code>或<code>pipeline</code>设置<code>-q1 0</code>以增加h-<em>trans</em>错误率。但是，当您在porec.gz或pairs.gz中输入大量的互作数据时，此参数可能会引发内存不足的错误。 </p>
-<h3 id="_3">挂载上的染色体总大小远低于预估基因组大小<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<h3 id="_2">挂载上的染色体总大小远低于预估基因组大小<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>如果存在以下两种情况，可以通过调整 <code>cphasing pipeline</code>的模式至敏感（<code>--preset sensitive</code>）或者超敏感（<code>--preset very-sensitive</code>）
 1. 输入的数据量低。2. 输入的基因组较为复杂，存在大量的纯合或者近乎纯合的区域。 需要注意的是，以上两种模式会让部分较碎的contig聚类或者排序错误。同时如果属于第二种情况，容易发生贪婪的聚类，即两条高度同源的染色体组被分到一组里面。</p>
 <h3 id="-n">如何在组装非整倍体基因组时设置<code>-n</code>参数:<a class="headerlink" href="#-n" title="Permanent link">&para;</a></h3>
-<p>非整倍体基因组，如现代栽培的甘蔗，包含数目不相等的同源染色体。我们建议<code>-n</code>参数可以设置为零（<code>-n 10:0</code>），让程序自动判别分组数。
+<p>非整倍体基因组，如现代栽培的甘蔗，包含数目不相等的同源染色体。我们建议<code>-n</code>参数可以设置为零（<code>-n 0:0</code>），让程序自动判别分组数。
 此外，我们也允许用户输入一个包含两列的文件：第一列是第一轮分区的索引（1-base），第二列是每个同源染色体的染色体数目。然后指定<code>- n10:second.number.tsv</code>。在<code>cphasing pipeline</code>或<code>cphasing hyperpartition</code>中使用。</p>
 <div class="language-text highlight"><span class="filename">second.number.tsv</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1    13
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2    12

@@ -1,6 +1,6 @@
 
 <!doctype html>
-<html lang="zh" class="no-js">
+<html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/CLI/methalign/">
+        <link rel="canonical" href="https://wangyibin.github.io/dev/CLI/methalign/">
       
       
         <link rel="prev" href="../mapper/">
@@ -45,6 +45,17 @@
       
       
 
+
+  
+  
+    
+      
+      
+      
+    
+  
+  
+  <style>:root{.md-tag{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20class%3D%22lucide%20lucide-hash%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M4%209h16M4%2015h16M10%203%208%2021M16%203l-2%2018%22/%3E%3C/svg%3E');}}</style>
 
     
     
@@ -93,12 +104,12 @@
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer" aria-label="导航栏"></label>
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
         
         <a href="#methalign" class="md-skip">
-          跳转至
+          Skip to content
         </a>
       
     </div>
@@ -114,13 +125,13 @@
       
 
 <header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="页眉">
+  <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-header__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
   <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing">
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer" aria-label="导航栏">
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
     </label>
@@ -150,27 +161,27 @@
     <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun-moon" viewBox="0 0 24 24"><path d="M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="prefix-light" data-md-color-accent="prefix-light"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="prefix" data-md-color-accent="prefix"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon-star" viewBox="0 0 24 24"><path d="M18 5h4M20 3v4M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
       </label>
     
   
@@ -184,7 +195,7 @@
       <div class="md-header__option">
   <div class="md-select">
     
-    <button class="md-header__button md-icon" aria-label="选择当前语言">
+    <button class="md-header__button md-icon" aria-label="Select language">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
     </button>
     <div class="md-select__inner">
@@ -210,20 +221,20 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search" aria-label="查找">
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
           
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         </label>
-        <div class="md-search" data-md-component="search" role="dialog" aria-label="查找">
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
   <button type="button" class="md-search__button">
-    查找
+    Search
   </button>
 </div>
       
     
     <div class="md-header__source">
       
-        <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+        <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -244,7 +255,7 @@
         
           
             
-<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
       
@@ -257,7 +268,7 @@
       <a href="../.." class="md-tabs__link">
         
   
-  主页
+  Home
 
       </a>
     </li>
@@ -273,7 +284,7 @@
       <a href="../../installation/" class="md-tabs__link">
         
   
-  安装
+  Installation
 
       </a>
     </li>
@@ -289,7 +300,7 @@
       <a href="../../basic_usage/" class="md-tabs__link">
         
   
-  快速开始
+  Get Started
 
       </a>
     </li>
@@ -338,7 +349,7 @@
         <a href="../../tutorials/porec/porec_monoploid/" class="md-tabs__link">
           
   
-  教程
+  Tutorials
 
         </a>
       </li>
@@ -381,7 +392,7 @@
         <a href="../mapper/" class="md-tabs__link">
           
   
-  工具
+  CLI
 
         </a>
       </li>
@@ -398,7 +409,7 @@
       <a href="../../citation/" class="md-tabs__link">
         
   
-  引用
+  Citation
 
       </a>
     </li>
@@ -425,7 +436,7 @@
         <a href="../../faq/" class="md-tabs__link">
           
   
-  其它
+  Misc
 
         </a>
       </li>
@@ -453,7 +464,7 @@
   
 
 
-<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-nav__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
@@ -464,7 +475,7 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+      <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -491,7 +502,7 @@
   <span class="md-ellipsis">
     
   
-  主页
+  Home
 
     
   </span>
@@ -519,7 +530,7 @@
   <span class="md-ellipsis">
     
   
-  安装
+  Installation
 
     
   </span>
@@ -545,7 +556,7 @@
   <span class="md-ellipsis">
     
   
-  快速开始
+  Get Started
 
     
   </span>
@@ -601,7 +612,7 @@
   <span class="md-ellipsis">
     
   
-  教程
+  Tutorials
 
     
   </span>
@@ -674,7 +685,7 @@
   <span class="md-ellipsis">
     
   
-  工具
+  CLI
 
     
   </span>
@@ -689,7 +700,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-  工具
+  CLI
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -773,7 +784,7 @@
         
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -782,15 +793,15 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#methalign_1" class="md-nav__link">
+  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        激活 methalign环境
+        Activate the environment of methalign
       </span>
     </span>
   </a>
@@ -798,10 +809,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contig5mcg" class="md-nav__link">
+  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        计算contig水平基因组的5mCG信息
+        Calculate the 5mCG sites of contig assembly
       </span>
     </span>
   </a>
@@ -809,10 +820,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pore-chifi-ccontig" class="md-nav__link">
+  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        将Pore-C或者HiFi-C比对到contig水平基因组上
+        Align the candidate reads to contig assembly
       </span>
     </span>
   </a>
@@ -820,10 +831,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#refine-alignments" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        二次分配比对片段
+        Refine alignments
       </span>
     </span>
   </a>
@@ -880,7 +891,7 @@
   <span class="md-ellipsis">
     
   
-  同源染色体聚类 (Prepartition)
+  Prepartition
 
     
   </span>
@@ -997,7 +1008,7 @@
   <span class="md-ellipsis">
     
   
-  引用
+  Citation
 
     
   </span>
@@ -1049,7 +1060,7 @@
   <span class="md-ellipsis">
     
   
-  其它
+  Misc
 
     
   </span>
@@ -1094,7 +1105,7 @@
                     
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1103,15 +1114,15 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#methalign_1" class="md-nav__link">
+  <a href="#activate-the-environment-of-methalign" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        激活 methalign环境
+        Activate the environment of methalign
       </span>
     </span>
   </a>
@@ -1119,10 +1130,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#contig5mcg" class="md-nav__link">
+  <a href="#calculate-the-5mcg-sites-of-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        计算contig水平基因组的5mCG信息
+        Calculate the 5mCG sites of contig assembly
       </span>
     </span>
   </a>
@@ -1130,10 +1141,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pore-chifi-ccontig" class="md-nav__link">
+  <a href="#align-the-candidate-reads-to-contig-assembly" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        将Pore-C或者HiFi-C比对到contig水平基因组上
+        Align the candidate reads to contig assembly
       </span>
     </span>
   </a>
@@ -1141,10 +1152,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#refine-alignments" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        二次分配比对片段
+        Refine alignments
       </span>
     </span>
   </a>
@@ -1170,31 +1181,31 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/CLI/methalign.md" title="查看本页的源代码" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/CLI/methalign.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
     </a>
   
 
 
 <h1 id="methalign">Methalign<a class="headerlink" href="#methalign" title="Permanent link">&para;</a></h1>
-<p>为了提升比对的精度，特别是高度同源区域的互作数量，我们开发了一个模块<strong><code>Methalign</code></strong>。尝试使用甲基化信息(5mCG)，对模糊的比对进行二次分配。这个模块主要针对超复杂多倍体，它们存在大量的高度同源区域，这些区域，即使使用长度长的互作数据也难以区分。普通多倍体请使用<code>Mapper</code>处理Pore-C数据<a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a>。</p>
+<p>To improve mapping accuracy by utilizing information from allele-specific 5mC sites, we developed a module called <strong><code>Methalign</code></strong>. This module comprises a pipeline for correcting alignments by the fifth base (5mCG). This module is designed for ultra-complex polyploids, which contain many high-similarity homologous regions and are hard to partition (unstable).</p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>如果你不需要使用甲基化信息，请使用 <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
+<p>If you want to process Pore-C/HiFi-C data without 5mC information, please use the <a href="../mapper/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span>Mapper</a></p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>输入的bam文件应该包含<code>MM/ML</code>tags</p>
+<p>The input bam should contain the <code>MM/ML</code> tags</p>
 </div>
-<h2 id="methalign_1">激活 methalign环境<a class="headerlink" href="#methalign_1" title="Permanent link">&para;</a></h2>
+<h2 id="activate-the-environment-of-methalign">Activate the environment of methalign<a class="headerlink" href="#activate-the-environment-of-methalign" title="Permanent link">&para;</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate_cphasing<span class="w"> </span>methalign
 </span></code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>第一次激活，请在有网络的情况下运行该命令</p>
+<p>The network should be accessible if the methalign environment is first activated.</p>
 </div>
-<h2 id="contig5mcg">计算contig水平基因组的5mCG信息<a class="headerlink" href="#contig5mcg" title="Permanent link">&para;</a></h2>
+<h2 id="calculate-the-5mcg-sites-of-contig-assembly">Calculate the 5mCG sites of contig assembly<a class="headerlink" href="#calculate-the-5mcg-sites-of-contig-assembly" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="hifi-reads" name="__tabbed_1" type="radio" /><input id="ont-reads" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="hifi-reads">HiFi reads</label><label for="ont-reads">ONT reads</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1215,42 +1226,38 @@
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>samtools<span class="w"> </span>index<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
 </span></code></pre></div>
 <p>Calculate the 5mC sites by modkit</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>modkit<span class="w"> </span>pileup<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>output.methyl.bed<span class="w"> </span>--log-filepath<span class="w"> </span>pileup.log<span class="w"> </span>--cpg<span class="w"> </span>--ref<span class="w"> </span>contigs.fasta<span class="w"> </span>-t<span class="w"> </span><span class="m">60</span><span class="w"> </span>--combine-strands<span class="w"> </span>--ignore<span class="w"> </span>h
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>awk<span class="w"> </span><span class="s1">&#39;{print $1,$2,$3,$11}&#39;</span><span class="w"> </span><span class="nv">OFS</span><span class="o">=</span><span class="s1">&#39;\t&#39;</span><span class="w"> </span>output.methyl.bed<span class="w"> </span>&gt;<span class="w"> </span>output.methyl.bg
 </span></code></pre></div>
 </div>
 </div>
 </div>
-<h2 id="pore-chifi-ccontig">将Pore-C或者HiFi-C比对到contig水平基因组上<a class="headerlink" href="#pore-chifi-ccontig" title="Permanent link">&para;</a></h2>
+<h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">&para;</a></h2>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bammap2<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-x<span class="w"> </span>lr:hq<span class="w"> </span>-N<span class="w"> </span><span class="m">500</span><span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
-</div>
-<h2 id="_1">二次分配比对片段<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">&para;</a></h2>
 <ul>
-<li>二次分配比对片段
+<li>Refine the alignments by methylation information
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>methalign<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
 </span></code></pre></div></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>这步会生成两个文件<code>methalign.refined.paf.gz</code>和<code>methalign.refined.porec.gz</code>。</p>
+<p>This step will output <code>methalign.refined.paf.gz</code> and <code>methalign.refined.porec.gz</code></p>
 </div>
 <ul>
-<li>之后使用<code>cphasing pipeline</code>完成分型组装</li>
-</ul>
+<li>After refine
+Input <code>porec.align.refined.porec.gz</code> 
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>contigs.fasta<span class="w"> </span>-pct<span class="w"> </span>methalign.refined.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">10</span><span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>:4<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
-</span></code></pre></div>
-<div class="admonition tips">
-<p class="admonition-title">Tips</p>
-<ul>
-<li>将bam文件分割成多份以加快处理速度
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
 </span></code></pre></div></li>
 </ul>
+<div class="admonition tips">
+<p class="admonition-title">Tips</p>
+<p>If you input a large aligned bam you can use <code>cphasing-rs split-bam</code> to split bam into several parts and run <code>methalign</code>, respectively. 
+- Split bam to speed up the refine step
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing-rs<span class="w"> </span>split-bam<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>split_outdir/output.split
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">cd</span><span class="w"> </span>split_outdir
+</span></code></pre></div></p>
 </div>
 
 
@@ -1281,7 +1288,7 @@
           <button type="button" class="md-top md-icon" data-md-component="top" hidden>
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
-  回到页面顶部
+  Back to top
 </button>
         
       </main>
@@ -1290,17 +1297,17 @@
   
     
       
-      <nav class="md-footer__inner md-grid" aria-label="页脚" >
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../mapper/" class="md-footer__link md-footer__link--prev" aria-label="上一页: Mapper">
+          <a href="../mapper/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Mapper">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                上一页
+                Previous
               </span>
               <div class="md-ellipsis">
                 Mapper
@@ -1310,10 +1317,10 @@
         
         
           
-          <a href="../hic_mapper/" class="md-footer__link md-footer__link--next" aria-label="下一页: HiC Mapper">
+          <a href="../hic_mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: HiC Mapper">
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                下一页
+                Next
               </span>
               <div class="md-ellipsis">
                 HiC Mapper
@@ -1333,7 +1340,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright © 2022-2026 Tanger-lab 保留所有权利。
+      Copyright © 2022-2026 Tanger-lab, All rights reserved.
     </div>
   
   
@@ -1375,7 +1382,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"已复制","clipboard.copy":"复制","search.result.more.one":"在该页上还有 1 个符合条件的结果","search.result.more.other":"在该页上还有 # 个符合条件的结果","search.result.none":"没有找到符合条件的结果","search.result.one":"找到 1 个符合条件的结果","search.result.other":"# 个符合条件的结果","search.result.placeholder":"键入以开始搜索","search.result.term.missing":"缺少","select.version":"选择当前版本"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../../assets/javascripts/bundle.6e5f0216.min.js"></script>

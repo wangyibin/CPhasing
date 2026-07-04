@@ -1,6 +1,6 @@
 
 <!doctype html>
-<html lang="zh" class="no-js">
+<html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/hic/hic_sugarcane/">
+        <link rel="canonical" href="https://wangyibin.github.io/dev/tutorials/hic/hic_sugarcane/">
       
       
         <link rel="prev" href="../hic_decaploid/">
@@ -29,7 +29,7 @@
     
     
       
-        <title>现代栽培甘蔗组装(Hi-C) - C-Phasing</title>
+        <title>Assemble hybrid sugarcane by Hi-C - C-Phasing</title>
       
     
     
@@ -45,6 +45,17 @@
       
       
 
+
+  
+  
+    
+      
+      
+      
+    
+  
+  
+  <style>:root{.md-tag{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20class%3D%22lucide%20lucide-hash%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M4%209h16M4%2015h16M10%203%208%2021M16%203l-2%2018%22/%3E%3C/svg%3E');}}</style>
 
     
     
@@ -93,12 +104,12 @@
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer" aria-label="导航栏"></label>
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
         
-        <a href="#hi-c" class="md-skip">
-          跳转至
+        <a href="#assemble-hybrid-sugarcane-by-hi-c" class="md-skip">
+          Skip to content
         </a>
       
     </div>
@@ -114,13 +125,13 @@
       
 
 <header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="页眉">
+  <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-header__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
   <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing">
 
     </a>
-    <label class="md-header__button md-icon" for="__drawer" aria-label="导航栏">
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
       
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
     </label>
@@ -134,7 +145,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              现代栽培甘蔗组装(Hi-C)
+              Assemble hybrid sugarcane by Hi-C
             
           </span>
         </div>
@@ -150,27 +161,27 @@
     <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun-moon" viewBox="0 0 24 24"><path d="M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="prefix-light" data-md-color-accent="prefix-light"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </label>
     
   
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="prefix" data-md-color-accent="prefix"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon-star" viewBox="0 0 24 24"><path d="M18 5h4M20 3v4M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
       </label>
     
   
@@ -184,7 +195,7 @@
       <div class="md-header__option">
   <div class="md-select">
     
-    <button class="md-header__button md-icon" aria-label="选择当前语言">
+    <button class="md-header__button md-icon" aria-label="Select language">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
     </button>
     <div class="md-select__inner">
@@ -210,20 +221,20 @@
     
       
       
-        <label class="md-header__button md-icon" for="__search" aria-label="查找">
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
           
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
         </label>
-        <div class="md-search" data-md-component="search" role="dialog" aria-label="查找">
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
   <button type="button" class="md-search__button">
-    查找
+    Search
   </button>
 </div>
       
     
     <div class="md-header__source">
       
-        <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+        <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -244,7 +255,7 @@
         
           
             
-<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
       
@@ -257,7 +268,7 @@
       <a href="../../.." class="md-tabs__link">
         
   
-  主页
+  Home
 
       </a>
     </li>
@@ -273,7 +284,7 @@
       <a href="../../../installation/" class="md-tabs__link">
         
   
-  安装
+  Installation
 
       </a>
     </li>
@@ -289,7 +300,7 @@
       <a href="../../../basic_usage/" class="md-tabs__link">
         
   
-  快速开始
+  Get Started
 
       </a>
     </li>
@@ -342,7 +353,7 @@
         <a href="../../porec/porec_monoploid/" class="md-tabs__link">
           
   
-  教程
+  Tutorials
 
         </a>
       </li>
@@ -383,7 +394,7 @@
         <a href="../../../CLI/mapper/" class="md-tabs__link">
           
   
-  工具
+  CLI
 
         </a>
       </li>
@@ -400,7 +411,7 @@
       <a href="../../../citation/" class="md-tabs__link">
         
   
-  引用
+  Citation
 
       </a>
     </li>
@@ -427,7 +438,7 @@
         <a href="../../../faq/" class="md-tabs__link">
           
   
-  其它
+  Misc
 
         </a>
       </li>
@@ -455,7 +466,7 @@
   
 
 
-<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-nav__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
@@ -466,7 +477,7 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/wangyibin/CPhasing" title="前往仓库" class="md-source" data-md-component="source">
+      <a href="https://github.com/wangyibin/CPhasing" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
@@ -493,7 +504,7 @@
   <span class="md-ellipsis">
     
   
-  主页
+  Home
 
     
   </span>
@@ -521,7 +532,7 @@
   <span class="md-ellipsis">
     
   
-  安装
+  Installation
 
     
   </span>
@@ -547,7 +558,7 @@
   <span class="md-ellipsis">
     
   
-  快速开始
+  Get Started
 
     
   </span>
@@ -602,7 +613,7 @@
   <span class="md-ellipsis">
     
   
-  教程
+  Tutorials
 
     
   </span>
@@ -617,7 +628,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-  教程
+  Tutorials
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
@@ -703,7 +714,7 @@
   <span class="md-ellipsis">
     
   
-  单倍体或单套基因组的挂载
+  Assemble a monoploid of diploid
 
     
   </span>
@@ -723,14 +734,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../porec/porec_tetraploid_hifiasm_hap_aware.md" class="md-nav__link">
+      <a href="../../porec/porec_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  none
+  Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
 
     
   </span>
@@ -757,7 +768,7 @@
   <span class="md-ellipsis">
     
   
-  六倍体甘薯组装与挂载教程（Pore-C 模式）
+  Hexaploid Sweet Potato Assembly &amp; Scaffolding (Pore-C Mode)
 
     
   </span>
@@ -784,7 +795,7 @@
   <span class="md-ellipsis">
     
   
-  同源十倍体组装(Pore-C)
+  Assemble autodecaploid by Pore-C
 
     
   </span>
@@ -811,7 +822,7 @@
   <span class="md-ellipsis">
     
   
-  现代栽培甘蔗组装(Pore-C)
+  Assemble hybrid sugarcane by Pore-C
 
     
   </span>
@@ -915,7 +926,7 @@
   <span class="md-ellipsis">
     
   
-  单倍体或单套基因组的挂载
+  Assemble a monoploid of diploid
 
     
   </span>
@@ -942,7 +953,7 @@
   <span class="md-ellipsis">
     
   
-  Hi-C 教程：基于 hifiasm hap 组装的 haplotype-aware scaffolding（四倍体示例）
+  Hi-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)
 
     
   </span>
@@ -969,7 +980,7 @@
   <span class="md-ellipsis">
     
   
-  六倍体甘薯组装与挂载教程
+  Hexaploid Sweet Potato Assembly &amp; Scaffolding
 
     
   </span>
@@ -996,7 +1007,7 @@
   <span class="md-ellipsis">
     
   
-  同源十倍体组装(Hi-C)
+  Assemble autodecaploid by Hi-C
 
     
   </span>
@@ -1032,7 +1043,7 @@
   <span class="md-ellipsis">
     
   
-  现代栽培甘蔗组装(Hi-C)
+  Assemble hybrid sugarcane by Hi-C
 
     
   </span>
@@ -1049,7 +1060,7 @@
   <span class="md-ellipsis">
     
   
-  现代栽培甘蔗组装(Hi-C)
+  Assemble hybrid sugarcane by Hi-C
 
     
   </span>
@@ -1061,7 +1072,7 @@
         
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1070,15 +1081,15 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hi-c_1" class="md-nav__link">
+  <a href="#hi-c-data-processing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Hi-C数据处理
+        Hi-C data processing
       </span>
     </span>
   </a>
@@ -1086,10 +1097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        组装流程
+        Assembling by <code>cphasing pipeline</code>
       </span>
     </span>
   </a>
@@ -1170,7 +1181,7 @@
   <span class="md-ellipsis">
     
   
-  工具
+  CLI
 
     
   </span>
@@ -1202,7 +1213,7 @@
   <span class="md-ellipsis">
     
   
-  引用
+  Citation
 
     
   </span>
@@ -1254,7 +1265,7 @@
   <span class="md-ellipsis">
     
   
-  其它
+  Misc
 
     
   </span>
@@ -1299,7 +1310,7 @@
                     
 
 
-<nav class="md-nav md-nav--secondary" aria-label="目录">
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1308,15 +1319,15 @@
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      目录
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hi-c_1" class="md-nav__link">
+  <a href="#hi-c-data-processing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Hi-C数据处理
+        Hi-C data processing
       </span>
     </span>
   </a>
@@ -1324,10 +1335,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#assembling-by-cphasing-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        组装流程
+        Assembling by <code>cphasing pipeline</code>
       </span>
     </span>
   </a>
@@ -1353,20 +1364,20 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/tutorials/hic/hic_sugarcane.md" title="查看本页的源代码" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/tutorials/hic/hic_sugarcane.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-code-2" viewBox="0 0 24 24"><path d="M4 12.15V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-3.35"/><path d="M14 2v5a1 1 0 0 0 1 1h5M5 16l-3 3 3 3M9 22l3-3-3-3"/></svg>
     </a>
   
 
 
-<h1 id="hi-c">现代栽培甘蔗组装(Hi-C)<a class="headerlink" href="#hi-c" title="Permanent link">&para;</a></h1>
-<p>非整倍 (2n=114), 预估基因组大小 ~ 10 Gb </p>
-<h2 id="hi-c_1">Hi-C数据处理<a class="headerlink" href="#hi-c_1" title="Permanent link">&para;</a></h2>
-<p>由于Hi-C数据量大，我们将每个cell的Hi-C数据分别提交到不同的节点上进行比对，然后再合并成一个文件。</p>
+<h1 id="assemble-hybrid-sugarcane-by-hi-c">Assemble hybrid sugarcane by Hi-C<a class="headerlink" href="#assemble-hybrid-sugarcane-by-hi-c" title="Permanent link">&para;</a></h1>
+<p>Aneuploidy (2n=114), estimate genome size ~ 10 Gb </p>
+<h2 id="hi-c-data-processing">Hi-C data processing<a class="headerlink" href="#hi-c-data-processing" title="Permanent link">&para;</a></h2>
+<p>Due to the huge porec data, we mapped each cell to fasta by submitting this command to cluster, respectively. And merged them into one file by <code>cphasing pairs-merge</code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>因为<code>hic mapper</code>里面有一步索引构建，用户需要先提交一个任务，等到索引创建完成再提交剩余的任务。</p>
+<p>Please submit one first; wait until the index is successfully created and the remaining jobs are enabled to submit to the cluster.</p>
 </div>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-1_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>hic-1_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
 </span></code></pre></div>
@@ -1374,14 +1385,16 @@
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-3_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>hic-3_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-hic1<span class="w"> </span>hic-4_R1.fastq.gz<span class="w"> </span>-hic2<span class="w"> </span>hic-4_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-k<span class="w"> </span><span class="m">27</span><span class="w"> </span>-w<span class="w"> </span><span class="m">14</span><span class="w"> </span>
 </span></code></pre></div>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>hic-*.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>hic.merge.pairs.pqs
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pairs-merge<span class="w"> </span>hic-*.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>hic.merge.pairs.pqs<span class="w"> </span>
 </span></code></pre></div>
-<h2 id="_1">组装流程<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<h2 id="assembling-by-cphasing-pipeline">Assembling by <code>cphasing pipeline</code><a class="headerlink" href="#assembling-by-cphasing-pipeline" title="Permanent link">&para;</a></h2>
 <blockquote>
-<p>现代栽培甘蔗属于非整倍体，不同同源染色体组内的染色体数量不同，因此我们倾向于先让程序自行分组看看（<code>-n 10:0</code>），同时存在大量塌缩<code>--collapsed-rescue</code>，从组装图中鉴定塌缩序列<code>--gfa sh_hifi.bp.p_utg.no_seq.gfa</code>。也可以加<code>--refine</code>参数，避免片段化的等位contig聚集在一起。
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>hic.mrege.pairs.pqs<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>--gfa<span class="w"> </span>sh_hifi.bp.p_utg.no_seq.gfa
-</span></code></pre></div></p>
+<p>Modern hybrid sugarcane is an aneuploid genome, containing unequal numbers of chromosomes across homologous groups. Therefore, we set <code>-n 10:0</code> to automatically determine the number of clusters.</p>
+<p>To rescue collapsed regions, enable CollapseRescue by providing the assembly graph with <code>--collapsed-rescue --gfa sh_hifi.bp.p_utg.no_seq.gfa</code>, allowing collapsed unitigs to be identified and reassigned.</p>
+<p>Optionally, the <code>--refine</code> parameter can be enabled to further reduce inter-homologous misassignments and improve phasing accuracy.</p>
 </blockquote>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>hic.mrege.pairs.pqs<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>--gfa<span class="w"> </span>sh_hifi.bp.p_utg.no_seq.gfa
+</span></code></pre></div>
 
 
 
@@ -1411,7 +1424,7 @@
           <button type="button" class="md-top md-icon" data-md-component="top" hidden>
   
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
-  回到页面顶部
+  Back to top
 </button>
         
       </main>
@@ -1420,30 +1433,30 @@
   
     
       
-      <nav class="md-footer__inner md-grid" aria-label="页脚" >
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../hic_decaploid/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 同源十倍体组装(Hi-C)">
+          <a href="../hic_decaploid/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Assemble autodecaploid by Hi-C">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                上一页
+                Previous
               </span>
               <div class="md-ellipsis">
-                同源十倍体组装(Hi-C)
+                Assemble autodecaploid by Hi-C
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../../CLI/mapper/" class="md-footer__link md-footer__link--next" aria-label="下一页: Mapper">
+          <a href="../../../CLI/mapper/" class="md-footer__link md-footer__link--next" aria-label="Next: Mapper">
             <div class="md-footer__title">
               <span class="md-footer__direction">
-                下一页
+                Next
               </span>
               <div class="md-ellipsis">
                 Mapper
@@ -1463,7 +1476,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright © 2022-2026 Tanger-lab 保留所有权利。
+      Copyright © 2022-2026 Tanger-lab, All rights reserved.
     </div>
   
   
@@ -1505,7 +1518,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"已复制","clipboard.copy":"复制","search.result.more.one":"在该页上还有 1 个符合条件的结果","search.result.more.other":"在该页上还有 # 个符合条件的结果","search.result.none":"没有找到符合条件的结果","search.result.one":"找到 1 个符合条件的结果","search.result.other":"# 个符合条件的结果","search.result.placeholder":"键入以开始搜索","search.result.term.missing":"缺少","select.version":"选择当前版本"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.6e5f0216.min.js"></script>

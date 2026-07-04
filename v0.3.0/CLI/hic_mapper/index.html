@@ -1152,16 +1152,6 @@
 <p class="admonition-title">Note</p>
 <p>If the total length of your input genome is larger than 8 Gb, the <code>-k 27 -w 14</code> should be specified, to avoid the error of <code>chromap</code>. </p>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>By default, <code>cphasing hic mapper</code> uses <code>_chromap</code> (the modified version in <code>C-Phasing</code>) as the aligner. You can specify different aligners using the <code>-a</code> or <code>--aligner</code> option:</p>
-<ul>
-<li><strong><code>_chromap</code></strong> (default): Modified version of Chromap bundled with C-Phasing.</li>
-<li><strong><code>chromap</code></strong>: Official version of Chromap.</li>
-<li><strong><code>bwa-mem2</code></strong>: High-performance BWA MEM.</li>
-<li><strong><code>minibwa</code></strong>: A faster bwa aligner.</li>
-</ul>
-</div>
 <h2 id="mutiple-cells">mutiple cells<a class="headerlink" href="#mutiple-cells" title="Permanent link">&para;</a></h2>
 <h4 id="submit-by-specified-multiple-times">Submit by specified multiple times<a class="headerlink" href="#submit-by-specified-multiple-times" title="Permanent link">&para;</a></h4>
 <div class="language-shell highlight"><span class="filename">run_mapping.sh</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>hic<span class="w"> </span>mapper<span class="w"> </span>-f<span class="w"> </span>draft.asm.fasta<span class="w"> </span>-1<span class="w"> </span>hic-1_R1.fastq.gz<span class="w"> </span>-1<span class="w"> </span>hic-2_R1.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic-1_R2.fastq.gz<span class="w"> </span>-2<span class="w"> </span>hic-2_R2.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>

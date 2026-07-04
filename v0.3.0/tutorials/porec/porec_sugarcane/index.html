@@ -1384,14 +1384,11 @@
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>porec-merge<span class="w"> </span>porec-*.porec.gz<span class="w"> </span>-o<span class="w"> </span>porec.merge.porec.gz<span class="w"> </span>
 </span></code></pre></div>
 <h2 id="assembling-by-cphasing-pipeline">Assembling by <code>cphasing pipeline</code><a class="headerlink" href="#assembling-by-cphasing-pipeline" title="Permanent link">&para;</a></h2>
-<blockquote>
-<p>Modern hybrid sugarcane is an aneuploid genome, containing unequal numbers of chromosomes across homologous groups. Therefore, we set <code>-n 10:0</code> to automatically determine the number of clusters.</p>
-<p>To rescue collapsed regions, enable CollapseRescue by providing the assembly graph with <code>--collapsed-rescue --gfa sh_hifi.bp.p_utg.no_seq.gfa</code>, allowing collapsed unitigs to be identified and reassigned.</p>
-<p>Optionally, the <code>--refine</code> parameter can be enabled to further reduce inter-homologous misassignments and improve phasing accuracy.
-Optionally, the <code>-x very-sensitive</code> parameter can be enabled for fragmented assemblies (HiFi-only) or low-depth sequencing data.</p>
-</blockquote>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.mrege.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>--collapsed-rescue<span class="w"> </span>--gfa<span class="w"> </span>sh_hifi.bp.p_utg.no_seq.gfa
-</span></code></pre></div>
+<ul>
+<li>Modern hybrid sugarcane is an aneuploid, which contains an unequal number of chromosomes in each homologous group, so we set <code>-n 10:0</code> to automatically output cluster numbers.
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>sh_hifi.bp.p_utg.fasta<span class="w"> </span>-pct<span class="w"> </span>porec.mrege.porec.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">10</span>:0<span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
 
 
 

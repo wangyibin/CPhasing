@@ -1222,7 +1222,7 @@
 </div>
 <div class="tabbed-block">
 <p>Align the ONT reads by <a href="https://github.com/wangyibin/bammap2">bammap2</a></p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>bammap2<span class="w"> </span>-x<span class="w"> </span>lr:hq<span class="w"> </span>-N<span class="w"> </span><span class="m">500</span><span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>bammap2<span class="w"> </span>-x<span class="w"> </span>lr:hq<span class="w">  </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>--secondary<span class="o">=</span>no<span class="w"> </span>contigs.fasta<span class="w"> </span>ont_reads.bam<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>view<span class="w"> </span>-q<span class="w"> </span><span class="m">1</span><span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>-b<span class="w"> </span><span class="p">|</span><span class="w"> </span>samtools<span class="w"> </span>sort<span class="w"> </span>-@<span class="w"> </span><span class="m">10</span><span class="w"> </span>&gt;<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>samtools<span class="w"> </span>index<span class="w"> </span>ont.align.sorted.bam<span class="w"> </span>
 </span></code></pre></div>
 <p>Calculate the 5mC sites by modkit</p>
@@ -1233,12 +1233,16 @@
 </div>
 </div>
 <h2 id="align-the-candidate-reads-to-contig-assembly">Align the candidate reads to contig assembly<a class="headerlink" href="#align-the-candidate-reads-to-contig-assembly" title="Permanent link">&para;</a></h2>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bammap2<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-x<span class="w"> </span>lr:hq<span class="w"> </span>-N<span class="w"> </span><span class="m">500</span><span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bammap2<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-x<span class="w"> </span>lr:hq<span class="w"> </span>--secondary<span class="o">=</span>yes<span class="w"> </span>contigs.fasta<span class="w"> </span>porec_reads.bam<span class="w"> </span>&gt;<span class="w"> </span>porec.align.bam
 </span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Replace <code>--secondary=yes</code> to <code>--mm2-opts "--secondary=yes"</code> when using dorado &gt;= 0.8.0</p>
+</div>
 <h2 id="refine-alignments">Refine alignments<a class="headerlink" href="#refine-alignments" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Refine the alignments by methylation information
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>methalign<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>porec.align.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>methalign<span class="w"> </span>-t<span class="w"> </span><span class="m">20</span><span class="w"> </span>contigs.fasta<span class="w"> </span>output.methyl.bg<span class="w"> </span>porec.reads*.bam<span class="w"> </span>-o<span class="w"> </span>porec.align.refined.paf.gz
 </span></code></pre></div></li>
 </ul>
 <div class="admonition note">

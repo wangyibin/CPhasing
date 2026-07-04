@@ -11,7 +11,7 @@ on:
       backfill_tags:
         description: 'Optional space-separated tags to backfill with mike, e.g. "v0.3.0 v0.3.1"'
         required: false
-        default: ''
+        default: 'v0.3.0 v0.3.1'
 
 permissions:
   contents: write

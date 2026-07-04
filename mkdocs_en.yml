@@ -146,7 +146,7 @@ extra:
       link: https://github.com/wangyibin
   version:
     provider: mike
-    
+
   alternate:
     - name: English
       link: /CPhasing/
@@ -170,6 +170,8 @@ plugins:
   #     add_json_ld: True
   #     add_share_buttons: True
   #     add_css: False
+  - mike:
+    deploy_prefix: ''
 
 
 

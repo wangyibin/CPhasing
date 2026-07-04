@@ -47,15 +47,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pixi run -e docs zensical build -f mkdocs_en.yml --clean
-          pixi run -e docs zensical build -f mkdocs_zh.yml
 
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
-            pixi run -e docs mike deploy --push --update-aliases "$VERSION" latest
+            pixi run -e docs mike deploy -F mkdocs_en.md --push --update-aliases "$VERSION" latest
+            pixi run -e docs mike deploy -F mkdocs_zh.md --push --update-aliases "$VERSION" latest
             pixi run -e docs mike set-default --push latest
           else
-            pixi run -e docs mike deploy --push --update-aliases dev latest
+            pixi run -e docs mike deploy -F mkdocs_en.md --push --update-aliases dev latest
+            pixi run -e docs mike deploy -F mkdocs_zh.md --push --update-aliases dev latest
             pixi run -e docs mike set-default --push latest
           fi
 
@@ -105,16 +105,15 @@ jobs:
             mv docs docs.__bak__
             cp -R "$tag_dir/docs" docs
 
-            pixi run -e docs zensical build -f mkdocs_en.yml --clean
-            pixi run -e docs zensical build -f mkdocs_zh.yml
-
             rm -rf docs
             mv docs.__bak__ docs
 
             if [[ "$tag" == "$latest_tag" ]]; then
-              pixi run -e docs mike deploy --push --update-aliases "$tag" latest
+              pixi run -e docs mike deploy -F mkdocs_en.md --push --update-aliases "$tag" latest
+              pixi run -e docs mike deploy -F mkdocs_zh.md --push --update-aliases "$tag" latest
             else
-              pixi run -e docs mike deploy --push "$tag"
+              pixi run -e docs mike deploy -F mkdocs_en.md --push "$tag"
+              pixi run -e docs mike deploy -F mkdocs_zh.md --push "$tag"
             fi
           done
 

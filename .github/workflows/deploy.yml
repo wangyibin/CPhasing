@@ -90,3 +90,4 @@ jobs:
           fi
 
           git checkout "$current_ref"
+          

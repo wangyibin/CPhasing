@@ -53,10 +53,14 @@ jobs:
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$VERSION" latest
             pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases "$VERSION" latest
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
+            pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
+
           else
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases dev latest
             pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases dev latest
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
+            pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
+
           fi
 
       - name: Backfill historical tags with mike
@@ -119,6 +123,7 @@ jobs:
 
           if [[ -n "${latest_tag:-}" ]]; then
             pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
+            pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
           fi
 
           git checkout "$current_ref"

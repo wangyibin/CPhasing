@@ -4,7 +4,8 @@ import io
 import sys
 import click
 
-from rich.logging import Console, RichHandler
+from rich.console import Console
+from rich.logging import RichHandler
 
 console = Console(stderr=True, record=True, file=io.StringIO())
 console_html = Console(stderr=True, record=True)

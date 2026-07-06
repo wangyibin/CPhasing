@@ -11,7 +11,8 @@ from click_didyoumean import DYMGroup
 import logging
 import sys
 
-from rich.logging import Console, RichHandler
+from rich.console import Console
+from rich.logging import RichHandler
 
 # from ..cli import CommandGroup
 from ..cli import cli 

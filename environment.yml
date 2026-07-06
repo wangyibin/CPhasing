@@ -1,8 +1,10 @@
-name: cphasing_v0_3_0
+name: cphasing
 channels:
 - conda-forge
 - bioconda
 - anaconda
+- hcc
+- nodefaults
 dependencies:
 - python 3.12.0.*
 - rich-click 1.9.7.*
@@ -53,4 +55,7 @@ dependencies:
 - minigraph >=0.21,<0.22
 - xopen >=2.0.2,<3
 - plotnine >=0.15.3,<0.16
+- minibwa >=0.1,<0.2
+- pip >=26.1.2,<27
+- setuptools >=80.10.1,<81
 - sparse_dot_mkl >=0.9.10,<0.10

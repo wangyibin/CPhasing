@@ -347,7 +347,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-64/seqkit-2.13.0-he881be0_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/sigcpp-3.0-3.6.0-h59595ed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/simplejson-4.1.1-py312h4c3975b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/siphash24-1.8-py312h4c3975b_2.conda
@@ -747,7 +747,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-aarch64/seqkit-2.13.0-h8865c2f_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/sigcpp-3.0-3.6.0-h2f0025b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/simplejson-4.1.1-py312hcd1a082_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/siphash24-1.8-py312hcd1a082_2.conda
@@ -1431,7 +1431,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-64/seqkit-2.13.0-he881be0_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/sigcpp-3.0-3.6.0-h59595ed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/simplejson-4.1.1-py312h4c3975b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/siphash24-1.8-py312h4c3975b_2.conda
@@ -1835,7 +1835,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-aarch64/seqkit-2.13.0-h8865c2f_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/sigcpp-3.0-3.6.0-h2f0025b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/simplejson-4.1.1-py312hcd1a082_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/siphash24-1.8-py312hcd1a082_2.conda
@@ -2255,7 +2255,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-64/seqkit-2.13.0-he881be0_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/sigcpp-3.0-3.6.0-h59595ed_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/simplejson-4.1.1-py312h4c3975b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/siphash24-1.8-py312h4c3975b_2.conda
@@ -2657,7 +2657,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-0.13.2-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/seaborn-base-0.13.2-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/bioconda/linux-aarch64/seqkit-2.13.0-h8865c2f_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/sigcpp-3.0-3.6.0-h2f0025b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/simplejson-4.1.1-py312hcd1a082_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/siphash24-1.8-py312hcd1a082_2.conda
@@ -12212,17 +12212,17 @@ packages:
   purls: []
   size: 6335938
   timestamp: 1772198357526
-- conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-82.0.1-pyh332efcf_0.conda
-  sha256: 82088a6e4daa33329a30bc26dc19a98c7c1d3f05c0f73ce9845d4eab4924e9e1
-  md5: 8e194e7b992f99a5015edbd4ebd38efd
+- conda: https://conda.anaconda.org/conda-forge/noarch/setuptools-80.10.2-pyh332efcf_0.conda
+  sha256: f5fcb7854d2b7639a5b1aca41dd0f2d5a69a60bbc313e7f192e2dc385ca52f86
+  md5: 7b446fcbb6779ee479debb4fd7453e6c
   depends:
   - python >=3.10
   license: MIT
   license_family: MIT
   purls:
   - pkg:pypi/setuptools?source=hash-mapping
-  size: 639697
-  timestamp: 1773074868565
+  size: 678888
+  timestamp: 1769601206751
 - conda: https://conda.anaconda.org/conda-forge/linux-64/sigcpp-3.0-3.6.0-h59595ed_0.conda
   sha256: 55cf8a2e52bdea0a0ab011d7c91d6ab42b65387078af64ce87ce584c85330907
   md5: 300609abbe486c5f1fcb7f3736f0fd14

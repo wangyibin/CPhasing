@@ -2,7 +2,8 @@ import logging
 import warnings
 import sys
 
-from rich.logging import Console, RichHandler
+from rich.console import Console
+from rich.logging import RichHandler
 
 logging.basicConfig(
     level=logging.INFO,

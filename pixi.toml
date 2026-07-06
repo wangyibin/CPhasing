@@ -71,6 +71,7 @@ xopen = ">=2.0.2,<3"
 plotnine = ">=0.15.3,<0.16"
 minibwa = ">=0.1,<0.2"
 pip = ">=26.1.2,<27"
+setuptools = ">=80.10.1,<81"
 
 [target.linux-64.dependencies]
 sparse_dot_mkl = ">=0.9.10,<0.10"

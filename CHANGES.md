@@ -1,7 +1,7 @@
 ## [v0.3.1] - 2026-07-04
 #### Enhancement
 - `hic mapper`:  
-    - Added support for the `minibwa` aligner (by `--aligner minibwa` or `--hic-aligner minibwa` for `pipeline`).
+    - Added support for the `minibwa` aligner (by `--aligner minibwa` for `hic mapper` or `--hic-aligner minibwa` for `pipeline`).
     - Automatically set higher `k=27` and `w=14` values for large genomes (> 8 Gb) when using the `Chromap` aligner.
 - `mapper`:  
     - Added support for BAM input format for raw Pore-C and CiFi data.

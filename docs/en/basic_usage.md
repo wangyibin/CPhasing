@@ -54,12 +54,12 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
 ```
 !!! note
     - **1** | If you want to run multiple samples, you can specified mutiple `-hic1` and `-hic2` parameters (e.g., `-hic1 sample1_R1.fastq.gz -hic1 sample2_R1.fastq.gz -hic2 sample1_R2.fastq.gz -hic2 sample2_R2.fastq.gz`)  
-    - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of `chromap`. 
-    - **3** | You can switch the Hi-C aligner using the `-hic-aligner` option. Supported aligners include:
-        - **`_chromap`** (default): Modified version of Chromap bundled with C-Phasing.
-        - **`chromap`**: Official version of Chromap.
-        - **`bwa-mem2`**: High-performance BWA-MEM.
-        - **`minibwa`**: A faster BWA-like mapper.
+    - **2** | If the total length of your input genome is larger than 8 Gb, the `-hic-mapper-k 27 -hic-mapper-w 14` should be specified, to avoid the error of `chromap`.  
+    - **3** | You can switch the Hi-C aligner using the `-hic-aligner` option. Supported aligners include:  
+        - **`_chromap`** (default): Modified version of Chromap bundled with C-Phasing.  
+        - **`chromap`**: Official version of Chromap.  
+        - **`bwa-mem2`**: High-performance BWA-MEM.  
+        - **`minibwa`**: A faster BWA-like mapper.  
         
         Example using `minibwa`:
         ```bash
@@ -80,34 +80,34 @@ cphasing pipeline -f draft.asm.fasta -hic1 Lib_R1.fastq.gz -hic2 Lib_R2.fastq.gz
 ### Skip some steps  
 ```bash
 ## skip steps 1.alleles and 2.prepare steps 
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -ss 1,2
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4 -ss 1,2 
 ```
 ### Perform only specified steps  
 ```bash
 ## run 3.hyperpartition 
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -s 3
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4 -s 3
 ```
 ### Improve performance
 Use the `-hcr` parameter to filter greedy contacts (regions with excessive genome-wide interactions), which can improve phasing quality.
 
 For restriction enzyme-based Hi-C libraries, set `-p AAGCTT` to normalize depth calculations based on restriction site density (AAGCTT is the restriction enzyme recognition sequence). This option is not needed for Omni-C data.
 ```bash
-cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -hcr -p AAGCTT
+cphasing pipeline -f draft.asm.fasta -pct sample.porec.gz -t 10 -n 8:4 -hcr -p AAGCTT
 ```
 
 ### Collapsed rescue
 
 - Identify collapsed unitigs from a Pore-C PAF file (including singletons):
 ```bash
-cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue 
+cphasing pipeline -f draft.asm.fasta -paf sample.paf.gz -t 10 -n 8:4 -hcr -p AAGCTT --collapsed-rescue 
 ```
 - Or identify collapsed unitigs from a hifiasm GFA file, which contains the read depth of the unitigs:
 ```bash
-cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-rescue --gfa draft.asm.p_utg.noseq.gfa 
+cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -n 8:4 -hcr -p AAGCTT --collapsed-rescue --gfa draft.asm.p_utg.noseq.gfa 
 ```
 - Alternatively, provide a customized collapsed unitig table (format: `contig\tcoverage\tcopynumber`, details see the [:octicons-arrow-right-24:collapse](CLI/collapse.md)):
 ```bash
-cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -hcr -p AAGCTT --collapsed-contigs collapsed.contig.list
+cphasing pipeline -f draft.asm.fasta -paf  sample.paf.gz -t 10 -n 8:4 -hcr -p AAGCTT --collapsed-contigs collapsed.contig.list
 ```
  
 ## Curation by Juicebox [Or directly run `6.curation/curation.cmd.sh`]

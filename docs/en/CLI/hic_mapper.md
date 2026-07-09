@@ -9,10 +9,10 @@ cphasing hic mapper -f draft.asm.fasta -1 hic_R1.fastq.gz -2 hic_R2.fastq.gz -t 
 !!!note
     By default, `cphasing hic mapper` uses `_chromap` (the modified version in `C-Phasing`) as the aligner. You can specify different aligners using the `-a` or `--aligner` option:
 
-    - **`_chromap`** (default): Modified version of Chromap bundled with C-Phasing.
-    - **`chromap`**: Official version of Chromap.
-    - **`bwa-mem2`**: High-performance BWA MEM.
-    - **`minibwa`**: A faster bwa aligner.
+    - **`_chromap`** (default): Modified version of Chromap bundled with C-Phasing.  
+    - **`chromap`**: Official version of Chromap.  
+    - **`bwa-mem2`**: High-performance BWA MEM.  
+    - **`minibwa`**: A faster bwa aligner.  
 
 
 ## mutiple cells

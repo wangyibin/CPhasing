@@ -69,7 +69,7 @@ needletail = ">=0.7.1,<0.8"
 minigraph = ">=0.21,<0.22"
 xopen = ">=2.0.2,<3"
 plotnine = ">=0.15.3,<0.16"
-minibwa = ">=0.1,<0.2"
+minibwa = ">=0.1,<0.4"
 pip = ">=26.1.2,<27"
 setuptools = ">=80.10.1,<81"
 

@@ -8523,7 +8523,7 @@ def scaf_eval(truth_agp, test_agp):
 def utils(ctx):
     pass
 
-@utils.command(cls=RichCommand, short_help='Convert agp to assembly file.')
+@utils.command(cls=RichCommand, short_help='Convert agp to assembly file.', epilog=__epilog__, no_args_is_help=True, )
 @click.argument(
     "agpfile",
     metavar="AGP",
@@ -8818,6 +8818,15 @@ def split_agp(agp, hap_pattern, outdir):
     is_flag=True
 )
 @click.option(
+    '-orig',
+    '--original-agp',
+    'original_agp',
+    help='Path to the original AGP file to retain raw coordinates and no-gap characteristics.',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True
+)
+@click.option(
     '-o',
     '--outprefix',
     help='output prefix, if none use the prefix of assembly',
@@ -8825,7 +8834,8 @@ def split_agp(agp, hap_pattern, outdir):
     show_default=True
 )
 def assembly2agp(assembly, n, 
-                chr_prefix, phased, sort_by_length, outprefix):
+                chr_prefix, phased, sort_by_length, 
+                original_agp, outprefix):
     from .agp import assembly2agp 
 
     n = re.split(":|x|\|", n) if n else None
@@ -8837,7 +8847,9 @@ def assembly2agp(assembly, n,
     
     assembly2agp(assembly, n, 
                     chrom_prefix=chr_prefix, phased=phased,
-                    sort_by_length=sort_by_length, outprefix=outprefix)
+                    sort_by_length=sort_by_length, 
+                    original_agp=original_agp,
+                    outprefix=outprefix)
 
 
 @utils.command(cls=RichCommand, short_help='Statistics of contigsizes', epilog=__epilog__, no_args_is_help=True)

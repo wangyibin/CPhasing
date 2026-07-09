@@ -82,7 +82,7 @@ cphasing pipeline \
   --mode hapaware \
   -fc haps.clusters.txt \
   -o cphasing_hapaware_out \
-  -t 32 -hcr -p AAGCTT
+  -t 32 -hcr -p AAGCTT -n 4:12 
 ```
 
 !!! node 

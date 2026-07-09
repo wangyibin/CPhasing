@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_monoploid/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/dev/tutorials/porec/porec_tetraploid_hifiasm_hap_aware/">
       
       
-        <link rel="prev" href="../../../basic_usage/">
+        <link rel="prev" href="../porec_monoploid/">
       
       
-        <link rel="next" href="../porec_tetraploid_hifiasm_hap_aware/">
+        <link rel="next" href="../porec_hexaploid_sweet_potato/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>单倍体或单套基因组的挂载 - C-Phasing</title>
+        <title>Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例） - C-Phasing</title>
       
     
     
@@ -97,7 +97,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
+        <a href="#pore-c-hifiasm" class="md-skip">
           跳转至
         </a>
       
@@ -155,7 +155,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              单倍体或单套基因组的挂载
+              Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
             
           </span>
         </div>
@@ -360,7 +360,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="././" class="md-tabs__link">
+        <a href="../porec_monoploid/" class="md-tabs__link">
           
   
   教程
@@ -716,19 +716,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../porec_monoploid/" class="md-nav__link">
         
   
   
@@ -743,7 +734,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -753,10 +743,36 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../porec_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -771,6 +787,138 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-contig-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.1：生成初始 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-pore-c-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.2：将 Pore-C 数据比对回 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-hifiasm-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 准备合并的 FASTA 文件
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 准备合并的 FASTA 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        重要提示：确保 Contig 名称唯一
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 提供初始单倍型聚类文件（<code>-fc</code>）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-c-phasingpore-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. 运行 C-Phasing（Pore-C + hapaware）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1251,6 +1399,11 @@
                       
                     
                     
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1262,6 +1415,125 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-contig-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.1：生成初始 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-pore-c-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.2：将 Pore-C 数据比对回 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-hifiasm-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 准备合并的 FASTA 文件
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 准备合并的 FASTA 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        重要提示：确保 Contig 名称唯一
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 提供初始单倍型聚类文件（<code>-fc</code>）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-c-phasingpore-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. 运行 C-Phasing（Pore-C + hapaware）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1280,18 +1552,100 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/tutorials/porec/porec_monoploid.md" title="查看本页的源代码" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/tutorials/porec/porec_tetraploid_hifiasm_hap_aware.md" title="查看本页的源代码" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-<h1 id="_1">单倍体或单套基因组的挂载<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>C-Phasing也支持单倍体的挂载，只需设置<code>-n n</code>, 或者设置<code>--mode haploid</code>. </p>
-<p>例如一个Diploid (2n=2x=24)：</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>-f<span class="w"> </span>monoploid_ctg.fasta<span class="w"> </span>-pcd<span class="w"> </span>porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>-n<span class="w"> </span><span class="m">12</span>
+<h1 id="pore-c-hifiasm">Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）<a class="headerlink" href="#pore-c-hifiasm" title="Permanent link">&para;</a></h1>
+<p>本教程介绍如何使用 <strong>Hifiasm（结合 Pore-C 转换的 Pseudo-Hi-C 数据）</strong> 构建四倍体基因组的<strong>预分离单倍型（pre-separated haplotypes）</strong>，然后使用 <strong>C-Phasing</strong> 的<strong>单倍型感知</strong>模式（<code>--mode hapaware</code>）对其进行染色体水平的挂载（Scaffolding）。</p>
+<p>该工作流的目标是在保持单倍型一致性的同时，产生染色体水平的挂载结果。</p>
+<hr />
+<h2 id="1-contig-pore-c-pseudo-hi-c">1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）<a class="headerlink" href="#1-contig-pore-c-pseudo-hi-c" title="Permanent link">&para;</a></h2>
+<p>在挂载之前，我们通过将 Pore-C 数据转换为虚拟的、双端（paired-end）的“pseudo-Hi-C”数据来引导 Hifiasm 的分型算法，从而生成单倍型解析的 contigs。</p>
+<h3 id="11-unitigs">步骤 1.1：生成初始 Unitigs<a class="headerlink" href="#11-unitigs" title="Permanent link">&para;</a></h3>
+<p>首先，在默认模式下使用 PacBio HiFi 测序数据运行 <code>hifiasm</code> 以生成初级 unitigs，并将 GFA 图结构转换为 FASTA 格式：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>hifi.fastq.gz
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>gfatools<span class="w"> </span>gfa2fa<span class="w"> </span>hifi.asm.p_utg.gfa<span class="w"> </span>&gt;<span class="w"> </span>hifi.asm.p_utg.fasta
 </span></code></pre></div>
+<h3 id="12-pore-c-unitigs">步骤 1.2：将 Pore-C 数据比对回 Unitigs<a class="headerlink" href="#12-pore-c-unitigs" title="Permanent link">&para;</a></h3>
+<p>将 Pore-C 数据比对回生成的 unitigs 以捕获多维相互作用（multi-way contact）信息：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>hifi.asm.p_utg.fasta<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span>-o<span class="w"> </span>porec_reads.porec.gz
+</span></code></pre></div>
+<h3 id="13-pore-c-pseudo-hi-c">步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据<a class="headerlink" href="#13-pore-c-pseudo-hi-c" title="Permanent link">&para;</a></h3>
+<p>将多维相互作用的 Pore-C 比对结果转换为虚拟的、标准双端 "pseudo-Hi-C" 数据（即 <code>porec2hic_R1.fa.gz</code> 和 <code>porec2hic_R2.fa.gz</code>）：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+</span></code></pre></div>
+<h3 id="14-hifiasm-hi-c">步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）<a class="headerlink" href="#14-hifiasm-hi-c" title="Permanent link">&para;</a></h3>
+<p>使用 PacBio HiFi 数据以及新生成的 pseudo-Hi-C 双端数据运行 <code>hifiasm</code> 的 Hi-C 模式，以获得分型后的 contig 数据集：</p>
+<div class="admonition note 提示">
+<p class="admonition-title">Note</p>
+<p>在与步骤 1.1 相同的目录下执行此命令将复用旧的缓存文件，从而允许 <code>hifiasm</code> 跳过最耗时的 HiFi 读长纠错（correction）和重叠（overlapping）阶段。</p>
+</div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>hifi.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>--h1<span class="w"> </span>porec2hic_R1.fa.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span>--h2<span class="w"> </span>porec2hic_R2.fa.gz<span class="w"> </span>
+</span></code></pre></div>
+<p>这将会产生不同单倍型的组装结果（例如，<code>hifi.asm.hic.hap1.p_ctg.fasta</code> 到 <code>hifi.asm.hic.hap4.p_ctg.fasta</code>）。</p>
+<hr />
+<h2 id="2-fasta">2. 准备合并的 FASTA 文件<a class="headerlink" href="#2-fasta" title="Permanent link">&para;</a></h2>
+<p>C-Phasing 需要输入单个组装 FASTA 文件作为待挂载的 contig 集合。<br />
+对于单倍型感知挂载，需要将刚才输出的各个单倍型组装结果合并为一个单独的 FASTA 文件：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cat<span class="w"> </span>hifi.asm.hic.hap1.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>hifi.asm.hic.hap2.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>hifi.asm.hic.hap3.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>hifi.asm.hic.hap4.p_ctg.fasta<span class="w"> </span>&gt;<span class="w"> </span>haps.concat.fa
+</span></code></pre></div>
+<h3 id="contig">重要提示：确保 Contig 名称唯一<a class="headerlink" href="#contig" title="Permanent link">&para;</a></h3>
+<p>请确保不同单倍型之间的 Contig ID 是唯一的。如果 hifiasm 默认已经为每个单倍型的 contig 添加了前缀（默认即是如此），则直接合并即可。否则，请重命名 contigs 以避免命名冲突。</p>
+<hr />
+<h2 id="3-fc">3. 提供初始单倍型聚类文件（<code>-fc</code>）<a class="headerlink" href="#3-fc" title="Permanent link">&para;</a></h2>
+<p><code>--mode hapaware</code> 专为<strong>已预先分离</strong>的单倍型设计。<br />
+提供初始聚类文件有助于 C-Phasing 在挂载时维持并保护这些单倍型的一致性。</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>fa2cluster<span class="w"> </span>haps.concat.fa<span class="w"> </span>-o<span class="w"> </span>haps.clusters.txt<span class="w"> </span>
+</span></code></pre></div>
+<p>生成的 <code>haps.clusters.txt</code> 应包含两列内容：</p>
+<ol>
+<li><code>group_id</code> (单倍型组 ID)</li>
+<li><code>contig_id</code> (Contig ID)</li>
+</ol>
+<p>示例（示意）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>h1   h1tg000001l
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>h1   h1tg000002l
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>h2   h2tg000001l
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>h2   h2tg000002l
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>h3   h3tg000001l
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>h4   h4tg000001l
+</span></code></pre></div>
+<blockquote>
+<p>提示：在单倍型感知模式（hapaware）下，<code>-fc haps.clusters.txt</code> 是引入单倍型先验信息的关键输入。</p>
+</blockquote>
+<hr />
+<h2 id="4-c-phasingpore-c-hapaware">4. 运行 C-Phasing（Pore-C + hapaware）<a class="headerlink" href="#4-c-phasingpore-c-hapaware" title="Permanent link">&para;</a></h2>
+<p>结合原始的 Pore-C 数据并开启 <code>--mode hapaware</code> 运行主流程。这里我们挂载一个基本染色体数为 12 的四倍体（$2n = 4x = 48$，因此 <code>-n 4:12</code>）：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-f<span class="w"> </span>haps.concat.fa<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-pcd<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--mode<span class="w"> </span>hapaware<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>-fc<span class="w"> </span>haps.clusters.txt<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>-o<span class="w"> </span>cphasing_hapaware_out<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-t<span class="w"> </span><span class="m">32</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span>:12
+</span></code></pre></div>
+<div class="admonition note 提示">
+<p class="admonition-title">Note</p>
+<ul>
+<li>如果需要，可以为第二步的分群（partition）设置比对质量阈值：
+    <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>...<span class="w"> </span>-q2<span class="w"> </span><span class="m">0</span><span class="w"> </span>
+</span></code></pre></div></li>
+</ul>
+</div>
 
 
 
@@ -1333,7 +1687,7 @@
       <nav class="md-footer__inner md-grid" aria-label="页脚" >
         
           
-          <a href="../../../basic_usage/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 快速开始">
+          <a href="../porec_monoploid/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 单倍体或单套基因组的挂载">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1343,20 +1697,20 @@
                 上一页
               </span>
               <div class="md-ellipsis">
-                快速开始
+                单倍体或单套基因组的挂载
               </div>
             </div>
           </a>
         
         
           
-          <a href="../porec_tetraploid_hifiasm_hap_aware/" class="md-footer__link md-footer__link--next" aria-label="下一页: Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）">
+          <a href="../porec_hexaploid_sweet_potato/" class="md-footer__link md-footer__link--next" aria-label="下一页: 六倍体甘薯组装与挂载教程（Pore-C 模式）">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 下一页
               </span>
               <div class="md-ellipsis">
-                Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
+                六倍体甘薯组装与挂载教程（Pore-C 模式）
               </div>
             </div>
             <div class="md-footer__button md-icon">

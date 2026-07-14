@@ -30,7 +30,7 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 __author__ = ("Yibin Wang", "Xingtan Zhang")
-__copyright__ = "Copyright (c) 2025, tanger-lab"
+__copyright__ = "Copyright (c) 2026, tanger-lab"
 __email__ = ("yibinwang96@outlook.com", "zhangxingtan@caas.cn")
 __license__ = "BSD"
 __status__ = "Development"

@@ -79,3 +79,90 @@ tags:
     2. For Pore-C pipeline   
         - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)  
     
+
+
+## System Requirements & Dependencies
+<details>
+<summary><b>1. Operating Systems & Hardware Requirements</b> (Click to expand)</summary>
+
+- **Operating Systems**: Tested and supported on **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2.
+- **Architectures**: Supported on `linux-64` and `linux-aarch64`.
+- **System Libraries**: 
+  - Linux kernel `>= 3.10.0`
+  - GNU C Library (glibc) `libc >= 2.17`
+</details>
+
+<details>
+<summary><b>2. Core Bioinformatics Software</b> (Click to expand)</summary>
+
+- **Alignment & Mapping**:
+  - `minimap2` `>= 2.28, < 3`
+  - `chromap` `>= 0.3.2, < 0.4`
+  - `bwa-mem2` `>= 2.3, < 3`
+  - `minibwa` `>= 0.1, < 0.4`
+  - `minigraph` `>= 0.21, < 0.22`
+  - `wfmash` `0.17.0.*`
+- **Sequence Processing & Manipulation**:
+  - `samtools` `>= 1.20, < 1.21`
+  - `bedtools` `>= 2.31.1, < 3`
+  - `seqkit` `>= 2.9.0, < 3`
+  - `samblaster` `>= 0.1.26, < 0.2`
+  - `pigz` `>= 2.8, < 3`
+  - `crabz` `>= 0.10.0, < 0.11`
+</details>
+
+<details>
+<summary><b>3. Python Runtime & Libraries</b> (Click to expand)</summary>
+
+- **Python Runtime**: `3.12.0.*`
+- **Bioinformatics Libraries**:
+  - `biopython` `>= 1.84, < 2`
+  - `pysam` `>= 0.22.1, < 0.23`
+  - `cooler` `>= 0.10.2, < 0.11`
+  - `hicmatrix` `>= 17.2, < 18`
+  - `pyranges` `>= 0.1.2, < 0.2`
+  - `ncls` `>= 0.0.68, < 0.0.69`
+  - `needletail` `>= 0.7.1, < 0.8`
+- **Data Manipulation & Performance**:
+  - `pandas` `>= 2.2.3, < 3`
+  - `numpy` `>= 1.26.4, < 2`
+  - `polars` `>= 1.17.1, < 1.18.0`
+  - `pyarrow` `>= 18.1.0, < 19`
+  - `dask` `>= 2024.11.2, < 2025`
+  - `joblib` `>= 1.4.2, < 2`
+  - `pandarallel` `>= 1.6.5, < 2`
+  - `scikit-learn` `>= 1.5.2, < 2`
+  - `sparse_dot_mkl` `>= 0.9.10, < 0.10` *(linux-64 only)*
+- **Graph & Networks**:
+  - `networkx` `>= 3.4.2, < 3.5`
+  - `python-igraph` `>= 0.11.8, < 0.12`
+  - `cdlib` `>= 0.4.0, < 0.5`
+  - `graph-tool` `>= 2.97, < 3`
+- **Data Visualization**:
+  - `matplotlib` `>= 3.9.3, < 4`
+  - `seaborn` `>= 0.13.2, < 0.14`
+  - `plotly` `>= 6.2.0, < 7`
+  - `plotnine` `>= 0.15.3, < 0.16`
+  - `patchworklib` `>= 0.6.3, < 0.7`
+  - `colormaps` `>= 0.4.2, < 0.5`
+- **Command-Line & CLI Utilities**:
+  - `click` `>= 8.1.8, < 8.2`
+  - `rich-click` `1.9.7.*`
+  - `click-didyoumean` `>= 0.3.1, < 0.4`
+</details>
+
+<details>
+<summary><b>4. Environment-Specific & Optional Dependencies</b> (Click to expand)</summary>
+
+#### Methylation Alignment (`methalign`)
+- `ont-modkit` `>= 0.4.3, < 0.5`
+- `bammap2` `>= 0.1.7, < 0.2`
+- `pbmm2` `>= 1.16.99, < 2` *(linux-64 only)*
+- `pb-cpg-tools` `>= 3.0.0, < 4` *(linux-64 only)*
+
+#### Genome Evaluation & Synteny (`eval` & `eval2`)
+- **Python**: `3.8.*` *(eval env)*
+- `syri` `>= 1.6.3, < 2`
+- `plotsr` `>= 1.1.1, < 2`
+- `nucflag` `== 1.0.0a2`
+</details>

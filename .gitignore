@@ -141,3 +141,7 @@ scripts/evaluator/demo_overlap_sbm.py
 scripts/evaluator/eval_porec_alignment.py
 scripts/simulation/simulate_overlap_network.py
 scripts/simulation/simulate_porec_data.py
+
+examples/data
+examples/example_data.tar.gz
+examples/cphasing_output*

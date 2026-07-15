@@ -3,7 +3,10 @@
 #### Added
 - Added example data and an automated test workflow for installation verification.
 
-> **Note:** No update is required if you are already using `v0.3.1`.
+> **Note:** No update is required if you are already using `v0.3.1` on linux-64 plantform.
+
+#### Bug fixes
+- fixed the bug of _chromap can not use in `linux-aarch64` platform, which reported in `v0.3.1`
 
 ## [v0.3.1] - 2026-07-04
 #### Enhancement

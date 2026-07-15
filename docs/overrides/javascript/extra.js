@@ -83,31 +83,45 @@
   (() => {
     function fixLanguageLinks() {
       const path = location.pathname; 
-      const links = document.querySelectorAll(".md-select__link[hreflang]");
+      const links = document.querySelectorAll(".md-select__link[hreflang], .md-version__link[hreflang]");
       if (!links.length) return;
   
       const suffix = location.search + location.hash;
   
+      let rootPath = "/";
+      if (path.startsWith("/CPhasing/")) {
+        rootPath = "/CPhasing/";
+      }
+  
+      const isZh = path.includes(rootPath + "zh/");
+      let relativePath = "";
+      if (isZh) {
+        relativePath = path.substring((rootPath + "zh/").length);
+      } else {
+        relativePath = path.substring(rootPath.length);
+      }
+  
       links.forEach((link) => {
         const lang = link.getAttribute("hreflang");
-        let newPath = path;
-
+        if (!lang) return;
+  
+        let targetPath = "";
         if (lang === "zh") {
-          if (!path.includes("/CPhasing/zh/")) {
-            newPath = path.replace("/CPhasing/", "/CPhasing/zh/");
-          }
+          targetPath = rootPath + "zh/" + relativePath;
         } else {
-          if (path.includes("/CPhasing/zh/")) {
-            newPath = path.replace("/CPhasing/zh/", "/CPhasing/");
-          }
+          targetPath = rootPath + relativePath;
         }
-        link.href = newPath + suffix;
+  
+        targetPath = targetPath.replace(/\/+/g, "/");
+        link.href = targetPath + suffix;
       });
     }
   
     fixLanguageLinks();
   
     if (typeof document$ !== "undefined") {
-      document$.subscribe(() => setTimeout(fixLanguageLinks, 50));
+      document$.subscribe(() => {
+        setTimeout(fixLanguageLinks, 50);
+      });
     }
   })();

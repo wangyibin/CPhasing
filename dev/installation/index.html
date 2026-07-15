@@ -1365,35 +1365,44 @@
 <p class="admonition-title">Note</p>
 <p>For the platform of <strong><code>linux-aarch64</code></strong>, please download from <a href="https://github.com/wangyibin/CPhasing/releases">github release</a>.</p>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Upgrading &amp; Environment Migration</p>
+<p>If you are upgrading from an older version of CPhasing, you can use the built-in migration tool to safely reuse previously downloaded package caches. This avoids re-downloading gigabytes of dependencies, resolving them rapidly and offline.</p>
+<p>Run the migration helper inside your <strong>new</strong> CPhasing directory:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Usage: bash bin/migrate_cphasing_env &lt;path_to_old_cphasing_directory&gt;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>bash<span class="w"> </span>bin/migrate_cphasing_env<span class="w"> </span>/path/to/old/CPhasing
+</span></code></pre></div>
+<p>Once the migration script finishes, you can safely activate the environment using the normal <code>activate_cphasing</code> tool.</p>
+</div>
 </div>
 <div class="tabbed-block">
 <p>Download the CPhasing and install environment by conda
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
 </span></code></pre></div>
 Add the following to the <code>~/.bash_profile</code>
-<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>/path/to/CPhasing:<span class="nv">$PYTHONPATH</span>
+<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>/path/to/CPhasing:<span class="nv">$PYTHONPATH</span>
 </span></code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The hic pipeline require GLIBCXX_3.4.29, or you can add the following to the start of cphasing execute script, e.g.: <code>run.sh</code>
-<div class="language-bash highlight"><span class="filename">run.sh</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span>/path/to/anaconda3/envs/cphasing/lib:<span class="nv">$LD_LIBRARY_PATH</span>
+<div class="language-bash highlight"><span class="filename">run.sh</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span>/path/to/anaconda3/envs/cphasing/lib:<span class="nv">$LD_LIBRARY_PATH</span>
 </span></code></pre></div></p>
 </div>
 </div>
 <div class="tabbed-block">
 <h4 id="install-c-phasing">Install C-Phasing<a class="headerlink" href="#install-c-phasing" title="Permanent link">&para;</a></h4>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">## Download C-Phasing and install python dependencies</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">## Download C-Phasing and install python dependencies</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wangyibin/CPhasing.git
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nb">cd</span><span class="w"> </span>CPhasing
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>pip<span class="w"> </span>install<span class="w"> </span>.
 </span></code></pre></div>
 Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
-<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
+<div class="language-bash highlight"><span class="filename">~/.bash_profile</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span>/path/to/CPhasing/bin:<span class="nv">$PATH</span>
 </span></code></pre></div></p>
 <h4 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h4>
 <ol>
@@ -1412,72 +1421,72 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
 <summary>Detailed Software &amp; Library Dependencies (Click to expand)</summary>
 <p>CPhasing automatically resolves all dependencies. Below is the full directory of required tools and libraries:</p>
 <h3 id="1-core-bioinformatics-tools">1. Core Bioinformatics Tools<a class="headerlink" href="#1-core-bioinformatics-tools" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a># Alignment &amp; Mapping
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>minimap2 &gt;= 2.28, &lt; 3
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>chromap &gt;= 0.3.2, &lt; 0.4
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>bwa-mem2 &gt;= 2.3, &lt; 3
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>minibwa &gt;= 0.1, &lt; 0.4
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>minigraph &gt;= 0.21, &lt; 0.22
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>wfmash 0.17.0.*
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a># Sequence Processing &amp; Manipulation
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>samtools &gt;= 1.20, &lt; 1.21
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>bedtools &gt;= 2.31.1, &lt; 3
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>seqkit &gt;= 2.9.0, &lt; 3
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>samblaster &gt;= 0.1.26, &lt; 0.2
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>pigz &gt;= 2.8, &lt; 3
-</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>crabz &gt;= 0.10.0, &lt; 0.11
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a># Alignment &amp; Mapping
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>minimap2 &gt;= 2.28, &lt; 3
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>chromap &gt;= 0.3.2, &lt; 0.4
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>bwa-mem2 &gt;= 2.3, &lt; 3
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>minibwa &gt;= 0.1, &lt; 0.4
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>minigraph &gt;= 0.21, &lt; 0.22
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>wfmash 0.17.0.*
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a># Sequence Processing &amp; Manipulation
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>samtools &gt;= 1.20, &lt; 1.21
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>bedtools &gt;= 2.31.1, &lt; 3
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>seqkit &gt;= 2.9.0, &lt; 3
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>samblaster &gt;= 0.1.26, &lt; 0.2
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>pigz &gt;= 2.8, &lt; 3
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>crabz &gt;= 0.10.0, &lt; 0.11
 </span></code></pre></div>
 <h3 id="2-python-runtime-core-libraries">2. Python Runtime &amp; Core Libraries<a class="headerlink" href="#2-python-runtime-core-libraries" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a># Python Runtime
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python 3.12.0.*
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a># Bioinformatics Libraries
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>biopython &gt;= 1.84, &lt; 2
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>pysam &gt;= 0.22.1, &lt; 0.23
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>cooler &gt;= 0.10.2, &lt; 0.11
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>hicmatrix &gt;= 17.2, &lt; 18
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>pyranges &gt;= 0.1.2, &lt; 0.2
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>ncls &gt;= 0.0.68, &lt; 0.0.69
-</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>needletail &gt;= 0.7.1, &lt; 0.8
-</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
-</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a># Data Manipulation &amp; Performance
-</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>pandas &gt;= 2.2.3, &lt; 3
-</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>numpy &gt;= 1.26.4, &lt; 2
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>polars &gt;= 1.17.1, &lt; 1.18.0
-</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>pyarrow &gt;= 18.1.0, &lt; 19
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>dask &gt;= 2024.11.2, &lt; 2025
-</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>joblib &gt;= 1.4.2, &lt; 2
-</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>pandarallel &gt;= 1.6.5, &lt; 2
-</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>scikit-learn &gt;= 1.5.2, &lt; 2
-</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>sparse_dot_mkl &gt;= 0.9.10, &lt; 0.10  (linux-64 only)
-</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>
-</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a># Graph &amp; Networks
-</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>networkx &gt;= 3.4.2, &lt; 3.5
-</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>python-igraph &gt;= 0.11.8, &lt; 0.12
-</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>cdlib &gt;= 0.4.0, &lt; 0.5
-</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>graph-tool &gt;= 2.97, &lt; 3
-</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>
-</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a># Data Visualization
-</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>matplotlib &gt;= 3.9.3, &lt; 4
-</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>seaborn &gt;= 0.13.2, &lt; 0.14
-</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>plotly &gt;= 6.2.0, &lt; 7
-</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>plotnine &gt;= 0.15.3, &lt; 0.16
-</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>patchworklib &gt;= 0.6.3, &lt; 0.7
-</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>colormaps &gt;= 0.4.2, &lt; 0.5
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a># Python Runtime
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python 3.12.0.*
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a># Bioinformatics Libraries
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>biopython &gt;= 1.84, &lt; 2
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>pysam &gt;= 0.22.1, &lt; 0.23
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>cooler &gt;= 0.10.2, &lt; 0.11
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>hicmatrix &gt;= 17.2, &lt; 18
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>pyranges &gt;= 0.1.2, &lt; 0.2
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>ncls &gt;= 0.0.68, &lt; 0.0.69
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>needletail &gt;= 0.7.1, &lt; 0.8
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a># Data Manipulation &amp; Performance
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>pandas &gt;= 2.2.3, &lt; 3
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>numpy &gt;= 1.26.4, &lt; 2
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>polars &gt;= 1.17.1, &lt; 1.18.0
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>pyarrow &gt;= 18.1.0, &lt; 19
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>dask &gt;= 2024.11.2, &lt; 2025
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>joblib &gt;= 1.4.2, &lt; 2
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>pandarallel &gt;= 1.6.5, &lt; 2
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>scikit-learn &gt;= 1.5.2, &lt; 2
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>sparse_dot_mkl &gt;= 0.9.10, &lt; 0.10  (linux-64 only)
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a># Graph &amp; Networks
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>networkx &gt;= 3.4.2, &lt; 3.5
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>python-igraph &gt;= 0.11.8, &lt; 0.12
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>cdlib &gt;= 0.4.0, &lt; 0.5
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>graph-tool &gt;= 2.97, &lt; 3
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a># Data Visualization
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>matplotlib &gt;= 3.9.3, &lt; 4
+</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>seaborn &gt;= 0.13.2, &lt; 0.14
+</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>plotly &gt;= 6.2.0, &lt; 7
+</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>plotnine &gt;= 0.15.3, &lt; 0.16
+</span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>patchworklib &gt;= 0.6.3, &lt; 0.7
+</span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a>colormaps &gt;= 0.4.2, &lt; 0.5
 </span></code></pre></div>
 <h3 id="3-optional-environment-specific-dependencies">3. Optional &amp; Environment-Specific Dependencies<a class="headerlink" href="#3-optional-environment-specific-dependencies" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a># Methylation Alignment Flow (methalign)
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ont-modkit &gt;= 0.4.3, &lt; 0.5
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>bammap2 &gt;= 0.1.7, &lt; 0.2
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>pbmm2 &gt;= 1.16.99, &lt; 2  (linux-64 only)
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>pb-cpg-tools &gt;= 3.0.0, &lt; 4  (linux-64 only)
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a># Genome Evaluation &amp; Assembly Comparison (eval &amp; eval2)
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>python 3.8.*  (specific runtimes inside evaluation workflows)
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>syri &gt;= 1.6.3, &lt; 2
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>plotsr &gt;= 1.1.1, &lt; 2
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>nucflag == 1.0.0a2
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a># Methylation Alignment Flow (methalign)
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>ont-modkit &gt;= 0.4.3, &lt; 0.5
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>bammap2 &gt;= 0.1.7, &lt; 0.2
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>pbmm2 &gt;= 1.16.99, &lt; 2  (linux-64 only)
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>pb-cpg-tools &gt;= 3.0.0, &lt; 4  (linux-64 only)
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a># Genome Evaluation &amp; Assembly Comparison (eval &amp; eval2)
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>python 3.8.*  (specific runtimes inside evaluation workflows)
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>syri &gt;= 1.6.3, &lt; 2
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>plotsr &gt;= 1.1.1, &lt; 2
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>nucflag == 1.0.0a2
 </span></code></pre></div>
 </details>
 <h2 id="tested-operating-systems">Tested Operating Systems<a class="headerlink" href="#tested-operating-systems" title="Permanent link">&para;</a></h2>
@@ -1521,32 +1530,32 @@ The bundled example workflow can be completed using approximately 8 CPU threads 
 <p>To verify that CPhasing and all its required external dependencies are correctly configured, we provide a pre-packaged lightweight example dataset and an automated verification script. For more info, see the full <a href="../../../examples/">examples/README.md</a> guide.</p>
 <h3 id="step-1-download-the-example-dataset">Step 1: Download the Example Dataset<a class="headerlink" href="#step-1-download-the-example-dataset" title="Permanent link">&para;</a></h3>
 <p>Navigate to the <code>examples</code> directory of your CPhasing installation:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># If installed via the recommended precompiled tar.gz:</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">cd</span><span class="w"> </span>CPhasing*/examples
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Or if you cloned the repository via Git:</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nb">cd</span><span class="w"> </span>CPhasing/examples
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># If installed via the recommended precompiled tar.gz:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nb">cd</span><span class="w"> </span>CPhasing*/examples
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Or if you cloned the repository via Git:</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nb">cd</span><span class="w"> </span>CPhasing/examples
 </span></code></pre></div></p>
 <p>Download the test dataset and extract it:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Download the lightweight example package</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>wget<span class="w"> </span>https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Extract the archive (this will create the data/ folder)</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Download the lightweight example package</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>wget<span class="w"> </span>https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Extract the archive (this will create the data/ folder)</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
 </span></code></pre></div></p>
 <h3 id="step-2-activate-your-cphasing-environment">Step 2: Activate Your CPhasing Environment<a class="headerlink" href="#step-2-activate-your-cphasing-environment" title="Permanent link">&para;</a></h3>
 <p>Ensure your installation environment is active:</p>
 <ul>
 <li><strong>Via Pixi (Recommended):</strong><br />
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
 </span></code></pre></div></li>
 <li><strong>Via Conda:</strong><br />
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
 </span></code></pre></div></li>
 </ul>
 <h3 id="step-3-run-the-example-script">Step 3: Run the Example Script<a class="headerlink" href="#step-3-run-the-example-script" title="Permanent link">&para;</a></h3>
 <p>Execute the test automation script in the <code>examples/</code> directory:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>bash<span class="w"> </span>run_example.sh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>bash<span class="w"> </span>run_example.sh
 </span></code></pre></div></p>
 <h3 id="expected-results-runtime">Expected Results &amp; Runtime<a class="headerlink" href="#expected-results-runtime" title="Permanent link">&para;</a></h3>
 <p>The script will run both the <strong>Pore-C pipeline</strong> and the <strong>Hi-C pipeline</strong> validation.  </p>

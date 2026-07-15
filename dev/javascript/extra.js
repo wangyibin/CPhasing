@@ -78,230 +78,100 @@
     });
   });
   
-  // Preserve the current page, query parameters, and hash when switching
-// between documentation languages and versions.
-(() => {
-  const VERSION_PATTERN =
-    /^(?:v?\d+(?:\.\d+){1,3}(?:[-+][a-z0-9.-]+)?|latest|dev|stable)$/i;
-
-  function isVersionSegment(segment) {
-    return VERSION_PATTERN.test(segment || "");
-  }
-
-  function getRootPath(pathname = window.location.pathname) {
-    return pathname.startsWith("/CPhasing/")
-      ? "/CPhasing/"
-      : "/";
-  }
-
-  /**
-   * Parse a documentation URL.
-   *
-   * Examples:
-   * /CPhasing/latest/installation/
-   *   -> { version: "latest", language: "en", pagePath: "installation/" }
-   *
-   * /CPhasing/v0.3.1/zh/installation/
-   *   -> { version: "v0.3.1", language: "zh", pagePath: "installation/" }
-   */
-  function parseDocumentationPath(pathname, rootPath) {
-    let relativePath = pathname;
-
-    if (relativePath.startsWith(rootPath)) {
-      relativePath = relativePath.slice(rootPath.length);
-    } else {
-      relativePath = relativePath.replace(/^\/+/, "");
+  
+  // Dynamically fix Language & Version switchers to preserve active page path, queries, and hash anchors
+  (() => {
+    // Helper to evaluate version segment patterns (supports v0.1.0, latest, dev, stable etc.)
+    function isVersionSegment(str) {
+      if (!str) return false;
+      return /^(v?\d+\.\d+\.\d+|latest|dev|stable)$/i.test(str);
     }
 
-    const segments = relativePath.split("/").filter(Boolean);
+    // Helper to parse any documentation path under current deployment structure
+    function parseMkDocsPath(path, rootPath) {
+      const relative = path.substring(rootPath.length);
+      const segments = relative.split("/").filter(Boolean);
 
-    let version = "";
-    let language = "en";
+      let version = "";
+      let isZh = false;
+      let pagePath = "";
 
-    if (segments.length > 0 && isVersionSegment(segments[0])) {
-      version = segments.shift();
+      if (rootPath === "/CPhasing/") {
+        // Production environment with subpath
+        version = segments[0] || "";
+        isZh = segments[1] === "zh";
+        pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
+      } else {
+        // Local preview environment
+        if (segments.length > 0 && isVersionSegment(segments[0])) {
+          version = segments[0];
+          isZh = segments[1] === "zh";
+          pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
+        } else {
+          isZh = segments[0] === "zh";
+          pagePath = (isZh ? segments.slice(1) : segments).join("/");
+        }
+      }
+      return { version, isZh, pagePath };
     }
 
-    if (segments[0] === "zh") {
-      language = "zh";
-      segments.shift();
-    }
+    function fixLanguageAndVersionLinks() {
+      const path = location.pathname;
+      const suffix = location.search + location.hash;
 
-    const pagePath = segments.join("/");
-
-    return {
-      version,
-      language,
-      pagePath,
-    };
-  }
-
-  function extractTargetVersion(link, rootPath) {
-    const rawHref = link.getAttribute("href");
-
-    if (!rawHref) {
-      return "";
-    }
-
-    const targetUrl = new URL(rawHref, window.location.href);
-    const targetInfo = parseDocumentationPath(
-      targetUrl.pathname,
-      rootPath,
-    );
-
-    if (targetInfo.version) {
-      return targetInfo.version;
-    }
-
-    // Fallback: try to determine the version from the link text.
-    const linkText = link.textContent.trim();
-
-    if (isVersionSegment(linkText)) {
-      return linkText;
-    }
-
-    return "";
-  }
-
-  function buildDocumentationUrl({
-    rootPath,
-    version,
-    language,
-    pagePath,
-    suffix,
-  }) {
-    const segments = [];
-
-    if (version) {
-      segments.push(version);
-    }
-
-    if (language === "zh") {
-      segments.push("zh");
-    }
-
-    if (pagePath) {
-      segments.push(...pagePath.split("/").filter(Boolean));
-    }
-
-    let targetPath = rootPath + segments.join("/");
-
-    // MkDocs normally uses directory-style URLs.
-    if (!targetPath.endsWith("/")) {
-      targetPath += "/";
-    }
-
-    targetPath = targetPath.replace(/\/{2,}/g, "/");
-
-    return targetPath + suffix;
-  }
-
-  function fixLanguageLinks(currentInfo, rootPath, suffix) {
-    const languageLinks =
-      document.querySelectorAll(".md-select__link[hreflang]");
-
-    languageLinks.forEach((link) => {
-      const hreflang = link.getAttribute("hreflang");
-      const targetLanguage =
-        hreflang && hreflang.toLowerCase().startsWith("zh")
-          ? "zh"
-          : "en";
-
-      link.href = buildDocumentationUrl({
-        rootPath,
-        version: currentInfo.version,
-        language: targetLanguage,
-        pagePath: currentInfo.pagePath,
-        suffix,
-      });
-    });
-  }
-
-  function fixVersionLinks(currentInfo, rootPath, suffix) {
-    const versionContainer = document.querySelector(
-      '[data-md-component="version"]',
-    );
-
-    if (!versionContainer) {
-      return;
-    }
-
-    const versionLinks = versionContainer.querySelectorAll("a[href]");
-
-    versionLinks.forEach((link) => {
-      const targetVersion = extractTargetVersion(link, rootPath);
-
-      if (!targetVersion) {
-        return;
+      let rootPath = "/";
+      if (path.startsWith("/CPhasing/")) {
+        rootPath = "/CPhasing/";
       }
 
-      link.href = buildDocumentationUrl({
-        rootPath,
-        version: targetVersion,
-        language: currentInfo.language,
-        pagePath: currentInfo.pagePath,
-        suffix,
+      const currentInfo = parseMkDocsPath(path, rootPath);
+
+      // 1. Fix Language Switcher links
+      const langLinks = document.querySelectorAll(".md-select__link[hreflang]");
+      langLinks.forEach((link) => {
+        const lang = link.getAttribute("hreflang");
+        let targetPath = rootPath;
+        if (currentInfo.version) {
+          targetPath += currentInfo.version + "/";
+        }
+        if (lang === "zh") {
+          targetPath += "zh/";
+        }
+        targetPath += currentInfo.pagePath;
+        targetPath = targetPath.replace(/\/+/g, "/");
+        link.href = targetPath + suffix;
       });
-    });
-  }
 
-  function fixLanguageAndVersionLinks() {
-    const rootPath = getRootPath();
-    const currentInfo = parseDocumentationPath(
-      window.location.pathname,
-      rootPath,
-    );
-    const suffix = window.location.search + window.location.hash;
+      // 2. Fix mike Version Switcher links
+      const versionContainer = document.querySelector('[data-md-component="version"]');
+      if (versionContainer) {
+        const versionLinks = versionContainer.querySelectorAll("a");
+        versionLinks.forEach((link) => {
+          // Resolve target URL of the selected version option
+          const testUrl = new URL(link.href, location.origin);
+          const targetInfo = parseMkDocsPath(testUrl.pathname, rootPath);
 
-    fixLanguageLinks(currentInfo, rootPath, suffix);
-    fixVersionLinks(currentInfo, rootPath, suffix);
-  }
-
-  function scheduleLinkFix() {
-    // Material may render selectors asynchronously.
-    requestAnimationFrame(() => {
-      fixLanguageAndVersionLinks();
-
-      setTimeout(fixLanguageAndVersionLinks, 50);
-      setTimeout(fixLanguageAndVersionLinks, 200);
-    });
-  }
-
-  // Normal initial page load.
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", scheduleLinkFix);
-  } else {
-    scheduleLinkFix();
-  }
-
-  // MkDocs Material instant navigation.
-  if (typeof document$ !== "undefined") {
-    document$.subscribe(scheduleLinkFix);
-  }
-
-  // Version and language menus can be rendered or updated dynamically.
-  const observer = new MutationObserver((mutations) => {
-    const selectorChanged = mutations.some((mutation) =>
-      Array.from(mutation.addedNodes).some(
-        (node) =>
-          node.nodeType === Node.ELEMENT_NODE &&
-          (
-            node.matches?.('[data-md-component="version"], .md-select') ||
-            node.querySelector?.(
-              '[data-md-component="version"], .md-select',
-            )
-          ),
-      ),
-    );
-
-    if (selectorChanged) {
-      scheduleLinkFix();
+          let targetPath = rootPath;
+          if (targetInfo.version) {
+            targetPath += targetInfo.version + "/";
+          }
+          if (currentInfo.isZh) {
+            targetPath += "zh/";
+          }
+          targetPath += currentInfo.pagePath;
+          targetPath = targetPath.replace(/\/+/g, "/");
+          link.href = targetPath + suffix;
+        });
+      }
     }
-  });
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  });
-})();
-  
+    // Run on initial load
+    fixLanguageAndVersionLinks();
+
+    // Re-bind when navigated via MkDocs instant loading
+    if (typeof document$ !== "undefined") {
+      document$.subscribe(() => {
+        setTimeout(fixLanguageAndVersionLinks, 50);
+      });
+    }
+  })();

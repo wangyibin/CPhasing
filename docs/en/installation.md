@@ -8,7 +8,7 @@ tags:
 
 # Installation
 
-??? info "System Requirements & Environment Preparation"
+??? info "System Requirements & Environment Preparation (Click to expand)"
     CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.
 
     ### 1. Operating Systems & Architecture
@@ -109,93 +109,82 @@ tags:
     
 
 ## Detailed Software & Library Dependencies
+??? info "Detailed Software & Library Dependencies (Click to expand)"
+    CPhasing automatically resolves all dependencies. Below is the full directory of required tools and libraries:
 
-<details>
-<summary><b>1. Core Bioinformatics Tools</b> (Click to expand)</summary>
+    ### 1. Core Bioinformatics Tools
+    ```plaintext
+    # Alignment & Mapping
+    minimap2 >= 2.28, < 3
+    chromap >= 0.3.2, < 0.4
+    bwa-mem2 >= 2.3, < 3
+    minibwa >= 0.1, < 0.4
+    minigraph >= 0.21, < 0.22
+    wfmash 0.17.0.*
 
-```plaintext
-# Alignment & Mapping
-minimap2 >= 2.28, < 3
-chromap >= 0.3.2, < 0.4
-bwa-mem2 >= 2.3, < 3
-minibwa >= 0.1, < 0.4
-minigraph >= 0.21, < 0.22
-wfmash 0.17.0.*
+    # Sequence Processing & Manipulation
+    samtools >= 1.20, < 1.21
+    bedtools >= 2.31.1, < 3
+    seqkit >= 2.9.0, < 3
+    samblaster >= 0.1.26, < 0.2
+    pigz >= 2.8, < 3
+    crabz >= 0.10.0, < 0.11
+    ```
 
-# Sequence Processing & Manipulation
-samtools >= 1.20, < 1.21
-bedtools >= 2.31.1, < 3
-seqkit >= 2.9.0, < 3
-samblaster >= 0.1.26, < 0.2
-pigz >= 2.8, < 3
-crabz >= 0.10.0, < 0.11
-```
+    ### 2. Python Runtime & Core Libraries
+    ```plaintext
+    # Python Runtime
+    python 3.12.0.*
 
-</details>
+    # Bioinformatics Libraries
+    biopython >= 1.84, < 2
+    pysam >= 0.22.1, < 0.23
+    cooler >= 0.10.2, < 0.11
+    hicmatrix >= 17.2, < 18
+    pyranges >= 0.1.2, < 0.2
+    ncls >= 0.0.68, < 0.0.69
+    needletail >= 0.7.1, < 0.8
 
-<details>
-<summary><b>2. Python Runtime & Core Libraries</b> (Click to expand)</summary>
+    # Data Manipulation & Performance
+    pandas >= 2.2.3, < 3
+    numpy >= 1.26.4, < 2
+    polars >= 1.17.1, < 1.18.0
+    pyarrow >= 18.1.0, < 19
+    dask >= 2024.11.2, < 2025
+    joblib >= 1.4.2, < 2
+    pandarallel >= 1.6.5, < 2
+    scikit-learn >= 1.5.2, < 2
+    sparse_dot_mkl >= 0.9.10, < 0.10  (linux-64 only)
 
-```plaintext
-# Python Runtime
-python 3.12.0.*
+    # Graph & Networks
+    networkx >= 3.4.2, < 3.5
+    python-igraph >= 0.11.8, < 0.12
+    cdlib >= 0.4.0, < 0.5
+    graph-tool >= 2.97, < 3
 
-# Bioinformatics Libraries
-biopython >= 1.84, < 2
-pysam >= 0.22.1, < 0.23
-cooler >= 0.10.2, < 0.11
-hicmatrix >= 17.2, < 18
-pyranges >= 0.1.2, < 0.2
-ncls >= 0.0.68, < 0.0.69
-needletail >= 0.7.1, < 0.8
+    # Data Visualization
+    matplotlib >= 3.9.3, < 4
+    seaborn >= 0.13.2, < 0.14
+    plotly >= 6.2.0, < 7
+    plotnine >= 0.15.3, < 0.16
+    patchworklib >= 0.6.3, < 0.7
+    colormaps >= 0.4.2, < 0.5
+    ```
 
-# Data Manipulation & Performance
-pandas >= 2.2.3, < 3
-numpy >= 1.26.4, < 2
-polars >= 1.17.1, < 1.18.0
-pyarrow >= 18.1.0, < 19
-dask >= 2024.11.2, < 2025
-joblib >= 1.4.2, < 2
-pandarallel >= 1.6.5, < 2
-scikit-learn >= 1.5.2, < 2
-sparse_dot_mkl >= 0.9.10, < 0.10  (linux-64 only)
+    ### 3. Optional & Environment-Specific Dependencies
+    ```plaintext
+    # Methylation Alignment Flow (methalign)
+    ont-modkit >= 0.4.3, < 0.5
+    bammap2 >= 0.1.7, < 0.2
+    pbmm2 >= 1.16.99, < 2  (linux-64 only)
+    pb-cpg-tools >= 3.0.0, < 4  (linux-64 only)
 
-# Graph & Networks
-networkx >= 3.4.2, < 3.5
-python-igraph >= 0.11.8, < 0.12
-cdlib >= 0.4.0, < 0.5
-graph-tool >= 2.97, < 3
-
-# Data Visualization
-matplotlib >= 3.9.3, < 4
-seaborn >= 0.13.2, < 0.14
-plotly >= 6.2.0, < 7
-plotnine >= 0.15.3, < 0.16
-patchworklib >= 0.6.3, < 0.7
-colormaps >= 0.4.2, < 0.5
-```
-
-</details>
-
-<details>
-<summary><b>3. Optional & Environment-Specific Dependencies</b> (Click to expand)</summary>
-
-```plaintext
-# Methylation Alignment Flow (methalign)
-ont-modkit >= 0.4.3, < 0.5
-bammap2 >= 0.1.7, < 0.2
-pbmm2 >= 1.16.99, < 2  (linux-64 only)
-pb-cpg-tools >= 3.0.0, < 4  (linux-64 only)
-
-# Genome Evaluation & Assembly Comparison (eval & eval2)
-python 3.8.*  (specific runtimes inside evaluation workflows)
-syri >= 1.6.3, < 2
-plotsr >= 1.1.1, < 2
-nucflag == 1.0.0a2
-```
-
-</details>
-
+    # Genome Evaluation & Assembly Comparison (eval & eval2)
+    python 3.8.*  (specific runtimes inside evaluation workflows)
+    syri >= 1.6.3, < 2
+    plotsr >= 1.1.1, < 2
+    nucflag == 1.0.0a2
+    ```
 
 # Verifying Installation (Example Run)
 
@@ -223,11 +212,12 @@ tar -xzvf example_data.tar.gz
 
 ### Step 2: Activate Your CPhasing Environment
 Ensure your installation environment is active:
-* **Via Pixi (Recommended):**
+
+* **Via Pixi (Recommended):**  
   ```bash
   source ../bin/activate_cphasing
   ```
-* **Via Conda:**
+* **Via Conda:**  
   ```bash
   conda activate cphasing
   ```
@@ -239,9 +229,10 @@ bash run_example.sh
 ```
 
 ### Expected Results & Runtime
-The script will run both the **Pore-C pipeline** and the **Hi-C pipeline** validation.
-* **Pore-C Output Directory:** `examples/cphasing_output_porec/`
-* **Hi-C Output Directory:** `examples/cphasing_output_hic/`
-* **Expected Runtime:** ~5 minutes on an 8-core CPU workstation.
+The script will run both the **Pore-C pipeline** and the **Hi-C pipeline** validation.  
+
+* **Pore-C Output Directory:** `examples/cphasing_output_porec/`  
+* **Hi-C Output Directory:** `examples/cphasing_output_hic/`  
+* **Expected Runtime:** ~5 minutes on an 8-core CPU workstation.  
 
 Successful runs that exit without errors indicate your installation and runtime dependencies are ready for real-world datasets.

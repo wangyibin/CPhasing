@@ -6,7 +6,7 @@ tags:
 
 # 安装 (Installation)
 
-??? info "系统要求 & 环境准备 (System Requirements)"
+??? info "系统要求 & 环境准备 (System Requirements) (点击展开)"
     ### 1. 操作系统与系统架构
     - **支持的操作系统**: 原生 **Linux**（例如 Ubuntu >= 18.04, CentOS >= 7, Debian >= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。  
     - **系统架构**: 支持 `linux-64` 和 `linux-aarch64`。  
@@ -121,92 +121,82 @@ tags:
     
 
 ## 软件具体依赖包明细列表 (Detailed Software & Library Dependencies)
+??? info "软件具体依赖包明细列表 (Detailed Software & Library Dependencies) (点击展开)"
+    CPhasing 会自动解析并配置好全部底层依赖。以下是其所需的完整外置软件与程序包清单列表：
 
-<details>
-<summary><b>1. 核心生物信息学工具</b> (点击展开)</summary>
+    ### 1. 核心生物信息学工具
+    ```plaintext
+    # 序列比对与三维基因组构建
+    minimap2 >= 2.28, < 3
+    chromap >= 0.3.2, < 0.4
+    bwa-mem2 >= 2.3, < 3
+    minibwa >= 0.1, < 0.4
+    minigraph >= 0.21, < 0.22
+    wfmash 0.17.0.*
 
-```plaintext
-# 序列比对与三维基因组构建
-minimap2 >= 2.28, < 3
-chromap >= 0.3.2, < 0.4
-bwa-mem2 >= 2.3, < 3
-minibwa >= 0.1, < 0.4
-minigraph >= 0.21, < 0.22
-wfmash 0.17.0.*
+    # 序列处理与文件操作
+    samtools >= 1.20, < 1.21
+    bedtools >= 2.31.1, < 3
+    seqkit >= 2.9.0, < 3
+    samblaster >= 0.1.26, < 0.2
+    pigz >= 2.8, < 3
+    crabz >= 0.10.0, < 0.11
+    ```
 
-# 序列处理与文件操作
-samtools >= 1.20, < 1.21
-bedtools >= 2.31.1, < 3
-seqkit >= 2.9.0, < 3
-samblaster >= 0.1.26, < 0.2
-pigz >= 2.8, < 3
-crabz >= 0.10.0, < 0.11
-```
+    ### 2. Python 运行时与核心库
+    ```plaintext
+    # Python 运行时
+    python 3.12.0.*
 
-</details>
+    # 生物信息分析相关库
+    biopython >= 1.84, < 2
+    pysam >= 0.22.1, < 0.23
+    cooler >= 0.10.2, < 0.11
+    hicmatrix >= 17.2, < 18
+    pyranges >= 0.1.2, < 0.2
+    ncls >= 0.0.68, < 0.0.69
+    needletail >= 0.7.1, < 0.8
 
-<details>
-<summary><b>2. Python 运行时与核心库</b> (点击展开)</summary>
+    # 数据处理与计算性能
+    pandas >= 2.2.3, < 3
+    numpy >= 1.26.4, < 2
+    polars >= 1.17.1, < 1.18.0
+    pyarrow >= 18.1.0, < 19
+    dask >= 2024.11.2, < 2025
+    joblib >= 1.4.2, < 2
+    pandarallel >= 1.6.5, < 2
+    scikit-learn >= 1.5.2, < 2
+    sparse_dot_mkl >= 0.9.10, < 0.10  (仅限 linux-64 平台)
 
-```plaintext
-# Python 运行时
-python 3.12.0.*
+    # 图论与网络分析
+    networkx >= 3.4.2, < 3.5
+    python-igraph >= 0.11.8, < 0.12
+    cdlib >= 0.4.0, < 0.5
+    graph-tool >= 2.97, < 3
 
-# 生物信息分析相关库
-biopython >= 1.84, < 2
-pysam >= 0.22.1, < 0.23
-cooler >= 0.10.2, < 0.11
-hicmatrix >= 17.2, < 18
-pyranges >= 0.1.2, < 0.2
-ncls >= 0.0.68, < 0.0.69
-needletail >= 0.7.1, < 0.8
+    # 数据可视化
+    matplotlib >= 3.9.3, < 4
+    seaborn >= 0.13.2, < 0.14
+    plotly >= 6.2.0, < 7
+    plotnine >= 0.15.3, < 0.16
+    patchworklib >= 0.6.3, < 0.7
+    colormaps >= 0.4.2, < 0.5
+    ```
 
-# 数据处理与计算性能
-pandas >= 2.2.3, < 3
-numpy >= 1.26.4, < 2
-polars >= 1.17.1, < 1.18.0
-pyarrow >= 18.1.0, < 19
-dask >= 2024.11.2, < 2025
-joblib >= 1.4.2, < 2
-pandarallel >= 1.6.5, < 2
-scikit-learn >= 1.5.2, < 2
-sparse_dot_mkl >= 0.9.10, < 0.10  (仅限 linux-64 平台)
+    ### 3. 特定分析流程与可选依赖
+    ```plaintext
+    # 甲基化比对分析流程 (methalign)
+    ont-modkit >= 0.4.3, < 0.5
+    bammap2 >= 0.1.7, < 0.2
+    pbmm2 >= 1.16.99, < 2  (仅限 linux-64 平台)
+    pb-cpg-tools >= 3.0.0, < 4  (仅限 linux-64 平台)
 
-# 图论与网络分析
-networkx >= 3.4.2, < 3.5
-python-igraph >= 0.11.8, < 0.12
-cdlib >= 0.4.0, < 0.5
-graph-tool >= 2.97, < 3
-
-# 数据可视化
-matplotlib >= 3.9.3, < 4
-seaborn >= 0.13.2, < 0.14
-plotly >= 6.2.0, < 7
-plotnine >= 0.15.3, < 0.16
-patchworklib >= 0.6.3, < 0.7
-colormaps >= 0.4.2, < 0.5
-```
-
-</details>
-
-<details>
-<summary><b>3. 特定分析流程与可选依赖</b> (点击展开)</summary>
-
-```plaintext
-# 甲基化比对分析流程 (methalign)
-ont-modkit >= 0.4.3, < 0.5
-bammap2 >= 0.1.7, < 0.2
-pbmm2 >= 1.16.99, < 2  (仅限 linux-64 平台)
-pb-cpg-tools >= 3.0.0, < 4  (仅限 linux-64 平台)
-
-# 基因组评估与共线性比对流程 (eval & eval2)
-python 3.8.*  (该评估子工具中指定的环境)
-syri >= 1.6.3, < 2
-plotsr >= 1.1.1, < 2
-nucflag == 1.0.0a2
-```
-
-</details>
+    # 基因组评估与共线性比对流程 (eval & eval2)
+    python 3.8.*  (该评估子工具中指定的环境)
+    syri >= 1.6.3, < 2
+    plotsr >= 1.1.1, < 2
+    nucflag == 1.0.0a2
+    ```
 
 ---
 
@@ -234,12 +224,13 @@ tar -xzvf example_data.tar.gz
 ```
 
 ### 第二步：激活 CPhasing 环境
-在使用测试组件之前，确保你的应用隔离环境已被正确激活：
-* **如果是 Pixi 一键激活（推荐手法）:**
+在使用测试组件之前，确保你的应用隔离环境已被正确激活：  
+
+* **如果是 Pixi 一键激活（推荐手法）:**  
   ```bash
   source ../bin/activate_cphasing
   ```
-* **如果是 Conda 环境:**
+* **如果是 Conda 环境:**  
   ```bash
   conda activate cphasing
   ```
@@ -252,8 +243,9 @@ bash run_example.sh
 
 ### 预期结果与运行耗时
 脚本会将 **Pore-C pipeline** 和 **Hi-C pipeline** 流程全部运行并验证完毕：
-* **Pore-C 输出文件夹:** `examples/cphasing_output_porec/`
-* **Hi-C 输出文件夹:** `examples/cphasing_output_hic/`
-* **预期总运行时间:** 在主流 8 核处理器工作站上耗时约 **5 分钟**。
+
+* **Pore-C 输出文件夹:** `examples/cphasing_output_porec/`  
+* **Hi-C 输出文件夹:** `examples/cphasing_output_hic/`  
+* **预期总运行时间:** 在主流 8 核处理器工作站上耗时约 **5 分钟**。  
 
 在无报错的情况下干净利落地运行完毕，代表您的 `CPhasing` 状态已被完全正确部署，即可放心用于您大型的真实基因组数据集上。

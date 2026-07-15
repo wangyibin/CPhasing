@@ -33,17 +33,30 @@ tags:
 ## Installation Instructions
 
 === "recommended" 
-    Download the CPhasing and activate environments by the `activate_cphasing`
+    Download the CPhasing and activate environments by the `activate_cphasing`.  Choose the command corresponding to your system architecture:
+    === "x86-64 (Standard Linux)"
+        ```shell
+        LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
+        wget $LATEST_URL
+        
+        tar xzvf CPhasing*.tar.gz
+        ```
+
+    === "aarch64 (ARM64)"
+        ```shell
+        LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-aarch64.tar.gz" | cut -d '"' -f 4)
+        wget $LATEST_URL
+        
+        tar xzvf CPhasing*.tar.gz
+        ```
+      
+    ### Activate Environment
+    After extracting, activate the environment:
     ```shell
-    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
-    wget $LATEST_URL
-    
-    tar xzvf CPhasing*.tar.gz
-    
-    ### activate environment
+    # Activate environment
     source ./CPhasing*/bin/activate_cphasing
 
-    ### deactivate
+    # Deactivate
     source deactivate 
     ```
     !!! note
@@ -186,9 +199,28 @@ tags:
     nucflag == 1.0.0a2
     ```
 
-# Verifying Installation (Example Run)
+
+## Tested Operating Systems
+C-Phasing has been tested on the following platforms:
+
+| Operating System | Architecture | Status |
+|------------------|--------------|--------|
+| CentOS 7.9.2009  | x86-64  | ✅ Tested |
+| Rocky Linux 9.2  | x86-64  | ✅ Tested |
+| Ubuntu 24.04 LTS | aarch64 | ✅ Tested |
+| openEuler 22.03  | aarch64 | ✅ Tested |
+
+## Hardware Requirements
+
+C-Phasing does not require GPUs or other specialized hardware.
+
+The software runs on standard Linux workstations. Memory and CPU requirements depend on the genome size, ploidy, sequencing depth, and the selected workflow.
+The bundled example workflow can be completed using approximately 8 CPU threads and 16 GB RAM.
+
+# Installation Verification (Example Run)
 
 To verify that CPhasing and all its required external dependencies are correctly configured, we provide a pre-packaged lightweight example dataset and an automated verification script. For more info, see the full [examples/README.md](../../examples/README.md) guide.
+
 
 ### Step 1: Download the Example Dataset
 Navigate to the `examples` directory of your CPhasing installation:

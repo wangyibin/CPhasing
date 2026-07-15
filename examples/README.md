@@ -2,6 +2,16 @@
 
 This directory contains a minimal Example dataset and an automated test script to verify that `CPhasing` is correctly installed and all its dependencies are working as expected.
 
+## Hardware Requirements
+
+No GPU or other non-standard hardware is required.
+
+The example workflow can be run on a standard x86-64 Linux workstation with at least:  
+
+- 8 CPU threads (recommended)  
+- 16 GB RAM  
+- Approximately 2 GB of free disk space  
+
 ## Directory Structure
 ```text
 examples/

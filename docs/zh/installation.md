@@ -30,12 +30,31 @@ tags:
 
 === "推荐方式 (Pixi)" 
     下载预编译的 CPhasing 组件并使用 `activate_cphasing` 脚本激活环境：
-    ```shell
-    LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
-    wget $LATEST_URL
-    tar xzvf CPhasing*.tar.gz
+    下载预编译的 CPhasing 组件并使用 `activate_cphasing` 脚本激活环境。请选择与您系统架构对应的命令：
+
+    === "x86-64 (标准 Linux)"
+        ```shell
+        LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-64.tar.gz" | cut -d '"' -f 4)
+        wget $LATEST_URL
+        tar xzvf CPhasing*.tar.gz
+        ```
+
+    === "aarch64 (ARM64)"
+        ```shell
+        LATEST_URL=$(curl -s https://api.github.com/repos/wangyibin/CPhasing/releases/latest | grep "browser_download_url.*linux-aarch64.tar.gz" | cut -d '"' -f 4)
+        wget $LATEST_URL
+        tar xzvf CPhasing*.tar.gz
+        ```
     
+    ### 激活环境
+    解压完成后，运行以下命令激活部署：
+    ```shell
     source ./CPhasing*/bin/activate_cphasing
+    ```
+    
+    ### 退出环境
+    ```shell
+    source ./CPhasing*/bin/deactivate_cphasing
     ```
     !!! note
         第一次配置需要在有网络的情况下运行`./CPhasing/bin/activate_cphasing`.

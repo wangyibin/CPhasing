@@ -2659,7 +2659,7 @@ def plot_heatmap_core(matrix,
     if xticks and chromnames:
         rotation = "horizontal" if rotate_xticks else "vertical" 
         ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
-        ax.tick_params(axis='x', length=5, width=0.5)
+        ax.tick_params(axis='x', length=5, width=1.0)
         x_limit = ax.get_xlim()[1]
         _xticks = ax.get_xticks()
         _xticks = _xticks[_xticks < x_limit]
@@ -2800,8 +2800,8 @@ def plot_heatmap_core(matrix,
     if not triangle:
         sns.despine(top=False, right=False)
 
-    for spine in ax.spines.values():
-        spine.set_linewidth(0.5)
+    # for spine in ax.spines.values():
+    #     spine.set_linewidth(0.5)
 
 
     if triangle or lower_left:

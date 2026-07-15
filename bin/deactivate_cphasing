@@ -1,26 +1,55 @@
 #!/bin/bash
 
-# This script activates the cphasing environment by pixi 
+# Robust check to ensure this script is sourced, not executed directly.
+case "$0" in
+    *deactivate_cphasing*)
+        echo "================================================================"
+        echo "Error: This script must be sourced, not executed directly!"
+        echo "Please run: "
+        echo "    source deactivate_cphasing"
+        echo "================================================================"
+        exit 1
+        ;;
+esac
 
-if [ -f $HOME/.pixi/bin/pixi ]; then
-    export PATH=$HOME/.pixi/bin:$PATH
+# 1. Cleanly deactivate Conda/Pixi virtual environment variables if functions are available
+if [ -n "$CONDA_PREFIX" ] && [ "$(type -t conda)" = "function" ]; then
+    conda deactivate >/dev/null 2>&1
 fi
 
-
-script_dir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-software_dir="$(dirname "$script_dir")"
-
-
-if [ ! -f $software_dir/pixi.toml ]; then
-    echo "pixi.toml not found in $software_dir"
-    return 1
+# 2. Restore PATH to its original pre-activation state
+if [ -n "$_OLD_CPHASING_PATH" ]; then
+    export PATH="$_OLD_CPHASING_PATH"
+    unset _OLD_CPHASING_PATH
 fi
 
-is_tty=$(tty)   
-
-if [ "$is_tty" == "not a tty" ]; then
-    source deactivate
-else 
-    source deactivate
+# 3. Restore PS1 (Prompt) to its original state or strip "(CPhasing)" flag manually
+if [ -n "$_OLD_CPHASING_PS1" ]; then
+    export PS1="$_OLD_CPHASING_PS1"
+    unset _OLD_CPHASING_PS1
+fi
+# Force strip "(CPhasing)" from prompt if it still persists
+if [[ "$PS1" == *"(CPhasing)"* ]]; then
+    export PS1="${PS1//\(CPhasing\) /}"
+    export PS1="${PS1//\(CPhasing\)/}"
 fi
 
+# 4. Force clear all residual Pixi/Conda environment flags to reset the environment state
+unset CONDA_PREFIX
+unset CONDA_DEFAULT_ENV
+unset CONDA_PROMPT_MODIFIER
+unset CONDA_SHLVL
+unset PIXI_PREFIX
+unset PIXI_PROJECT_MANIFEST
+unset PIXI_IN_SHELL
+
+# 5. Safe Nested Shell Exit:
+# If CPhasing was activated inside a nested subshell, we call 'exit' 
+# to return the user to their parent shell.
+if [ "$CPHASING_NESTED_SHELL" = "1" ] || [ -n "$PIXI_IN_SHELL" ]; then
+    unset CPHASING_NESTED_SHELL
+    echo "Exiting CPhasing nested shell... Goodbye!"
+    exit 0
+else
+    echo "CPhasing environment successfully deactivated."
+fi

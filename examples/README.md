@@ -16,6 +16,7 @@ The example workflow can be run on a standard x86-64 Linux workstation with at l
 ```text
 examples/
 ├── run_example.sh          # Automated testing script
+├── download.sh          # download script
 ├── README.md            # This instruction file
 └── data/                # Lightweight Example dataset (minimal contigs & reads)
     ├── chroms.fasta.gz

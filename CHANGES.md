@@ -1,3 +1,10 @@
+## [v0.3.2] - 2026-07-14
+
+#### Added
+- Added example data and an automated test workflow for installation verification.
+
+> **Note:** No update is required if you are already using `v0.3.1`.
+
 ## [v0.3.1] - 2026-07-04
 #### Enhancement
 - `hic mapper`:  

@@ -8,7 +8,7 @@
 
 > [!IMPORTANT]
 > Documentation is hosted at [Documentation](https://wangyibin.github.io/CPhasing) | [中文文档](https://wangyibin.github.io/CPhasing/zh/latest)  
-> [Installation](https://wangyibin.github.io/CPhasing/installation/)| [Get Start](https://wangyibin.github.io/CPhasing/basic_usage/) | [安装](https://wangyibin.github.io/CPhasing/zh/latest/installation/) | [快速开始](https://wangyibin.github.io/CPhasing/zh/latest/basic_usage/)
+> [Installation](https://wangyibin.github.io/CPhasing/latest/installation/)| [Get Start](https://wangyibin.github.io/CPhasing/latest/basic_usage/) | [安装](https://wangyibin.github.io/CPhasing/zh/latest/installation/) | [快速开始](https://wangyibin.github.io/CPhasing/zh/latest/basic_usage/)
 
 ## Introduction
 One of the major problems with Hi-C scaffolding of polyploid genomes is a large proportion of ambiguous short-read mapping, leading to a high-level of switched or chimeric assemblies. Now, the long-read-based chromosome conformation capture technology, e.g., **Pore-C**, **HiFi-C**(**CiFi**), provides an effective way to overcome this problem. Here, we developed a new pipeline, namely `C-Phasing`, which is specifically tailored for polyploid phasing by leveraging the advantage of Pore-C or HiFi-C data. It also works on **Hi-C** or **Omni-C** data and **diploid** genome assembly.  

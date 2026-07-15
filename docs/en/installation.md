@@ -20,7 +20,7 @@ CPhasing simplifies dependency management using modern package managers. All req
   - GNU C Library (glibc) `libc >= 2.17`  
 
 ### 2. Environment Managers (Required)
-To install CPhasing, you should have one of the following environment managers ready:
+To install CPhasing, you should have one of the following environment managers ready:  
 - **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.  
 - **Conda / Miniconda**: Supported as a traditional alternative for managing environments.  
 
@@ -29,6 +29,7 @@ To install CPhasing, you should have one of the following environment managers r
 
 ---
 
+## Installation Instructions
 
 === "recommended" 
     Download the CPhasing and activate environments by the `activate_cphasing`

@@ -635,6 +635,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="软件具体依赖包明细列表 (Detailed Software &amp; Library Dependencies)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 核心生物信息学工具
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Python 运行时与核心库
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 特定分析流程与可选依赖
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1030,6 +1069,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="软件具体依赖包明细列表 (Detailed Software &amp; Library Dependencies)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 核心生物信息学工具
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Python 运行时与核心库
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 特定分析流程与可选依赖
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1121,7 +1199,7 @@
 
 <h1 id="installation">安装 (Installation)<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
 <details class="info">
-<summary>系统要求 &amp; 环境准备 (System Requirements)</summary>
+<summary>系统要求 &amp; 环境准备 (System Requirements) (点击展开)</summary>
 <h3 id="1">1. 操作系统与系统架构<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>支持的操作系统</strong>: 原生 <strong>Linux</strong>（例如 Ubuntu &gt;= 18.04, CentOS &gt;= 7, Debian &gt;= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。  </li>
@@ -1235,9 +1313,10 @@
 </div>
 </div>
 <h2 id="detailed-software-library-dependencies">软件具体依赖包明细列表 (Detailed Software &amp; Library Dependencies)<a class="headerlink" href="#detailed-software-library-dependencies" title="Permanent link">&para;</a></h2>
-<details>
-<summary><b>1. 核心生物信息学工具</b> (点击展开)</summary>
-
+<details class="info">
+<summary>软件具体依赖包明细列表 (Detailed Software &amp; Library Dependencies) (点击展开)</summary>
+<p>CPhasing 会自动解析并配置好全部底层依赖。以下是其所需的完整外置软件与程序包清单列表：</p>
+<h3 id="1_1">1. 核心生物信息学工具<a class="headerlink" href="#1_1" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a># 序列比对与三维基因组构建
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>minimap2 &gt;= 2.28, &lt; 3
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>chromap &gt;= 0.3.2, &lt; 0.4
@@ -1254,12 +1333,7 @@
 </span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>pigz &gt;= 2.8, &lt; 3
 </span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>crabz &gt;= 0.10.0, &lt; 0.11
 </span></code></pre></div>
-
-</details>
-
-<details>
-<summary><b>2. Python 运行时与核心库</b> (点击展开)</summary>
-
+<h3 id="2-python">2. Python 运行时与核心库<a class="headerlink" href="#2-python" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a># Python 运行时
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python 3.12.0.*
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
@@ -1297,12 +1371,7 @@
 </span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>patchworklib &gt;= 0.6.3, &lt; 0.7
 </span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>colormaps &gt;= 0.4.2, &lt; 0.5
 </span></code></pre></div>
-
-</details>
-
-<details>
-<summary><b>3. 特定分析流程与可选依赖</b> (点击展开)</summary>
-
+<h3 id="3">3. 特定分析流程与可选依赖<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a># 甲基化比对分析流程 (methalign)
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ont-modkit &gt;= 0.4.3, &lt; 0.5
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>bammap2 &gt;= 0.1.7, &lt; 0.2
@@ -1315,9 +1384,7 @@
 </span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>plotsr &gt;= 1.1.1, &lt; 2
 </span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>nucflag == 1.0.0a2
 </span></code></pre></div>
-
 </details>
-
 <hr />
 <h2 id="verifying-installation">验证安装与运行示例 (Verifying Installation)<a class="headerlink" href="#verifying-installation" title="Permanent link">&para;</a></h2>
 <p>为了验证 CPhasing 及其所需的所有外部三方软件是否正确配置，我们提供了一套预包装的轻量化示例数据集和一键式自动测试脚本。详情亦可参阅完整的 <a href="../../../examples/">examples/README.md</a> 说明文档。</p>
@@ -1337,22 +1404,26 @@
 </span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
 </span></code></pre></div></p>
 <h3 id="cphasing">第二步：激活 CPhasing 环境<a class="headerlink" href="#cphasing" title="Permanent link">&para;</a></h3>
-<p>在使用测试组件之前，确保你的应用隔离环境已被正确激活：
-* <strong>如果是 Pixi 一键激活（推荐手法）:</strong>
+<p>在使用测试组件之前，确保你的应用隔离环境已被正确激活：  </p>
+<ul>
+<li><strong>如果是 Pixi 一键激活（推荐手法）:</strong><br />
   <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
-</span></code></pre></div>
-* <strong>如果是 Conda 环境:</strong>
+</span></code></pre></div></li>
+<li><strong>如果是 Conda 环境:</strong><br />
   <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
-</span></code></pre></div></p>
+</span></code></pre></div></li>
+</ul>
 <h3 id="_2">第三步：一键运行示例脚本<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>在 <code>examples/</code> 目录下执行自动验证脚本：
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>bash<span class="w"> </span>run_example.sh
 </span></code></pre></div></p>
 <h3 id="_3">预期结果与运行耗时<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
-<p>脚本会将 <strong>Pore-C pipeline</strong> 和 <strong>Hi-C pipeline</strong> 流程全部运行并验证完毕：
-* <strong>Pore-C 输出文件夹:</strong> <code>examples/cphasing_output_porec/</code>
-* <strong>Hi-C 输出文件夹:</strong> <code>examples/cphasing_output_hic/</code>
-* <strong>预期总运行时间:</strong> 在主流 8 核处理器工作站上耗时约 <strong>5 分钟</strong>。</p>
+<p>脚本会将 <strong>Pore-C pipeline</strong> 和 <strong>Hi-C pipeline</strong> 流程全部运行并验证完毕：</p>
+<ul>
+<li><strong>Pore-C 输出文件夹:</strong> <code>examples/cphasing_output_porec/</code>  </li>
+<li><strong>Hi-C 输出文件夹:</strong> <code>examples/cphasing_output_hic/</code>  </li>
+<li><strong>预期总运行时间:</strong> 在主流 8 核处理器工作站上耗时约 <strong>5 分钟</strong>。  </li>
+</ul>
 <p>在无报错的情况下干净利落地运行完毕，代表您的 <code>CPhasing</code> 状态已被完全正确部署，即可放心用于您大型的真实基因组数据集上。</p>
 
 

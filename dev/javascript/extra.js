@@ -59,7 +59,6 @@
     }
   };
   
-  // Initialize theme handling on page load
   document.addEventListener("DOMContentLoaded", () => {
     checkTheme();
     syncWidgetTheme();
@@ -80,48 +79,99 @@
   });
   
   
+  // Dynamically fix Language & Version switchers to preserve active page path, queries, and hash anchors
   (() => {
-    function fixLanguageLinks() {
-      const path = location.pathname; 
-      const links = document.querySelectorAll(".md-select__link[hreflang], .md-version__link[hreflang]");
-      if (!links.length) return;
-  
+    // Helper to evaluate version segment patterns (supports v0.1.0, latest, dev, stable etc.)
+    function isVersionSegment(str) {
+      if (!str) return false;
+      return /^(v?\d+\.\d+\.\d+|latest|dev|stable)$/i.test(str);
+    }
+
+    // Helper to parse any documentation path under current deployment structure
+    function parseMkDocsPath(path, rootPath) {
+      const relative = path.substring(rootPath.length);
+      const segments = relative.split("/").filter(Boolean);
+
+      let version = "";
+      let isZh = false;
+      let pagePath = "";
+
+      if (rootPath === "/CPhasing/") {
+        // Production environment with subpath
+        version = segments[0] || "";
+        isZh = segments[1] === "zh";
+        pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
+      } else {
+        // Local preview environment
+        if (segments.length > 0 && isVersionSegment(segments[0])) {
+          version = segments[0];
+          isZh = segments[1] === "zh";
+          pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
+        } else {
+          isZh = segments[0] === "zh";
+          pagePath = (isZh ? segments.slice(1) : segments).join("/");
+        }
+      }
+      return { version, isZh, pagePath };
+    }
+
+    function fixLanguageAndVersionLinks() {
+      const path = location.pathname;
       const suffix = location.search + location.hash;
-  
+
       let rootPath = "/";
       if (path.startsWith("/CPhasing/")) {
         rootPath = "/CPhasing/";
       }
-  
-      const isZh = path.includes(rootPath + "zh/");
-      let relativePath = "";
-      if (isZh) {
-        relativePath = path.substring((rootPath + "zh/").length);
-      } else {
-        relativePath = path.substring(rootPath.length);
-      }
-  
-      links.forEach((link) => {
+
+      const currentInfo = parseMkDocsPath(path, rootPath);
+
+      // 1. Fix Language Switcher links
+      const langLinks = document.querySelectorAll(".md-select__link[hreflang]");
+      langLinks.forEach((link) => {
         const lang = link.getAttribute("hreflang");
-        if (!lang) return;
-  
-        let targetPath = "";
-        if (lang === "zh") {
-          targetPath = rootPath + "zh/" + relativePath;
-        } else {
-          targetPath = rootPath + relativePath;
+        let targetPath = rootPath;
+        if (currentInfo.version) {
+          targetPath += currentInfo.version + "/";
         }
-  
+        if (lang === "zh") {
+          targetPath += "zh/";
+        }
+        targetPath += currentInfo.pagePath;
         targetPath = targetPath.replace(/\/+/g, "/");
         link.href = targetPath + suffix;
       });
+
+      // 2. Fix mike Version Switcher links
+      const versionContainer = document.querySelector('[data-md-component="version"]');
+      if (versionContainer) {
+        const versionLinks = versionContainer.querySelectorAll("a");
+        versionLinks.forEach((link) => {
+          // Resolve target URL of the selected version option
+          const testUrl = new URL(link.href, location.origin);
+          const targetInfo = parseMkDocsPath(testUrl.pathname, rootPath);
+
+          let targetPath = rootPath;
+          if (targetInfo.version) {
+            targetPath += targetInfo.version + "/";
+          }
+          if (currentInfo.isZh) {
+            targetPath += "zh/";
+          }
+          targetPath += currentInfo.pagePath;
+          targetPath = targetPath.replace(/\/+/g, "/");
+          link.href = targetPath + suffix;
+        });
+      }
     }
-  
-    fixLanguageLinks();
-  
+
+    // Run on initial load
+    fixLanguageAndVersionLinks();
+
+    // Re-bind when navigated via MkDocs instant loading
     if (typeof document$ !== "undefined") {
       document$.subscribe(() => {
-        setTimeout(fixLanguageLinks, 50);
+        setTimeout(fixLanguageAndVersionLinks, 50);
       });
     }
   })();

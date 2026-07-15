@@ -80,62 +80,34 @@
   });
   
   
-  // docsearch({
-  //   container: "#docsearch", 
-  //   appId: "7I79MLDJV5",
-  //   apiKey: "bcdf8edc298cf3794b14bc7d5d788fe5",
-  //   indexName: "wangyibin_github_io_7i79mldjv5_pages",
-  //   placeholder: "Search documentation"
-  // });
+  (() => {
+    function fixLanguageLinks() {
+      const path = location.pathname; 
+      const links = document.querySelectorAll(".md-select__link[hreflang]");
+      if (!links.length) return;
+  
+      const suffix = location.search + location.hash;
+  
+      links.forEach((link) => {
+        const lang = link.getAttribute("hreflang");
+        let newPath = path;
 
-  // Fix language switcher links to preserve current page path, query string, and hash
-  // (() => {
-  //   function fixLanguageLinks() {
-  //     const path = location.pathname;
-  //     const links = document.querySelectorAll(".md-select__link[hreflang]");
-  //     if (!links.length) return;
+        if (lang === "zh") {
+          if (!path.includes("/CPhasing/zh/")) {
+            newPath = path.replace("/CPhasing/", "/CPhasing/zh/");
+          }
+        } else {
+          if (path.includes("/CPhasing/zh/")) {
+            newPath = path.replace("/CPhasing/zh/", "/CPhasing/");
+          }
+        }
+        link.href = newPath + suffix;
+      });
+    }
   
-  //     // Derive language codes from the actual links (config-driven)
-  //     const langCodes = Array.from(links)
-  //       .map((link) => link.getAttribute("hreflang"))
-  //       .filter(Boolean);
-  //     const defaultLang =
-  //       Array.from(links)
-  //         .find((link) => link.getAttribute("href") === "/")
-  //         ?.getAttribute("hreflang") || "en";
+    fixLanguageLinks();
   
-  //     // Extract base path (without leading slash and language prefix)
-  //     let basePath = path.startsWith("/") ? path.slice(1) : path;
-  //     for (const code of langCodes) {
-  //       if (code === defaultLang) continue;
-  //       const prefix = `${code}/`;
-  //       if (basePath === code || basePath === prefix) {
-  //         basePath = "";
-  //         break;
-  //       }
-  //       if (basePath.startsWith(prefix)) {
-  //         basePath = basePath.slice(prefix.length);
-  //         break;
-  //       }
-  //     }
-  
-  //     // Preserve query string and hash
-  //     const suffix = location.search + location.hash;
-  
-  //     // Update all language links
-  //     links.forEach((link) => {
-  //       const lang = link.getAttribute("hreflang");
-  //       link.href =
-  //         lang === defaultLang
-  //           ? `${location.origin}/${basePath}${suffix}`
-  //           : `${location.origin}/${lang}/${basePath}${suffix}`;
-  //     });
-  //   }
-  
-  //   // Run on load and navigation
-  //   fixLanguageLinks();
-  
-  //   if (typeof document$ !== "undefined") {
-  //     document$.subscribe(() => setTimeout(fixLanguageLinks, 50));
-  //   }
-  // })();
+    if (typeof document$ !== "undefined") {
+      document$.subscribe(() => setTimeout(fixLanguageLinks, 50));
+    }
+  })();

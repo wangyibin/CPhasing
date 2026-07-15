@@ -4,6 +4,32 @@ tags:
     - Setup
 ---
 
+
+
+# Installation
+
+## System Requirements
+
+CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.
+
+### 1. Operating Systems & Architecture
+- **Operating Systems**: Native **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.
+- **Architectures**: Supported on `linux-64` and `linux-aarch64`.
+- **System Libraries**: 
+  - Linux kernel `>= 3.10.0`
+  - GNU C Library (glibc) `libc >= 2.17`
+
+### 2. Environment Managers (Required)
+To install CPhasing, you should have one of the following environment managers ready:
+- **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.
+- **Conda / Miniconda**: Supported as a traditional alternative for managing environments.
+
+!!! note "Automatic Dependency Resolution"
+    You do **not** need to manually install individual third-party tools (such as `minimap2`, `samtools`, `bedtools`) or PyPI libraries. All of them are pre-configured and will be resolved automatically when you install via **Pixi** or **Conda**.
+
+---
+
+
 === "recommended" 
     Download the CPhasing and activate environments by the `activate_cphasing`
     ```shell
@@ -80,20 +106,10 @@ tags:
         - [minimap2](https://github.com/lh3/minimap2)(>= v2.24)  
     
 
-
-## System Requirements & Dependencies
-<details>
-<summary><b>1. Operating Systems & Hardware Requirements</b> (Click to expand)</summary>
-
-- **Operating Systems**: Tested and supported on **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2.
-- **Architectures**: Supported on `linux-64` and `linux-aarch64`.
-- **System Libraries**: 
-  - Linux kernel `>= 3.10.0`
-  - GNU C Library (glibc) `libc >= 2.17`
-</details>
+## Detailed Software & Library Dependencies
 
 <details>
-<summary><b>2. Core Bioinformatics Software</b> (Click to expand)</summary>
+<summary><b>1. Core Bioinformatics Tools</b> (Click to expand)</summary>
 
 - **Alignment & Mapping**:
   - `minimap2` `>= 2.28, < 3`
@@ -112,7 +128,7 @@ tags:
 </details>
 
 <details>
-<summary><b>3. Python Runtime & Libraries</b> (Click to expand)</summary>
+<summary><b>2. Python Runtime & Core Libraries</b> (Click to expand)</summary>
 
 - **Python Runtime**: `3.12.0.*`
 - **Bioinformatics Libraries**:
@@ -145,24 +161,70 @@ tags:
   - `plotnine` `>= 0.15.3, < 0.16`
   - `patchworklib` `>= 0.6.3, < 0.7`
   - `colormaps` `>= 0.4.2, < 0.5`
-- **Command-Line & CLI Utilities**:
-  - `click` `>= 8.1.8, < 8.2`
-  - `rich-click` `1.9.7.*`
-  - `click-didyoumean` `>= 0.3.1, < 0.4`
 </details>
 
 <details>
-<summary><b>4. Environment-Specific & Optional Dependencies</b> (Click to expand)</summary>
+<summary><b>3. Optional & Environment-Specific Dependencies</b> (Click to expand)</summary>
 
-#### Methylation Alignment (`methalign`)
+#### Methylation Alignment Flow (`methalign`)
 - `ont-modkit` `>= 0.4.3, < 0.5`
 - `bammap2` `>= 0.1.7, < 0.2`
 - `pbmm2` `>= 1.16.99, < 2` *(linux-64 only)*
 - `pb-cpg-tools` `>= 3.0.0, < 4` *(linux-64 only)*
 
-#### Genome Evaluation & Synteny (`eval` & `eval2`)
-- **Python**: `3.8.*` *(eval env)*
+#### Genome Evaluation & Assembly Comparison (`eval` & `eval2`)
+- **Python**: `3.8.*` *(specific runtimes inside evaluation workflows)*
 - `syri` `>= 1.6.3, < 2`
 - `plotsr` `>= 1.1.1, < 2`
 - `nucflag` `== 1.0.0a2`
 </details>
+
+
+# Verifying Installation (Example Run)
+
+To verify that CPhasing and all its required external dependencies are correctly configured, we provide a pre-packaged lightweight example dataset and an automated verification script. For more info, see the full [examples/README.md](../../examples/README.md) guide.
+
+### Step 1: Download the Example Dataset
+Navigate to the `examples` directory of your CPhasing installation:
+```bash
+# If installed via the recommended precompiled tar.gz:
+cd CPhasing*/examples
+
+# Or if you cloned the repository via Git:
+cd CPhasing/examples
+```
+
+
+Download the test dataset and extract it:
+```bash
+# Download the lightweight example package
+wget https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
+
+# Extract the archive (this will create the data/ folder)
+tar -xzvf example_data.tar.gz
+```
+
+### Step 2: Activate Your CPhasing Environment
+Ensure your installation environment is active:
+* **Via Pixi (Recommended):**
+  ```bash
+  source ../bin/activate_cphasing
+  ```
+* **Via Conda:**
+  ```bash
+  conda activate cphasing
+  ```
+
+### Step 3: Run the Example Script
+Execute the test automation script in the `examples/` directory:
+```bash
+bash run_example.sh
+```
+
+### Expected Results & Runtime
+The script will run both the **Pore-C pipeline** and the **Hi-C pipeline** validation.
+* **Pore-C Output Directory:** `examples/cphasing_output_porec/`
+* **Hi-C Output Directory:** `examples/cphasing_output_hic/`
+* **Expected Runtime:** ~5 minutes on an 8-core CPU workstation.
+
+Successful runs that exit without errors indicate your installation and runtime dependencies are ready for real-world datasets.

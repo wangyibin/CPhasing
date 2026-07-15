@@ -6,24 +6,23 @@ tags:
 
 # 安装 (Installation)
 
-## 系统要求 (System Requirements)
+??? info "系统要求 & 环境准备 (System Requirements)"
+    ### 1. 操作系统与系统架构
+    - **支持的操作系统**: 原生 **Linux**（例如 Ubuntu >= 18.04, CentOS >= 7, Debian >= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。  
+    - **系统架构**: 支持 `linux-64` 和 `linux-aarch64`。  
+    - **基础系统库**:  
+      - Linux 内核版本 `>= 3.10.0`  
+      - GNU C Library (glibc) `libc >= 2.17`
 
-CPhasing 使用现代包管理器极大简化了依赖项管理。所有必备的软件工具和库文件都可以被自动解析与安装。
+    ### 2. 环境管理器（必需）
+    要安装 CPhasing，你需要准备好以下环境管理器之一:  
 
-### 1. 操作系统与系统架构
-- **支持的操作系统**: 原生 **Linux**（例如 Ubuntu >= 18.04, CentOS >= 7, Debian >= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。  
-- **系统架构**: 支持 `linux-64` 和 `linux-aarch64`。  
-- **基础系统库**:  
-  - Linux 内核版本 `>= 3.10.0`  
-  - GNU C Library (glibc) `libc >= 2.17`
+    - **Pixi（推荐）**: 极速、跨平台的包管理器。Pixi 会自动下载并隔离运行环境中的所有外部生物信息学工具和 Python 包。  
+    - **Conda / Miniconda**: 支持作为传统管理环境的备选方案。  
 
-### 2. 环境管理器（必需）
-要安装 CPhasing，你需要准备好以下环境管理器之一:  
-- **Pixi（推荐）**: 极速、跨平台的包管理器。Pixi 会自动下载并隔离运行环境中的所有外部生物信息学工具和 Python 包。  
-- **Conda / Miniconda**: 支持作为传统管理环境的备选方案。  
+    !!! note "自动依赖解析"
+        你**不需要**手动安装具体的第三方工具（如 `minimap2`、`samtools`、`bedtools`）或 Python 库。在通过 **Pixi** 或 **Conda** 进行安装时，所有这一切都预配置好并会自动被解析。
 
-!!! note "自动依赖解析"
-    你**不需要**手动安装具体的第三方工具（如 `minimap2`、`samtools`、`bedtools`）或 Python 库。在通过 **Pixi** 或 **Conda** 进行安装时，所有这一切都预配置好并会自动被解析。
 
 ---
 

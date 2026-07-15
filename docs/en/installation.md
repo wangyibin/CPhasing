@@ -8,24 +8,25 @@ tags:
 
 # Installation
 
-## System Requirements
+??? info "System Requirements & Environment Preparation"
+    CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.
 
-CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.
+    ### 1. Operating Systems & Architecture
+    - **Operating Systems**: Native **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.  
+    - **Architectures**: Supported on `linux-64` and `linux-aarch64`.  
+    - **System Libraries**:  
+      - Linux kernel `>= 3.10.0`  
+      - GNU C Library (glibc) `libc >= 2.17`  
 
-### 1. Operating Systems & Architecture
-- **Operating Systems**: Native **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.  
-- **Architectures**: Supported on `linux-64` and `linux-aarch64`.  
-- **System Libraries**:  
-  - Linux kernel `>= 3.10.0`  
-  - GNU C Library (glibc) `libc >= 2.17`  
+    ### 2. Environment Managers (Required)
+    To install CPhasing, you should have one of the following environment managers ready:  
 
-### 2. Environment Managers (Required)
-To install CPhasing, you should have one of the following environment managers ready:  
-- **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.  
-- **Conda / Miniconda**: Supported as a traditional alternative for managing environments.  
+    - **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.  
+    - **Conda / Miniconda**: Supported as a traditional alternative for managing environments.  
 
-!!! note "Automatic Dependency Resolution"
-    You do **not** need to manually install individual third-party tools (such as `minimap2`, `samtools`, `bedtools`) or PyPI libraries. All of them are pre-configured and will be resolved automatically when you install via **Pixi** or **Conda**.
+    !!! note "Automatic Dependency Resolution"
+        You do **not** need to manually install individual third-party tools (such as `minimap2`, `samtools`, `bedtools`) or PyPI libraries. All of them are pre-configured and will be resolved automatically when you install via **Pixi** or **Conda**.
+
 
 ---
 

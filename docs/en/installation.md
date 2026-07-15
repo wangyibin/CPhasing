@@ -13,16 +13,16 @@ tags:
 CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.
 
 ### 1. Operating Systems & Architecture
-- **Operating Systems**: Native **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.
-- **Architectures**: Supported on `linux-64` and `linux-aarch64`.
-- **System Libraries**: 
-  - Linux kernel `>= 3.10.0`
-  - GNU C Library (glibc) `libc >= 2.17`
+- **Operating Systems**: Native **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.  
+- **Architectures**: Supported on `linux-64` and `linux-aarch64`.  
+- **System Libraries**:  
+  - Linux kernel `>= 3.10.0`  
+  - GNU C Library (glibc) `libc >= 2.17`  
 
 ### 2. Environment Managers (Required)
 To install CPhasing, you should have one of the following environment managers ready:
-- **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.
-- **Conda / Miniconda**: Supported as a traditional alternative for managing environments.
+- **Pixi (Recommended)**: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.  
+- **Conda / Miniconda**: Supported as a traditional alternative for managing environments.  
 
 !!! note "Automatic Dependency Resolution"
     You do **not** need to manually install individual third-party tools (such as `minimap2`, `samtools`, `bedtools`) or PyPI libraries. All of them are pre-configured and will be resolved automatically when you install via **Pixi** or **Conda**.
@@ -111,72 +111,87 @@ To install CPhasing, you should have one of the following environment managers r
 <details>
 <summary><b>1. Core Bioinformatics Tools</b> (Click to expand)</summary>
 
-- **Alignment & Mapping**:
-  - `minimap2` `>= 2.28, < 3`
-  - `chromap` `>= 0.3.2, < 0.4`
-  - `bwa-mem2` `>= 2.3, < 3`
-  - `minibwa` `>= 0.1, < 0.4`
-  - `minigraph` `>= 0.21, < 0.22`
-  - `wfmash` `0.17.0.*`
-- **Sequence Processing & Manipulation**:
-  - `samtools` `>= 1.20, < 1.21`
-  - `bedtools` `>= 2.31.1, < 3`
-  - `seqkit` `>= 2.9.0, < 3`
-  - `samblaster` `>= 0.1.26, < 0.2`
-  - `pigz` `>= 2.8, < 3`
-  - `crabz` `>= 0.10.0, < 0.11`
+```plaintext
+# Alignment & Mapping
+minimap2 >= 2.28, < 3
+chromap >= 0.3.2, < 0.4
+bwa-mem2 >= 2.3, < 3
+minibwa >= 0.1, < 0.4
+minigraph >= 0.21, < 0.22
+wfmash 0.17.0.*
+
+# Sequence Processing & Manipulation
+samtools >= 1.20, < 1.21
+bedtools >= 2.31.1, < 3
+seqkit >= 2.9.0, < 3
+samblaster >= 0.1.26, < 0.2
+pigz >= 2.8, < 3
+crabz >= 0.10.0, < 0.11
+```
+
 </details>
 
 <details>
 <summary><b>2. Python Runtime & Core Libraries</b> (Click to expand)</summary>
 
-- **Python Runtime**: `3.12.0.*`
-- **Bioinformatics Libraries**:
-  - `biopython` `>= 1.84, < 2`
-  - `pysam` `>= 0.22.1, < 0.23`
-  - `cooler` `>= 0.10.2, < 0.11`
-  - `hicmatrix` `>= 17.2, < 18`
-  - `pyranges` `>= 0.1.2, < 0.2`
-  - `ncls` `>= 0.0.68, < 0.0.69`
-  - `needletail` `>= 0.7.1, < 0.8`
-- **Data Manipulation & Performance**:
-  - `pandas` `>= 2.2.3, < 3`
-  - `numpy` `>= 1.26.4, < 2`
-  - `polars` `>= 1.17.1, < 1.18.0`
-  - `pyarrow` `>= 18.1.0, < 19`
-  - `dask` `>= 2024.11.2, < 2025`
-  - `joblib` `>= 1.4.2, < 2`
-  - `pandarallel` `>= 1.6.5, < 2`
-  - `scikit-learn` `>= 1.5.2, < 2`
-  - `sparse_dot_mkl` `>= 0.9.10, < 0.10` *(linux-64 only)*
-- **Graph & Networks**:
-  - `networkx` `>= 3.4.2, < 3.5`
-  - `python-igraph` `>= 0.11.8, < 0.12`
-  - `cdlib` `>= 0.4.0, < 0.5`
-  - `graph-tool` `>= 2.97, < 3`
-- **Data Visualization**:
-  - `matplotlib` `>= 3.9.3, < 4`
-  - `seaborn` `>= 0.13.2, < 0.14`
-  - `plotly` `>= 6.2.0, < 7`
-  - `plotnine` `>= 0.15.3, < 0.16`
-  - `patchworklib` `>= 0.6.3, < 0.7`
-  - `colormaps` `>= 0.4.2, < 0.5`
+```plaintext
+# Python Runtime
+python 3.12.0.*
+
+# Bioinformatics Libraries
+biopython >= 1.84, < 2
+pysam >= 0.22.1, < 0.23
+cooler >= 0.10.2, < 0.11
+hicmatrix >= 17.2, < 18
+pyranges >= 0.1.2, < 0.2
+ncls >= 0.0.68, < 0.0.69
+needletail >= 0.7.1, < 0.8
+
+# Data Manipulation & Performance
+pandas >= 2.2.3, < 3
+numpy >= 1.26.4, < 2
+polars >= 1.17.1, < 1.18.0
+pyarrow >= 18.1.0, < 19
+dask >= 2024.11.2, < 2025
+joblib >= 1.4.2, < 2
+pandarallel >= 1.6.5, < 2
+scikit-learn >= 1.5.2, < 2
+sparse_dot_mkl >= 0.9.10, < 0.10  (linux-64 only)
+
+# Graph & Networks
+networkx >= 3.4.2, < 3.5
+python-igraph >= 0.11.8, < 0.12
+cdlib >= 0.4.0, < 0.5
+graph-tool >= 2.97, < 3
+
+# Data Visualization
+matplotlib >= 3.9.3, < 4
+seaborn >= 0.13.2, < 0.14
+plotly >= 6.2.0, < 7
+plotnine >= 0.15.3, < 0.16
+patchworklib >= 0.6.3, < 0.7
+colormaps >= 0.4.2, < 0.5
+```
+
 </details>
 
 <details>
 <summary><b>3. Optional & Environment-Specific Dependencies</b> (Click to expand)</summary>
 
-#### Methylation Alignment Flow (`methalign`)
-- `ont-modkit` `>= 0.4.3, < 0.5`
-- `bammap2` `>= 0.1.7, < 0.2`
-- `pbmm2` `>= 1.16.99, < 2` *(linux-64 only)*
-- `pb-cpg-tools` `>= 3.0.0, < 4` *(linux-64 only)*
+```plaintext
+# Methylation Alignment Flow (methalign)
+ont-modkit >= 0.4.3, < 0.5
+bammap2 >= 0.1.7, < 0.2
+pbmm2 >= 1.16.99, < 2  (linux-64 only)
+pb-cpg-tools >= 3.0.0, < 4  (linux-64 only)
 
-#### Genome Evaluation & Assembly Comparison (`eval` & `eval2`)
-- **Python**: `3.8.*` *(specific runtimes inside evaluation workflows)*
-- `syri` `>= 1.6.3, < 2`
-- `plotsr` `>= 1.1.1, < 2`
-- `nucflag` `== 1.0.0a2`
+# Genome Evaluation & Assembly Comparison (eval & eval2)
+python 3.8.*  (specific runtimes inside evaluation workflows)
+syri >= 1.6.3, < 2
+plotsr >= 1.1.1, < 2
+nucflag == 1.0.0a2
+```
+
 </details>
 
 

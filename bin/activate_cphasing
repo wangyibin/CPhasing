@@ -63,9 +63,24 @@ if [[ "$*" == *"--hook"* ]] || [ "$CPHASING_USE_HOOK" == "1" ]; then
     [ "$1" == "--hook" ] && env_name="default"
 fi
 
-if [ ! -d $software_dir/.pixi/envs/${env_name}/bin/ ]; then
-    echo "Installing cphasing environment..."
-    pixi install --manifest-path $software_dir/pixi.toml -e $env_name
+env_dir="$software_dir/.pixi/envs/${env_name}"
+sentinel_file="$env_dir/.install_success"
+
+if [ ! -f "$sentinel_file" ] || [ ! -d "$env_dir/bin" ]; then
+    echo "Installing/verifying CPhasing environment (${env_name})..."
+    
+    rm -rf "$env_dir"
+
+    if pixi install --manifest-path "$software_dir/pixi.toml" -e "$env_name"; then
+        mkdir -p "$env_dir"
+        touch "$sentinel_file"
+        echo "Environment nested dependencies installed successfully."
+    else
+        echo "===================================================================="
+        echo "Error: Pixi installation failed. Please check network/mirrors."
+        echo "===================================================================="
+        return 1 2>/dev/null || exit 1
+    fi
 fi
 
 export LD_LIBRARY_PATH="$software_dir/.pixi/envs/default/lib:$LD_LIBRARY_PATH"
@@ -101,6 +116,7 @@ else
     # export PS1="(CPhasing) $PS1"
     # pixi shell-hook --manifest-path $software_dir/pixi.toml --no-install > $software_dir/.pixi/envs/default/.env
     # . $software_dir/.pixi/envs/default/.env
+    export CPHASING_NESTED_SHELL=1
     pixi shell --manifest-path $software_dir/pixi.toml --no-install -e $env_name
 fi
 

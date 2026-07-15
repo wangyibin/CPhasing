@@ -23,7 +23,17 @@ tags:
     !!! note "自动依赖解析"
         你**不需要**手动安装具体的第三方工具（如 `minimap2`、`samtools`、`bedtools`）或 Python 库。在通过 **Pixi** 或 **Conda** 进行安装时，所有这一切都预配置好并会自动被解析。
 
+    !!! tip "版本升级与环境迁移 (Upgrading & Environment Migration)"
+        如果您是从旧版本的 CPhasing 进行版本升级，可以使用内置的自动迁移工具来安全、迅速地复用之前已下载的本地包缓存。这能够避免重新下载数 GB 的依赖软件，并在无需联网的情况下在本地实现秒级快速重构与对齐。
 
+        请在您的**新版本** CPhasing 目录下执行以下迁移指令：
+
+        ```bash
+        # 用法: bash bin/migrate_cphasing_env <旧版本 CPhasing 目录路径>
+        bash bin/migrate_cphasing_env /path/to/old/CPhasing
+        ```
+
+        迁移程序会为您自动对齐可能更新的依赖包。处理完成后，您可以直接像往常一样在终端中运行 `source bin/activate_cphasing` 激活并开始使用新环境。
 ---
 
 ## 安装指南 (Installation Instructions)
@@ -94,7 +104,8 @@ tags:
         
     !!! note
         如果你想运行在arm(**aarch64**)平台上，请从[github release](https://github.com/wangyibin/CPhasing/releases)页面下载，git仓库里默认存放x86-64版本
-        
+    
+
 
 === "Conda"
     从 GitHub 仓库下载 C-Phasing 代码，并使用 Anaconda 或 Miniconda 导入环境依赖：

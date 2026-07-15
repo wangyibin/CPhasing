@@ -78,6 +78,19 @@ tags:
     !!! note
         For the platform of **`linux-aarch64`**, please download from [github release](https://github.com/wangyibin/CPhasing/releases).
     
+    !!! tip "Upgrading & Environment Migration"
+        If you are upgrading from an older version of CPhasing, you can use the built-in migration tool to safely reuse previously downloaded package caches. This avoids re-downloading gigabytes of dependencies, resolving them rapidly and offline.
+
+        Run the migration helper inside your **new** CPhasing directory:
+
+        ```bash
+        # Usage: bash bin/migrate_cphasing_env <path_to_old_cphasing_directory>
+        bash bin/migrate_cphasing_env /path/to/old/CPhasing
+        ```
+
+        Once the migration script finishes, you can safely activate the environment using the normal `activate_cphasing` tool.
+
+
 === "conda"
     Download the CPhasing and install environment by conda
     ```shell

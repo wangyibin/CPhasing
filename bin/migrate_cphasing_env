@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# This script migrates the CPhasing environment from an older installation directory 
+# to the current active directory, offline/rapidly reusing cached packages.
+
+set -e
+
+script_dir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+new_cphasing_dir="$(dirname "$script_dir")"
+
+echo "===================================================================="
+echo "          CPhasing Environment Migration Tool"
+echo "===================================================================="
+
+# Check argument
+if [ -z "$1" ]; then
+    echo "Usage: "
+    echo "    bash migrate_cphasing_env <path_to_old_cphasing_directory>"
+    echo ""
+    echo "Example:"
+    echo "    bash migrate_cphasing_env /path/to/old/CPhasing-v0.3.1"
+    exit 1
+fi
+
+old_cphasing_dir="$(realpath "$1")"
+
+if [ ! -d "$old_cphasing_dir" ]; then
+    echo "Error: Old CPhasing directory not found: $old_cphasing_dir"
+    exit 1
+fi
+
+# Detect environments
+has_old_pixi=0
+has_old_conda=0
+
+if [ -d "$old_cphasing_dir/.pixi" ]; then
+    has_old_pixi=1
+fi
+
+# Check conda if environment was created
+if command -v conda &>/dev/null; then
+    has_old_conda=1
+fi
+
+# Check Pixi executable path
+PIXI_BIN="${HOME}/.pixi/bin/pixi"
+if command -v pixi &> /dev/null; then
+    PIXI_BIN="pixi"
+fi
+
+# 1. Migrate Pixi Environment
+if [ "$has_old_pixi" -eq 1 ]; then
+    echo "[Pixi] Detected older Pixi environment in: $old_cphasing_dir"
+    
+    # Re-create empty target .pixi directory
+    mkdir -p "$new_cphasing_dir/.pixi"
+    
+    # 1.1 Compare requirements between old and new directories
+    old_toml="$old_cphasing_dir/pixi.toml"
+    new_toml="$new_cphasing_dir/pixi.toml"
+    
+    config_changed=1
+    if [ -f "$old_toml" ] && [ -f "$new_toml" ]; then
+        if diff -q "$old_toml" "$new_toml" &>/dev/null; then
+            config_changed=0
+            echo "[Pixi] Perfect Match! No dependency definition changes between versions."
+        else
+            echo "[Pixi] Notice: Dependency configuration differences found between versions."
+        fi
+    fi
+
+    # 1.2 Copy package metadata lock files if exist
+    if [ -f "$old_cphasing_dir/pixi.lock" ]; then
+        echo "[Pixi] Reusing previous locked dependencies (pixi.lock) to secure versions..."
+        cp "$old_cphasing_dir/pixi.lock" "$new_cphasing_dir/pixi.lock"
+    fi
+
+    # 1.3 Deploy/Repair Path Links
+    if [ -f "$PIXI_BIN" ] || command -v pixi &> /dev/null; then
+        if [ "$config_changed" -eq 0 ] && [ -f "$new_cphasing_dir/pixi.lock" ]; then
+            echo "[Pixi] Deploying exact environment clones locally (frozen mode – offline & instant)..."
+            $PIXI_BIN install --manifest-path "$new_cphasing_dir/pixi.toml" --frozen
+        else
+            echo "[Pixi] Resolving and installing incremental differences..."
+            $PIXI_BIN install --manifest-path "$new_cphasing_dir/pixi.toml"
+        fi
+        
+        # Touch success marks for safe activation triggers
+        for env_path in "$new_cphasing_dir/.pixi/envs"/*; do
+            if [ -d "$env_path" ]; then
+                touch "${env_path}/.install_success"
+            fi
+        done
+        echo "[Pixi] Environment migration completed successfully!"
+    else
+        echo "Warning: Pixi executable not found at '$PIXI_BIN' or PATH."
+        echo "         Dependency lock files are prepared; running the normal"
+        echo "         'activate_cphasing' script will now safely pick them up."
+    fi
+
+# 2. Migrate Conda Environment (Fall-back)
+elif [ "$has_old_conda" -eq 1 ]; then
+    echo "[Conda] Attempting to clone existing 'cphasing' environment..."
+    read -p "Would you like to clone the existing conda 'cphasing' env? (y/N): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "[Conda] Cloning environment..."
+        conda create --name cphasing_new --clone cphasing
+        echo "[Conda] Environment cloned successfully."
+    fi
+else
+    echo "No existing pre-compiled environment was found in: $old_cphasing_dir"
+    echo "Skipping migrations."
+fi
+
+echo "===================================================================="
+echo "Migration check finished. You can now safe-launch 'activate_cphasing'!"
+echo "===================================================================="

@@ -667,10 +667,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#toy-dataset" class="md-nav__link">
+  <a href="#example-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        第一步：下载测试数据集 (Toy Dataset)
+        第一步：下载测试数据集 (Example Dataset)
       </span>
     </span>
   </a>
@@ -1079,10 +1079,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#toy-dataset" class="md-nav__link">
+  <a href="#example-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        第一步：下载测试数据集 (Toy Dataset)
+        第一步：下载测试数据集 (Example Dataset)
       </span>
     </span>
   </a>
@@ -1158,18 +1158,18 @@
 <p>CPhasing 使用现代包管理器极大简化了依赖项管理。所有必备的软件工具和库文件都可以被自动解析与安装。</p>
 <h3 id="1">1. 操作系统与系统架构<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>支持的操作系统</strong>: 原生 <strong>Linux</strong>（例如 Ubuntu &gt;= 18.04, CentOS &gt;= 7, Debian &gt;= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。</li>
-<li><strong>系统架构</strong>: 支持 <code>linux-64</code> 和 <code>linux-aarch64</code>。</li>
-<li><strong>基础系统库</strong>: <ul>
-<li>Linux 内核版本 <code>&gt;= 3.10.0</code></li>
+<li><strong>支持的操作系统</strong>: 原生 <strong>Linux</strong>（例如 Ubuntu &gt;= 18.04, CentOS &gt;= 7, Debian &gt;= 10）。Windows 用户可以通过 WSL2 运行。macOS 用户可以通过 Docker 运行。  </li>
+<li><strong>系统架构</strong>: 支持 <code>linux-64</code> 和 <code>linux-aarch64</code>。  </li>
+<li><strong>基础系统库</strong>:  <ul>
+<li>Linux 内核版本 <code>&gt;= 3.10.0</code>  </li>
 <li>GNU C Library (glibc) <code>libc &gt;= 2.17</code></li>
 </ul>
 </li>
 </ul>
 <h3 id="2">2. 环境管理器（必需）<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
 <p>要安装 CPhasing，你需要准备好以下环境管理器之一：
-- <strong>Pixi（推荐）</strong>: 极速、跨平台的包管理器。Pixi 会自动下载并隔离运行环境中的所有外部生物信息学工具和 Python 包。
-- <strong>Conda / Miniconda</strong>: 支持作为传统管理环境的备选方案。</p>
+- <strong>Pixi（推荐）</strong>: 极速、跨平台的包管理器。Pixi 会自动下载并隔离运行环境中的所有外部生物信息学工具和 Python 包。<br />
+- <strong>Conda / Miniconda</strong>: 支持作为传统管理环境的备选方案。  </p>
 <div class="admonition note">
 <p class="admonition-title">自动依赖解析</p>
 <p>你<strong>不需要</strong>手动安装具体的第三方工具（如 <code>minimap2</code>、<code>samtools</code>、<code>bedtools</code>）或 Python 库。在通过 <strong>Pixi</strong> 或 <strong>Conda</strong> 进行安装时，所有这一切都预配置好并会自动被解析。</p>
@@ -1269,103 +1269,115 @@
 <details>
 <summary><b>1. 核心生物信息学工具</b> (点击展开)</summary>
 
-- **序列比对与三维基因组构建**:
-  - `minimap2` `>= 2.28, < 3`
-  - `chromap` `>= 0.3.2, < 0.4`
-  - `bwa-mem2` `>= 2.3, < 3`
-  - `minibwa` `>= 0.1, < 0.4`
-  - `minigraph` `>= 0.21, < 0.22`
-  - `wfmash` `0.17.0.*`
-- **序列处理与文件操作**:
-  - `samtools` `>= 1.20, < 1.21`
-  - `bedtools` `>= 2.31.1, < 3`
-  - `seqkit` `>= 2.9.0, < 3`
-  - `samblaster` `>= 0.1.26, < 0.2`
-  - `pigz` `>= 2.8, < 3`
-  - `crabz` `>= 0.10.0, < 0.11`
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a># 序列比对与三维基因组构建
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>minimap2 &gt;= 2.28, &lt; 3
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>chromap &gt;= 0.3.2, &lt; 0.4
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>bwa-mem2 &gt;= 2.3, &lt; 3
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>minibwa &gt;= 0.1, &lt; 0.4
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>minigraph &gt;= 0.21, &lt; 0.22
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>wfmash 0.17.0.*
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a># 序列处理与文件操作
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>samtools &gt;= 1.20, &lt; 1.21
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>bedtools &gt;= 2.31.1, &lt; 3
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>seqkit &gt;= 2.9.0, &lt; 3
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>samblaster &gt;= 0.1.26, &lt; 0.2
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>pigz &gt;= 2.8, &lt; 3
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>crabz &gt;= 0.10.0, &lt; 0.11
+</span></code></pre></div>
+
 </details>
 
 <details>
 <summary><b>2. Python 运行时与核心库</b> (点击展开)</summary>
 
-- **Python 运行时**: `3.12.0.*`
-- **生物信息分析相关库**:
-  - `biopython` `>= 1.84, < 2`
-  - `pysam` `>= 0.22.1, < 0.23`
-  - `cooler` `>= 0.10.2, < 0.11`
-  - `hicmatrix` `>= 17.2, < 18`
-  - `pyranges` `>= 0.1.2, < 0.2`
-  - `ncls` `>= 0.0.68, < 0.0.69`
-  - `needletail` `>= 0.7.1, < 0.8`
-- **数据处理与计算性能**:
-  - `pandas` `>= 2.2.3, < 3`
-  - `numpy` `>= 1.26.4, < 2`
-  - `polars` `>= 1.17.1, < 1.18.0`
-  - `pyarrow` `>= 18.1.0, < 19`
-  - `dask` `>= 2024.11.2, < 2025`
-  - `joblib` `>= 1.4.2, < 2`
-  - `pandarallel` `>= 1.6.5, < 2`
-  - `scikit-learn` `>= 1.5.2, < 2`
-  - `sparse_dot_mkl` `>= 0.9.10, < 0.10` *(仅限 linux-64 平台)*
-- **图论与网络分析**:
-  - `networkx` `>= 3.4.2, < 3.5`
-  - `python-igraph` `>= 0.11.8, < 0.12`
-  - `cdlib` `>= 0.4.0, < 0.5`
-  - `graph-tool` `>= 2.97, < 3`
-- **数据可视化**:
-  - `matplotlib` `>= 3.9.3, < 4`
-  - `seaborn` `>= 0.13.2, < 0.14`
-  - `plotly` `>= 6.2.0, < 7`
-  - `plotnine` `>= 0.15.3, < 0.16`
-  - `patchworklib` `>= 0.6.3, < 0.7`
-  - `colormaps` `>= 0.4.2, < 0.5`
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a># Python 运行时
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python 3.12.0.*
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a># 生物信息分析相关库
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>biopython &gt;= 1.84, &lt; 2
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>pysam &gt;= 0.22.1, &lt; 0.23
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>cooler &gt;= 0.10.2, &lt; 0.11
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>hicmatrix &gt;= 17.2, &lt; 18
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>pyranges &gt;= 0.1.2, &lt; 0.2
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>ncls &gt;= 0.0.68, &lt; 0.0.69
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>needletail &gt;= 0.7.1, &lt; 0.8
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a># 数据处理与计算性能
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>pandas &gt;= 2.2.3, &lt; 3
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>numpy &gt;= 1.26.4, &lt; 2
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>polars &gt;= 1.17.1, &lt; 1.18.0
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>pyarrow &gt;= 18.1.0, &lt; 19
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>dask &gt;= 2024.11.2, &lt; 2025
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>joblib &gt;= 1.4.2, &lt; 2
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>pandarallel &gt;= 1.6.5, &lt; 2
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>scikit-learn &gt;= 1.5.2, &lt; 2
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>sparse_dot_mkl &gt;= 0.9.10, &lt; 0.10  (仅限 linux-64 平台)
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a># 图论与网络分析
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>networkx &gt;= 3.4.2, &lt; 3.5
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>python-igraph &gt;= 0.11.8, &lt; 0.12
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>cdlib &gt;= 0.4.0, &lt; 0.5
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>graph-tool &gt;= 2.97, &lt; 3
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>
+</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a># 数据可视化
+</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>matplotlib &gt;= 3.9.3, &lt; 4
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>seaborn &gt;= 0.13.2, &lt; 0.14
+</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>plotly &gt;= 6.2.0, &lt; 7
+</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>plotnine &gt;= 0.15.3, &lt; 0.16
+</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>patchworklib &gt;= 0.6.3, &lt; 0.7
+</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>colormaps &gt;= 0.4.2, &lt; 0.5
+</span></code></pre></div>
+
 </details>
 
 <details>
 <summary><b>3. 特定分析流程与可选依赖</b> (点击展开)</summary>
 
-#### 甲基化比对分析流程 (`methalign`)
-- `ont-modkit` `>= 0.4.3, < 0.5`
-- `bammap2` `>= 0.1.7, < 0.2`
-- `pbmm2` `>= 1.16.99, < 2` *(仅限 linux-64 平台)*
-- `pb-cpg-tools` `>= 3.0.0, < 4` *(仅限 linux-64 平台)*
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a># 甲基化比对分析流程 (methalign)
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>ont-modkit &gt;= 0.4.3, &lt; 0.5
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>bammap2 &gt;= 0.1.7, &lt; 0.2
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>pbmm2 &gt;= 1.16.99, &lt; 2  (仅限 linux-64 平台)
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>pb-cpg-tools &gt;= 3.0.0, &lt; 4  (仅限 linux-64 平台)
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a># 基因组评估与共线性比对流程 (eval &amp; eval2)
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>python 3.8.*  (该评估子工具中指定的环境)
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>syri &gt;= 1.6.3, &lt; 2
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>plotsr &gt;= 1.1.1, &lt; 2
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>nucflag == 1.0.0a2
+</span></code></pre></div>
 
-#### 基因组评估与共线性比对流程 (`eval` & `eval2`)
-- **Python**: `3.8.*` *(该评估子工具中指定的环境)*
-- `syri` `>= 1.6.3, < 2`
-- `plotsr` `>= 1.1.1, < 2`
-- `nucflag` `== 1.0.0a2`
 </details>
 
 <hr />
 <h2 id="verifying-installation">验证安装与运行示例 (Verifying Installation)<a class="headerlink" href="#verifying-installation" title="Permanent link">&para;</a></h2>
 <p>为了验证 CPhasing 及其所需的所有外部三方软件是否正确配置，我们提供了一套预包装的轻量化示例数据集和一键式自动测试脚本。详情亦可参阅完整的 <a href="../../../examples/">examples/README.md</a> 说明文档。</p>
-<h3 id="toy-dataset">第一步：下载测试数据集 (Toy Dataset)<a class="headerlink" href="#toy-dataset" title="Permanent link">&para;</a></h3>
+<h3 id="example-dataset">第一步：下载测试数据集 (Example Dataset)<a class="headerlink" href="#example-dataset" title="Permanent link">&para;</a></h3>
 <p>导航到 CPhasing 的 <code>examples</code>（示例代码）目录，进行下载和解压：
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 如果是用推荐的一键式 tar.gz 方式安装的：</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">cd</span><span class="w"> </span>CPhasing*/examples
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># 如果您是通过 Git 方式拉取的代码：</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nb">cd</span><span class="w"> </span>CPhasing/examples
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># 如果是用推荐的一键式 tar.gz 方式安装的：</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">cd</span><span class="w"> </span>CPhasing*/examples
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># 如果您是通过 Git 方式拉取的代码：</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nb">cd</span><span class="w"> </span>CPhasing/examples
 </span></code></pre></div></p>
-<p>下载并提取小体积（Toy）训练集：
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 下载轻量玩具测试数据集</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>wget<span class="w"> </span>https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># 提取并解压（这会自动生成 data/ 文件夹）</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
+<p>下载示例数据：
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># 下载轻量玩具测试数据集</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>wget<span class="w"> </span>https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># 提取并解压（这会自动生成 data/ 文件夹）</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
 </span></code></pre></div></p>
 <h3 id="cphasing">第二步：激活 CPhasing 环境<a class="headerlink" href="#cphasing" title="Permanent link">&para;</a></h3>
 <p>在使用测试组件之前，确保你的应用隔离环境已被正确激活：
 * <strong>如果是 Pixi 一键激活（推荐手法）:</strong>
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
 </span></code></pre></div>
 * <strong>如果是 Conda 环境:</strong>
-  <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
 </span></code></pre></div></p>
 <h3 id="_2">第三步：一键运行示例脚本<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <p>在 <code>examples/</code> 目录下执行自动验证脚本：
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>bash<span class="w"> </span>run_example.sh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>bash<span class="w"> </span>run_example.sh
 </span></code></pre></div></p>
 <h3 id="_3">预期结果与运行耗时<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <p>脚本会将 <strong>Pore-C pipeline</strong> 和 <strong>Hi-C pipeline</strong> 流程全部运行并验证完毕：

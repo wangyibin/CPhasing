@@ -217,7 +217,7 @@ C-Phasing does not require GPUs or other specialized hardware.
 The software runs on standard Linux workstations. Memory and CPU requirements depend on the genome size, ploidy, sequencing depth, and the selected workflow.
 The bundled example workflow can be completed using approximately 8 CPU threads and 16 GB RAM.
 
-# Installation Verification (Example Run)
+## Installation Verification (Example Run)
 
 To verify that CPhasing and all its required external dependencies are correctly configured, we provide a pre-packaged lightweight example dataset and an automated verification script. For more info, see the full [examples/README.md](../../examples/README.md) guide.
 

@@ -23,6 +23,13 @@ The advantages of `C-Phasing`:
 More details please check the documentation:  
 [Documentation](https://wangyibin.github.io/CPhasing/) | [中文文档](https://wangyibin.github.io/CPhasing/zh)
 
+
+## Example Dataset
+
+A lightweight example dataset is available under `examples/` for verifying installation and demonstrating the basic C-Phasing workflow.
+
+See: [Installation](https://wangyibin.github.io/CPhasing/latest/installation/#installation-verification-example-run)
+
 ## Citation
 If you use C-Phasing in your work, please cite: 
 - **C-Phasing**

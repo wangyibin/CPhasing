@@ -108,7 +108,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#system-requirements-dependencies" class="md-skip">
+        <a href="#installation" class="md-skip">
           Skip to content
         </a>
       
@@ -548,6 +548,8 @@
       
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -593,6 +595,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -601,10 +605,49 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#system-requirements-dependencies" class="md-nav__link">
+  <a href="#system-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        System Requirements &amp; Dependencies
+        System Requirements
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-operating-systems-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Operating Systems &amp; Architecture
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-environment-managers-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Environment Managers (Required)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detailed-software-library-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Detailed Software &amp; Library Dependencies
       </span>
     </span>
   </a>
@@ -875,6 +918,8 @@
                     
                     
                     
+                      
+                    
                     
                       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
                       <div class="md-sidebar-button__wrapper">
@@ -890,6 +935,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -898,10 +945,49 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#system-requirements-dependencies" class="md-nav__link">
+  <a href="#system-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        System Requirements &amp; Dependencies
+        System Requirements
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-operating-systems-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Operating Systems &amp; Architecture
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-environment-managers-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. Environment Managers (Required)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detailed-software-library-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Detailed Software &amp; Library Dependencies
       </span>
     </span>
   </a>
@@ -934,8 +1020,28 @@
   
 
 
-  <h1 id="__skip">Installation</h1>
-
+<h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
+<h2 id="system-requirements">System Requirements<a class="headerlink" href="#system-requirements" title="Permanent link">&para;</a></h2>
+<p>CPhasing simplifies dependency management using modern package managers. All required software tools and libraries can be resolved automatically.</p>
+<h3 id="1-operating-systems-architecture">1. Operating Systems &amp; Architecture<a class="headerlink" href="#1-operating-systems-architecture" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Operating Systems</strong>: Native <strong>Linux</strong> (e.g., Ubuntu &gt;= 18.04, CentOS &gt;= 7, Debian &gt;= 10). Windows users can run it via WSL2. MacOS users can run it via Docker.</li>
+<li><strong>Architectures</strong>: Supported on <code>linux-64</code> and <code>linux-aarch64</code>.</li>
+<li><strong>System Libraries</strong>: <ul>
+<li>Linux kernel <code>&gt;= 3.10.0</code></li>
+<li>GNU C Library (glibc) <code>libc &gt;= 2.17</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="2-environment-managers-required">2. Environment Managers (Required)<a class="headerlink" href="#2-environment-managers-required" title="Permanent link">&para;</a></h3>
+<p>To install CPhasing, you should have one of the following environment managers ready:
+- <strong>Pixi (Recommended)</strong>: A fast, multi-platform package manager. Pixi automatically downloads and isolates all external bioinformatics tools and Python packages inside the work environment.
+- <strong>Conda / Miniconda</strong>: Supported as a traditional alternative for managing environments.</p>
+<div class="admonition note">
+<p class="admonition-title">Automatic Dependency Resolution</p>
+<p>You do <strong>not</strong> need to manually install individual third-party tools (such as <code>minimap2</code>, <code>samtools</code>, <code>bedtools</code>) or PyPI libraries. All of them are pre-configured and will be resolved automatically when you install via <strong>Pixi</strong> or <strong>Conda</strong>.</p>
+</div>
+<hr />
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="recommended" name="__tabbed_1" type="radio" /><input id="conda" name="__tabbed_1" type="radio" /><input id="custom" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="recommended">recommended</label><label for="conda">conda</label><label for="custom">custom</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1015,19 +1121,9 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
 </div>
 </div>
 </div>
-<h2 id="system-requirements-dependencies">System Requirements &amp; Dependencies<a class="headerlink" href="#system-requirements-dependencies" title="Permanent link">&para;</a></h2>
+<h2 id="detailed-software-library-dependencies">Detailed Software &amp; Library Dependencies<a class="headerlink" href="#detailed-software-library-dependencies" title="Permanent link">&para;</a></h2>
 <details>
-<summary><b>1. Operating Systems & Hardware Requirements</b> (Click to expand)</summary>
-
-- **Operating Systems**: Tested and supported on **Linux** (e.g., Ubuntu >= 18.04, CentOS >= 7, Debian >= 10). Windows users can run it via WSL2.
-- **Architectures**: Supported on `linux-64` and `linux-aarch64`.
-- **System Libraries**: 
-  - Linux kernel `>= 3.10.0`
-  - GNU C Library (glibc) `libc >= 2.17`
-</details>
-
-<details>
-<summary><b>2. Core Bioinformatics Software</b> (Click to expand)</summary>
+<summary><b>1. Core Bioinformatics Tools</b> (Click to expand)</summary>
 
 - **Alignment & Mapping**:
   - `minimap2` `>= 2.28, < 3`
@@ -1046,7 +1142,7 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
 </details>
 
 <details>
-<summary><b>3. Python Runtime & Libraries</b> (Click to expand)</summary>
+<summary><b>2. Python Runtime & Core Libraries</b> (Click to expand)</summary>
 
 - **Python Runtime**: `3.12.0.*`
 - **Bioinformatics Libraries**:
@@ -1079,27 +1175,59 @@ Add following to the <code>~/.bash_profile</code> or <code>~/.bashrc</code>
   - `plotnine` `>= 0.15.3, < 0.16`
   - `patchworklib` `>= 0.6.3, < 0.7`
   - `colormaps` `>= 0.4.2, < 0.5`
-- **Command-Line & CLI Utilities**:
-  - `click` `>= 8.1.8, < 8.2`
-  - `rich-click` `1.9.7.*`
-  - `click-didyoumean` `>= 0.3.1, < 0.4`
 </details>
 
 <details>
-<summary><b>4. Environment-Specific & Optional Dependencies</b> (Click to expand)</summary>
+<summary><b>3. Optional & Environment-Specific Dependencies</b> (Click to expand)</summary>
 
-#### Methylation Alignment (`methalign`)
+#### Methylation Alignment Flow (`methalign`)
 - `ont-modkit` `>= 0.4.3, < 0.5`
 - `bammap2` `>= 0.1.7, < 0.2`
 - `pbmm2` `>= 1.16.99, < 2` *(linux-64 only)*
 - `pb-cpg-tools` `>= 3.0.0, < 4` *(linux-64 only)*
 
-#### Genome Evaluation & Synteny (`eval` & `eval2`)
-- **Python**: `3.8.*` *(eval env)*
+#### Genome Evaluation & Assembly Comparison (`eval` & `eval2`)
+- **Python**: `3.8.*` *(specific runtimes inside evaluation workflows)*
 - `syri` `>= 1.6.3, < 2`
 - `plotsr` `>= 1.1.1, < 2`
 - `nucflag` `== 1.0.0a2`
 </details>
+
+<h1 id="verifying-installation-example-run">Verifying Installation (Example Run)<a class="headerlink" href="#verifying-installation-example-run" title="Permanent link">&para;</a></h1>
+<p>To verify that CPhasing and all its required external dependencies are correctly configured, we provide a pre-packaged lightweight example dataset and an automated verification script. For more info, see the full <a href="../../../examples/">examples/README.md</a> guide.</p>
+<h3 id="step-1-download-the-example-dataset">Step 1: Download the Example Dataset<a class="headerlink" href="#step-1-download-the-example-dataset" title="Permanent link">&para;</a></h3>
+<p>Navigate to the <code>examples</code> directory of your CPhasing installation:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># If installed via the recommended precompiled tar.gz:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">cd</span><span class="w"> </span>CPhasing*/examples
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Or if you cloned the repository via Git:</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nb">cd</span><span class="w"> </span>CPhasing/examples
+</span></code></pre></div></p>
+<p>Download the test dataset and extract it:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Download the lightweight example package</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>wget<span class="w"> </span>https://github.com/wangyibin/CPhasing/releases/download/v0.3.2/example_data.tar.gz
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Extract the archive (this will create the data/ folder)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>tar<span class="w"> </span>-xzvf<span class="w"> </span>example_data.tar.gz
+</span></code></pre></div></p>
+<h3 id="step-2-activate-your-cphasing-environment">Step 2: Activate Your CPhasing Environment<a class="headerlink" href="#step-2-activate-your-cphasing-environment" title="Permanent link">&para;</a></h3>
+<p>Ensure your installation environment is active:
+* <strong>Via Pixi (Recommended):</strong>
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">source</span><span class="w"> </span>../bin/activate_cphasing
+</span></code></pre></div>
+* <strong>Via Conda:</strong>
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>cphasing
+</span></code></pre></div></p>
+<h3 id="step-3-run-the-example-script">Step 3: Run the Example Script<a class="headerlink" href="#step-3-run-the-example-script" title="Permanent link">&para;</a></h3>
+<p>Execute the test automation script in the <code>examples/</code> directory:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>bash<span class="w"> </span>run_example.sh
+</span></code></pre></div></p>
+<h3 id="expected-results-runtime">Expected Results &amp; Runtime<a class="headerlink" href="#expected-results-runtime" title="Permanent link">&para;</a></h3>
+<p>The script will run both the <strong>Pore-C pipeline</strong> and the <strong>Hi-C pipeline</strong> validation.
+* <strong>Pore-C Output Directory:</strong> <code>examples/cphasing_output_porec/</code>
+* <strong>Hi-C Output Directory:</strong> <code>examples/cphasing_output_hic/</code>
+* <strong>Expected Runtime:</strong> ~5 minutes on an 8-core CPU workstation.</p>
+<p>Successful runs that exit without errors indicate your installation and runtime dependencies are ready for real-world datasets.</p>
 
 
   <nav class="md-tags" >

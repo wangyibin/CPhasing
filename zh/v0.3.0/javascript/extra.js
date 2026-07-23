@@ -59,7 +59,6 @@
     }
   };
   
-  // Initialize theme handling on page load
   document.addEventListener("DOMContentLoaded", () => {
     checkTheme();
     syncWidgetTheme();
@@ -80,62 +79,88 @@
   });
   
   
-  // docsearch({
-  //   container: "#docsearch", 
-  //   appId: "7I79MLDJV5",
-  //   apiKey: "bcdf8edc298cf3794b14bc7d5d788fe5",
-  //   indexName: "wangyibin_github_io_7i79mldjv5_pages",
-  //   placeholder: "Search documentation"
-  // });
+  // Dynamically fix Language & Version switchers to preserve active page path, queries, and hash anchors
+  (() => {
+    // Helper to evaluate version segment patterns (supports v0.1.0, latest, dev, stable etc.)
+    function isVersionSegment(str) {
+      if (!str) return false;
+      return /^(v?\d+\.\d+\.\d+|latest|dev|stable)$/i.test(str);
+    }
 
-  // Fix language switcher links to preserve current page path, query string, and hash
-  // (() => {
-  //   function fixLanguageLinks() {
-  //     const path = location.pathname;
-  //     const links = document.querySelectorAll(".md-select__link[hreflang]");
-  //     if (!links.length) return;
-  
-  //     // Derive language codes from the actual links (config-driven)
-  //     const langCodes = Array.from(links)
-  //       .map((link) => link.getAttribute("hreflang"))
-  //       .filter(Boolean);
-  //     const defaultLang =
-  //       Array.from(links)
-  //         .find((link) => link.getAttribute("href") === "/")
-  //         ?.getAttribute("hreflang") || "en";
-  
-  //     // Extract base path (without leading slash and language prefix)
-  //     let basePath = path.startsWith("/") ? path.slice(1) : path;
-  //     for (const code of langCodes) {
-  //       if (code === defaultLang) continue;
-  //       const prefix = `${code}/`;
-  //       if (basePath === code || basePath === prefix) {
-  //         basePath = "";
-  //         break;
-  //       }
-  //       if (basePath.startsWith(prefix)) {
-  //         basePath = basePath.slice(prefix.length);
-  //         break;
-  //       }
-  //     }
-  
-  //     // Preserve query string and hash
-  //     const suffix = location.search + location.hash;
-  
-  //     // Update all language links
-  //     links.forEach((link) => {
-  //       const lang = link.getAttribute("hreflang");
-  //       link.href =
-  //         lang === defaultLang
-  //           ? `${location.origin}/${basePath}${suffix}`
-  //           : `${location.origin}/${lang}/${basePath}${suffix}`;
-  //     });
-  //   }
-  
-  //   // Run on load and navigation
-  //   fixLanguageLinks();
-  
-  //   if (typeof document$ !== "undefined") {
-  //     document$.subscribe(() => setTimeout(fixLanguageLinks, 50));
-  //   }
-  // })();
+    // Parse paths as [language]/[version]/[page].
+    // Chinese docs are deployed by mike with "--deploy-prefix zh".
+    function parseMkDocsPath(path, rootPath) {
+      const relative = path.substring(rootPath.length);
+      const segments = relative.split("/").filter(Boolean);
+
+      const language = segments[0] === "zh" ? segments.shift() : "";
+      const version = isVersionSegment(segments[0]) ? segments.shift() : "";
+      const pagePath = segments.join("/");
+
+      return { version, isZh: language === "zh", pagePath };
+    }
+
+    function fixLanguageAndVersionLinks() {
+      const path = location.pathname;
+      const suffix = location.search + location.hash;
+
+      let rootPath = "/";
+      if (path.startsWith("/CPhasing/")) {
+        rootPath = "/CPhasing/";
+      }
+
+      const currentInfo = parseMkDocsPath(path, rootPath);
+
+      // 1. Fix Language Switcher links
+      const langLinks = document.querySelectorAll(".md-select__link[hreflang]");
+      langLinks.forEach((link) => {
+        const lang = link.getAttribute("hreflang");
+        const targetSegments = [];
+        if (lang === "zh") {
+          targetSegments.push("zh");
+        }
+        if (currentInfo.version) {
+          targetSegments.push(currentInfo.version);
+        }
+        if (currentInfo.pagePath) {
+          targetSegments.push(currentInfo.pagePath);
+        }
+        const targetPath = rootPath + targetSegments.join("/");
+        link.href = targetPath + suffix;
+      });
+
+      // 2. Fix mike Version Switcher links
+      const versionContainer = document.querySelector('[data-md-component="version"]');
+      if (versionContainer) {
+        const versionLinks = versionContainer.querySelectorAll("a");
+        versionLinks.forEach((link) => {
+          // Resolve target URL of the selected version option
+          const testUrl = new URL(link.href, location.origin);
+          const targetInfo = parseMkDocsPath(testUrl.pathname, rootPath);
+
+          const targetSegments = [];
+          if (currentInfo.isZh) {
+            targetSegments.push("zh");
+          }
+          if (targetInfo.version) {
+            targetSegments.push(targetInfo.version);
+          }
+          if (currentInfo.pagePath) {
+            targetSegments.push(currentInfo.pagePath);
+          }
+          const targetPath = rootPath + targetSegments.join("/");
+          link.href = targetPath + suffix;
+        });
+      }
+    }
+
+    // Run on initial load
+    fixLanguageAndVersionLinks();
+
+    // Re-bind when navigated via MkDocs instant loading
+    if (typeof document$ !== "undefined") {
+      document$.subscribe(() => {
+        setTimeout(fixLanguageAndVersionLinks, 50);
+      });
+    }
+  })();

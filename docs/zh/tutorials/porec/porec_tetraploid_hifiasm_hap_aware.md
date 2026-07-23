@@ -32,7 +32,7 @@ cphasing mapper hifi.asm.p_utg.fasta porec_reads.fastq.gz -t 100 -o porec_reads.
 将多维相互作用的 Pore-C 比对结果转换为虚拟的、标准双端 "pseudo-Hi-C" 数据（即 `porec2hic_R1.fa.gz` 和 `porec2hic_R2.fa.gz`）：
 
 ```bash
-cphasing-rs porec2 porec_reads.porec.gz -l 0 -o porec2hic
+cphasing-rs porec2reads porec_reads.porec.gz -l 0 -o porec2hic
 ```
 
 ### 步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）

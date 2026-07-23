@@ -32,7 +32,7 @@ cphasing mapper hifi.asm.p_utg.fasta porec_reads.fastq.gz -t 100 -o porec_reads.
 Convert the multi-contact Pore-C alignments into virtual paired-end "pseudo-Hi-C" reads (`porec2hic_R1.fa.gz` and `porec2hic_R2.fa.gz`):
 
 ```bash
-cphasing-rs porec2 porec_reads.porec.gz -l 0 -o porec2hic
+cphasing-rs porec2reads porec_reads.porec.gz -l 0 -o porec2hic
 ```
 
 ### Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)

@@ -114,6 +114,11 @@ jobs:
             current_ref="main"
           fi
 
+          if ! git cat-file -e "$current_ref:docs/overrides/javascript/extra.js"; then
+            echo "docs/overrides/javascript/extra.js not found in $current_ref"
+            exit 1
+          fi
+
           latest_tag=$(git tag --list 'v*' | sort -V | tail -n 1)
           
           for tag in ${{ github.event.inputs.backfill_tags }}; do
@@ -127,6 +132,7 @@ jobs:
             }
 
             git checkout "refs/tags/$tag" -- docs
+            git checkout "$current_ref" -- docs/overrides/javascript/extra.js
 
             if [[ "$tag" == "$latest_tag" ]]; then
               pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$tag" latest

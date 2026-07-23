@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/v0.3.1/CLI/mapper/">
+        <link rel="canonical" href="https://wangyibin.github.io/CPhasing/v0.3.1/tutorials/porec/porec_tetraploid_hifiasm_hap_aware/">
       
       
-        <link rel="prev" href="../../tutorials/hic/hic_sugarcane/">
+        <link rel="prev" href="../porec_monoploid/">
       
       
-        <link rel="next" href="../methalign/">
+        <link rel="next" href="../porec_hexaploid_sweet_potato/">
       
       
         
@@ -29,19 +29,19 @@
     
     
       
-        <title>Mapper - C-Phasing</title>
+        <title>Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例） - C-Phasing</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.fba56155.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.fba56155.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
 
@@ -60,9 +60,9 @@
       
     
     
-      <link rel="stylesheet" href="../../stylesheets/style.css">
+      <link rel="stylesheet" href="../../../stylesheets/style.css">
     
-    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    <script>__md_scope=new URL("../../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
       
   
@@ -97,7 +97,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#_1" class="md-skip">
+        <a href="#pore-c-hifiasm" class="md-skip">
           跳转至
         </a>
       
@@ -155,7 +155,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Mapper
+              Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
             
           </span>
         </div>
@@ -275,7 +275,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   主页
@@ -291,7 +291,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../installation/" class="md-tabs__link">
+      <a href="../../../installation/" class="md-tabs__link">
         
   
   安装
@@ -307,7 +307,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../basic_usage/" class="md-tabs__link">
+      <a href="../../../basic_usage/" class="md-tabs__link">
         
   
   快速开始
@@ -321,21 +321,7 @@
   
   
   
-  
     
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      
-  
-  
   
   
     
@@ -345,6 +331,24 @@
       
         
       
+    
+    
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
         
       
         
@@ -355,8 +359,8 @@
     
     
     
-      <li class="md-tabs__item">
-        <a href="../../tutorials/porec/porec_monoploid/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../porec_monoploid/" class="md-tabs__link">
           
   
   教程
@@ -374,8 +378,6 @@
   
   
   
-    
-  
   
     
       
@@ -398,8 +400,8 @@
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="././" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../CLI/mapper/" class="md-tabs__link">
           
   
   工具
@@ -416,7 +418,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../citation/" class="md-tabs__link">
+      <a href="../../../citation/" class="md-tabs__link">
         
   
   引用
@@ -443,7 +445,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../faq/" class="md-tabs__link">
+        <a href="../../../faq/" class="md-tabs__link">
           
   
   其它
@@ -505,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -531,7 +533,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
+      <a href="../../../installation/" class="md-nav__link">
         
   
   
@@ -559,7 +561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../basic_usage/" class="md-nav__link">
+      <a href="../../../basic_usage/" class="md-nav__link">
         
   
   
@@ -582,10 +584,670 @@
       
   
   
+    
+  
   
   
     
     
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  教程
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  教程
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C&HiFi-C
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Pore-C&HiFi-C
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../porec_monoploid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  单倍体或单套基因组的挂载
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-contig-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.1：生成初始 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-pore-c-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.2：将 Pore-C 数据比对回 Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-pore-c-pseudo-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-hifiasm-hi-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 准备合并的 FASTA 文件
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 准备合并的 FASTA 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        重要提示：确保 Contig 名称唯一
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 提供初始单倍型聚类文件（<code>-fc</code>）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-c-phasingpore-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. 运行 C-Phasing（Pore-C + hapaware）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../porec_hexaploid_sweet_potato/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  六倍体甘薯组装与挂载教程（Pore-C 模式）
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../porec_decaploid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  同源十倍体组装(Pore-C)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../porec_sugarcane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  现代栽培甘蔗组装(Pore-C)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hi-C
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  Hi-C
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_monoploid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  单倍体或单套基因组的挂载
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_tetraploid_hifiasm_hap_aware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hi-C 教程：基于 hifiasm hap 组装的 haplotype-aware scaffolding（四倍体示例）
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_hexaploid_sweet_potato/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  六倍体甘薯组装与挂载教程
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_decaploid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  同源十倍体组装(Hi-C)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hic/hic_sugarcane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  现代栽培甘蔗组装(Hi-C)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
       
         
       
@@ -611,18 +1273,14 @@
   
   
   
-    
-  
-  
-  
-    <a href="../../tutorials/porec/porec_monoploid/" class="md-nav__link">
+    <a href="../../../CLI/mapper/" class="md-nav__link">
       
   
   
   <span class="md-ellipsis">
     
   
-  教程
+  工具
 
     
   </span>
@@ -635,383 +1293,6 @@
     </a>
   
 
-  
-
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-        
-        
-      
-      
-        
-      
-    
-    
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  工具
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-  工具
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Mapper
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Mapper
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="目录">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      目录
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        示例
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="示例">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#cellpore-c" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        处理单个cell的Pore-C数据
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cellpore-c_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        处理多个cell的Pore-C数据
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cellhifi-c" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        处理单个cell的HiFi-C数据
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cellhifi-c_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        处理多个cell的HiFi-C数据
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../methalign/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Methalign
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../hic_mapper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  HiC Mapper
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../prepartition/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  同源染色体聚类 (Prepartition)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../collapse/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Collapse
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../rename/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Rename
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../plot/" class="md-nav__link">
-        
-  
-  
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-  
-  <span class="md-ellipsis">
-    
-  
-  Plot
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
       
     </li>
   
@@ -1024,7 +1305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../citation/" class="md-nav__link">
+      <a href="../../../citation/" class="md-nav__link">
         
   
   
@@ -1076,7 +1357,7 @@
   
   
   
-    <a href="../../faq/" class="md-nav__link">
+    <a href="../../../faq/" class="md-nav__link">
       
   
   
@@ -1115,6 +1396,8 @@
                     
                     
                     
+                      
+                    
                     
                       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
                       <div class="md-sidebar-button__wrapper">
@@ -1130,6 +1413,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1138,22 +1423,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#1-contig-pore-c-pseudo-hi-c" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        示例
+        1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="示例">
+    <nav class="md-nav" aria-label="1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#cellpore-c" class="md-nav__link">
+  <a href="#11-unitigs" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        处理单个cell的Pore-C数据
+        步骤 1.1：生成初始 Unitigs
       </span>
     </span>
   </a>
@@ -1161,10 +1446,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cellpore-c_1" class="md-nav__link">
+  <a href="#12-pore-c-unitigs" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        处理多个cell的Pore-C数据
+        步骤 1.2：将 Pore-C 数据比对回 Unitigs
       </span>
     </span>
   </a>
@@ -1172,10 +1457,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cellhifi-c" class="md-nav__link">
+  <a href="#13-pore-c-pseudo-hi-c" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        处理单个cell的HiFi-C数据
+        步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据
       </span>
     </span>
   </a>
@@ -1183,10 +1468,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cellhifi-c_1" class="md-nav__link">
+  <a href="#14-hifiasm-hi-c" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        处理多个cell的HiFi-C数据
+        步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）
       </span>
     </span>
   </a>
@@ -1195,6 +1480,56 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-fasta" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 准备合并的 FASTA 文件
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 准备合并的 FASTA 文件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        重要提示：确保 Contig 名称唯一
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-fc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 提供初始单倍型聚类文件（<code>-fc</code>）
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-c-phasingpore-c-hapaware" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. 运行 C-Phasing（Pore-C + hapaware）
+      </span>
+    </span>
+  </a>
   
 </li>
       
@@ -1217,64 +1552,100 @@
     
       
     
-    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/CLI/mapper.md" title="查看本页的源代码" class="md-content__button md-icon">
+    <a href="https://github.com/wangyibin/CPhasing/raw/main/docs/zh/tutorials/porec/porec_tetraploid_hifiasm_hap_aware.md" title="查看本页的源代码" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5"/></svg>
     </a>
   
 
 
-  <h1 id="__skip">Mapper</h1>
-
-<p><code>cphasing mapper</code> 是用来处理<strong>Pore-C</strong>或者<strong>HiFi-C</strong>数据的，它输出两个文件:  <br />
-    （1）存储高阶互作信息的porec table(<code>.porec.gz</code>)<br />
-    （2）存储虚拟成对（VPC）互作的4DN pairs (<code>.pairs.pqs</code>) </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>HiFi-C数据目前也以<code>.porec.gz</code>后缀命名，内容是一样的。</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>默认情况下，<code>cphasing mapper</code> 使用 <code>minimap2</code> 作为比对软件。你可以通过 <code>-a</code> 或 <code>--aligner</code> 选项来指定不同的比对工具：
-- <strong><code>minimap2</code></strong> (默认): 标准长读长比对工具。
-- <strong><code>c3align</code></strong>: 在多倍体里面获得更多有效互作，但会牺牲一定的准确度。</p>
-</div>
-<h2 id="_1">示例<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<h3 id="cellpore-c">处理单个cell的Pore-C数据<a class="headerlink" href="#cellpore-c" title="Permanent link">&para;</a></h3>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+<h1 id="pore-c-hifiasm">Pore-C 教程：基于 hifiasm 单倍型组装结果的单倍型感知挂载（以四倍体为例）<a class="headerlink" href="#pore-c-hifiasm" title="Permanent link">&para;</a></h1>
+<p>本教程介绍如何使用 <strong>Hifiasm（结合 Pore-C 转换的 Pseudo-Hi-C 数据）</strong> 构建四倍体基因组的<strong>预分离单倍型（pre-separated haplotypes）</strong>，然后使用 <strong>C-Phasing</strong> 的<strong>单倍型感知</strong>模式（<code>--mode hapaware</code>）对其进行染色体水平的挂载（Scaffolding）。</p>
+<p>该工作流的目标是在保持单倍型一致性的同时，产生染色体水平的挂载结果。</p>
+<hr />
+<h2 id="1-contig-pore-c-pseudo-hi-c">1. 单倍型解析的 Contig 组装（Pore-C 转 Pseudo-Hi-C）<a class="headerlink" href="#1-contig-pore-c-pseudo-hi-c" title="Permanent link">&para;</a></h2>
+<p>在挂载之前，我们通过将 Pore-C 数据转换为虚拟的、双端（paired-end）的“pseudo-Hi-C”数据来引导 Hifiasm 的分型算法，从而生成单倍型解析的 contigs。</p>
+<h3 id="11-unitigs">步骤 1.1：生成初始 Unitigs<a class="headerlink" href="#11-unitigs" title="Permanent link">&para;</a></h3>
+<p>首先，在默认模式下使用 PacBio HiFi 测序数据运行 <code>hifiasm</code> 以生成初级 unitigs，并将 GFA 图结构转换为 FASTA 格式：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>hifi.fastq.gz
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>gfatools<span class="w"> </span>gfa2fa<span class="w"> </span>hifi.asm.p_utg.gfa<span class="w"> </span>&gt;<span class="w"> </span>hifi.asm.p_utg.fasta
 </span></code></pre></div>
-<h3 id="cellpore-c_1">处理多个cell的Pore-C数据<a class="headerlink" href="#cellpore-c_1" title="Permanent link">&para;</a></h3>
-<h4 id="_2">一个脚本完成比对<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h4>
-<p><div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>sample2.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
+<h3 id="12-pore-c-unitigs">步骤 1.2：将 Pore-C 数据比对回 Unitigs<a class="headerlink" href="#12-pore-c-unitigs" title="Permanent link">&para;</a></h3>
+<p>将 Pore-C 数据比对回生成的 unitigs 以捕获多维相互作用（multi-way contact）信息：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>hifi.asm.p_utg.fasta<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span>-o<span class="w"> </span>porec_reads.porec.gz
 </span></code></pre></div>
-or 
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample*.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>
-</span></code></pre></div></p>
-<div class="admonition note">
+<h3 id="13-pore-c-pseudo-hi-c">步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据<a class="headerlink" href="#13-pore-c-pseudo-hi-c" title="Permanent link">&para;</a></h3>
+<p>将多维相互作用的 Pore-C 比对结果转换为虚拟的、标准双端 "pseudo-Hi-C" 数据（即 <code>porec2hic_R1.fa.gz</code> 和 <code>porec2hic_R2.fa.gz</code>）：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2reads<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+</span></code></pre></div>
+<h3 id="14-hifiasm-hi-c">步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）<a class="headerlink" href="#14-hifiasm-hi-c" title="Permanent link">&para;</a></h3>
+<p>使用 PacBio HiFi 数据以及新生成的 pseudo-Hi-C 双端数据运行 <code>hifiasm</code> 的 Hi-C 模式，以获得分型后的 contig 数据集：</p>
+<div class="admonition note 提示">
 <p class="admonition-title">Note</p>
-<p>结果使用第一个文件的前缀作为输出前缀</p>
+<p>在与步骤 1.1 相同的目录下执行此命令将复用旧的缓存文件，从而允许 <code>hifiasm</code> 跳过最耗时的 HiFi 读长纠错（correction）和重叠（overlapping）阶段。</p>
 </div>
-<h4 id="_3">分别提交到集群<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h4>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>hifi.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>--h1<span class="w"> </span>porec2hic_R1.fa.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span>--h2<span class="w"> </span>porec2hic_R2.fa.gz<span class="w"> </span>
+</span></code></pre></div>
+<p>这将会产生不同单倍型的组装结果（例如，<code>hifi.asm.hic.hap1.p_ctg.fasta</code> 到 <code>hifi.asm.hic.hap4.p_ctg.fasta</code>）。</p>
+<hr />
+<h2 id="2-fasta">2. 准备合并的 FASTA 文件<a class="headerlink" href="#2-fasta" title="Permanent link">&para;</a></h2>
+<p>C-Phasing 需要输入单个组装 FASTA 文件作为待挂载的 contig 集合。<br />
+对于单倍型感知挂载，需要将刚才输出的各个单倍型组装结果合并为一个单独的 FASTA 文件：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cat<span class="w"> </span>hifi.asm.hic.hap1.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>hifi.asm.hic.hap2.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>hifi.asm.hic.hap3.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>hifi.asm.hic.hap4.p_ctg.fasta<span class="w"> </span>&gt;<span class="w"> </span>haps.concat.fa
+</span></code></pre></div>
+<h3 id="contig">重要提示：确保 Contig 名称唯一<a class="headerlink" href="#contig" title="Permanent link">&para;</a></h3>
+<p>请确保不同单倍型之间的 Contig ID 是唯一的。如果 hifiasm 默认已经为每个单倍型的 contig 添加了前缀（默认即是如此），则直接合并即可。否则，请重命名 contigs 以避免命名冲突。</p>
+<hr />
+<h2 id="3-fc">3. 提供初始单倍型聚类文件（<code>-fc</code>）<a class="headerlink" href="#3-fc" title="Permanent link">&para;</a></h2>
+<p><code>--mode hapaware</code> 专为<strong>已预先分离</strong>的单倍型设计。<br />
+提供初始聚类文件有助于 C-Phasing 在挂载时维持并保护这些单倍型的一致性。</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>fa2cluster<span class="w"> </span>haps.concat.fa<span class="w"> </span>-o<span class="w"> </span>haps.clusters.txt<span class="w"> </span>
+</span></code></pre></div>
+<p>生成的 <code>haps.clusters.txt</code> 应包含两列内容：</p>
+<ol>
+<li><code>group_id</code> (单倍型组 ID)</li>
+<li><code>contig_id</code> (Contig ID)</li>
+</ol>
+<p>示例（示意）：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>h1   h1tg000001l
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>h1   h1tg000002l
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>h2   h2tg000001l
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>h2   h2tg000002l
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>h3   h3tg000001l
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>h4   h4tg000001l
+</span></code></pre></div>
+<blockquote>
+<p>提示：在单倍型感知模式（hapaware）下，<code>-fc haps.clusters.txt</code> 是引入单倍型先验信息的关键输入。</p>
+</blockquote>
+<hr />
+<h2 id="4-c-phasingpore-c-hapaware">4. 运行 C-Phasing（Pore-C + hapaware）<a class="headerlink" href="#4-c-phasingpore-c-hapaware" title="Permanent link">&para;</a></h2>
+<p>结合原始的 Pore-C 数据并开启 <code>--mode hapaware</code> 运行主流程。这里我们挂载一个基本染色体数为 12 的四倍体（$2n = 4x = 48$，因此 <code>-n 4:12</code>）：</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-f<span class="w"> </span>haps.concat.fa<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-pcd<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--mode<span class="w"> </span>hapaware<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>-fc<span class="w"> </span>haps.clusters.txt<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>-o<span class="w"> </span>cphasing_hapaware_out<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-t<span class="w"> </span><span class="m">32</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span>:12
+</span></code></pre></div>
+<div class="admonition note 提示">
+<p class="admonition-title">Note</p>
 <ul>
-<li>使用多个脚本提交任务到不同节点
-<div class="language-shell highlight"><span class="filename">run_sample1.sh</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample1.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
-</span></code></pre></div>
-<div class="language-shell highlight"><span class="filename">run_sample2.sh</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample2.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
-</span></code></pre></div>
-<div class="language-shell highlight"><span class="filename">run_sample3.sh</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample3.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span>
+<li>如果需要，可以为第二步的分群（partition）设置比对质量阈值：
+    <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>...<span class="w"> </span>-q2<span class="w"> </span><span class="m">0</span><span class="w"> </span>
 </span></code></pre></div></li>
 </ul>
-<ul>
-<li>合并结果
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cphasing-rs<span class="w"> </span>porec-merge<span class="w"> </span>sample1.porec.porec.gz<span class="w"> </span>sample2.porec.porec.gz<span class="w"> </span>sample3.porec.porec.gz<span class="w"> </span>-o<span class="w"> </span>sample.merge.porec.gz
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cphasing-rs<span class="w"> </span>pairs-merge<span class="w"> </span>sample1.porec.pairs.pqs<span class="w"> </span>sample2.porec.pairs.pqs<span class="w"> </span>sample3.porec.pairs.pqs<span class="w"> </span>-o<span class="w"> </span>sample.merge.pairs.pqs
-</span></code></pre></div></li>
-</ul>
-<h3 id="cellhifi-c">处理单个cell的HiFi-C数据<a class="headerlink" href="#cellhifi-c" title="Permanent link">&para;</a></h3>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>draft.contigs.fasta<span class="w"> </span>sample.porec.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">40</span><span class="w"> </span>--mm2-params<span class="w"> </span><span class="s2">&quot;-x map-hifi&quot;</span>
-</span></code></pre></div>
-<h3 id="cellhifi-c_1">处理多个cell的HiFi-C数据<a class="headerlink" href="#cellhifi-c_1" title="Permanent link">&para;</a></h3>
-<p>与处理Pore-C数据的步骤一致，但需要加<code>--mm2-params "-x map-hifi"</code>参数。</p>
+</div>
 
 
 
@@ -1316,7 +1687,7 @@ or
       <nav class="md-footer__inner md-grid" aria-label="页脚" >
         
           
-          <a href="../../tutorials/hic/hic_sugarcane/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 现代栽培甘蔗组装(Hi-C)">
+          <a href="../porec_monoploid/" class="md-footer__link md-footer__link--prev" aria-label="上一页: 单倍体或单套基因组的挂载">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1326,20 +1697,20 @@ or
                 上一页
               </span>
               <div class="md-ellipsis">
-                现代栽培甘蔗组装(Hi-C)
+                单倍体或单套基因组的挂载
               </div>
             </div>
           </a>
         
         
           
-          <a href="../methalign/" class="md-footer__link md-footer__link--next" aria-label="下一页: Methalign">
+          <a href="../porec_hexaploid_sweet_potato/" class="md-footer__link md-footer__link--next" aria-label="下一页: 六倍体甘薯组装与挂载教程（Pore-C 模式）">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 下一页
               </span>
               <div class="md-ellipsis">
-                Methalign
+                六倍体甘薯组装与挂载教程（Pore-C 模式）
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1398,12 +1769,12 @@ or
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["announce.dismiss","content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"已复制","clipboard.copy":"复制","search.result.more.one":"在该页上还有 1 个符合条件的结果","search.result.more.other":"在该页上还有 # 个符合条件的结果","search.result.none":"没有找到符合条件的结果","search.result.one":"找到 1 个符合条件的结果","search.result.other":"# 个符合条件的结果","search.result.placeholder":"键入以开始搜索","search.result.term.missing":"缺少","select.version":"选择当前版本"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["announce.dismiss","content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"已复制","clipboard.copy":"复制","search.result.more.one":"在该页上还有 1 个符合条件的结果","search.result.more.other":"在该页上还有 # 个符合条件的结果","search.result.none":"没有找到符合条件的结果","search.result.one":"找到 1 个符合条件的结果","search.result.other":"# 个符合条件的结果","search.result.placeholder":"键入以开始搜索","search.result.term.missing":"缺少","select.version":"选择当前版本"},"version":{"provider":"mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.6e5f0216.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.6e5f0216.min.js"></script>
       
-        <script src="../../javascript/extra.js"></script>
+        <script src="../../../javascript/extra.js"></script>
       
     
   </body>

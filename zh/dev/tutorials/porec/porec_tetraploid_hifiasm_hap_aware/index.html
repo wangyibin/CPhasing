@@ -1579,7 +1579,7 @@
 </span></code></pre></div>
 <h3 id="13-pore-c-pseudo-hi-c">步骤 1.3：将 Pore-C 转换为 Pseudo-Hi-C 数据<a class="headerlink" href="#13-pore-c-pseudo-hi-c" title="Permanent link">&para;</a></h3>
 <p>将多维相互作用的 Pore-C 比对结果转换为虚拟的、标准双端 "pseudo-Hi-C" 数据（即 <code>porec2hic_R1.fa.gz</code> 和 <code>porec2hic_R2.fa.gz</code>）：</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2reads<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
 </span></code></pre></div>
 <h3 id="14-hifiasm-hi-c">步骤 1.4：使用 Hifiasm 进行组装解析（Hi-C 模式）<a class="headerlink" href="#14-hifiasm-hi-c" title="Permanent link">&para;</a></h3>
 <p>使用 PacBio HiFi 数据以及新生成的 pseudo-Hi-C 双端数据运行 <code>hifiasm</code> 的 Hi-C 模式，以获得分型后的 contig 数据集：</p>

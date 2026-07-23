@@ -87,32 +87,17 @@
       return /^(v?\d+\.\d+\.\d+|latest|dev|stable)$/i.test(str);
     }
 
-    // Helper to parse any documentation path under current deployment structure
+    // Parse paths as [language]/[version]/[page].
+    // Chinese docs are deployed by mike with "--deploy-prefix zh".
     function parseMkDocsPath(path, rootPath) {
       const relative = path.substring(rootPath.length);
       const segments = relative.split("/").filter(Boolean);
 
-      let version = "";
-      let isZh = false;
-      let pagePath = "";
+      const language = segments[0] === "zh" ? segments.shift() : "";
+      const version = isVersionSegment(segments[0]) ? segments.shift() : "";
+      const pagePath = segments.join("/");
 
-      if (rootPath === "/CPhasing/") {
-        // Production environment with subpath
-        version = segments[0] || "";
-        isZh = segments[1] === "zh";
-        pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
-      } else {
-        // Local preview environment
-        if (segments.length > 0 && isVersionSegment(segments[0])) {
-          version = segments[0];
-          isZh = segments[1] === "zh";
-          pagePath = (isZh ? segments.slice(2) : segments.slice(1)).join("/");
-        } else {
-          isZh = segments[0] === "zh";
-          pagePath = (isZh ? segments.slice(1) : segments).join("/");
-        }
-      }
-      return { version, isZh, pagePath };
+      return { version, isZh: language === "zh", pagePath };
     }
 
     function fixLanguageAndVersionLinks() {
@@ -130,15 +115,17 @@
       const langLinks = document.querySelectorAll(".md-select__link[hreflang]");
       langLinks.forEach((link) => {
         const lang = link.getAttribute("hreflang");
-        let targetPath = rootPath;
-        if (currentInfo.version) {
-          targetPath += currentInfo.version + "/";
-        }
+        const targetSegments = [];
         if (lang === "zh") {
-          targetPath += "zh/";
+          targetSegments.push("zh");
         }
-        targetPath += currentInfo.pagePath;
-        targetPath = targetPath.replace(/\/+/g, "/");
+        if (currentInfo.version) {
+          targetSegments.push(currentInfo.version);
+        }
+        if (currentInfo.pagePath) {
+          targetSegments.push(currentInfo.pagePath);
+        }
+        const targetPath = rootPath + targetSegments.join("/");
         link.href = targetPath + suffix;
       });
 
@@ -151,15 +138,17 @@
           const testUrl = new URL(link.href, location.origin);
           const targetInfo = parseMkDocsPath(testUrl.pathname, rootPath);
 
-          let targetPath = rootPath;
-          if (targetInfo.version) {
-            targetPath += targetInfo.version + "/";
-          }
+          const targetSegments = [];
           if (currentInfo.isZh) {
-            targetPath += "zh/";
+            targetSegments.push("zh");
           }
-          targetPath += currentInfo.pagePath;
-          targetPath = targetPath.replace(/\/+/g, "/");
+          if (targetInfo.version) {
+            targetSegments.push(targetInfo.version);
+          }
+          if (currentInfo.pagePath) {
+            targetSegments.push(currentInfo.pagePath);
+          }
+          const targetPath = rootPath + targetSegments.join("/");
           link.href = targetPath + suffix;
         });
       }

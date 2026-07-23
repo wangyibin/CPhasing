@@ -1521,7 +1521,7 @@
 </span></code></pre></div>
 <h3 id="13-pore-c-hi-c">步骤 1.3：将 Pore-C 转换为伪 Hi-C 测序数据<a class="headerlink" href="#13-pore-c-hi-c" title="Permanent link">&para;</a></h3>
 <p>将多互作的 Pore-C 比对结果转换为虚拟的双端“伪 Hi-C”（pseudo-Hi-C）数据，使其与 Hifiasm 的单倍型分相（phasing）算法兼容：</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2reads<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
 </span></code></pre></div>
 <h3 id="14-hifiasm-hi-c">步骤 1.4：使用 Hifiasm 进行分相组装（Hi-C 模式）<a class="headerlink" href="#14-hifiasm-hi-c" title="Permanent link">&para;</a></h3>
 <p>使用 PacBio HiFi 测序数据和新生成的双端伪 Hi-C 数据运行 Hi-C 模式下的 <code>hifiasm</code>，以获得高连续性的分相 contigs：</p>

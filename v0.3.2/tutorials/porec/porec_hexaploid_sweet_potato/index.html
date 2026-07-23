@@ -1532,7 +1532,7 @@
 </span></code></pre></div>
 <h3 id="step-13-convert-pore-c-to-pseudo-hi-c-reads">Step 1.3: Convert Pore-C to Pseudo-Hi-C Reads<a class="headerlink" href="#step-13-convert-pore-c-to-pseudo-hi-c-reads" title="Permanent link">&para;</a></h3>
 <p>Convert the multi-contact Pore-C alignments into virtual paired-end "pseudo-Hi-C" reads to make them compatible with Hifiasm's phasing algorithm:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2reads<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
 </span></code></pre></div>
 <h3 id="step-14-resolve-assembly-with-hifiasm-hi-c-mode">Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)<a class="headerlink" href="#step-14-resolve-assembly-with-hifiasm-hi-c-mode" title="Permanent link">&para;</a></h3>
 <p>Run <code>hifiasm</code> in Hi-C mode using the PacBio HiFi reads along with the newly generated pseudo-Hi-C paired-end reads to obtain highly contiguous, phased contigs:</p>

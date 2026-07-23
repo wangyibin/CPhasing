@@ -24,7 +24,7 @@
         
       
       
-      <link rel="icon" href="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png">
+      <link rel="icon" href="../../../assets/logo.png">
       <meta name="generator" content="zensical-0.0.45">
     
     
@@ -115,6 +115,27 @@
     </div>
     <div data-md-component="announce">
       
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+              <button class="md-banner__button md-icon" aria-label="Don't show this again">
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            
+            
+⭐ If C-Phasing helps your research, please
+  <a href="#" onclick="window.open('https://github.com/wangyibin/CPhasing', 'github-star', 'width=600,height=700'); return false;">
+    star our GitHub repository
+  </a>
+  — it really helps us out!
+
+          </div>
+          
+            <script>var el=document.querySelector("[data-md-component=announce]");if(el){var content=el.querySelector(".md-typeset");__md_hash(content.innerHTML)===__md_get("__announce")&&(el.hidden=!0)}</script>
+          
+        </aside>
+      
     </div>
     
       <div data-md-color-scheme="default" data-md-component="outdated" hidden>
@@ -128,7 +149,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-header__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
-  <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing">
+  <img src="../../../assets/logo.png" alt="C-Phasing">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
@@ -470,7 +491,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://wangyibin.github.io/CPhasing" title="C-Phasing" class="md-nav__button md-logo" aria-label="C-Phasing" data-md-component="logo">
       
-  <img src="https://raw.githubusercontent.com/wangyibin/CPhasing/main/docs/logo/logo.png" alt="C-Phasing">
+  <img src="../../../assets/logo.png" alt="C-Phasing">
 
     </a>
     C-Phasing
@@ -795,22 +816,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0-prerequisites" class="md-nav__link">
+  <a href="#1-haplotype-resolved-contig-assembly-pore-c-to-pseudo-hi-c" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        0. Prerequisites
+        1. Haplotype-Resolved Contig Assembly (Pore-C to Pseudo-Hi-C)
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="0. Prerequisites">
+    <nav class="md-nav" aria-label="1. Haplotype-Resolved Contig Assembly (Pore-C to Pseudo-Hi-C)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#input-data" class="md-nav__link">
+  <a href="#step-11-generate-initial-unitigs" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Input data
+        Step 1.1: Generate Initial Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-12-map-pore-c-reads-to-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.2: Map Pore-C Reads to Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-13-convert-pore-c-to-pseudo-hi-c-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.3: Convert Pore-C to Pseudo-Hi-C Reads
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-14-resolve-assembly-with-hifiasm-hi-c-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)
       </span>
     </span>
   </a>
@@ -823,15 +877,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-prepare-a-combined-fasta-recommended" class="md-nav__link">
+  <a href="#2-prepare-a-combined-fasta" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Prepare a combined FASTA (recommended)
+        2. Prepare a combined FASTA
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Prepare a combined FASTA (recommended)">
+    <nav class="md-nav" aria-label="2. Prepare a combined FASTA">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -851,10 +905,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
+  <a href="#3-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Provide an initial haplotype clustering file (<code>-fc</code>)
+        3. Provide an initial haplotype clustering file (<code>-fc</code>)
       </span>
     </span>
   </a>
@@ -862,10 +916,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-run-c-phasing-hi-c-hapaware" class="md-nav__link">
+  <a href="#4-run-c-phasing-pore-c-hapaware" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Run C-Phasing (Hi-C + hapaware)
+        4. Run C-Phasing (Pore-C + hapaware)
       </span>
     </span>
   </a>
@@ -1380,22 +1434,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0-prerequisites" class="md-nav__link">
+  <a href="#1-haplotype-resolved-contig-assembly-pore-c-to-pseudo-hi-c" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        0. Prerequisites
+        1. Haplotype-Resolved Contig Assembly (Pore-C to Pseudo-Hi-C)
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="0. Prerequisites">
+    <nav class="md-nav" aria-label="1. Haplotype-Resolved Contig Assembly (Pore-C to Pseudo-Hi-C)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#input-data" class="md-nav__link">
+  <a href="#step-11-generate-initial-unitigs" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Input data
+        Step 1.1: Generate Initial Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-12-map-pore-c-reads-to-unitigs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.2: Map Pore-C Reads to Unitigs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-13-convert-pore-c-to-pseudo-hi-c-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.3: Convert Pore-C to Pseudo-Hi-C Reads
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-14-resolve-assembly-with-hifiasm-hi-c-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)
       </span>
     </span>
   </a>
@@ -1408,15 +1495,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#1-prepare-a-combined-fasta-recommended" class="md-nav__link">
+  <a href="#2-prepare-a-combined-fasta" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Prepare a combined FASTA (recommended)
+        2. Prepare a combined FASTA
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Prepare a combined FASTA (recommended)">
+    <nav class="md-nav" aria-label="2. Prepare a combined FASTA">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1436,10 +1523,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
+  <a href="#3-provide-an-initial-haplotype-clustering-file-fc" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Provide an initial haplotype clustering file (<code>-fc</code>)
+        3. Provide an initial haplotype clustering file (<code>-fc</code>)
       </span>
     </span>
   </a>
@@ -1447,10 +1534,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-run-c-phasing-hi-c-hapaware" class="md-nav__link">
+  <a href="#4-run-c-phasing-pore-c-hapaware" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Run C-Phasing (Hi-C + hapaware)
+        4. Run C-Phasing (Pore-C + hapaware)
       </span>
     </span>
   </a>
@@ -1484,43 +1571,56 @@
 
 
 <h1 id="pore-c-tutorial-haplotype-aware-scaffolding-from-hifiasm-hap-assemblies-tetraploid-example">Pore-C tutorial: haplotype-aware scaffolding from hifiasm hap assemblies (tetraploid example)<a class="headerlink" href="#pore-c-tutorial-haplotype-aware-scaffolding-from-hifiasm-hap-assemblies-tetraploid-example" title="Permanent link">&para;</a></h1>
-<p>This tutorial shows how to scaffold <strong>pre-separated haplotypes</strong> produced by <strong>hifiasm</strong> using <strong>C-Phasing</strong> in <strong>haplotype-aware</strong> mode (<code>--mode hapaware</code>) with <strong>Hi-C</strong> data.</p>
+<p>This tutorial shows how to construct <strong>pre-separated haplotypes</strong> of a tetraploid genome using <strong>Hifiasm (with Pore-C converted Pseudo-Hi-C data)</strong>, and then scaffold them using <strong>C-Phasing</strong> in <strong>haplotype-aware</strong> mode (<code>--mode hapaware</code>).</p>
 <p>The goal is to keep haplotypes consistent while producing chromosome-scale scaffolds.</p>
 <hr />
-<h2 id="0-prerequisites">0. Prerequisites<a class="headerlink" href="#0-prerequisites" title="Permanent link">&para;</a></h2>
-<h3 id="input-data">Input data<a class="headerlink" href="#input-data" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>hifiasm haplotype assemblies</strong> (FASTA), for example:<ul>
-<li><code>hap1.fa</code></li>
-<li><code>hap2.fa</code></li>
-<li><code>hap3.fa</code></li>
-<li><code>hap4.fa</code></li>
-</ul>
-</li>
-<li><strong>Pore-C read pairs</strong> (FASTQ), for example:<ul>
-<li><code>porec_reads.fastq.gz</code></li>
-</ul>
-</li>
-</ul>
-<blockquote>
-<p>Notes
-- This tutorial assumes you already have haplotype-separated assemblies (one FASTA per haplotype).
-- If you have hifiasm <code>*.hap*.p_ctg.fasta</code> outputs, convert/select the hap FASTA files you want to scaffold.</p>
-</blockquote>
+<h2 id="1-haplotype-resolved-contig-assembly-pore-c-to-pseudo-hi-c">1. Haplotype-Resolved Contig Assembly (Pore-C to Pseudo-Hi-C)<a class="headerlink" href="#1-haplotype-resolved-contig-assembly-pore-c-to-pseudo-hi-c" title="Permanent link">&para;</a></h2>
+<p>Before scaffolding, we generate haplotype-resolved contigs by converting Pore-C reads into virtual paired-end "pseudo-Hi-C" reads to guide Hifiasm's phasing.</p>
+<h3 id="step-11-generate-initial-unitigs">Step 1.1: Generate Initial Unitigs<a class="headerlink" href="#step-11-generate-initial-unitigs" title="Permanent link">&para;</a></h3>
+<p>First, run <code>hifiasm</code> in default mode using PacBio HiFi reads to generate the primary unitigs, and convert the GFA graph structure to FASTA format:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span>hifi.fastq.gz
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>gfatools<span class="w"> </span>gfa2fa<span class="w"> </span>hifi.asm.p_utg.gfa<span class="w"> </span>&gt;<span class="w"> </span>hifi.asm.p_utg.fasta
+</span></code></pre></div>
+<h3 id="step-12-map-pore-c-reads-to-unitigs">Step 1.2: Map Pore-C Reads to Unitigs<a class="headerlink" href="#step-12-map-pore-c-reads-to-unitigs" title="Permanent link">&para;</a></h3>
+<p>Map your Pore-C reads back to the generated unitigs to capture multi-way contact information:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>mapper<span class="w"> </span>hifi.asm.p_utg.fasta<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span>-o<span class="w"> </span>porec_reads.porec.gz
+</span></code></pre></div>
+<h3 id="step-13-convert-pore-c-to-pseudo-hi-c-reads">Step 1.3: Convert Pore-C to Pseudo-Hi-C Reads<a class="headerlink" href="#step-13-convert-pore-c-to-pseudo-hi-c-reads" title="Permanent link">&para;</a></h3>
+<p>Convert the multi-contact Pore-C alignments into virtual paired-end "pseudo-Hi-C" reads (<code>porec2hic_R1.fa.gz</code> and <code>porec2hic_R2.fa.gz</code>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cphasing-rs<span class="w"> </span>porec2reads<span class="w"> </span>porec_reads.porec.gz<span class="w"> </span>-l<span class="w"> </span><span class="m">0</span><span class="w"> </span>-o<span class="w"> </span>porec2hic
+</span></code></pre></div>
+<h3 id="step-14-resolve-assembly-with-hifiasm-hi-c-mode">Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)<a class="headerlink" href="#step-14-resolve-assembly-with-hifiasm-hi-c-mode" title="Permanent link">&para;</a></h3>
+<p>Run <code>hifiasm</code> in Hi-C mode using the PacBio HiFi reads along with the newly generated pseudo-Hi-C paired-end reads to obtain phased contig sets:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Executing this command in the same directory as Step 1.1 will reuse the cached files, allowing <code>hifiasm</code> to bypass the time-consuming HiFi read correction and overlapping phases.</p>
+</div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>~/software/hifiasm-0.25.0/hifiasm<span class="w"> </span>-t<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span>-o<span class="w"> </span>hifi.asm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>hifi.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span>--h1<span class="w"> </span>porec2hic_R1.fa.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span>--h2<span class="w"> </span>porec2hic_R2.fa.gz<span class="w"> </span>
+</span></code></pre></div>
+<p>This will produce phased assemblies for haplotypes (e.g., <code>hifi.asm.hic.hap1.p_ctg.fasta</code> to <code>hifi.asm.hic.hap4.p_ctg.fasta</code>).</p>
 <hr />
-<h2 id="1-prepare-a-combined-fasta-recommended">1. Prepare a combined FASTA (recommended)<a class="headerlink" href="#1-prepare-a-combined-fasta-recommended" title="Permanent link">&para;</a></h2>
+<h2 id="2-prepare-a-combined-fasta">2. Prepare a combined FASTA<a class="headerlink" href="#2-prepare-a-combined-fasta" title="Permanent link">&para;</a></h2>
 <p>C-Phasing expects a single assembly FASTA as the contig set to scaffold.<br />
-For hap-aware scaffolding, concatenate the hap assemblies into one FASTA.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cat<span class="w"> </span>hap1.fa<span class="w"> </span>hap2.fa<span class="w"> </span>hap3.fa<span class="w"> </span>hap4.fa<span class="w"> </span>&gt;<span class="w"> </span>haps.concat.fa
+For hap-aware scaffolding, concatenate your output haplotype assemblies into a single FASTA file.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cat<span class="w"> </span>hifi.asm.hic.hap1.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>hifi.asm.hic.hap2.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>hifi.asm.hic.hap3.p_ctg.fasta<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>hifi.asm.hic.hap4.p_ctg.fasta<span class="w"> </span>&gt;<span class="w"> </span>haps.concat.fa
 </span></code></pre></div>
 <h3 id="important-unique-contig-names">Important: unique contig names<a class="headerlink" href="#important-unique-contig-names" title="Permanent link">&para;</a></h3>
-<p>Ensure contig IDs are unique across haplotypes. If hifiasm already prefixes contig names per hap, you are fine. Otherwise, rename contigs to avoid collisions.</p>
-<p>A simple pattern is to add a prefix per haplotype, e.g. <code>h1</code>, <code>h2</code>, <code>h3</code>, <code>h4</code>.</p>
+<p>Ensure contig IDs are unique across haplotypes. If hifiasm already prefixes contig names per hap (which it does by default), you are fine. Otherwise, rename contigs to avoid collisions.</p>
 <hr />
-<h2 id="2-provide-an-initial-haplotype-clustering-file-fc">2. Provide an initial haplotype clustering file (<code>-fc</code>)<a class="headerlink" href="#2-provide-an-initial-haplotype-clustering-file-fc" title="Permanent link">&para;</a></h2>
+<h2 id="3-provide-an-initial-haplotype-clustering-file-fc">3. Provide an initial haplotype clustering file (<code>-fc</code>)<a class="headerlink" href="#3-provide-an-initial-haplotype-clustering-file-fc" title="Permanent link">&para;</a></h2>
 <p><code>--mode hapaware</code> is designed for cases where haplotypes are <strong>already separated</strong>.<br />
 Providing an initial cluster file helps C-Phasing keep haplotypes consistent.</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>fa2cluster<span class="w">  </span>haps.concat.fa<span class="w"> </span>-o<span class="w"> </span>haps.clusters.txt<span class="w"> </span>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cphasing<span class="w"> </span>utils<span class="w"> </span>fa2cluster<span class="w"> </span>haps.concat.fa<span class="w"> </span>-o<span class="w"> </span>haps.clusters.txt<span class="w"> </span>
 </span></code></pre></div>
 <p>Create a <code>haps.clusters.txt</code> with <strong>two columns</strong>:</p>
 <ol>
@@ -1528,32 +1628,32 @@ Providing an initial cluster file helps C-Phasing keep haplotypes consistent.</p
 <li><code>contig_id</code></li>
 </ol>
 <p>Example (illustrative):</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>h1   h1tg000001l
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>h1   h1tg000002l
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>h2   h2tg000001l
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>h2   h2tg000002l
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>h3   h3tg000001l
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>h4   h4tg000001l
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>h1   h1tg000001l
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>h1   h1tg000002l
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>h2   h2tg000001l
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>h2   h2tg000002l
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>h3   h3tg000001l
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>h4   h4tg000001l
 </span></code></pre></div>
 <blockquote>
-<p>Tip: In hap-aware mode, <code>-fc first.clusters.txt</code> is the key input that encodes haplotype priors.</p>
+<p>Tip: In hap-aware mode, <code>-fc haps.clusters.txt</code> is the key input that encodes haplotype priors.</p>
 </blockquote>
 <hr />
-<h2 id="3-run-c-phasing-hi-c-hapaware">3. Run C-Phasing (Hi-C + hapaware)<a class="headerlink" href="#3-run-c-phasing-hi-c-hapaware" title="Permanent link">&para;</a></h2>
-<p>Run the main pipeline with Hi-C read pairs and <code>--mode hapaware</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-f<span class="w"> </span>haps.concat.fa<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-pcd<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--mode<span class="w"> </span>hapaware<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>-fc<span class="w"> </span>haps.clusters.txt<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-o<span class="w"> </span>cphasing_hapaware_out<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span>-t<span class="w"> </span><span class="m">32</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT
+<h2 id="4-run-c-phasing-pore-c-hapaware">4. Run C-Phasing (Pore-C + hapaware)<a class="headerlink" href="#4-run-c-phasing-pore-c-hapaware" title="Permanent link">&para;</a></h2>
+<p>Run the main pipeline with original Pore-C reads and <code>--mode hapaware</code>. Here we scaffold a tetraploid with a basic chromosome number of 12 ($2n = 4x = 48$, so <code>-n 4:12</code>):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-f<span class="w"> </span>haps.concat.fa<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-pcd<span class="w"> </span>porec_reads.fastq.gz<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--mode<span class="w"> </span>hapaware<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>-fc<span class="w"> </span>haps.clusters.txt<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>-o<span class="w"> </span>cphasing_hapaware_out<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-t<span class="w"> </span><span class="m">32</span><span class="w"> </span>-hcr<span class="w"> </span>-p<span class="w"> </span>AAGCTT<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span>:12
 </span></code></pre></div>
-<div class="admonition node">
-<p class="admonition-title">Node</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <ul>
-<li>set mapping quality for 2nd partition:
-    <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>...<span class="w"> </span>-q2<span class="w"> </span><span class="m">0</span><span class="w"> </span>
+<li>Set mapping quality for the second partition step if needed:
+    <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>cphasing<span class="w"> </span>pipeline<span class="w"> </span>...<span class="w"> </span>-q2<span class="w"> </span><span class="m">0</span><span class="w"> </span>
 </span></code></pre></div></li>
 </ul>
 </div>
@@ -1680,7 +1780,7 @@ Providing an initial cluster file helps C-Phasing keep haplotypes consistent.</p
     
       
       
-      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["announce.dismiss","content.tabs.link","content.code.copy","content.code.select","content.code.annotate","content.action.view","content.action.source","content.code.annotate","content.tooltips","navigation.instant","navigation.instant.progress","navigation.tracking","navigation.sections","navigation.prune","navigation.top","navigation.indexes","navigation.footer","navigation.tabs","navigation.version","toc.follow","search.share","search.highlight","search.suggest"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.6e5f0216.min.js"></script>

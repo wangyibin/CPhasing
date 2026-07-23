@@ -28,7 +28,7 @@ cphasing mapper hifi.asm.p_utg.fasta porec_reads.fastq.gz -t 100
 Convert the multi-contact Pore-C alignments into virtual paired-end "pseudo-Hi-C" reads to make them compatible with Hifiasm's phasing algorithm:
 
 ```bash
-cphasing-rs porec2 porec_reads.porec.gz -l 0 -o porec2hic
+cphasing-rs porec2reads porec_reads.porec.gz -l 0 -o porec2hic
 ```
 
 ### Step 1.4: Resolve Assembly with Hifiasm (Hi-C Mode)

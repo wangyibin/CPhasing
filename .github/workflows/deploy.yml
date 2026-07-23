@@ -12,6 +12,10 @@ on:
         description: 'Optional space-separated tags to backfill with mike, e.g. "v0.3.0 v0.3.1"'
         required: false
         default: ''
+      update_docs_version:
+        description: 'Publish docs from the selected ref to an existing version, e.g. "v0.3.2"'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -42,8 +46,15 @@ jobs:
           git fetch --tags --force
           git fetch origin gh-pages:gh-pages || true
 
+      - name: Validate manual deployment inputs
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.backfill_tags != '' && github.event.inputs.update_docs_version != '' }}
+        shell: bash
+        run: |
+          echo "backfill_tags and update_docs_version cannot be used together."
+          exit 1
+
       - name: Deploy current ref with mike
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.backfill_tags == '' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || (github.event.inputs.backfill_tags == '' && github.event.inputs.update_docs_version == '') }}
         shell: bash
         run: |
           set -euo pipefail
@@ -58,6 +69,38 @@ jobs:
           else
             pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases dev 
             pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases dev 
+          fi
+
+      - name: Update existing version with current docs
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update_docs_version != '' }}
+        shell: bash
+        env:
+          UPDATE_DOCS_VERSION: ${{ github.event.inputs.update_docs_version }}
+        run: |
+          set -euo pipefail
+
+          VERSION="$UPDATE_DOCS_VERSION"
+
+          if [[ "$VERSION" != v* ]] || ! git check-ref-format "refs/tags/$VERSION" >/dev/null; then
+            echo "Invalid version tag: $VERSION"
+            exit 1
+          fi
+
+          if ! git rev-parse -q --verify "refs/tags/$VERSION^{commit}" >/dev/null; then
+            echo "Tag not found: $VERSION"
+            exit 1
+          fi
+
+          latest_tag=$(git tag --list 'v*' | sort -V | tail -n 1)
+
+          if [[ "$VERSION" == "$latest_tag" ]]; then
+            pixi run -e docs mike deploy -F mkdocs_en.yml --push --update-aliases "$VERSION" latest
+            pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push --update-aliases "$VERSION" latest
+            pixi run -e docs mike set-default -F mkdocs_en.yml --push latest
+            pixi run -e docs mike set-default -F mkdocs_zh.yml --deploy-prefix zh --push latest
+          else
+            pixi run -e docs mike deploy -F mkdocs_en.yml --push "$VERSION"
+            pixi run -e docs mike deploy -F mkdocs_zh.yml --deploy-prefix zh --push "$VERSION"
           fi
 
       - name: Backfill historical tags with mike

@@ -28,7 +28,7 @@ cphasing mapper hifi.asm.p_utg.fasta porec_reads.fastq.gz -t 100
 将多互作的 Pore-C 比对结果转换为虚拟的双端“伪 Hi-C”（pseudo-Hi-C）数据，使其与 Hifiasm 的单倍型分相（phasing）算法兼容：
 
 ```bash
-cphasing-rs porec2 porec_reads.porec.gz -l 0 -o porec2hic
+cphasing-rs porec2reads porec_reads.porec.gz -l 0 -o porec2hic
 ```
 
 ### 步骤 1.4：使用 Hifiasm 进行分相组装（Hi-C 模式）
